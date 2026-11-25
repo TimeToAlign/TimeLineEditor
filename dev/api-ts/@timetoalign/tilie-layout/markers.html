@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>markers &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api-ts/@timetoalign/tilie-layout/markers';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="member" href="member.html" />
+    <link rel="prev" title="maps" href="maps.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../tilie-core/index.html">@timetoalign/tilie-core</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">@timetoalign/tilie-layout</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ancestors.html">ancestors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anchors.html">anchors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arrangement.html">arrangement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="axes.html">axes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bands.html">bands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="block.html">block</a></li>
+<li class="toctree-l2"><a class="reference internal" href="block/ancestors.html">block/ancestors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="block/arrangement.html">block/arrangement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="block/axes.html">block/axes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="block/emit.html">block/emit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="block/horizontal.html">block/horizontal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="block/items.html">block/items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="block/places.html">block/places</a></li>
+<li class="toctree-l2"><a class="reference internal" href="boxes.html">boxes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="canvas.html">canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cascade.html">cascade</a></li>
+<li class="toctree-l2"><a class="reference internal" href="children.html">children</a></li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html">constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="defaults.html">defaults</a></li>
+<li class="toctree-l2"><a class="reference internal" href="elements.html">elements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="elisions.html">elisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fit.html">fit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flow.html">flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html">geometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="groupstamps.html">groupstamps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="heights.html">heights</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index-1.html">index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="line.html">line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="maps.html">maps</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">markers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="member.html">member</a></li>
+<li class="toctree-l2"><a class="reference internal" href="metrics.html">metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="names.html">names</a></li>
+<li class="toctree-l2"><a class="reference internal" href="numbers.html">numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="regions.html">regions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rotation.html">rotation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rows.html">rows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="slots.html">slots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stacks.html">stacks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="timeline.html">timeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="traversal.html">traversal</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-writers/index.html">@timetoalign/tilie-writers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-client/index.html">@timetoalign/tilie-client</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-arranger/index.html">@timetoalign/tilie-arranger</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-editor/index.html">@timetoalign/tilie-editor</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../typescript.html" class="nav-link">TypeScript API</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">&#64;timetoalign/tilie-layout</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">markers</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="markers">
+<h1>markers<a class="headerlink" href="#markers" title="Link to this heading">#</a></h1>
+<section id="interfaces">
+<h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
+<section id="markersband">
+<h3>MarkersBand<a class="headerlink" href="#markersband" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/markers.ts#L209">layout/src/markers.ts:209</a></p>
+<p>The markers band of the timeline drawn with the line <code class="docutils literal notranslate"><span class="pre">line</span></code>, with what its
+segments without a line join to it (section 6.4, Markers and Segments
+without a line), <code class="docutils literal notranslate"><span class="pre">sources</span></code> the line and those segments (none when its
+line is not displayed).</p>
+<section id="extends">
+<h4>Extends<a class="headerlink" href="#extends" title="Link to this heading">#</a></h4>
+<ul class="simple">
+<li><p><a class="reference internal" href="bands.html#preparedband"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedBand</span></code></span></a></p></li>
+</ul>
+</section>
+<section id="properties">
+<h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
+<section id="centred">
+<h5>centred<a class="headerlink" href="#centred" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>centred</strong>: readonly <a class="reference internal" href="bands.html#centred"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Centred</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/bands.ts#L210">layout/src/bands.ts:210</a></p>
+<p>Its drawn centred labels (section 6.7): wedge, region and jump labels.</p>
+<section id="inherited-from">
+<h6>Inherited from<a class="headerlink" href="#inherited-from" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="bands.html#preparedband"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedBand</span></code></span></a>.<a class="reference internal" href="bands.html#id36"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">centred</span></code></span></a></p>
+</section>
+</section>
+<section id="elements">
+<h5>elements<a class="headerlink" href="#elements" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>elements</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/bands.ts#L190">layout/src/bands.ts:190</a></p>
+<p>The displayed elements it holds directly, those a segment without a line of its own adds to
+it included (section 6.4, What a band holds and Segments without a line): wedges and the labels
+of named timestamps, maps, child lines, regions, breaks, section breaks, barlines and the
+jumps that draw an arc. Any other label is
+held by its element and not counted; a segment without a line is no element. The band is present when this is positive (section 6.4,
+Levels), and a band record’s <code class="docutils literal notranslate"><span class="pre">band.elements</span></code> is this number.</p>
+<section id="id1">
+<h6>Inherited from<a class="headerlink" href="#id1" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="bands.html#preparedband"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedBand</span></code></span></a>.<a class="reference internal" href="bands.html#id37"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">elements</span></code></span></a></p>
+</section>
+</section>
+<section id="extents">
+<h5>extents<a class="headerlink" href="#extents" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>extents</strong>: readonly <a class="reference internal" href="fit.html#id6"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/bands.ts#L208">layout/src/bands.ts:208</a></p>
+<p>What the band adds to its timeline’s extent (section 6.4, Children), each measured from the
+root’s start as section 6.3 measures extents: the extent of every item its first fits place
+(a region or a jump’s arc widened to its drawn label, a wedge, or the label of a break, a
+section break or a barline), and <code class="docutils literal notranslate"><span class="pre">[L</span> <span class="pre">×</span> <span class="pre">u,</span> <span class="pre">L</span> <span class="pre">×</span> <span class="pre">u]</span></code> at every such line it draws. Empty for the children band, whose children’s
+extents are added by their own layout, and for the conversion maps band: a map adds none.</p>
+<section id="id2">
+<h6>Inherited from<a class="headerlink" href="#id2" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="bands.html#preparedband"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedBand</span></code></span></a>.<a class="reference internal" href="bands.html#extents"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">extents</span></code></span></a></p>
+</section>
+</section>
+<section id="facet">
+<h5>facet<a class="headerlink" href="#facet" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>facet</strong>: <code class="docutils literal notranslate"><span class="pre">Facet</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/bands.ts#L181">layout/src/bands.ts:181</a></p>
+<p>The facet it draws; its address is <code class="docutils literal notranslate"><span class="pre">{id:</span> <span class="pre">T,</span> <span class="pre">facet}</span></code>, <code class="docutils literal notranslate"><span class="pre">T</span></code> its timeline (section 2.2).</p>
+<section id="id3">
+<h6>Inherited from<a class="headerlink" href="#id3" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="bands.html#preparedband"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedBand</span></code></span></a>.<a class="reference internal" href="bands.html#id38"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">facet</span></code></span></a></p>
+</section>
+</section>
+<section id="unnamed">
+<h5>unnamed<a class="headerlink" href="#unnamed" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>unnamed</strong>: <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/markers.ts#L230">layout/src/markers.ts:230</a></p>
+<p>The styles of a wedge and a cross-section line of the band’s timeline that no named
+timestamp holds: the cascade’s, the wedge held by the band and the line by the timeline’s
+line, without the rules naming <code class="docutils literal notranslate"><span class="pre">addresses</span></code> (<code class="docutils literal notranslate"><span class="pre">Cascade.resolveUnaddressed</span></code>).</p>
+<section id="crosssection">
+<h6>crossSection<a class="headerlink" href="#crosssection" title="Link to this heading">#</a></h6>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>crossSection</strong>: <a class="reference internal" href="cascade.html#style"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Style</span></code></span></a></p>
+</div></blockquote>
+</section>
+<section id="wedge">
+<h6>wedge<a class="headerlink" href="#wedge" title="Link to this heading">#</a></h6>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>wedge</strong>: <a class="reference internal" href="cascade.html#style"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Style</span></code></span></a></p>
+</div></blockquote>
+</section>
+</section>
+<section id="width">
+<h5>width<a class="headerlink" href="#width" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>width</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/bands.ts#L200">layout/src/bands.ts:200</a></p>
+<p>Its width (section 6.4, Where a band lies), the distance its content reaches outwards from its
+start, summed as its paragraph writes it: the markers band <code class="docutils literal notranslate"><span class="pre">w</span> <span class="pre">/</span> <span class="pre">2</span> <span class="pre">+</span> <span class="pre">13</span></code>, or <code class="docutils literal notranslate"><span class="pre">w</span> <span class="pre">/</span> <span class="pre">2</span> <span class="pre">+</span> <span class="pre">13</span> <span class="pre">+</span> <span class="pre">2</span> <span class="pre">+</span> <span class="pre">T</span> <span class="pre">×</span> <span class="pre">h(9)</span></code> with label tiers (Markers); the regions band <code class="docutils literal notranslate"><span class="pre">R</span> <span class="pre">×</span> <span class="pre">pr</span> <span class="pre">−</span> <span class="pre">S</span></code> (Regions); the flow
+control band <code class="docutils literal notranslate"><span class="pre">T</span> <span class="pre">×</span> <span class="pre">h(9)</span> <span class="pre">+</span> <span class="pre">(4</span> <span class="pre">+</span> <span class="pre">S)</span> <span class="pre">+</span> <span class="pre">(K</span> <span class="pre">−</span> <span class="pre">1)</span> <span class="pre">×</span> <span class="pre">pj</span> <span class="pre">+</span> <span class="pre">2</span> <span class="pre">+</span> <span class="pre">h(9)</span></code>, or <code class="docutils literal notranslate"><span class="pre">T</span> <span class="pre">×</span> <span class="pre">h(9)</span></code> without jumps (Flow
+control). 0 for an absent band, for the children band, whose width its children’s layout
+gives, and for the conversion maps band, <code class="docutils literal notranslate"><span class="pre">e</span> <span class="pre">=</span> <span class="pre">w</span> <span class="pre">/</span> <span class="pre">2</span> <span class="pre">+</span> <span class="pre">J</span> <span class="pre">×</span> <span class="pre">(g</span> <span class="pre">+</span> <span class="pre">d)</span></code> by its slots (Conversion
+maps).</p>
+<section id="id4">
+<h6>Inherited from<a class="headerlink" href="#id4" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="bands.html#preparedband"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedBand</span></code></span></a>.<a class="reference internal" href="bands.html#id39"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">width</span></code></span></a></p>
+</section>
+</section>
+</section>
+<section id="methods">
+<h4>Methods<a class="headerlink" href="#methods" title="Link to this heading">#</a></h4>
+<section id="crosssections">
+<h5>crossSections()<a class="headerlink" href="#crosssections" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>crossSections</strong>(<code class="docutils literal notranslate"><span class="pre">at</span></code>, <code class="docutils literal notranslate"><span class="pre">start</span></code>, <code class="docutils literal notranslate"><span class="pre">side</span></code>, <code class="docutils literal notranslate"><span class="pre">span</span></code>): <a class="reference internal" href="elements.html#verticallineelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">VerticalLineElement</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/markers.ts#L217">layout/src/markers.ts:217</a></p>
+<p>The drawn cross-section lines of the named timestamps it holds, in the order it places their
+timestamps, the band drawn from <code class="docutils literal notranslate"><span class="pre">start</span></code> on <code class="docutils literal notranslate"><span class="pre">side</span></code> of the line placed at <code class="docutils literal notranslate"><span class="pre">at</span></code>, each across
+<code class="docutils literal notranslate"><span class="pre">span</span></code>, the card’s top and bottom, less its gap (section 6.6). Each is held by its
+timeline’s line, not by the band: drawn whether or not its wedge or its labels are, whether or
+not the band is displayed or present, since it takes no room.</p>
+<section id="parameters">
+<h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
+</section>
+<section id="at">
+<h6>at<a class="headerlink" href="#at" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="bands.html#lineposition"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LinePosition</span></code></span></a></p>
+</section>
+<section id="start">
+<h6>start<a class="headerlink" href="#start" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="side">
+<h6>side<a class="headerlink" href="#side" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="bands.html#id45"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Side</span></code></span></a></p>
+</section>
+<section id="span">
+<h6>span<a class="headerlink" href="#span" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="stacks.html#span"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Span</span></code></span></a></p>
+</section>
+<section id="returns">
+<h6>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="elements.html#verticallineelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">VerticalLineElement</span></code></span></a>[]</p>
+</section>
+</section>
+<section id="draw">
+<h5>draw()<a class="headerlink" href="#draw" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>draw</strong>(<code class="docutils literal notranslate"><span class="pre">start</span></code>, <code class="docutils literal notranslate"><span class="pre">side</span></code>, <code class="docutils literal notranslate"><span class="pre">at</span></code>): <code class="docutils literal notranslate"><span class="pre">Partial</span></code>&lt;<a class="reference internal" href="bands.html#lineelements"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineElements</span></code></span></a>&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/bands.ts#L216">layout/src/bands.ts:216</a></p>
+<p>Its elements (section 6.6), the band starting at <code class="docutils literal notranslate"><span class="pre">start</span></code> outwards on <code class="docutils literal notranslate"><span class="pre">side</span></code> of the line
+placed at <code class="docutils literal notranslate"><span class="pre">at</span></code>: the third pass. The children band draws nothing, each child drawing its own,
+nor does the conversion maps band, whose maps take the slots of its row (<code class="docutils literal notranslate"><span class="pre">drawMaps</span></code>).</p>
+<section id="id5">
+<h6>Parameters<a class="headerlink" href="#id5" title="Link to this heading">#</a></h6>
+</section>
+<section id="id6">
+<h6>start<a class="headerlink" href="#id6" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id7">
+<h6>side<a class="headerlink" href="#id7" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="bands.html#id45"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Side</span></code></span></a></p>
+</section>
+<section id="id8">
+<h6>at<a class="headerlink" href="#id8" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="bands.html#lineposition"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LinePosition</span></code></span></a></p>
+</section>
+<section id="id9">
+<h6>Returns<a class="headerlink" href="#id9" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">Partial</span></code>&lt;<a class="reference internal" href="bands.html#lineelements"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineElements</span></code></span></a>&gt;</p>
+</section>
+<section id="id10">
+<h6>Inherited from<a class="headerlink" href="#id10" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="bands.html#preparedband"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedBand</span></code></span></a>.<a class="reference internal" href="bands.html#draw"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">draw</span></code></span></a></p>
+</section>
+</section>
+<section id="elisionlabels">
+<h5>elisionLabels()<a class="headerlink" href="#elisionlabels" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>elisionLabels</strong>(): <code class="docutils literal notranslate"><span class="pre">Map</span></code>&lt;<a class="reference internal" href="traversal.html#id24"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Gap</span></code></span></a>, <a class="reference internal" href="elisions.html#stacklabel"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">StackLabel</span></code></span></a>[]&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/markers.ts#L238">layout/src/markers.ts:238</a></p>
+<p>The labels of the label stacks of the gaps it places (section 6.4, Markers), each gap’s in
+stack order, each with the distance of its baseline below the gap’s ellipsis: from the line
+its stack starts on among the stacks drawn below the same ellipses (section 6.6), one line
+after another. A gap’s labels are held by the gap and written with its other descriptors
+(section 8.5).</p>
+<section id="id11">
+<h6>Returns<a class="headerlink" href="#id11" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">Map</span></code>&lt;<a class="reference internal" href="traversal.html#id24"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Gap</span></code></span></a>, <a class="reference internal" href="elisions.html#stacklabel"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">StackLabel</span></code></span></a>[]&gt;</p>
+</section>
+</section>
+<section id="timestamps">
+<h5>timestamps()<a class="headerlink" href="#timestamps" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>timestamps</strong>(<code class="docutils literal notranslate"><span class="pre">at</span></code>, <code class="docutils literal notranslate"><span class="pre">span</span></code>): <a class="reference internal" href="boxes.html#axistimestamp"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AxisTimestamp</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/markers.ts#L224">layout/src/markers.ts:224</a></p>
+<p>Every named timestamp it holds, in the order it places them, with the abscissa of its
+cross-section line at the line placed at <code class="docutils literal notranslate"><span class="pre">at</span></code>, whether or not that line is drawn: where the
+alignment anchors joining its timestamp meet it (section 8.7), the card’s span <code class="docutils literal notranslate"><span class="pre">span</span></code>; and
+that line’s style; none at a position in a gap, which has no abscissa.</p>
+<section id="id12">
+<h6>Parameters<a class="headerlink" href="#id12" title="Link to this heading">#</a></h6>
+</section>
+<section id="id13">
+<h6>at<a class="headerlink" href="#id13" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="bands.html#lineposition"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LinePosition</span></code></span></a></p>
+</section>
+<section id="id14">
+<h6>span<a class="headerlink" href="#id14" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="stacks.html#span"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Span</span></code></span></a></p>
+</section>
+<section id="id15">
+<h6>Returns<a class="headerlink" href="#id15" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="boxes.html#axistimestamp"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AxisTimestamp</span></code></span></a>[]</p>
+</section>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="stamplabel">
+<h3>StampLabel<a class="headerlink" href="#stamplabel" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/markers.ts#L134">layout/src/markers.ts:134</a></p>
+<p>A drawn label of a named timestamp’s stack: its element, its text measured, and the coordinate
+it shows, which only its coordinate label carries.</p>
+<section id="id16">
+<h4>Extends<a class="headerlink" href="#id16" title="Link to this heading">#</a></h4>
+<ul class="simple">
+<li><p><a class="reference internal" href="traversal.html#id103"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Styled</span></code></span></a></p></li>
+<li><p><a class="reference internal" href="traversal.html#measured"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Measured</span></code></span></a></p></li>
+</ul>
+</section>
+<section id="id17">
+<h4>Properties<a class="headerlink" href="#id17" title="Link to this heading">#</a></h4>
+<section id="address">
+<h5>address<a class="headerlink" href="#address" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>address</strong>: <a class="reference internal" href="../tilie-core/manifest/address.html#elementaddress"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElementAddress</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/traversal.ts#L41">layout/src/traversal.ts:41</a></p>
+<section id="id18">
+<h6>Inherited from<a class="headerlink" href="#id18" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="traversal.html#id103"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Styled</span></code></span></a>.<a class="reference internal" href="traversal.html#id106"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">address</span></code></span></a></p>
+</section>
+</section>
+<section id="clean">
+<h5>clean<a class="headerlink" href="#clean" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>clean</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/traversal.ts#L100">layout/src/traversal.ts:100</a></p>
+<p>The text with every character U+0000–U+001F replaced by a space (<code class="docutils literal notranslate"><span class="pre">cleanText</span></code>).</p>
+<section id="id19">
+<h6>Inherited from<a class="headerlink" href="#id19" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="traversal.html#measured"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Measured</span></code></span></a>.<a class="reference internal" href="traversal.html#clean"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">clean</span></code></span></a></p>
+</section>
+</section>
+<section id="coordinate">
+<h5>coordinate<a class="headerlink" href="#coordinate" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>coordinate</strong>: <a class="reference internal" href="elements.html#showncoordinate"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ShownCoordinate</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/markers.ts#L135">layout/src/markers.ts:135</a></p>
+</section>
+<section id="style">
+<h5>style<a class="headerlink" href="#style" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>style</strong>: <a class="reference internal" href="cascade.html#style"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Style</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/traversal.ts#L42">layout/src/traversal.ts:42</a></p>
+<section id="id20">
+<h6>Inherited from<a class="headerlink" href="#id20" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="traversal.html#id103"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Styled</span></code></span></a>.<a class="reference internal" href="traversal.html#id107"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">style</span></code></span></a></p>
+</section>
+</section>
+<section id="id21">
+<h5>width<a class="headerlink" href="#id21" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>width</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/traversal.ts#L102">layout/src/traversal.ts:102</a></p>
+<p>The width of <code class="docutils literal notranslate"><span class="pre">clean</span></code> at its owner’s font size.</p>
+<section id="id22">
+<h6>Inherited from<a class="headerlink" href="#id22" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="traversal.html#measured"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Measured</span></code></span></a>.<a class="reference internal" href="traversal.html#id41"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">width</span></code></span></a></p>
+</section>
+</section>
+</section>
+</section>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<section id="crosssectionelement">
+<h3>crossSectionElement()<a class="headerlink" href="#crosssectionelement" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>crossSectionElement</strong>(<code class="docutils literal notranslate"><span class="pre">address</span></code>, <code class="docutils literal notranslate"><span class="pre">style</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">__namedParameters</span></code>): <a class="reference internal" href="elements.html#verticallineelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">VerticalLineElement</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/markers.ts#L121">layout/src/markers.ts:121</a></p>
+<p>The cross-section line at <code class="docutils literal notranslate"><span class="pre">x</span></code> from <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y1)</span></code> to <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y2)</span></code>, one piece of a
+line across its card less its gap (section 6.6). Every named timestamp’s
+line is drawn by it.</p>
+<section id="id23">
+<h4>Parameters<a class="headerlink" href="#id23" title="Link to this heading">#</a></h4>
+<section id="id24">
+<h5>address<a class="headerlink" href="#id24" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/address.html#elementaddress"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElementAddress</span></code></span></a></p>
+</section>
+<section id="id25">
+<h5>style<a class="headerlink" href="#id25" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="cascade.html#style"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Style</span></code></span></a></p>
+</section>
+<section id="x">
+<h5>x<a class="headerlink" href="#x" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="namedparameters">
+<h5>__namedParameters<a class="headerlink" href="#namedparameters" title="Link to this heading">#</a></h5>
+<p>readonly [<code class="docutils literal notranslate"><span class="pre">number</span></code>, <code class="docutils literal notranslate"><span class="pre">number</span></code>]</p>
+</section>
+</section>
+<section id="id26">
+<h4>Returns<a class="headerlink" href="#id26" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="elements.html#verticallineelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">VerticalLineElement</span></code></span></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="fadedstyle">
+<h3>fadedStyle()<a class="headerlink" href="#fadedstyle" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>fadedStyle</strong>(<code class="docutils literal notranslate"><span class="pre">style</span></code>): <a class="reference internal" href="cascade.html#style"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Style</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/markers.ts#L79">layout/src/markers.ts:79</a></p>
+<p>The style of what marks a position that has no coordinate (section 6.6:
+a groupstamp’s secondary coordinate where a length of the group is not
+known, and the frame’s line over such a member’s card) and of a rejected
+flow-control element with its label: its opacity <code class="docutils literal notranslate"><span class="pre">FADED_OPACITY</span></code>, the
+defaults’ opacity of ancestor lines, in place of the cascaded one, a rule
+of the drawing that no style changes.</p>
+<section id="id27">
+<h4>Parameters<a class="headerlink" href="#id27" title="Link to this heading">#</a></h4>
+<section id="id28">
+<h5>style<a class="headerlink" href="#id28" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="cascade.html#style"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Style</span></code></span></a></p>
+</section>
+</section>
+<section id="id29">
+<h4>Returns<a class="headerlink" href="#id29" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="cascade.html#style"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Style</span></code></span></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="id30">
+<h3>markersBand()<a class="headerlink" href="#id30" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>markersBand</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">line</span></code>, <code class="docutils literal notranslate"><span class="pre">sources</span></code>): <a class="reference internal" href="#markersband"><code class="docutils literal notranslate"><span class="pre">MarkersBand</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/markers.ts#L273">layout/src/markers.ts:273</a></p>
+<p>The markers band of the timeline drawn with the line <code class="docutils literal notranslate"><span class="pre">line</span></code> (section 6.4,
+Markers): the named timestamps of each of <code class="docutils literal notranslate"><span class="pre">sources</span></code>, the line’s own first
+and then each joined segment’s, segment after segment, each one’s in
+canonical order, each at its timeline’s start plus its coordinate (section
+3.1); then the secondary coordinates on each of <code class="docutils literal notranslate"><span class="pre">sources</span></code> of every named
+timestamp the card draws whose position its span holds (core’s
+<code class="docutils literal notranslate"><span class="pre">cardStamps</span></code>), source after source, in canonical order of their
+timestamps, each read on that source’s axis. Of each, the wedge and the
+labels its <code class="docutils literal notranslate"><span class="pre">display</span></code> lists are drawn when they are displayed and its
+timeline’s markers band is displayed; its labels, name, ID and coordinate
+(sections 5.2 and 5.3), form its stack. The stacks are placed by one first
+fit, in that order, into tiers counted in lines (<code class="docutils literal notranslate"><span class="pre">tiersOf</span></code>), each stack
+one item as wide as its widest label, centred on its timestamp’s <code class="docutils literal notranslate"><span class="pre">X</span></code>, at
+its unturned place; a wedge’s <code class="docutils literal notranslate"><span class="pre">rotation</span></code>, 0 where no rule sets it, carries
+its stack (<code class="docutils literal notranslate"><span class="pre">carried</span></code>). After them come the label stacks of the gaps lying
+on its sources, each centred on <code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">×</span> <span class="pre">um</span></code> at full scale and as many lines
+high as the last line it is drawn on below its ellipsis (<code class="docutils literal notranslate"><span class="pre">stackLines</span></code>), so
+a stack moved to a later level takes that room. The band holds its wedges
+and its labels directly and is present when it draws either; it is <code class="docutils literal notranslate"><span class="pre">w</span> <span class="pre">/</span> <span class="pre">2</span> <span class="pre">+</span> <span class="pre">13</span></code> wide without a
+label, <code class="docutils literal notranslate"><span class="pre">w</span> <span class="pre">/</span> <span class="pre">2</span> <span class="pre">+</span> <span class="pre">13</span> <span class="pre">+</span> <span class="pre">2</span> <span class="pre">+</span> <span class="pre">T</span> <span class="pre">×</span> <span class="pre">h(9)</span></code> with <code class="docutils literal notranslate"><span class="pre">T</span> <span class="pre">≥</span> <span class="pre">1</span></code> lines of labels, <code class="docutils literal notranslate"><span class="pre">w</span></code> the
+stroke width of the line and 9 the largest font size of its drawn labels;
+it adds to its timeline’s extent <code class="docutils literal notranslate"><span class="pre">[L</span> <span class="pre">×</span> <span class="pre">u</span> <span class="pre">+</span> <span class="pre">a,</span> <span class="pre">L</span> <span class="pre">×</span> <span class="pre">u</span> <span class="pre">+</span> <span class="pre">b]</span></code> for every wedge
+it draws, <code class="docutils literal notranslate"><span class="pre">a</span></code> and <code class="docutils literal notranslate"><span class="pre">b</span></code> the smallest and largest of 0 and its corners’
+offsets across (<code class="docutils literal notranslate"><span class="pre">[−3,</span> <span class="pre">3]</span></code> unturned), and the extent of every stack where
+its wedge carries it. A cross-section line is held by its timeline’s line,
+not by the band: it is drawn when its timestamp’s <code class="docutils literal notranslate"><span class="pre">display</span></code> lists it and
+its own display is <code class="docutils literal notranslate"><span class="pre">inline</span></code>, whatever the band’s, and takes no room. A
+wedge, its labels and its cross-section line at a position in a gap are
+not drawn (section 6.6, Elisions), and that position takes its room all the
+same.</p>
+<section id="id31">
+<h4>Parameters<a class="headerlink" href="#id31" title="Link to this heading">#</a></h4>
+<section id="scope">
+<h5>scope<a class="headerlink" href="#scope" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="traversal.html#scope"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Scope</span></code></span></a></p>
+</section>
+<section id="line">
+<h5>line<a class="headerlink" href="#line" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="traversal.html#entry"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Entry</span></code></span></a></p>
+</section>
+<section id="sources">
+<h5>sources<a class="headerlink" href="#sources" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="traversal.html#entry"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Entry</span></code></span></a>[]</p>
+</section>
+</section>
+<section id="id32">
+<h4>Returns<a class="headerlink" href="#id32" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#markersband"><code class="docutils literal notranslate"><span class="pre">MarkersBand</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="marklabeloffset">
+<h3>markLabelOffset()<a class="headerlink" href="#marklabeloffset" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>markLabelOffset</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">w</span></code>, <code class="docutils literal notranslate"><span class="pre">line</span></code>, <code class="docutils literal notranslate"><span class="pre">size</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/markers.ts#L60">layout/src/markers.ts:60</a></p>
+<p>The distance from the axis of a line of width <code class="docutils literal notranslate"><span class="pre">w</span></code> to the inner edge of its mark label line <code class="docutils literal notranslate"><span class="pre">line</span></code>.</p>
+<section id="id33">
+<h4>Parameters<a class="headerlink" href="#id33" title="Link to this heading">#</a></h4>
+<section id="id34">
+<h5>scope<a class="headerlink" href="#id34" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="traversal.html#scope"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Scope</span></code></span></a></p>
+</section>
+<section id="w">
+<h5>w<a class="headerlink" href="#w" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id35">
+<h5>line<a class="headerlink" href="#id35" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="size">
+<h5>size<a class="headerlink" href="#size" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id36">
+<h4>Returns<a class="headerlink" href="#id36" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="markreach">
+<h3>markReach()<a class="headerlink" href="#markreach" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>markReach</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">w</span></code>, <code class="docutils literal notranslate"><span class="pre">lines</span></code>, <code class="docutils literal notranslate"><span class="pre">size</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/markers.ts#L56">layout/src/markers.ts:56</a></p>
+<p>The reach of the wedges or marks of a line of width <code class="docutils literal notranslate"><span class="pre">w</span></code>: <code class="docutils literal notranslate"><span class="pre">w</span> <span class="pre">/</span> <span class="pre">2</span> <span class="pre">+</span> <span class="pre">13</span></code>, and <code class="docutils literal notranslate"><span class="pre">lines</span></code> label lines beyond.</p>
+<section id="id37">
+<h4>Parameters<a class="headerlink" href="#id37" title="Link to this heading">#</a></h4>
+<section id="id38">
+<h5>scope<a class="headerlink" href="#id38" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="traversal.html#scope"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Scope</span></code></span></a></p>
+</section>
+<section id="id39">
+<h5>w<a class="headerlink" href="#id39" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="lines">
+<h5>lines<a class="headerlink" href="#lines" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id40">
+<h5>size<a class="headerlink" href="#id40" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id41">
+<h4>Returns<a class="headerlink" href="#id41" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="rotatedstyle">
+<h3>rotatedStyle()<a class="headerlink" href="#rotatedstyle" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>rotatedStyle</strong>(<code class="docutils literal notranslate"><span class="pre">style</span></code>): <a class="reference internal" href="cascade.html#style"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Style</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/markers.ts#L67">layout/src/markers.ts:67</a></p>
+<p>A wedge’s style with its <code class="docutils literal notranslate"><span class="pre">rotation</span></code> read (section 2.5): the value a rule
+set, else the initial value 0.</p>
+<section id="id42">
+<h4>Parameters<a class="headerlink" href="#id42" title="Link to this heading">#</a></h4>
+<section id="id43">
+<h5>style<a class="headerlink" href="#id43" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="cascade.html#style"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Style</span></code></span></a></p>
+</section>
+</section>
+<section id="id44">
+<h4>Returns<a class="headerlink" href="#id44" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="cascade.html#style"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Style</span></code></span></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="stamplabels">
+<h3>stampLabels()<a class="headerlink" href="#stamplabels" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>stampLabels</strong>(<code class="docutils literal notranslate"><span class="pre">timestamp</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">own</span></code>, <code class="docutils literal notranslate"><span class="pre">styledLabel</span></code>, <code class="docutils literal notranslate"><span class="pre">measured</span></code>): <a class="reference internal" href="#stamplabel"><code class="docutils literal notranslate"><span class="pre">StampLabel</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/markers.ts#L146">layout/src/markers.ts:146</a></p>
+<p>The drawn labels of a stack of <code class="docutils literal notranslate"><span class="pre">timestamp</span></code> on <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, in the order of <code class="docutils literal notranslate"><span class="pre">TIMESTAMP_LABELS</span></code>:
+each label its <code class="docutils literal notranslate"><span class="pre">display</span></code> lists that has a text and whose style, from <code class="docutils literal notranslate"><span class="pre">styledLabel</span></code>, shows it.
+<code class="docutils literal notranslate"><span class="pre">own</span></code> is the value the stack marks on <code class="docutils literal notranslate"><span class="pre">timeline</span></code>’s axis, null for a secondary coordinate
+without a value, which draws no coordinate label (section 6.6); a timestamp without a name
+draws no name label (section 2). The coordinate label alone carries <code class="docutils literal notranslate"><span class="pre">own</span></code>; a markers band and
+an ancestor line build their stacks alike through this function.</p>
+<section id="id45">
+<h4>Parameters<a class="headerlink" href="#id45" title="Link to this heading">#</a></h4>
+<section id="timestamp">
+<h5>timestamp<a class="headerlink" href="#timestamp" title="Link to this heading">#</a></h5>
+<p>{ }</p>
+</section>
+<section id="timeline">
+<h5>timeline<a class="headerlink" href="#timeline" title="Link to this heading">#</a></h5>
+<p>{ }</p>
+</section>
+<section id="own">
+<h5>own<a class="headerlink" href="#own" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/number/real.html#real"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Real</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+<section id="styledlabel">
+<h5>styledLabel<a class="headerlink" href="#styledlabel" title="Link to this heading">#</a></h5>
+<p>(<code class="docutils literal notranslate"><span class="pre">word</span></code>) =&gt; <a class="reference internal" href="traversal.html#id103"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Styled</span></code></span></a></p>
+</section>
+<section id="measured">
+<h5>measured<a class="headerlink" href="#measured" title="Link to this heading">#</a></h5>
+<p>(<code class="docutils literal notranslate"><span class="pre">owner</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code>) =&gt; <a class="reference internal" href="traversal.html#measured"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Measured</span></code></span></a></p>
+</section>
+</section>
+<section id="id46">
+<h4>Returns<a class="headerlink" href="#id46" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#stamplabel"><code class="docutils literal notranslate"><span class="pre">StampLabel</span></code></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="wedgeelement">
+<h3>wedgeElement()<a class="headerlink" href="#wedgeelement" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>wedgeElement</strong>(<code class="docutils literal notranslate"><span class="pre">address</span></code>, <code class="docutils literal notranslate"><span class="pre">style</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">at</span></code>, <code class="docutils literal notranslate"><span class="pre">side</span></code>, <code class="docutils literal notranslate"><span class="pre">start</span></code>, <code class="docutils literal notranslate"><span class="pre">w</span></code>): <a class="reference internal" href="elements.html#markerelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MarkerElement</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/markers.ts#L93">layout/src/markers.ts:93</a></p>
+<p>A wedge at <code class="docutils literal notranslate"><span class="pre">x</span></code> of the markers band of the line placed at <code class="docutils literal notranslate"><span class="pre">at</span></code>, the band
+starting at <code class="docutils literal notranslate"><span class="pre">start</span></code> outwards on <code class="docutils literal notranslate"><span class="pre">side</span></code> and <code class="docutils literal notranslate"><span class="pre">w</span></code> the line’s stroke width
+(section 6.6, Wedges): its tip <code class="docutils literal notranslate"><span class="pre">start</span> <span class="pre">+</span> <span class="pre">w</span> <span class="pre">/</span> <span class="pre">2</span></code> out, and each corner of its
+base, turned by the style’s <code class="docutils literal notranslate"><span class="pre">rotation</span></code> (0 where unset) about the tip, at
+its offset across and its distance beyond the tip’s, that distance added
+to the tip’s before it becomes an ordinate; unturned, its base 13 further
+out and 6 wide. A named timestamp’s wedge is drawn by it, and so is the
+wedge an editor shows at a position no named timestamp holds (<code class="docutils literal notranslate"><span class="pre">wedgeAt</span></code>).</p>
+<section id="id47">
+<h4>Parameters<a class="headerlink" href="#id47" title="Link to this heading">#</a></h4>
+<section id="id48">
+<h5>address<a class="headerlink" href="#id48" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/address.html#elementaddress"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElementAddress</span></code></span></a></p>
+</section>
+<section id="id49">
+<h5>style<a class="headerlink" href="#id49" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="cascade.html#style"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Style</span></code></span></a></p>
+</section>
+<section id="id50">
+<h5>x<a class="headerlink" href="#id50" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id51">
+<h5>at<a class="headerlink" href="#id51" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="bands.html#lineposition"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LinePosition</span></code></span></a></p>
+</section>
+<section id="id52">
+<h5>side<a class="headerlink" href="#id52" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="bands.html#id45"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Side</span></code></span></a></p>
+</section>
+<section id="id53">
+<h5>start<a class="headerlink" href="#id53" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id54">
+<h5>w<a class="headerlink" href="#id54" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id55">
+<h4>Returns<a class="headerlink" href="#id55" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="elements.html#markerelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MarkerElement</span></code></span></a></p>
+</section>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="maps.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">maps</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="member.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">member</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#markersband">MarkersBand</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#extends">Extends</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#centred">centred</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#inherited-from">Inherited from</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#elements">elements</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Inherited from</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#extents">extents</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Inherited from</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#facet">facet</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Inherited from</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#unnamed">unnamed</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#crosssection">crossSection</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#wedge">wedge</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#width">width</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Inherited from</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#methods">Methods</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#crosssections">crossSections()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#at">at</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#start">start</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#side">side</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#span">span</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#draw">draw()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">start</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">side</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">at</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Returns</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Inherited from</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#elisionlabels">elisionLabels()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#timestamps">timestamps()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">at</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">span</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stamplabel">StampLabel</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">Extends</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#address">address</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">Inherited from</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#clean">clean</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">Inherited from</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#coordinate">coordinate</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#style">style</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Inherited from</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">width</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">Inherited from</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#crosssectionelement">crossSectionElement()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">address</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">style</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#x">x</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#namedparameters">__namedParameters</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id26">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fadedstyle">fadedStyle()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id27">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">style</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id29">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id30">markersBand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id31">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#scope">scope</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#line">line</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#sources">sources</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#marklabeloffset">markLabelOffset()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id33">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id34">scope</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#w">w</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id35">line</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#size">size</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id36">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#markreach">markReach()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id37">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id38">scope</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id39">w</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#lines">lines</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id40">size</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id41">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#rotatedstyle">rotatedStyle()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id42">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id43">style</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id44">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stamplabels">stampLabels()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id45">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#timestamp">timestamp</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#timeline">timeline</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#own">own</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#styledlabel">styledLabel</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#measured">measured</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id46">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#wedgeelement">wedgeElement()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id47">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id48">address</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id49">style</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id50">x</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id51">at</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id52">side</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id53">start</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id54">w</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id55">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

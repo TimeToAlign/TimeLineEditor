@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>animation/elide &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api-ts/@timetoalign/tilie-arranger/animation/elide';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="animation/progress.svelte" href="progress.svelte.html" />
+    <link rel="prev" title="animation/cardMotions.svelte" href="cardMotions.svelte.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-core/index.html">@timetoalign/tilie-core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-layout/index.html">@timetoalign/tilie-layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-writers/index.html">@timetoalign/tilie-writers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-client/index.html">@timetoalign/tilie-client</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../index.html">@timetoalign/tilie-arranger</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../affected.html">affected</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cardMotions.svelte.html">animation/cardMotions.svelte</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">animation/elide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="progress.svelte.html">animation/progress.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="raise.html">animation/raise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="unfold.html">animation/unfold</a></li>
+<li class="toctree-l2"><a class="reference internal" href="unfolding.svelte.html">animation/unfolding.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../arrangeMenu.html">arrangeMenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bands.html">bands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../blockDrag.html">blockDrag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxes.html">boxes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cardAxis.html">cardAxis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../commands.html">commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../containers.html">containers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coordinates.html">coordinates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../editing.html">editing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../editorFocus.svelte.html">editorFocus.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../focus.html">focus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gaps.html">gaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gesture.html">gesture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/arranged.html">gestures/arranged</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/band.html">gestures/band</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/canvas.html">gestures/canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/gap.html">gestures/gap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/held.html">gestures/held</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/host.html">gestures/host</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/wheel.html">gestures/wheel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index-1.html">index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../items.html">items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../keys.html">keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../liveStore.svelte.html">liveStore.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../marquee.html">marquee</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../matches.html">matches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../motion.html">motion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../node.html">node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../nodeActions.html">nodeActions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../nodes.svelte.html">nodes.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../numbers.html">numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onScreen.html">onScreen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../pane.html">pane</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../picking.html">picking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../project.html">project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reorder.html">reorder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resize.html">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../roving.html">roving</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../selection.html">selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../selectionRules.html">selectionRules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../snap.html">snap</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-editor/index.html">@timetoalign/tilie-editor</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../../typescript.html" class="nav-link">TypeScript API</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">&#64;timetoalign/tilie-arranger</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">animation/elide</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="animation-elide">
+<h1>animation/elide<a class="headerlink" href="#animation-elide" title="Link to this heading">#</a></h1>
+<section id="interfaces">
+<h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
+<section id="blockmotion">
+<h3>BlockMotion<a class="headerlink" href="#blockmotion" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L92">arranger/src/animation/elide.ts:92</a></p>
+<p>What moves when a block’s drawing changes: the containers that stay or appear, and the cards that leave.</p>
+<section id="properties">
+<h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
+<section id="cards">
+<h5>cards<a class="headerlink" href="#cards" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>cards</strong>: readonly <a class="reference internal" href="#cardmotion"><code class="docutils literal notranslate"><span class="pre">CardMotion</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L93">arranger/src/animation/elide.ts:93</a></p>
+</section>
+<section id="leaving">
+<h5>leaving<a class="headerlink" href="#leaving" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>leaving</strong>: readonly <a class="reference internal" href="#leavingcard"><code class="docutils literal notranslate"><span class="pre">LeavingCard</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L94">arranger/src/animation/elide.ts:94</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="cardmotion">
+<h3>CardMotion<a class="headerlink" href="#cardmotion" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L71">arranger/src/animation/elide.ts:71</a></p>
+<p>How the elements of one container of the drawing after a change move: a
+card’s, or a frame’s own (its rectangle, title and gaps), each element it
+holds by <code class="docutils literal notranslate"><span class="pre">motionOf</span></code>.</p>
+<section id="id1">
+<h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
+<section id="key">
+<h5>key<a class="headerlink" href="#key" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L73">arranger/src/animation/elide.ts:73</a></p>
+<p>The container’s place key text (<code class="docutils literal notranslate"><span class="pre">placeKeyText</span></code>).</p>
+</section>
+</section>
+<section id="methods">
+<h4>Methods<a class="headerlink" href="#methods" title="Link to this heading">#</a></h4>
+<section id="holds">
+<h5>holds()<a class="headerlink" href="#holds" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>holds</strong>(<code class="docutils literal notranslate"><span class="pre">element</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L75">arranger/src/animation/elide.ts:75</a></p>
+<p>Whether the element at <code class="docutils literal notranslate"><span class="pre">element</span></code> is one this motion moves.</p>
+<section id="parameters">
+<h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
+</section>
+<section id="element">
+<h6>element<a class="headerlink" href="#element" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="returns">
+<h6>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<section id="motionof">
+<h5>motionOf()<a class="headerlink" href="#motionof" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>motionOf</strong>(<code class="docutils literal notranslate"><span class="pre">element</span></code>): <a class="reference internal" href="unfold.html#motion"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Motion</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L76">arranger/src/animation/elide.ts:76</a></p>
+<section id="id2">
+<h6>Parameters<a class="headerlink" href="#id2" title="Link to this heading">#</a></h6>
+</section>
+<section id="id3">
+<h6>element<a class="headerlink" href="#id3" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id4">
+<h6>Returns<a class="headerlink" href="#id4" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="unfold.html#motion"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Motion</span></code></span></a></p>
+</section>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="drawn">
+<h3>Drawn<a class="headerlink" href="#drawn" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L60">arranger/src/animation/elide.ts:60</a></p>
+<p>A drawing with what it was drawn from and what draws it.</p>
+<section id="id5">
+<h4>Properties<a class="headerlink" href="#id5" title="Link to this heading">#</a></h4>
+<section id="descriptors">
+<h5>descriptors<a class="headerlink" href="#descriptors" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>descriptors</strong>: readonly <a class="reference internal" href="../../tilie-writers/descriptors.html#descriptor"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Descriptor</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L63">arranger/src/animation/elide.ts:63</a></p>
+</section>
+<section id="drawing">
+<h5>drawing<a class="headerlink" href="#drawing" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>drawing</strong>: <a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L62">arranger/src/animation/elide.ts:62</a></p>
+</section>
+<section id="manifest">
+<h5>manifest<a class="headerlink" href="#manifest" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>manifest</strong>: <a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L61">arranger/src/animation/elide.ts:61</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="leavingcard">
+<h3>LeavingCard<a class="headerlink" href="#leavingcard" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L85">arranger/src/animation/elide.ts:85</a></p>
+<p>A card the drawing after a change no longer draws, folding back into its
+member card: its descriptors in the drawing before, each placed at a
+progress by <code class="docutils literal notranslate"><span class="pre">placedAt</span></code> (at rest at 0, folded at 1), on the canvas of the
+drawing after.</p>
+<section id="id6">
+<h4>Properties<a class="headerlink" href="#id6" title="Link to this heading">#</a></h4>
+<section id="id7">
+<h5>descriptors<a class="headerlink" href="#id7" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>descriptors</strong>: readonly <a class="reference internal" href="../../tilie-writers/descriptors.html#descriptor"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Descriptor</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L87">arranger/src/animation/elide.ts:87</a></p>
+</section>
+<section id="id8">
+<h5>key<a class="headerlink" href="#id8" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L86">arranger/src/animation/elide.ts:86</a></p>
+</section>
+</section>
+<section id="id9">
+<h4>Methods<a class="headerlink" href="#id9" title="Link to this heading">#</a></h4>
+<section id="placedat">
+<h5>placedAt()<a class="headerlink" href="#placedat" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>placedAt</strong>(<code class="docutils literal notranslate"><span class="pre">descriptor</span></code>, <code class="docutils literal notranslate"><span class="pre">t</span></code>): <a class="reference internal" href="unfold.html#placed"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Placed</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L88">arranger/src/animation/elide.ts:88</a></p>
+<section id="id10">
+<h6>Parameters<a class="headerlink" href="#id10" title="Link to this heading">#</a></h6>
+</section>
+<section id="descriptor">
+<h6>descriptor<a class="headerlink" href="#descriptor" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="../../tilie-writers/descriptors.html#descriptor"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Descriptor</span></code></span></a></p>
+</section>
+<section id="t">
+<h6>t<a class="headerlink" href="#t" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id11">
+<h6>Returns<a class="headerlink" href="#id11" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="unfold.html#placed"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Placed</span></code></span></a></p>
+</section>
+</section>
+</section>
+</section>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<section id="id12">
+<h3>blockMotion()<a class="headerlink" href="#id12" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>blockMotion</strong>(<code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">after</span></code>, <code class="docutils literal notranslate"><span class="pre">measure</span></code>): <a class="reference internal" href="#blockmotion"><code class="docutils literal notranslate"><span class="pre">BlockMotion</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L577">arranger/src/animation/elide.ts:577</a></p>
+<p>What moves when a block is drawn <code class="docutils literal notranslate"><span class="pre">after</span></code> instead of <code class="docutils literal notranslate"><span class="pre">before</span></code>: first every
+item whose place changed travels whole (<code class="docutils literal notranslate"><span class="pre">itemMotions</span></code>), its contents taking
+no motion of their own; then each card
+both draw whose elisions changed (its own, or its frame’s for a member
+card) moves sideways (<code class="docutils literal notranslate"><span class="pre">sidewaysMotion</span></code>), each frame whose group elisions
+changed with it (<code class="docutils literal notranslate"><span class="pre">frameMotion</span></code>); each ancestor card only <code class="docutils literal notranslate"><span class="pre">after</span></code> draws,
+whose member card <code class="docutils literal notranslate"><span class="pre">before</span></code> drew, unfolds out of it (<code class="docutils literal notranslate"><span class="pre">unfoldingMotion</span></code>);
+each ancestor card only <code class="docutils literal notranslate"><span class="pre">before</span></code> draws, whose member card <code class="docutils literal notranslate"><span class="pre">after</span></code> draws,
+folds back into it, read in <code class="docutils literal notranslate"><span class="pre">before</span></code> and moved by the change of the place
+origin. Where the items start or stop standing side by side, an ancestor
+card drawn only <code class="docutils literal notranslate"><span class="pre">after</span></code> fades in and one drawn only <code class="docutils literal notranslate"><span class="pre">before</span></code> fades out
+instead. Nothing else moves.</p>
+<section id="id13">
+<h4>Parameters<a class="headerlink" href="#id13" title="Link to this heading">#</a></h4>
+<section id="before">
+<h5>before<a class="headerlink" href="#before" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#drawn"><code class="docutils literal notranslate"><span class="pre">Drawn</span></code></a></p>
+</section>
+<section id="after">
+<h5>after<a class="headerlink" href="#after" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#drawn"><code class="docutils literal notranslate"><span class="pre">Drawn</span></code></a></p>
+</section>
+<section id="measure">
+<h5>measure<a class="headerlink" href="#measure" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/metrics.html#textmeasure"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">TextMeasure</span></code></span></a></p>
+</section>
+</section>
+<section id="id14">
+<h4>Returns<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#blockmotion"><code class="docutils literal notranslate"><span class="pre">BlockMotion</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="cardknots">
+<h3>cardKnots()<a class="headerlink" href="#cardknots" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>cardKnots</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">card</span></code>): <a class="reference internal" href="unfold.html#knot"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Knot</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L173">arranger/src/animation/elide.ts:173</a></p>
+<p>The knots of the card <code class="docutils literal notranslate"><span class="pre">card</span></code> of <code class="docutils literal notranslate"><span class="pre">drawing</span></code>: both ends of every line layout
+records in it (<code class="docutils literal notranslate"><span class="pre">lineAxes</span></code>, one per run of an elided line), an end at a
+seam whose position lies on the other run marked <code class="docutils literal notranslate"><span class="pre">across</span></code> (<code class="docutils literal notranslate"><span class="pre">holdsAt</span></code>),
+and both edges of every gap of its own (not a carried one, whose
+coordinates lie on another tree), an edge at a position a run holds at
+another abscissa marked <code class="docutils literal notranslate"><span class="pre">across</span></code> too (a gap ending at a seam, the row
+crossing it whole), each at the position it draws on the card’s root,
+sorted by abscissa.</p>
+<section id="id15">
+<h4>Parameters<a class="headerlink" href="#id15" title="Link to this heading">#</a></h4>
+<section id="id16">
+<h5>manifest<a class="headerlink" href="#id16" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="id17">
+<h5>drawing<a class="headerlink" href="#id17" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="card">
+<h5>card<a class="headerlink" href="#card" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+</section>
+<section id="id18">
+<h4>Returns<a class="headerlink" href="#id18" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="unfold.html#knot"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Knot</span></code></span></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="elisionstext">
+<h3>elisionsText()<a class="headerlink" href="#elisionstext" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>elisionsText</strong>(<code class="docutils literal notranslate"><span class="pre">exposure</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L230">arranger/src/animation/elide.ts:230</a></p>
+<p>What a container’s elisions are, to tell whether a change moved them: its
+drawn mode and the words its derived gaps show, then each gap’s address,
+elided coordinates and widths, in order; empty for a container recording
+none.</p>
+<section id="id19">
+<h4>Parameters<a class="headerlink" href="#id19" title="Link to this heading">#</a></h4>
+<section id="exposure">
+<h5>exposure<a class="headerlink" href="#exposure" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/boxes.html#elisionexposure"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElisionExposure</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</section>
+</section>
+<section id="id20">
+<h4>Returns<a class="headerlink" href="#id20" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="frameknots">
+<h3>frameKnots()<a class="headerlink" href="#frameknots" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>frameKnots</strong>(<code class="docutils literal notranslate"><span class="pre">exposure</span></code>): <a class="reference internal" href="unfold.html#knot"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Knot</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L215">arranger/src/animation/elide.ts:215</a></p>
+<p>The knots of a frame’s own axis: both ends of every run, at their proportions.</p>
+<section id="id21">
+<h4>Parameters<a class="headerlink" href="#id21" title="Link to this heading">#</a></h4>
+<section id="id22">
+<h5>exposure<a class="headerlink" href="#id22" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/boxes.html#elisionexposure"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElisionExposure</span></code></span></a></p>
+</section>
+</section>
+<section id="id23">
+<h4>Returns<a class="headerlink" href="#id23" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="unfold.html#knot"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Knot</span></code></span></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="framemotion">
+<h3>frameMotion()<a class="headerlink" href="#framemotion" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>frameMotion</strong>(<code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">was</span></code>, <code class="docutils literal notranslate"><span class="pre">after</span></code>, <code class="docutils literal notranslate"><span class="pre">now</span></code>, <code class="docutils literal notranslate"><span class="pre">measure</span></code>): <a class="reference internal" href="#cardmotion"><code class="docutils literal notranslate"><span class="pre">CardMotion</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L381">arranger/src/animation/elide.ts:381</a></p>
+<p>How the frame <code class="docutils literal notranslate"><span class="pre">frame</span></code> of the drawing <code class="docutils literal notranslate"><span class="pre">after</span></code> moves from the frame under
+the same key <code class="docutils literal notranslate"><span class="pre">before</span></code> draws (<code class="docutils literal notranslate"><span class="pre">was</span></code>): its own elements (its rectangle and
+title, every element its range holds outside its member cards) and its
+gaps with their ellipses and labels (written after every item), by the
+proportions of the frame’s axis before and after (<code class="docutils literal notranslate"><span class="pre">frameKnots</span></code>), its
+right border with them.</p>
+<section id="id24">
+<h4>Parameters<a class="headerlink" href="#id24" title="Link to this heading">#</a></h4>
+<section id="id25">
+<h5>before<a class="headerlink" href="#id25" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#drawn"><code class="docutils literal notranslate"><span class="pre">Drawn</span></code></a></p>
+</section>
+<section id="was">
+<h5>was<a class="headerlink" href="#was" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/boxes.html#elisionexposure"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElisionExposure</span></code></span></a></p>
+</section>
+<section id="id26">
+<h5>after<a class="headerlink" href="#id26" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#drawn"><code class="docutils literal notranslate"><span class="pre">Drawn</span></code></a></p>
+</section>
+<section id="now">
+<h5>now<a class="headerlink" href="#now" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/boxes.html#elisionexposure"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElisionExposure</span></code></span></a></p>
+</section>
+<section id="id27">
+<h5>measure<a class="headerlink" href="#id27" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/metrics.html#textmeasure"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">TextMeasure</span></code></span></a></p>
+</section>
+</section>
+<section id="id28">
+<h4>Returns<a class="headerlink" href="#id28" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#cardmotion"><code class="docutils literal notranslate"><span class="pre">CardMotion</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="itemmotions">
+<h3>itemMotions()<a class="headerlink" href="#itemmotions" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>itemMotions</strong>(<code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">after</span></code>): <a class="reference internal" href="#cardmotion"><code class="docutils literal notranslate"><span class="pre">CardMotion</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L539">arranger/src/animation/elide.ts:539</a></p>
+<p>How every item of <code class="docutils literal notranslate"><span class="pre">after</span></code> (a group’s frame, an ungrouped root’s card)
+whose place on the canvas <code class="docutils literal notranslate"><span class="pre">before</span></code> drew elsewhere moves: each element of
+its range translated, from where <code class="docutils literal notranslate"><span class="pre">before</span></code> drew the item (its place less
+the place origin’s, so a moved origin is no move) to where <code class="docutils literal notranslate"><span class="pre">after</span></code> draws
+it; an item drawn at the same place moves nothing.</p>
+<section id="id29">
+<h4>Parameters<a class="headerlink" href="#id29" title="Link to this heading">#</a></h4>
+<section id="id30">
+<h5>before<a class="headerlink" href="#id30" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id31">
+<h5>after<a class="headerlink" href="#id31" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+</section>
+<section id="id32">
+<h4>Returns<a class="headerlink" href="#id32" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#cardmotion"><code class="docutils literal notranslate"><span class="pre">CardMotion</span></code></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="placedattributes">
+<h3>placedAttributes()<a class="headerlink" href="#placedattributes" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>placedAttributes</strong>(<code class="docutils literal notranslate"><span class="pre">placed</span></code>, <code class="docutils literal notranslate"><span class="pre">own</span></code>): <code class="docutils literal notranslate"><span class="pre">Record</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, <code class="docutils literal notranslate"><span class="pre">string</span></code>&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L631">arranger/src/animation/elide.ts:631</a></p>
+<p>The attributes an element drawn at <code class="docutils literal notranslate"><span class="pre">placed</span></code> adds to its own: the map as
+a <code class="docutils literal notranslate"><span class="pre">transform</span></code> (<code class="docutils literal notranslate"><span class="pre">matrix</span></code>, or <code class="docutils literal notranslate"><span class="pre">translate</span></code> without stretching) and its
+opacity <code class="docutils literal notranslate"><span class="pre">own</span></code> times the placed one; nothing at rest.</p>
+<section id="id33">
+<h4>Parameters<a class="headerlink" href="#id33" title="Link to this heading">#</a></h4>
+<section id="placed">
+<h5>placed<a class="headerlink" href="#placed" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="unfold.html#placed"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Placed</span></code></span></a></p>
+</section>
+<section id="own">
+<h5>own<a class="headerlink" href="#own" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id34">
+<h4>Returns<a class="headerlink" href="#id34" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">Record</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, <code class="docutils literal notranslate"><span class="pre">string</span></code>&gt;</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="sidewaysmotion">
+<h3>sidewaysMotion()<a class="headerlink" href="#sidewaysmotion" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>sidewaysMotion</strong>(<code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">was</span></code>, <code class="docutils literal notranslate"><span class="pre">after</span></code>, <code class="docutils literal notranslate"><span class="pre">card</span></code>, <code class="docutils literal notranslate"><span class="pre">measure</span></code>): <a class="reference internal" href="#cardmotion"><code class="docutils literal notranslate"><span class="pre">CardMotion</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L342">arranger/src/animation/elide.ts:342</a></p>
+<p>How the card <code class="docutils literal notranslate"><span class="pre">card</span></code> of the drawing <code class="docutils literal notranslate"><span class="pre">after</span></code> moves from the card under the
+same place key <code class="docutils literal notranslate"><span class="pre">before</span></code> draws (<code class="docutils literal notranslate"><span class="pre">was</span></code>): rows kept but where elision labels
+shown or hidden move them (<code class="docutils literal notranslate"><span class="pre">rowShifts</span></code>, the card top’s move for an element
+of no row), each element starting
+where <code class="docutils literal notranslate"><span class="pre">before</span></code> draws the positions its extent draws (<code class="docutils literal notranslate"><span class="pre">startOf</span></code> over both
+cards’ knots, the move of the place origin added) and shifted down by
+the move of the card’s top (<code class="docutils literal notranslate"><span class="pre">sideways</span></code>).</p>
+<section id="id35">
+<h4>Parameters<a class="headerlink" href="#id35" title="Link to this heading">#</a></h4>
+<section id="id36">
+<h5>before<a class="headerlink" href="#id36" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#drawn"><code class="docutils literal notranslate"><span class="pre">Drawn</span></code></a></p>
+</section>
+<section id="id37">
+<h5>was<a class="headerlink" href="#id37" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+<section id="id38">
+<h5>after<a class="headerlink" href="#id38" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#drawn"><code class="docutils literal notranslate"><span class="pre">Drawn</span></code></a></p>
+</section>
+<section id="id39">
+<h5>card<a class="headerlink" href="#id39" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+<section id="id40">
+<h5>measure<a class="headerlink" href="#id40" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/metrics.html#textmeasure"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">TextMeasure</span></code></span></a></p>
+</section>
+</section>
+<section id="id41">
+<h4>Returns<a class="headerlink" href="#id41" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#cardmotion"><code class="docutils literal notranslate"><span class="pre">CardMotion</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="unfoldingmotion">
+<h3>unfoldingMotion()<a class="headerlink" href="#unfoldingmotion" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>unfoldingMotion</strong>(<code class="docutils literal notranslate"><span class="pre">drawn</span></code>, <code class="docutils literal notranslate"><span class="pre">card</span></code>, <code class="docutils literal notranslate"><span class="pre">measure</span></code>): <a class="reference internal" href="#cardmotion"><code class="docutils literal notranslate"><span class="pre">CardMotion</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/elide.ts#L444">arranger/src/animation/elide.ts:444</a></p>
+<p>How the ancestor card <code class="docutils literal notranslate"><span class="pre">card</span></code> of <code class="docutils literal notranslate"><span class="pre">drawn</span></code> unfolds out of the member card it
+is aligned to when it is shown: each element travels down as a raise
+moves it (<code class="docutils literal notranslate"><span class="pre">raiseUnfold</span></code>: its row’s shift, entering where its row does or
+it has none, and where it lies in a gap: a gap’s ellipses and labels)
+and sideways from the member’s line in the member card, which draws the
+member’s span at the card’s own abscissas: what lies left or right of
+that span starts at the member line’s start or end and opens out of it.</p>
+<section id="id42">
+<h4>Parameters<a class="headerlink" href="#id42" title="Link to this heading">#</a></h4>
+<section id="id43">
+<h5>drawn<a class="headerlink" href="#id43" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#drawn"><code class="docutils literal notranslate"><span class="pre">Drawn</span></code></a></p>
+</section>
+<section id="id44">
+<h5>card<a class="headerlink" href="#id44" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+<section id="id45">
+<h5>measure<a class="headerlink" href="#id45" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/metrics.html#textmeasure"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">TextMeasure</span></code></span></a></p>
+</section>
+</section>
+<section id="id46">
+<h4>Returns<a class="headerlink" href="#id46" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#cardmotion"><code class="docutils literal notranslate"><span class="pre">CardMotion</span></code></a></p>
+</section>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="cardMotions.svelte.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">animation/cardMotions.svelte</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="progress.svelte.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">animation/progress.svelte</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#blockmotion">BlockMotion</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#cards">cards</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#leaving">leaving</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cardmotion">CardMotion</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#key">key</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#methods">Methods</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#holds">holds()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#element">element</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#motionof">motionOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">element</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#drawn">Drawn</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#descriptors">descriptors</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#drawing">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#manifest">manifest</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#leavingcard">LeavingCard</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">descriptors</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">key</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Methods</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#placedat">placedAt()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#descriptor">descriptor</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#t">t</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">blockMotion()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#before">before</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#after">after</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#measure">measure</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cardknots">cardKnots()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#card">card</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#elisionstext">elisionsText()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#exposure">exposure</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#frameknots">frameKnots()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">exposure</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#framemotion">frameMotion()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">before</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#was">was</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id26">after</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#now">now</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id27">measure</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#itemmotions">itemMotions()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id29">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id30">before</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id31">after</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placedattributes">placedAttributes()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id33">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#placed">placed</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#own">own</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id34">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sidewaysmotion">sidewaysMotion()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id35">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id36">before</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id37">was</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id38">after</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id39">card</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id40">measure</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id41">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#unfoldingmotion">unfoldingMotion()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id42">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id43">drawn</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id44">card</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id45">measure</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id46">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

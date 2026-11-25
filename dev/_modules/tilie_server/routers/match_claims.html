@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tilie_server.routers.match_claims &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tilie_server/routers/match_claims';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tilie_server.routers.match_claims</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tilie_server.routers.match_claims</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""The MatchClaims route: a package's MatchClaim table as the editor's columns.</span>
+
+<span class="sd">The editor has no Parquet reader. It posts the manifest file's text together</span>
+<span class="sd">with the picked ``match_claims.parquet``; the route reads the table with</span>
+<span class="sd">timetoalign, checks it against the manifest with TimeToShare's table checks</span>
+<span class="sd">and answers with the columns the editor's anchor index takes, as raw</span>
+<span class="sd">little-endian arrays behind a small header, which the browser views where</span>
+<span class="sd">they lie. The repository's ``decisions/0029-match-claim-columns.md`` fixes</span>
+<span class="sd">the arrays and their encoding, ``decisions/0030-match-claims-answer.md`` the</span>
+<span class="sd">bytes of the request and of the answer.</span>
+
+<span class="sd">Besides the columns the answer holds every row's beliefs, from which the</span>
+<span class="sd">editor computes the belief filter's row mask; the route filters nothing.</span>
+
+<span class="sd">A server may bound the tables it reads (:class:`TableBounds`): a public</span>
+<span class="sd">server does, since a small Parquet file can decode to a table many times its</span>
+<span class="sd">size. Every route that reads a posted table reads it through the reader</span>
+<span class="sd">:func:`table_reader` returns, which keeps to the server's bounds.</span>
+
+<span class="sd">pyarrow, TimeToShare's table checks and timetoalign's MatchClaim table are</span>
+<span class="sd">imported when a request needs them, so a server whose installed timetoalign</span>
+<span class="sd">or timetoshare lacks them still starts and answers every other route; this</span>
+<span class="sd">route then answers 501.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">struct</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">importlib.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">version</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotated</span><span class="p">,</span> <span class="n">Any</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">Request</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">Response</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tilie_server.manifests</span><span class="w"> </span><span class="kn">import</span> <span class="n">PostedBody</span><span class="p">,</span> <span class="n">Refusal</span><span class="p">,</span> <span class="n">read_manifest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tilie_server.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">API_PREFIX</span><span class="p">,</span> <span class="n">size_named</span>
+
+<span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">()</span>
+
+<span class="n">FORMAT</span> <span class="o">=</span> <span class="s2">"tilie-match-claims"</span>
+<span class="sd">"""The answer's ``format``."""</span>
+
+<span class="n">FORMAT_VERSION</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="sd">"""The answer's ``version``, the layout of ADR 0030."""</span>
+
+<span class="n">MEDIA_TYPE</span> <span class="o">=</span> <span class="s2">"application/octet-stream"</span>
+<span class="sd">"""The media type of the request and of the answer."""</span>
+
+<span class="n">ALIGNMENT</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="sd">"""Every array starts at a multiple of eight bytes from the answer's start."""</span>
+
+<span class="n">PREFIX</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">Struct</span><span class="p">(</span><span class="s2">"&lt;I"</span><span class="p">)</span>
+<span class="sd">"""The little-endian 32-bit length opening the request and the answer."""</span>
+
+<span class="n">BATCH_ROWS</span> <span class="o">=</span> <span class="mi">1024</span>
+<span class="sd">"""The rows of a bounded table decoded at a time, each batch counted before</span>
+<span class="sd">the next is decoded."""</span>
+
+<span class="n">TOO_LARGE</span> <span class="o">=</span> <span class="mi">413</span>
+<span class="sd">"""The status of a table beyond the server's bounds."""</span>
+
+
+<div class="viewcode-block" id="TableBounds">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.match_claims.html#tilie_server.routers.match_claims.TableBounds">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TableBounds</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The most rows, and the most bytes uncompressed, of a posted table the</span>
+<span class="sd">    server reads; ``None`` for no bound.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        rows: The most rows.</span>
+<span class="sd">        size: The most bytes, as the file's footer states its row groups'</span>
+<span class="sd">            uncompressed size and as the decoded table's Arrow buffers hold.</span>
+<span class="sd">    """</span>
+
+    <span class="n">rows</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="TableBounds.check_rows">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.match_claims.html#tilie_server.routers.match_claims.TableBounds.check_rows">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Refuse ``rows`` rows beyond the bound.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            Refusal: 413, ``table of more than &lt;n&gt; rows``.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">rows</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">:</span>
+            <span class="n">plural</span> <span class="o">=</span> <span class="s2">""</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">"s"</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"table of more than </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> row</span><span class="si">{</span><span class="n">plural</span><span class="si">}</span><span class="s2">"</span>
+            <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([],</span> <span class="n">message</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">TOO_LARGE</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TableBounds.check_size">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.match_claims.html#tilie_server.routers.match_claims.TableBounds.check_size">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Refuse ``size`` bytes beyond the bound.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            Refusal: 413, ``table larger than &lt;size&gt; uncompressed``.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"table larger than </span><span class="si">{</span><span class="n">size_named</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">)</span><span class="si">}</span><span class="s2"> uncompressed"</span>
+            <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([],</span> <span class="n">message</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">TOO_LARGE</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="table_bounds">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.match_claims.html#tilie_server.routers.match_claims.table_bounds">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">table_bounds</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TableBounds</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The server's bounds of a posted table: the dependency through which a</span>
+<span class="sd">    route reading one takes them."""</span>
+    <span class="n">bounds</span><span class="p">:</span> <span class="n">TableBounds</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">table_bounds</span>
+    <span class="k">return</span> <span class="n">bounds</span></div>
+
+
+
+<span class="n">PostedTableBounds</span> <span class="o">=</span> <span class="n">Annotated</span><span class="p">[</span><span class="n">TableBounds</span><span class="p">,</span> <span class="n">Depends</span><span class="p">(</span><span class="n">table_bounds</span><span class="p">)]</span>
+<span class="sd">"""A route's parameter taking the server's bounds of a posted table."""</span>
+
+
+<div class="viewcode-block" id="bounded_table">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.match_claims.html#tilie_server.routers.match_claims.bounded_table">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">bounded_table</span><span class="p">(</span><span class="n">parquet</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">pyarrow</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">bounds</span><span class="p">:</span> <span class="n">TableBounds</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Read Parquet bytes into an Arrow table, within ``bounds``.</span>
+
+<span class="sd">    Without bounds the file is read whole. With them, the footer is checked</span>
+<span class="sd">    first, before any row is decoded: its rows (the file's count, or the sum</span>
+<span class="sd">    of its row groups' where that is larger, since the reader follows the</span>
+<span class="sd">    row groups) and its row groups' summed ``total_byte_size``. The footer</span>
+<span class="sd">    is the sender's statement and measures encoded pages, so the table is</span>
+<span class="sd">    then decoded :data:`BATCH_ROWS` rows at a time and the bytes of the</span>
+<span class="sd">    decoded batches are summed; the read stops at the batch that passes the</span>
+<span class="sd">    size bound. One batch is thus decoded before it is counted.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Refusal: 413 as :meth:`TableBounds.check_rows` and</span>
+<span class="sd">            :meth:`TableBounds.check_size`.</span>
+<span class="sd">    """</span>
+    <span class="n">source</span> <span class="o">=</span> <span class="n">pyarrow</span><span class="o">.</span><span class="n">BufferReader</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bounds</span><span class="o">.</span><span class="n">rows</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">bounds</span><span class="o">.</span><span class="n">size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+    <span class="n">file</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">ParquetFile</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+    <span class="n">footer</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">metadata</span>
+    <span class="n">groups</span> <span class="o">=</span> <span class="p">[</span><span class="n">footer</span><span class="o">.</span><span class="n">row_group</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">footer</span><span class="o">.</span><span class="n">num_row_groups</span><span class="p">)]</span>
+    <span class="n">bounds</span><span class="o">.</span><span class="n">check_rows</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">footer</span><span class="o">.</span><span class="n">num_rows</span><span class="p">,</span> <span class="nb">sum</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">num_rows</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">groups</span><span class="p">)))</span>
+    <span class="n">bounds</span><span class="o">.</span><span class="n">check_size</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">total_byte_size</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">groups</span><span class="p">))</span>
+    <span class="n">batches</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">file</span><span class="o">.</span><span class="n">iter_batches</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="n">BATCH_ROWS</span><span class="p">):</span>
+        <span class="n">size</span> <span class="o">+=</span> <span class="n">batch</span><span class="o">.</span><span class="n">get_total_buffer_size</span><span class="p">()</span>
+        <span class="n">bounds</span><span class="o">.</span><span class="n">check_size</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pyarrow</span><span class="o">.</span><span class="n">Table</span><span class="o">.</span><span class="n">from_batches</span><span class="p">(</span><span class="n">batches</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">schema_arrow</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="table_reader">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.match_claims.html#tilie_server.routers.match_claims.table_reader">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">table_reader</span><span class="p">(</span><span class="n">bounds</span><span class="p">:</span> <span class="n">TableBounds</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">bytes</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return what reads, checks and encodes a MatchClaim table.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        bounds: The server's bounds of a posted table, which the reader keeps.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A reader of Parquet bytes into an Arrow table (:func:`bounded_table`),</span>
+<span class="sd">        the module ``timetoshare.tables``, timetoalign's ``MatchClaimField``</span>
+<span class="sd">        and :func:`tilie_server.claim_columns.columns_of`.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Refusal: 501, if timetoshare cannot check MatchClaim tables (it or</span>
+<span class="sd">            pyarrow is missing), or timetoalign cannot read them.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">parquet</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">timetoshare.tables</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tables</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"the installed timetoshare </span><span class="si">{</span><span class="n">version</span><span class="p">(</span><span class="s1">'timetoshare'</span><span class="p">)</span><span class="si">}</span><span class="s2"> cannot check "</span>
+            <span class="s2">"MatchClaim tables"</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([],</span> <span class="n">message</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">501</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">timetoalign.alignment.claims</span><span class="w"> </span><span class="kn">import</span> <span class="n">MatchClaimField</span>
+
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tilie_server.claim_columns</span><span class="w"> </span><span class="kn">import</span> <span class="n">columns_of</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"the installed timetoalign </span><span class="si">{</span><span class="n">version</span><span class="p">(</span><span class="s1">'timetoalign'</span><span class="p">)</span><span class="si">}</span><span class="s2"> cannot read "</span>
+            <span class="s2">"MatchClaim tables"</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([],</span> <span class="n">message</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">501</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Read a MatchClaim table from Parquet bytes, within the bounds."""</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">bounded_table</span><span class="p">(</span><span class="n">parquet</span><span class="p">,</span> <span class="n">pyarrow</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">pyarrow</span><span class="o">.</span><span class="n">ArrowException</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([],</span> <span class="s2">"the MatchClaim table is no Parquet file"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+
+    <span class="k">return</span> <span class="n">read</span><span class="p">,</span> <span class="n">tables</span><span class="p">,</span> <span class="n">MatchClaimField</span><span class="p">,</span> <span class="n">columns_of</span></div>
+
+
+
+<div class="viewcode-block" id="split_body">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.match_claims.html#tilie_server.routers.match_claims.split_body">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">split_body</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Split a request into the manifest file's bytes and the table's.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Refusal: 422, if the body is shorter than its prefix or than the</span>
+<span class="sd">            manifest's length it states.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">body</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">PREFIX</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([],</span> <span class="s2">"the body does not start with the manifest's length"</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">length</span><span class="p">,)</span> <span class="o">=</span> <span class="n">PREFIX</span><span class="o">.</span><span class="n">unpack_from</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
+    <span class="n">rest</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">body</span><span class="p">)</span> <span class="o">-</span> <span class="n">PREFIX</span><span class="o">.</span><span class="n">size</span>
+    <span class="k">if</span> <span class="n">length</span> <span class="o">&gt;</span> <span class="n">rest</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">(</span>
+            <span class="p">[],</span> <span class="sa">f</span><span class="s2">"the body states a manifest of </span><span class="si">{</span><span class="n">length</span><span class="si">}</span><span class="s2"> bytes and holds </span><span class="si">{</span><span class="n">rest</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">body</span><span class="p">[</span><span class="n">PREFIX</span><span class="o">.</span><span class="n">size</span> <span class="p">:</span> <span class="n">PREFIX</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="n">length</span><span class="p">],</span> <span class="n">body</span><span class="p">[</span><span class="n">PREFIX</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="n">length</span> <span class="p">:]</span></div>
+
+
+
+<div class="viewcode-block" id="checked_table">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.match_claims.html#tilie_server.routers.match_claims.checked_table">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">checked_table</span><span class="p">(</span>
+    <span class="n">tables</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">field_class</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">manifest</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The table as timetoalign reads it, once TimeToShare's checks accept it.</span>
+
+<span class="sd">    The checks run on the file's table against the manifest; timetoalign</span>
+<span class="sd">    then reads the columns the table type declares (a table may hold others,</span>
+<span class="sd">    which are no part of a MatchClaim) in the package form, each coordinate</span>
+<span class="sd">    cell's number written once as its ``number_type`` says, and gives back</span>
+<span class="sd">    the same rows in that form.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Refusal: 422 with every problem the checks find, or with</span>
+<span class="sd">            timetoalign's message if it refuses a table the checks accept.</span>
+<span class="sd">    """</span>
+    <span class="n">problems</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">match_claim_problems</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">manifest</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">problems</span><span class="p">:</span>
+        <span class="n">listed</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">"code"</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">code</span><span class="p">,</span>
+                <span class="s2">"row"</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">row</span><span class="p">,</span>
+                <span class="s2">"column"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">problem</span><span class="o">.</span><span class="n">column</span><span class="p">),</span>
+                <span class="s2">"message"</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">message</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">problem</span> <span class="ow">in</span> <span class="n">problems</span>
+        <span class="p">]</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([],</span> <span class="n">problems</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="p">,</span> <span class="n">problems</span><span class="o">=</span><span class="n">listed</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">field</span> <span class="o">=</span> <span class="n">field_class</span><span class="o">.</span><span class="n">from_package_table</span><span class="p">(</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">tables</span><span class="o">.</span><span class="n">MATCH_CLAIM_COLUMNS</span><span class="p">))</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([],</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">))</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+    <span class="k">return</span> <span class="n">field</span><span class="o">.</span><span class="n">package_table</span></div>
+
+
+
+<div class="viewcode-block" id="answer_bytes">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.match_claims.html#tilie_server.routers.match_claims.answer_bytes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">answer_bytes</span><span class="p">(</span><span class="n">header</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">arrays</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">int</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Write the answer: the header's length, the header, then the arrays.</span>
+
+<span class="sd">    The first array starts at the first multiple of :data:`ALIGNMENT` after</span>
+<span class="sd">    the header; each array's offset from there is a multiple of it too, so</span>
+<span class="sd">    every array starts at a multiple of eight bytes from the answer's start.</span>
+<span class="sd">    The header names each array's offset and number of entries. Padding is</span>
+<span class="sd">    zero bytes.</span>
+<span class="sd">    """</span>
+    <span class="n">placed</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">length</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">:</span>
+        <span class="n">placed</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">offset</span><span class="p">,</span> <span class="n">length</span><span class="p">]</span>
+        <span class="n">offset</span> <span class="o">+=</span> <span class="o">-</span><span class="p">(</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">//</span> <span class="n">ALIGNMENT</span><span class="p">)</span> <span class="o">*</span> <span class="n">ALIGNMENT</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
+        <span class="p">{</span><span class="s2">"format"</span><span class="p">:</span> <span class="n">FORMAT</span><span class="p">,</span> <span class="s2">"version"</span><span class="p">:</span> <span class="n">FORMAT_VERSION</span><span class="p">,</span> <span class="o">**</span><span class="n">header</span><span class="p">,</span> <span class="s2">"arrays"</span><span class="p">:</span> <span class="n">placed</span><span class="p">},</span>
+        <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s2">","</span><span class="p">,</span> <span class="s2">":"</span><span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">PREFIX</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">))</span> <span class="o">//</span> <span class="n">ALIGNMENT</span><span class="p">)</span> <span class="o">*</span> <span class="n">ALIGNMENT</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="n">base</span> <span class="o">+</span> <span class="n">offset</span><span class="p">)</span>
+    <span class="n">PREFIX</span><span class="o">.</span><span class="n">pack_into</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
+    <span class="n">out</span><span class="p">[</span><span class="n">PREFIX</span><span class="o">.</span><span class="n">size</span> <span class="p">:</span> <span class="n">PREFIX</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)]</span> <span class="o">=</span> <span class="n">text</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">base</span> <span class="o">+</span> <span class="n">placed</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)]</span> <span class="o">=</span> <span class="n">data</span>
+    <span class="k">return</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="match_claims_answer">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.match_claims.html#tilie_server.routers.match_claims.match_claims_answer">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">match_claims_answer</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">bounds</span><span class="p">:</span> <span class="n">TableBounds</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The answer to a request's body, its table read within ``bounds``.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Refusal: As :func:`table_reader`, its reader, :func:`split_body`,</span>
+<span class="sd">            :func:`tilie_server.manifests.read_manifest` and</span>
+<span class="sd">            :func:`checked_table`.</span>
+<span class="sd">    """</span>
+    <span class="n">read</span><span class="p">,</span> <span class="n">tables</span><span class="p">,</span> <span class="n">field_class</span><span class="p">,</span> <span class="n">columns_of</span> <span class="o">=</span> <span class="n">table_reader</span><span class="p">(</span><span class="n">bounds</span><span class="p">)</span>
+    <span class="n">manifest_data</span><span class="p">,</span> <span class="n">table_data</span> <span class="o">=</span> <span class="n">split_body</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
+    <span class="n">manifest</span><span class="p">,</span> <span class="n">bare</span> <span class="o">=</span> <span class="n">read_manifest</span><span class="p">(</span><span class="n">manifest_data</span><span class="p">,</span> <span class="s2">"the manifest"</span><span class="p">)</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">checked_table</span><span class="p">(</span><span class="n">tables</span><span class="p">,</span> <span class="n">field_class</span><span class="p">,</span> <span class="n">read</span><span class="p">(</span><span class="n">table_data</span><span class="p">),</span> <span class="n">manifest</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">answer_bytes</span><span class="p">(</span><span class="o">*</span><span class="n">columns_of</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">bare</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="match_claims">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.match_claims.html#tilie_server.routers.match_claims.match_claims">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">API_PREFIX</span><span class="si">}</span><span class="s2">match-claims"</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">match_claims</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">PostedBody</span><span class="p">,</span> <span class="n">bounds</span><span class="p">:</span> <span class="n">PostedTableBounds</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Answer the columns of the posted MatchClaim table, checked against the</span>
+<span class="sd">    posted manifest.</span>
+
+<span class="sd">    The body is the manifest file's length in bytes (a little-endian 32-bit</span>
+<span class="sd">    integer), the manifest file's text in any serialization, then the</span>
+<span class="sd">    Parquet file. A body that cannot be split or read, or a table the</span>
+<span class="sd">    checks refuse, is answered 422 with ``{"detail": {"path", "message"}}``,</span>
+<span class="sd">    a refused table with ``problems`` besides (each ``{code, row, column,</span>
+<span class="sd">    message}``, the checks' own); a table beyond the server's bounds 413 in</span>
+<span class="sd">    the same form; a server that cannot read or check MatchClaim tables, or</span>
+<span class="sd">    read manifest files, 501.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">answer</span> <span class="o">=</span> <span class="n">match_claims_answer</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">Refusal</span> <span class="k">as</span> <span class="n">refusal</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">refusal</span><span class="o">.</span><span class="n">response</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">answer</span><span class="p">,</span> <span class="n">media_type</span><span class="o">=</span><span class="n">MEDIA_TYPE</span><span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

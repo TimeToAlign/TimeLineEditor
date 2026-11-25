@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>TimeLineEditor (TiLiE) &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="_static/documentation_options.js?v=0926e583"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'overview';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Architecture" href="architecture.html" />
+    <link rel="prev" title="TimeLineEditor" href="index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#" aria-current="page">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#" aria-current="page">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">TimeLineEditor (TiLiE)</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="timelineeditor-tilie">
+<h1>TimeLineEditor (TiLiE)<a class="headerlink" href="#timelineeditor-tilie" title="Link to this heading">#</a></h1>
+<p>TiLiE is a local browser editor and visualization tool for musical timelines represented by the Python <code class="docutils literal notranslate"><span class="pre">timetoalign</span></code> library. It edits a <strong>workspace</strong>, a canvas of <strong>blocks</strong>. A block places one <strong>manifest</strong> on the canvas: a TimeToShare manifest of the one shape every manifest has, holding root timelines (each with exact coordinates, child offsets, conversion maps, regions and flow control), optionally grouped into timeline groups, beside the measure maps its conversion maps read, and the statements that say what the manifest, its timelines and its regions stand for: works, recordings, editions, the people involved. A manifest knows nothing about where it is shown.</p>
+<p><strong>Status: alpha.</strong> The editor described below is in the source tree. The <code class="docutils literal notranslate"><span class="pre">tilie-server</span></code> release on PyPI predates it and serves only the application shell: it installs, serves the bundled editor on <code class="docutils literal notranslate"><span class="pre">127.0.0.1</span></code> with a fresh token for each run, and reports its health.</p>
+<p>What works in the source tree:</p>
+<ul class="simple">
+<li><p><strong>Manifests and workspaces</strong> (<code class="docutils literal notranslate"><span class="pre">core</span></code>). Manifests of TimeToShare schema 0.2.0, the current version, with exact numbers:</p>
+<ul>
+<li><p>validated load of any manifest in YAML or JSON, completed with every default it leaves out, and save in the complete or the minimal form, with or without its styling, in canonical YAML, pretty JSON or RFC 8785 JSON;</p></li>
+<li><p>unknown keys kept and written back, and timelines of unknown length;</p></li>
+<li><p>the statements of TimeToShare’s <a class="reference external" href="https://github.com/TimeToAlign/TimeToShare/blob/main/docs/description.md">description specification</a>, property–value pairs with their provenance, on the manifest, its timelines and its regions, each element’s set as a whole; a held manifest keeps of its JSON-LD <code class="docutils literal notranslate"><span class="pre">&#64;context</span></code> only the prefixes it declares itself, and every file it is written to carries the full context;</p></li>
+<li><p>element addresses, and the workspace view with its blocks, ids and order keys;</p></li>
+<li><p>the four commands <code class="docutils literal notranslate"><span class="pre">add</span></code>, <code class="docutils literal notranslate"><span class="pre">set</span></code>, <code class="docutils literal notranslate"><span class="pre">remove</span></code> and <code class="docutils literal notranslate"><span class="pre">style</span></code> over addresses, under the library’s invariants;</p></li>
+<li><p>a store whose command journal gives undo and redo;</p></li>
+<li><p>the workspace file <code class="docutils literal notranslate"><span class="pre">&lt;name&gt;.tle.json</span></code> (format version 7), named by default after the workspace.</p></li>
+</ul>
+</li>
+<li><p><strong>Drawing</strong> (<code class="docutils literal notranslate"><span class="pre">layout</span></code>, <code class="docutils literal notranslate"><span class="pre">writers</span></code>). Every manifest is drawn as one block opened by its title, a manifest without timelines as that block and title alone:</p>
+<ul>
+<li><p>groups as frames, and each timeline as a root in a card; a member of several groups gets a card in each of their frames;</p></li>
+<li><p>a member that is a child timeline drawn with the lines of its ancestors beside it, each on the side opposite to that ancestor’s children band (below the member by default), which its timestamps’ lines cross, and its root drawn whole as an ancestor card behind the group’s frame, unless a style rule hides it;</p></li>
+<li><p><strong>elisions</strong>, stretches of a timeline left out of the drawing: every row crossing the stretch stops where it starts and resumes where it ends, at full scale on either side, with a narrow gap between that holds one ellipsis (three dots) centred in it and, below it, the elision’s name (its timeline’s name where it has none; where the names of neighbouring gaps would run into each other, one moves a line down, never widening its gap); its ID, its elided coordinates and grey continuations of the rows across the gap are shown on request. An elision on a timeline in no group elides the cards that draw its root whole: an ungrouped root’s card and its ancestor cards. An elision on a timeline that lies in a group elides that group’s frame at one place in every member card, and the ancestor cards behind the frame carry its gap. A style rule on a root’s cards chooses what they draw: Full (no elision), Custom (the stored elisions) or, on an ancestor card, Proportional, where the card elides by itself what lies outside its member, one gap for each stretch that the member’s ancestors and their other children cover there, on the rows chosen, each such timeline keeping its start and end at full scale, at a proportion that by default fits the card into the view; a root’s cards draw their stored elisions where it has any and Proportional otherwise;</p></li>
+<li><p><strong>arrangements</strong>, a block’s groups and ungrouped timelines placed in an order instead of at their own places: Vertical, one under another, or Horizontal, side by side in one row, where every root that a group hangs on (one of its members lying inside that root) is drawn once behind the row, the roots one under another, and each group stands where its first member inside the root lies on it. Along every root the groups follow the row from left to right without overlapping (touching is allowed), and in every group those members lie in the order of their roots; where no row satisfies both, Horizontal is refused with the reason (<code class="docutils literal notranslate"><span class="pre">&quot;Theme</span> <span class="pre">A&quot;</span> <span class="pre">and</span> <span class="pre">&quot;Theme</span> <span class="pre">B&quot;</span> <span class="pre">overlap</span> <span class="pre">on</span> <span class="pre">&quot;Score&quot;</span> <span class="pre">(8–16</span> <span class="pre">♩)</span></code>) and the groups are drawn one under another. The root drawn once keeps, over each group, the scale of that group’s frame, and changes it only between two groups: in a gap that leaves out what the room between their frames cannot show, or, where the two members touch or lie too close for a whole unit, at a seam, which leaves out nothing and across which the root’s line runs on. An arrangement is placement, stored with the block, never in the manifest;</p></li>
+<li><p>a timeline of unknown length scaled to its content and ending in three chevrons;</p></li>
+<li><p>named timestamps, each wedge turned about its tip by its <code class="docutils literal notranslate"><span class="pre">rotation</span></code>, and groupstamps, whose dashed line runs across every member card of their group’s frame;</p></li>
+<li><p>named MatchStamps, each alignment anchor a line between its two match timestamps, the MatchStamp’s name at the middle one;</p></li>
+<li><p>element descriptors, SVG and TikZ as the <a class="reference external" href="https://github.com/TimeToAlign/TimeToShare/blob/main/docs/drawing.md">TimeToShare drawing specification</a> defines them.</p></li>
+</ul>
+</li>
+<li><p><strong>The canvas</strong> (<code class="docutils literal notranslate"><span class="pre">arranger</span></code>), built on Svelte Flow. Each completed gesture is one undoable command.</p>
+<ul>
+<li><p>Blocks are dragged with snapping, reordered, selected and deleted, and so are timelines, groups and the other elements of a manifest, except segments, whose deletion is not supported yet.</p></li>
+<li><p>A press on a box selects that box, a timeline’s cards, a group’s frame or the block; the card or frame under the pointer is highlighted.</p></li>
+<li><p>Every block, frame and card is resized in the same three modes, Scale, Box and Stretch. A member’s card is resized in the frame it is worked in, its size stated through that group.</p></li>
+<li><p>A press on a gap, its ellipsis or its labels selects its elision. A selected stored elision shows a handle on each edge of its gap and, above it, a menu of two toggles in the resize modes’ look, Coordinates (1) and Width (2), one or both pressed: dragging an edge with Coordinates moves the elided coordinate at that edge, snapping to the ends of the timeline and of its children, with Width it widens or narrows the gap, with both the gap swallows the line and what lies beyond the edge stays put. <code class="docutils literal notranslate"><span class="pre">[</span></code> and <code class="docutils literal notranslate"><span class="pre">]</span></code> choose the edge the arrow keys move by one grid step, and Delete removes the elision. An elision a card derives by itself is selected but not edited: choosing Custom stores it first. With Show coordinates on, a gap says what it leaves out. When elisions change, the card’s elements slide sideways to their new places.</p></li>
+</ul>
+</li>
+<li><p><strong>Editors on the canvas.</strong> A double-click opens a block, a group or a timeline in its bundle, group or timeline editor.</p>
+<ul>
+<li><p>Done, or a double-click outside the edited element, keeps the changes as one journal entry; Cancel discards them.</p></li>
+<li><p>Undo takes back a closed editor’s changes by runs: the consecutive changes made in that editor and not in one nested in it. In the open editor its own changes are undone one at a time. Redo re-applies what undo took back, step for step.</p></li>
+<li><p>In a timeline editor, the edited timeline’s bands (markers, conversion maps, children, regions and flow control, stacked above and below its line) are selected and moved by drag, or by Ctrl or Cmd and an up or down arrow. Each move is one command that sets the timeline’s band order in its manifest.</p></li>
+<li><p>In the bundle editor, groups’ frames and ungrouped timelines’ cards are dragged freely while the block is not arranged. Dragging one that is in the selection moves everything selected by the same travel and keeps the selection.</p></li>
+<li><p><strong>Arranging.</strong> The Arrange button of the canvas toolbar opens a menu in the resize modes’ look: on the arranger it arranges the blocks, Free (each at its own place), Vertical, Horizontal or Matrix, with its number of columns (− and +; at first the smallest number whose square holds the blocks), packed 32 units apart in the blocks’ order from the top-left corner of all the blocks’ own places, which reordering does not move; in a bundle editor it arranges the edited block’s groups and ungrouped timelines, Free, Vertical or Horizontal, Horizontal disabled with its reason where they cannot stand side by side. While a level is arranged, nothing lies at a free place: dragging a block or an item shows the others at the places its drop would give them and the release stores the new order, and the arrow keys move the one selected block or item one place along the arrangement (in a Matrix, Up and Down one row). Side by side, a drop or a step that would put a group on the wrong side of another along a root is refused with the reason (<code class="docutils literal notranslate"><span class="pre">&quot;Recapitulation&quot;</span> <span class="pre">stays</span> <span class="pre">right</span> <span class="pre">of</span> <span class="pre">&quot;Exposition&quot;,</span> <span class="pre">&quot;Development&quot;</span> <span class="pre">on</span> <span class="pre">&quot;Score&quot;</span></code>), and in a group’s editor the cards anchoring the group on its roots cannot be dragged, and a drop that would change which member anchors it is refused (<code class="docutils literal notranslate"><span class="pre">would</span> <span class="pre">anchor</span> <span class="pre">&quot;coda&quot;</span> <span class="pre">on</span> <span class="pre">&quot;Score&quot;</span> <span class="pre">instead</span> <span class="pre">of</span> <span class="pre">&quot;Recapitulation&quot;</span></code>). Every choice, drop and step is one undoable command; Free puts everything back where its places state, which an arrangement keeps.</p></li>
+</ul>
+</li>
+<li><p><strong>The editor</strong> (<code class="docutils literal notranslate"><span class="pre">editor</span></code>). One component that the page served by <code class="docutils literal notranslate"><span class="pre">tilie</span></code> uses, and that any other page can mount with <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">build:embed</span></code>’s <code class="docutils literal notranslate"><span class="pre">tilie.js</span></code> (<a class="reference internal" href="architecture.html#embedding"><span class="std std-ref">embedding</span></a>). Among its options, <code class="docutils literal notranslate"><span class="pre">storage.userKey</span></code> and <code class="docutils literal notranslate"><span class="pre">storage.profilesKey</span></code> name the <code class="docutils literal notranslate"><span class="pre">localStorage</span></code> keys of the user and of the type profiles (the page served by <code class="docutils literal notranslate"><span class="pre">tilie</span></code> uses <code class="docutils literal notranslate"><span class="pre">tilie.user</span></code> and <code class="docutils literal notranslate"><span class="pre">tilie.profiles</span></code>; without a key nothing is stored), and <code class="docutils literal notranslate"><span class="pre">lookup:</span> <span class="pre">false</span></code> turns every lookup request off.</p>
+<ul>
+<li><p>A header with a File menu (New workspace, Open…, Save, Save as…, Import manifest…, Export manifest…, Your name…, Type profiles…), an Examples menu that adds one of four example manifests from TimeToShare as a new block or opens the example workspace “Timestamps” in place of the open one (asking first to save or discard unsaved changes), the workspace’s name, renamed in place by a click on it, and an About button, the canvas, and an inspector drawer opened by a tab at the right edge.</p></li>
+<li><p>Manifests are imported from TimeToShare manifest files in YAML or JSON, each as a new block at the centre of the view, moved right past the blocks it would overlap (an open editor is closed first, as Done closes it). Export writes each bundle back as its file came: in the minimal or the complete form, with or without its styling, and in canonical YAML, pretty JSON or RFC 8785 JSON, the file named after the manifest’s <code class="docutils literal notranslate"><span class="pre">id</span></code>, else its <code class="docutils literal notranslate"><span class="pre">name</span></code>, else <code class="docutils literal notranslate"><span class="pre">bundle</span></code>. A new bundle is written minimal, with its styling, in YAML; the Manifest and Bundle tabs set Minimal and Include styling for each bundle, and the workspace keeps these settings. Open… takes manifest files too: into an empty workspace they are imported at once, otherwise it asks whether to add them or to open them in a new, empty workspace, saving unsaved work first. Save (Ctrl+S) writes the workspace file back into the file it was opened from or last saved to, a restored workspace’s included, and otherwise asks for a file; after a rename it asks again, offering the new name. With <code class="docutils literal notranslate"><span class="pre">tilie</span></code> started on your own computer, Open…, Import manifest… and Save as… use the editor’s own file dialog over your workspace, manifest and table files below the server’s root folder (none in a hidden folder), in every browser, and the workspace remembers where each manifest’s file lies, relative to the workspace file. Without a server, and with a server that offers no files (<a class="reference internal" href="#a-public-instance">a public instance</a>), they use the browser’s pickers where it has them, else a file input and a download.</p></li>
+<li><p>The inspector’s tabs wrap into rows where the drawer is too narrow for one. Its first tab, named by the level in view (Arranger, Bundle, Group or Timeline), names the workspace or the edited element; the Arranger tab also arranges the blocks and the Bundle tab the edited block’s groups and ungrouped timelines, with the Arrange menu’s own buttons, disabled with it while the canvas is locked, and the Bundle tab also holds the bundle’s Minimal and Include styling, as the Manifest tab does. Its Properties tab renames the workspace or the inspected element, edits the geometry of the selected block, frame or card, puts the selected timelines into groups or takes them out (a timeline may be in several groups), lists a selected group’s members to change them, and creates a new group of the selected timelines. Its Metadata tab shows and edits statements (below). Its Manifest tab shows the selected block’s manifest as Export writes it, as JSON, YAML or TOML, edits it, and lists unknown keys and the manifest’s own warnings. Its Journal tab lists the journal, newest first. Its last tab, Elisions, sets the elisions of what is selected (below).</p></li>
+<li><p><strong>Elisions.</strong> Selecting one elision on the canvas, stored or one a card derives, shows the Elisions tab, as choosing it would: an open drawer switches to it, a closed one shows it when opened, and the tab stays once the selection leaves the elision. The tab shows up to three blocks, each collapsed to one line that names its kind (Timeline, Group or Elision), its title and its mode (with the number of elisions where it lists them), or an elision’s stretch, and opens with a click; the block holding the selected elision and that elision’s own are open from the start, a block the user has acted in (a mode, option or toggle chosen, a button pressed, a listed elision clicked) stays open once the selection leaves it, one closed while it held the selected elision stays closed, and a block stays open or closed while another tab is shown. The timeline block shows the elisions of the root the selection lies under, wherever that root is drawn whole: “Parent timeline” for a root drawn as an ancestor card behind its grouped children’s frames, with the modes Hidden (no ancestor card), Full, Proportional and Custom, and “Elisions of” for an ungrouped root, with Full and Custom. Proportional sets the proportion (Automatic, or a number), the rows that are elided (Automatic, or the rows chosen) and what every gap shows (Ellipsis, Name, Coordinate, Lines). Custom lists the stored elisions the card draws, a click on one selecting it and × deleting it, with Add elision, which elides the middle third of the selected timeline (on an ancestor card, of its longest stretch outside the member’s span), and Remove all; switching from Proportional to Custom stores the gaps the card derived exactly as they were drawn, and the stored elisions are kept while another mode is chosen. Custom is unavailable, with the reason, where the root is a member of a group, whose elisions are then that group’s. A root drawn once behind a row of groups side by side shows the elisions of that one card, wherever the selection lies under it, with its proportion the least of those its groups would give it; “Side by side” lists, read-only, the gaps the row cuts in it between two groups, and Custom lists the stored elisions lying between its first group and its last as not drawn while arranged side by side. Wherever the selection lies in a group’s frame, or in its group editor, the group block, “Elisions in group”, offers Full and Custom, lists the group’s elisions, and adds and removes them in the same way. A selected elision is renamed in the Properties tab’s Name field, and its own block is its form: From and To in its timeline’s unit, typed exactly, its gap’s width (Standard, 32 units; Proportional, of its natural width; As wide as, a stretch of its timeline; Fixed, in units of the canvas), changing from one form to another without moving the gap, what it shows (Ellipsis, Name, ID, Coordinate, Lines), for a group elision the stretches it also elides on the other timelines of the frame, and Delete elision; an elision a card derives is shown read-only (“Choose Custom to edit”). Each change is one undoable command, and every mode is a style rule stored in the manifest, so an export draws what the canvas shows.</p></li>
+<li><p><strong>Statements.</strong> The Metadata tab shows what the selected bundle, timeline or region stands for (with nothing selected, the edited element in an editor, else the bundle when the workspace holds one block), as property–value pairs that TimeToShare’s description specification defines, each with its provenance: how it was made (who stated it, when and how) and who believes it (true, unlikely or false). One tile holds one verb about one thing (two values carrying the same label count as one thing), collapsed to its sentence, with the image of the first of its things that has one; the first one says what the element is (“Clair de lune, mm. 1–6 (MEI) is a printed or scanned edition.”). One click on a tile’s expand button shows its pairs, one row per vocabulary that states it (<code class="docutils literal notranslate"><span class="pre">rel:prf</span></code>, <code class="docutils literal notranslate"><span class="pre">schema:byArtist</span></code>, <code class="docutils literal notranslate"><span class="pre">wdt:P175</span></code>, …), each with a Provenance button, and “＋ Add vocabulary”; an IRI is shown as a slug, <code class="docutils literal notranslate"><span class="pre">prefix:local</span></code> (<code class="docutils literal notranslate"><span class="pre">mbid:</span></code> for MusicBrainz), the full IRI on hover. Provenance opens the pair’s paradata and beliefs and holds the actions: your own belief, True, Unlikely or False, and Remove; believing a pair false records your belief and leaves the pair stated. Below the tiles, the candidates (pairs held only in provenance, such as matches proposed for review) are listed with the same Provenance button, believing one true states it, and those you believe false are set apart. “＋ Add statement” opens the composer, three fields each narrowing the next: the verb, the vocabulary, and the value, searched in Wikidata, the GND, YouTube or MusicBrainz, entered as an identifier, or a timeline or region of the manifest chosen from a list or picked on the canvas; a URL pasted into any field fills vocabulary and value, and “Other property…” states a property no vocabulary of the catalogue offers. “＋ Add vocabulary” offers what other systems say the thing is the same as. “Propose matches for unreconciled names” looks up every name stated without an identifier and writes the best match as a candidate. Every action is one undoable command. What you add is stated by you and believed true by you: your name, “Gerhardt” until you give one under File, Your name…, is also the journal’s author, and your ORCID iD, where you give one, names you in the provenance (else a <code class="docutils literal notranslate"><span class="pre">tag:</span></code> IRI made from your name); the browser keeps both. Type profiles (File, Type profiles…) are your own types of thing, with the verbs usually stated of each and the systems to look its values up in, any Reconciliation Service API endpoint among them; they are settings of the browser, exchanged as YAML files, never part of a workspace or a manifest.</p></li>
+<li><p><strong>Lookup and privacy.</strong> Text typed into a value field goes to the chosen system’s service: Wikidata, the GND (through lobid) and YouTube’s oEmbed are asked from the browser, MusicBrainz only through <code class="docutils literal notranslate"><span class="pre">tilie-server</span></code> (one request a second, a User-Agent naming the server and no person, answers cached for the run). Viewing the tab also resolves the IRIs of the things its tiles name, for their thumbnails, and “＋ Add vocabulary” resolves a tile’s thing for its cross-references, so the manifest’s thing IRIs reach Wikidata, the GND, YouTube or the server. An editor mounted with <code class="docutils literal notranslate"><span class="pre">lookup:</span> <span class="pre">false</span></code> sends none of these requests.</p></li>
+<li><p><strong>Timestamps.</strong> A timestamp is a timeline’s cross-section at a position: the timeline’s coordinate, that of every segment and displayed descendant its cross-section line crosses, and the values of their conversion maps. With Show coordinates on (the canvas toolbar, or C), hovering a timeline or one of its maps shows that timestamp in a flag, the position picked on the hovered row (an ancestor line is read as its ancestor’s line, and the lines of an ancestor card where the card is seen beside the frames and cards in front of it, everywhere while it is raised), and a click pins it in the Timestamp tab: there its exact values are copied bare, with their unit written out (<code class="docutils literal notranslate"><span class="pre">219/16</span> <span class="pre">quarters</span></code>) or pretty (<code class="docutils literal notranslate"><span class="pre">13</span> <span class="pre">11/16</span> <span class="pre">♩</span></code>, <code class="docutils literal notranslate"><span class="pre">1′15.5″</span></code>), shown as JSON, YAML or TOML, and edited, every coordinate and every map value that can be solved for a position. The flag and the tab also show the coordinates of the timeline’s ancestors, every coordinate and map value listed top to bottom as it is drawn on the canvas (a map drawn above its timeline’s line before that timeline’s coordinate); while Show coordinates is on, named timestamps and MatchStamps let the pointer through to the lines beneath; a segment’s boundary, selected alone, shows the segment’s start in the tab; and on a timeline of an integer unit (samples, ticks, pixels) the pointer steps by 1. Giving a pinned timestamp a name stores it in the manifest as a named timestamp, whose Display toggles choose what every export draws of it: its wedge, its name, ID and coordinate as stacked labels, and its dashed cross-section line (Line). The Wedge slider turns the wedge about its tip from −180° to 180°, mirrored when its band lies above the line, with stops at −180, −135, −45, 0, 45, 135 and 180 (PageUp and PageDown move between them); Default removes the stated rotation. On a member of a group a named timestamp may be a <strong>GroupStamp</strong> (the GroupStamp toggle; on by default when it is named on the arranger or in a bundle or group editor, off when named in a timeline editor): its line runs across every member card of the group’s frame, the other members’ coordinates follow from the group and are never stored, and its coordinates on the other members are secondary coordinates, hidden unless a rule shows them. With Show coordinates off, a click on any of its lines shows the whole GroupStamp in the Timestamp tab; with it on, the flag reads a hovered member’s line the same way above a timeline editor, listing every member of its group with its ancestors and the descendants its line crosses. Every new root timeline, and every root of an imported manifest without a <code class="docutils literal notranslate"><span class="pre">graphical</span></code> object, is given the named timestamps <code class="docutils literal notranslate"><span class="pre">origin</span></code> and <code class="docutils literal notranslate"><span class="pre">length</span></code> (when its length is known), each drawing its wedge and coordinate; a timestamp at a timeline’s end follows the end when the length changes. With Show coordinates off, a click on a named timestamp shows it in the tab, where it is renamed, moved by editing its values, or deleted. Two settings at the bottom of the tab cap how finely a position is picked: Denominator (2520 by default) for fraction axes and Decimals (3) for float axes, which also sets how values are rounded in the flag; the pointer takes the simplest value inside its pixel on the hovered row’s axis, and zooming in reaches finer ones. The message bar over the canvas lists every message as a card that names its level: information, such as “Copied” or the reason a gesture, a key or a choice was refused, vanishes after three seconds, a longer text after 300 ms a word; warnings (something asked for and left undone) and errors (an operation on a file or a server that failed) stay until dismissed.</p></li>
+<li><p><strong>MatchClaims and MatchStamps.</strong> A package’s MatchClaims lie in its MatchClaim table, a Parquet file beside the manifest, which the manifest names in its <code class="docutils literal notranslate"><span class="pre">resources</span></code>; the editor reads one table per block through <code class="docutils literal notranslate"><span class="pre">tilie-server</span></code>, so matches need a running server: until one has answered its health check, nothing is asked: turning Show matches on while a table is missing says in the message bar, for as long as it takes to read, that matches need a running tilie-server and how to start it, and the disabled Load MatchClaims… and belief buttons and an expanded MatchClaim say the same; while the check has not answered yet, the message bar says nothing: once it answers, the tables Show matches asks for load, and if it fails, the message bar says once how to start a server. Turning Show matches on (the canvas toolbar, or M; it and Show coordinates take turns) loads the table each block’s manifest names, without a question: from its URL where the manifest names it by an <code class="docutils literal notranslate"><span class="pre">http</span></code> or <code class="docutils literal notranslate"><span class="pre">https</span></code> URL, else from beside the manifest’s file where the workspace knows where that file lies; only where the file cannot be found does one small dialog per block ask, to locate the manifest or the table in the file dialog, to enter a URL, or to cancel, and a located manifest is remembered with the workspace; where no block holds a table afterwards, the message bar says “No MatchClaim table loaded.”. A table can also be picked beside its manifest in Import manifest… or beside its workspace in Open… in the browser, and is read through the server too, or chosen with Load MatchClaims… in the Matchstamp tab, which opens the same dialog. A server that offers no files (its health answer says <code class="docutils literal notranslate"><span class="pre">&quot;files&quot;:</span> <span class="pre">false</span></code>, as <a class="reference internal" href="#a-public-instance">a public instance</a>’s does) still reads the tables, so Load MatchClaims…, Show matches, beliefs, provenance and events all work with it: a table the manifest names by an <code class="docutils literal notranslate"><span class="pre">http</span></code> or <code class="docutils literal notranslate"><span class="pre">https</span></code> URL is loaded from there, an example’s from where the example is served, and otherwise the dialog asks for the table itself, whose Locate… opens the browser’s file picker for one <code class="docutils literal notranslate"><span class="pre">.parquet</span></code> file, or for its URL; where a picked file lies is not remembered, so it is picked again after the workspace is reopened. Tables are held while the workspace is open and never written into it.</p></li>
+<li><p>The table’s potential MatchStamps, the connected sets of alignment anchors its MatchClaims state, are drawn over the block as dashed grey lines, wherever a line of their timelines is seen; hovering one shows its coordinates in a flag, and a click pins it in the Matchstamp tab, the hovered and the pinned one drawn as naming would draw them, a GroupStamp’s line across its group’s frame. What naming stores is the same whichever editor is open. Giving it a name stores it in the manifest as a named MatchStamp, whole, as the table states it, even where the MatchClaim filter hides some of its timelines. The anchor lines of the pinned MatchStamp and of the named ones take your belief in the MatchClaims stating them: undecided blue, true green, unlikely dark orange, false red, the most critical belief where several MatchClaims state one anchor. A named MatchStamp that the table no longer matches is drawn entirely red, with an exclamation mark before its name; the Matchstamp tab lists what differs, and Update rewrites it from the table. With Show matches and Show coordinates off, a click on a MatchStamp’s connector, or on one of its match timestamps’ lines, selects it for renaming, Update and Remove.</p></li>
+<li><p>The Matchstamp tab shows the MatchStamp’s coordinates as the Timestamp tab shows a timestamp’s, disabled, with the same Copy buttons, the coordinates its MatchClaims state set apart from those reached through groups, ancestors and crossed lines, or as JSON, YAML or TOML; its <strong>Lines</strong>, every dashed line it draws in screen order, each timestamp line with the Timestamp tab’s display toggles and, on a timeline in a group, a GroupStamp toggle (a named MatchStamp’s match timestamps on grouped timelines are GroupStamps by default), and each anchor line with Line and Name, which choose what every export draws; and its <strong>MatchClaims</strong>, each collapsed to its ID. Expanded, a MatchClaim shows the events on both sides, its certainty and every actor’s belief; True, Unlikely and False record your own belief, which the server writes into a new table, kept only once Save MatchClaims… saves it (New workspace and Open… ask before they drop a changed table); Provenance opens how it was made. The MatchClaim filter at the bottom of the tab chooses the timelines whose MatchClaims are shown and, with four toggles, the beliefs that count: true, undecided, unlikely and false, all but false by default; the workspace keeps it for each block.</p></li>
+<li><p>Unsaved changes are marked with <code class="docutils literal notranslate"><span class="pre">•</span></code> before the workspace’s name in the header. A workspace’s text is autosaved in the browser’s IndexedDB and offered for restoring when the editor opens again.</p></li>
+</ul>
+</li>
+</ul>
+<p>Not available yet: editing flow control in the editor beyond an element’s name and the user’s belief in it, and showing a timeline’s computed flows; loading sources through <code class="docutils literal notranslate"><span class="pre">timetoalign</span></code> on the server, which so far exposes <code class="docutils literal notranslate"><span class="pre">/api/health</span></code>, whose member <code class="docutils literal notranslate"><span class="pre">files</span></code> says whether the server offers the file routes, <code class="docutils literal notranslate"><span class="pre">/api/measure-maps</span></code>, the expansion of a manifest’s measure maps, <code class="docutils literal notranslate"><span class="pre">/api/match-claims</span></code>, a package’s MatchClaim table checked against its manifest and answered as columns, <code class="docutils literal notranslate"><span class="pre">/api/match-claims/provenance</span></code> and <code class="docutils literal notranslate"><span class="pre">/api/match-claims/belief</span></code>, a MatchClaim’s provenance read on demand and a belief recorded in a new table, <code class="docutils literal notranslate"><span class="pre">/api/match-claims/events</span></code>, the events on both sides of given MatchClaims, <code class="docutils literal notranslate"><span class="pre">/api/flows</span></code>, a timeline’s flow control played by <code class="docutils literal notranslate"><span class="pre">timetoalign</span></code>, <code class="docutils literal notranslate"><span class="pre">/api/flows/flow-maps</span></code>, the manifest with a timeline’s flows written as regions and FlowMaps, <code class="docutils literal notranslate"><span class="pre">/api/reconcile/musicbrainz</span></code>, MusicBrainz as a Reconciliation Service API 0.2 endpoint, and, except on <a class="reference internal" href="#a-public-instance">a public instance</a>, <code class="docutils literal notranslate"><span class="pre">/api/folders</span></code> and <code class="docutils literal notranslate"><span class="pre">/api/files</span></code>, the workspace, manifest and table files below its root folder listed and read and workspace files written, nothing in a hidden folder.</p>
+<section id="install-and-start">
+<h2>Install and start<a class="headerlink" href="#install-and-start" title="Link to this heading">#</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">tilie-server</span></code> release on PyPI predates the editor described above. Until a release carries it, build the editor and start the server from the source tree, with TimeToShare and timetoalign cloned beside this repository as <a class="reference internal" href="#development">Development</a> describes:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>TimeLineEditor/app
+pnpm<span class="w"> </span>install
+pnpm<span class="w"> </span>build
+<span class="nb">cd</span><span class="w"> </span>../server
+uv<span class="w"> </span>sync
+uv<span class="w"> </span>run<span class="w"> </span>tilie<span class="w"> </span>--static-dir<span class="w"> </span>../app/packages/editor/dist
+</pre></div>
+</div>
+<p>With a release that carries it, <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">tilie-server</span></code> and then <code class="docutils literal notranslate"><span class="pre">tilie</span></code> do the same.</p>
+<p><code class="docutils literal notranslate"><span class="pre">tilie</span></code> starts the local server on <code class="docutils literal notranslate"><span class="pre">127.0.0.1</span></code>, port 8000, and opens the browser (the release on PyPI, which predates this, chooses a free port each time). The browser keeps what the editor remembers, such as your name and your type profiles, for each port apart, so the port stays the same from run to run; while port 8000 is taken, <code class="docutils literal notranslate"><span class="pre">tilie</span></code> uses a free port and prints a notice saying so. Use <code class="docutils literal notranslate"><span class="pre">tilie</span> <span class="pre">--check</span></code> to verify an installed distribution. <code class="docutils literal notranslate"><span class="pre">tilie</span> <span class="pre">--port</span> <span class="pre">43129</span></code> selects a port, <code class="docutils literal notranslate"><span class="pre">tilie</span> <span class="pre">--no-browser</span></code> starts without opening a browser, and <code class="docutils literal notranslate"><span class="pre">tilie</span> <span class="pre">--root</span> <span class="pre">&lt;folder&gt;</span></code> narrows the files the editor may open and save to that folder (by default your home folder).</p>
+<section id="open-save-and-reopen-a-workspace">
+<h3>Open, save and reopen a workspace<a class="headerlink" href="#open-save-and-reopen-a-workspace" title="Link to this heading">#</a></h3>
+<p>With the server running, the editor reaches your files below the server’s root folder through its own file dialog, so it works the same in every browser:</p>
+<ol class="arabic simple">
+<li><p><strong>File, Import manifest…</strong> adds a TimeToShare manifest file (YAML or JSON) as a block. The workspace remembers where the manifest’s file lies.</p></li>
+<li><p><strong>File, Save</strong> (Ctrl+S) asks once where to save the workspace and offers <code class="docutils literal notranslate"><span class="pre">&lt;name&gt;.tle.json</span></code> after the workspace’s name; later saves write it back in place. Save writes the workspace file alone, which holds its own copy of every manifest: the manifest files and their tables stay as they are, and Export manifest… writes a manifest out. The workspace keeps each manifest’s place relative to its own file, so a folder holding both can be moved as a whole.</p></li>
+<li><p>A click on the workspace’s name in the header renames it; the next Save then asks again, as <strong>Save as…</strong> does.</p></li>
+<li><p><strong>File, Open…</strong> opens the workspace file again later, in this or any other browser.</p></li>
+<li><p><strong>Show matches</strong> (M) loads each manifest’s MatchClaim table from beside the manifest’s file, or from its URL where the manifest names the table by an <code class="docutils literal notranslate"><span class="pre">http</span></code> or <code class="docutils literal notranslate"><span class="pre">https</span></code> URL, without asking. Only when a file cannot be found does a small dialog ask you to locate the manifest or the table, to enter a URL, or to cancel; a manifest you locate is remembered with the workspace.</p></li>
+</ol>
+<p>The file dialog shows only workspaces (<code class="docutils literal notranslate"><span class="pre">.tle.json</span></code>), manifests (<code class="docutils literal notranslate"><span class="pre">.yaml</span></code>, <code class="docutils literal notranslate"><span class="pre">.yml</span></code>, <code class="docutils literal notranslate"><span class="pre">.json</span></code>) and MatchClaim tables (<code class="docutils literal notranslate"><span class="pre">.parquet</span></code>), and nothing in a hidden folder or with a hidden name (one starting with <code class="docutils literal notranslate"><span class="pre">.</span></code>): a workspace or manifest kept in a hidden folder cannot be opened, imported or saved through the server, so keep your files in folders that are not hidden. The server writes only workspace files: <strong>File, Export manifest…</strong> and the Matchstamp tab’s <strong>Save MatchClaims…</strong> are saved by the browser, as a download or in the browser’s own save dialog, never through the server.</p>
+<p>Without a server, or once the page has been reloaded and lost the run’s token (the header then shows “offline”), the editor opens and saves through the browser’s own pickers and downloads, and reads no MatchClaim table (<a class="reference internal" href="#status">Status</a>).</p>
+</section>
+<section id="a-public-instance">
+<h3>A public instance<a class="headerlink" href="#a-public-instance" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">tilie</span> <span class="pre">--public-host</span> <span class="pre">&lt;host&gt;</span></code> serves the editor to anyone who reaches <code class="docutils literal notranslate"><span class="pre">&lt;host&gt;</span></code>, so that TiLiE can be tried without installing anything. The option names the host exactly as browsers send it in the <code class="docutils literal notranslate"><span class="pre">Host</span></code> header (<code class="docutils literal notranslate"><span class="pre">tilie.example.org</span></code>, or <code class="docutils literal notranslate"><span class="pre">localhost:8000</span></code> for a trial on your own computer) and may be repeated for a server reached under several names. A public instance:</p>
+<ul class="simple">
+<li><p>binds every interface, on port 8000 unless <code class="docutils literal notranslate"><span class="pre">--port</span></code> names another, opens no browser and prints <code class="docutils literal notranslate"><span class="pre">tilie:</span> <span class="pre">public</span> <span class="pre">mode</span> <span class="pre">on</span> <span class="pre">port</span> <span class="pre">&lt;port&gt;,</span> <span class="pre">answering</span> <span class="pre">as</span> <span class="pre">&lt;hosts&gt;;</span> <span class="pre">no</span> <span class="pre">token,</span> <span class="pre">no</span> <span class="pre">file</span> <span class="pre">access</span></code>;</p></li>
+<li><p>answers only requests addressed to the named hosts, from no page but theirs (403 otherwise), and needs no token;</p></li>
+<li><p>serves none of your files: Open…, Import manifest… and Save use the browser’s pickers and downloads, while measure maps, Show matches and the MusicBrainz lookup work as on your own computer;</p></li>
+<li><p>refuses with 413 a posted body over 16 MiB and a MatchClaim table of more than 1,000,000 rows or over 128 MiB uncompressed, runs at most two computations at once (further ones wait) and holds at most 32 connections.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">--check</span></code>, <code class="docutils literal notranslate"><span class="pre">--root</span></code> and <code class="docutils literal notranslate"><span class="pre">--no-browser</span></code> cannot be combined with <code class="docutils literal notranslate"><span class="pre">--public-host</span></code>. A public instance has no rate limit, one MusicBrainz queue shared by all its visitors (one request a second for all of them), and no accounts, and it stores nothing: a visitor’s work lives in their browser and in their downloads. <a class="reference internal" href="decisions/0038-public-mode.html"><span class="std std-doc">decisions/0038</span></a> records why it is built so.</p>
+<p>To try it from the source tree, build the editor as above and start, from <code class="docutils literal notranslate"><span class="pre">server/</span></code>, <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">tilie</span> <span class="pre">--public-host</span> <span class="pre">localhost:8000</span> <span class="pre">--static-dir</span> <span class="pre">../app/packages/editor/dist</span></code>; then open <code class="docutils literal notranslate"><span class="pre">http://localhost:8000/</span></code> (<code class="docutils literal notranslate"><span class="pre">127.0.0.1:8000</span></code> is a host it was not given).</p>
+<p><strong>The container image.</strong> The <code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code> at the repository root builds the editor and the server into one image that starts a public instance. The build fetches timetoalign and TimeToShare from GitHub at the commits named by the build arguments <code class="docutils literal notranslate"><span class="pre">TIMETOALIGN_REF</span></code> and <code class="docutils literal notranslate"><span class="pre">TIMETOSHARE_REF</span></code>, by default fixed ones (timetoalign’s the commit <code class="docutils literal notranslate"><span class="pre">server/uv.lock</span></code> was locked against). From the repository root:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>podman<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>tilie<span class="w"> </span>.<span class="w">        </span><span class="c1"># or: docker build -t tilie .</span>
+podman<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-e<span class="w"> </span><span class="nv">TILIE_PUBLIC_HOST</span><span class="o">=</span>localhost:8000<span class="w"> </span>-p<span class="w"> </span><span class="m">127</span>.0.0.1:8000:8000<span class="w"> </span>tilie
+</pre></div>
+</div>
+<p>The image runs as an unprivileged user and reads <code class="docutils literal notranslate"><span class="pre">TILIE_PUBLIC_HOST</span></code>, the host it answers as (else <code class="docutils literal notranslate"><span class="pre">RENDER_EXTERNAL_HOSTNAME</span></code>; with neither it refuses to start), and <code class="docutils literal notranslate"><span class="pre">PORT</span></code>, the port it listens on (8000 by default). It speaks plain HTTP and expects TLS to be terminated in front of it, as a hosting platform does. To host it on a platform:</p>
+<ol class="arabic simple">
+<li><p>Let the platform build the <code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code> from this repository.</p></li>
+<li><p>Leave <code class="docutils literal notranslate"><span class="pre">PORT</span></code> to the platform, which sets it.</p></li>
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">TILIE_PUBLIC_HOST</span></code> to the public host name of the service. Render sets <code class="docutils literal notranslate"><span class="pre">RENDER_EXTERNAL_HOSTNAME</span></code>, which the image reads by itself.</p></li>
+<li><p>Address a health probe to that host name: a probe sent to the container’s internal address is refused with 403. Use <code class="docutils literal notranslate"><span class="pre">/api/health</span></code> only where the platform sends the public <code class="docutils literal notranslate"><span class="pre">Host</span></code> with its probe, else a TCP check.</p></li>
+</ol>
+<p>The image was designed for Render’s free web service and for Google Cloud Run. A free Render instance has 512 MB of memory, sleeps after 15 minutes without traffic, takes about a minute to wake and keeps nothing on disk; Cloud Run scales to zero when unused, lets you choose the memory and needs a billing account. These terms change: see <a class="reference external" href="https://render.com/docs/free">Render’s free instances</a> and <a class="reference external" href="https://cloud.google.com/run/pricing">Cloud Run pricing</a>.</p>
+</section>
+</section>
+<section id="status">
+<h2>Status<a class="headerlink" href="#status" title="Link to this heading">#</a></h2>
+<p>Started as <code class="docutils literal notranslate"><span class="pre">tilie</span></code>, the server binds only to <code class="docutils literal notranslate"><span class="pre">127.0.0.1</span></code>, creates a random bearer token for each run, rejects foreign Host and Origin headers, serves the bundled application, protects every <code class="docutils literal notranslate"><span class="pre">/api/</span></code> route, and sends <code class="docutils literal notranslate"><span class="pre">Referrer-Policy:</span> <span class="pre">no-referrer</span></code> with every response. <code class="docutils literal notranslate"><span class="pre">tilie</span></code> prints and opens <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:&lt;port&gt;/#token=&lt;token&gt;</span></code>: the token travels in the URL fragment, which the browser never sends to the server. The editor reads it, removes it from the address bar, and sends it with its health request. The token is held in memory only, so reloading the page loses it and the header then shows the “offline” mark; restart <code class="docutils literal notranslate"><span class="pre">tilie</span></code> for a fresh URL. Started with <code class="docutils literal notranslate"><span class="pre">--public-host</span></code>, it keeps the Host and Origin checks for the named hosts and the referrer policy, and gives up the token and the file routes (<a class="reference internal" href="#a-public-instance">A public instance</a>).</p>
+<p>Of the six application packages, <code class="docutils literal notranslate"><span class="pre">core</span></code> implements the workspace, block, and manifest model described in <a class="reference internal" href="architecture.html#the-core-package"><span class="std std-ref">the architecture guide</span></a>. It reads and writes manifests of schema 0.2.0 only, the one version TimeToShare supports, and migrates nothing. <code class="docutils literal notranslate"><span class="pre">layout</span></code> exports <code class="docutils literal notranslate"><span class="pre">draw(manifest,</span> <span class="pre">placement,</span> <span class="pre">layers,</span> <span class="pre">metrics)</span></code>, which returns one derived drawing. <code class="docutils literal notranslate"><span class="pre">writers</span></code> exports <code class="docutils literal notranslate"><span class="pre">toDescriptors(drawing)</span></code>, <code class="docutils literal notranslate"><span class="pre">writeSvg(placed)</span></code>, and <code class="docutils literal notranslate"><span class="pre">writeTikz(placed,</span> <span class="pre">options)</span></code>; a placed drawing has <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code>, and <code class="docutils literal notranslate"><span class="pre">scale</span></code>, and a page may contain more than one. <code class="docutils literal notranslate"><span class="pre">arranger</span></code> exports the canvas and the functions that turn its gestures into commands (<a class="reference internal" href="architecture.html#the-canvas"><span class="std std-ref">the canvas</span></a>); <code class="docutils literal notranslate"><span class="pre">editor</span></code> is the application around it (<a class="reference internal" href="architecture.html#the-editor"><span class="std std-ref">the editor</span></a>); <code class="docutils literal notranslate"><span class="pre">client</span></code> connects to the server, lists and reads the workspace, manifest and table files below its root folder and writes workspace files there, and asks its health, the expanded rows of a manifest’s measure maps, the columns of a package’s MatchClaim table, the provenance of some of its MatchClaims, the events on both sides of some of them and the new table holding a belief. There is no generated API client, server-side loading or export endpoint yet.</p>
+</section>
+<section id="architecture">
+<h2>Architecture<a class="headerlink" href="#architecture" title="Link to this heading">#</a></h2>
+<p>TiLiE keeps a small browser editing core and treats the local Python server as an equal peer for loading, computation, and exports. TimeToShare manifests remain exact and schema-validated, while the screen drawing is derived from them. The package structure prevents UI dependencies from leaking into the core. Read <a class="reference internal" href="architecture.html"><span class="std std-doc">the architecture guide</span></a> for the complete design and the distinction between current behavior and intended behavior.</p>
+</section>
+<section id="development">
+<h2>Development<a class="headerlink" href="#development" title="Link to this heading">#</a></h2>
+<p>Every application package that uses the TimeToShare schema package, <code class="docutils literal notranslate"><span class="pre">&#64;timetoalign/timetoshare</span></code>, takes it through a <code class="docutils literal notranslate"><span class="pre">link:</span></code> to the <code class="docutils literal notranslate"><span class="pre">js/</span></code> directory of a checkout beside this repository until schema 0.2.0 is published on npm, and <code class="docutils literal notranslate"><span class="pre">^0.2.0</span></code> from npm once it is. Clone <a class="reference external" href="https://github.com/TimeToAlign/TimeToShare">TimeToShare</a> there and build its <code class="docutils literal notranslate"><span class="pre">js/</span></code> package first (see <a class="reference internal" href="contributing.html#setup"><span class="std std-ref">CONTRIBUTING.md</span></a>), then install and validate the application workspace:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/TimeToAlign/TimeLineEditor.git
+<span class="nb">cd</span><span class="w"> </span>TimeLineEditor/app
+pnpm<span class="w"> </span>install
+pnpm<span class="w"> </span>lint
+pnpm<span class="w"> </span>typecheck
+pnpm<span class="w"> </span><span class="nb">test</span>
+pnpm<span class="w"> </span>build
+</pre></div>
+</div>
+<p>To render the writer review sheet, install <code class="docutils literal notranslate"><span class="pre">rsvg-convert</span></code> and run this from
+the repository root:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pnpm<span class="w"> </span>-C<span class="w"> </span>app/packages/writers<span class="w"> </span>review
+</pre></div>
+</div>
+<p>The command writes SVG and PNG renders plus <code class="docutils literal notranslate"><span class="pre">index.html</span></code> under
+<code class="docutils literal notranslate"><span class="pre">app/packages/writers/review/</span></code>. It confines fontconfig to the DejaVu Sans and
+Noto Music files bundled by TimeToShare and refuses to render when another font
+is visible.</p>
+<p>To draw any manifest file as the drawing fixtures are drawn, into an SVG file
+and a standalone TikZ document:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pnpm<span class="w"> </span>-C<span class="w"> </span>app/packages/writers<span class="w"> </span>draw<span class="w"> </span>path/to/manifest.yaml<span class="w"> </span>--out<span class="w"> </span>path/to/folder
+</pre></div>
+</div>
+<p>Relative paths are read from <code class="docutils literal notranslate"><span class="pre">app/packages/writers</span></code>; <code class="docutils literal notranslate"><span class="pre">--name</span></code>, <code class="docutils literal notranslate"><span class="pre">--length</span></code> and
+<code class="docutils literal notranslate"><span class="pre">--scale</span></code> are described in <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/main/AGENTS.md#commands">AGENTS.md</a>.</p>
+<p>Set up, test, and build the server separately. Until a timetoalign release carries the measure-map expansion, the server installs timetoalign from a checkout beside this repository, so clone <a class="reference external" href="https://github.com/TimeToAlign/timetoalign">timetoalign</a> there first; until a TimeToShare release carries schema 0.2.0, the <code class="docutils literal notranslate"><span class="pre">timetoshare</span></code> package that timetoalign checks statements with comes from the TimeToShare checkout cloned above (see <a class="reference internal" href="contributing.html#setup"><span class="std std-ref">CONTRIBUTING.md</span></a>):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>../server
+uv<span class="w"> </span>sync
+uv<span class="w"> </span>run<span class="w"> </span>pytest
+uv<span class="w"> </span>build
+</pre></div>
+</div>
+<p>The writer compile test needs <code class="docutils literal notranslate"><span class="pre">lualatex</span></code> with TikZ, <code class="docutils literal notranslate"><span class="pre">standalone</span></code>, and <code class="docutils literal notranslate"><span class="pre">fontspec</span></code>; it uses the DejaVu Sans and Noto Music files bundled by TimeToShare. Without <code class="docutils literal notranslate"><span class="pre">lualatex</span></code> the TikZ compilation is skipped, and with <code class="docutils literal notranslate"><span class="pre">TILIE_REQUIRE_LUALATEX=1</span></code> set its absence is a failure, as in CI. The same test parses every review SVG as XML.</p>
+<p>The server wheel bundles the built app. From <code class="docutils literal notranslate"><span class="pre">server/</span></code>, <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">tilie</span> <span class="pre">--check</span> <span class="pre">--static-dir</span> <span class="pre">../app/packages/editor/dist</span></code> checks a development build. From the repository root, <code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">scripts/check_versions.py</span> <span class="pre">--tag</span> <span class="pre">vX.Y.Z</span></code> checks that a release tag matches both declared versions.</p>
+</section>
+<section id="releasing">
+<h2>Releasing<a class="headerlink" href="#releasing" title="Link to this heading">#</a></h2>
+<p>Release preparation, version checks, the tag-triggered workflow, and PyPI trusted publishing are documented in <a class="reference internal" href="contributing.html"><span class="std std-doc">CONTRIBUTING.md</span></a>.</p>
+</section>
+<section id="license">
+<h2>License<a class="headerlink" href="#license" title="Link to this heading">#</a></h2>
+<p>TiLiE is released under the <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/main/LICENSE">MIT License</a>. It depends on the <code class="docutils literal notranslate"><span class="pre">timetoalign</span></code> library, which is distributed separately.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">TimeLineEditor</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="architecture.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Architecture</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#install-and-start">Install and start</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#open-save-and-reopen-a-workspace">Open, save and reopen a workspace</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#a-public-instance">A public instance</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#status">Status</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#architecture">Architecture</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#development">Development</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#releasing">Releasing</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#license">License</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tilie_server.routers.claim_provenance &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tilie_server/routers/claim_provenance';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tilie_server.routers.claim_provenance</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tilie_server.routers.claim_provenance</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""The MatchClaims' provenance: read for given MatchClaims, and a belief written.</span>
+
+<span class="sd">A MatchClaim's provenance is TimeToShare's provenance entry: how it was made</span>
+<span class="sd">(paradata) and who believes it. The editor holds a MatchClaim table for its</span>
+<span class="sd">session only and never writes it; it asks the server for the provenance of</span>
+<span class="sd">the MatchClaims it shows (``POST /api/match-claims/provenance``) and, when</span>
+<span class="sd">its user states a belief in one, for the table that records it</span>
+<span class="sd">(``POST /api/match-claims/belief``), which the user saves in the place of</span>
+<span class="sd">the old file. The repository's ``decisions/0031-match-claim-provenance.md``</span>
+<span class="sd">fixes both routes.</span>
+
+<span class="sd">Both requests are a JSON object of parameters behind its length, followed</span>
+<span class="sd">by the request of ``POST /api/match-claims`` unchanged: the manifest file</span>
+<span class="sd">and the Parquet file the editor holds. The table is checked against the</span>
+<span class="sd">manifest as that route checks it.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">importlib.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">version</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSONResponse</span><span class="p">,</span> <span class="n">Response</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tilie_server.manifests</span><span class="w"> </span><span class="kn">import</span> <span class="n">PostedBody</span><span class="p">,</span> <span class="n">Refusal</span><span class="p">,</span> <span class="n">read_manifest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tilie_server.routers.match_claims</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PREFIX</span><span class="p">,</span>
+    <span class="n">PostedTableBounds</span><span class="p">,</span>
+    <span class="n">TableBounds</span><span class="p">,</span>
+    <span class="n">checked_table</span><span class="p">,</span>
+    <span class="n">split_body</span><span class="p">,</span>
+    <span class="n">table_reader</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tilie_server.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">API_PREFIX</span>
+
+<span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">()</span>
+
+<span class="n">PARQUET_MEDIA_TYPE</span> <span class="o">=</span> <span class="s2">"application/vnd.apache.parquet"</span>
+<span class="sd">"""The media type of the belief route's answer, a Parquet file."""</span>
+
+<span class="n">PROVENANCE_PARAMETERS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"claims"</span><span class="p">,)</span>
+<span class="sd">"""The parameters of the provenance route."""</span>
+
+<span class="n">BELIEF_PARAMETERS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"claim"</span><span class="p">,</span> <span class="s2">"actor"</span><span class="p">,</span> <span class="s2">"belief"</span><span class="p">,</span> <span class="s2">"date"</span><span class="p">)</span>
+<span class="sd">"""The parameters of the belief route, in the order they are checked."""</span>
+
+
+<div class="viewcode-block" id="provenance_model">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.claim_provenance.html#tilie_server.routers.claim_provenance.provenance_model">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">provenance_model</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">str</span><span class="p">],</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""Return timetoalign's ``Provenance``, ``actor_iri`` and ``belief_context``.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Refusal: 501, if the installed timetoalign lacks them.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">timetoalign.alignment.filters</span><span class="w"> </span><span class="kn">import</span> <span class="n">belief_context</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">timetoalign.core.provenance</span><span class="w"> </span><span class="kn">import</span> <span class="n">Provenance</span><span class="p">,</span> <span class="n">actor_iri</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"the installed timetoalign </span><span class="si">{</span><span class="n">version</span><span class="p">(</span><span class="s1">'timetoalign'</span><span class="p">)</span><span class="si">}</span><span class="s2"> cannot record "</span>
+            <span class="s2">"provenance"</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([],</span> <span class="n">message</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">501</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+    <span class="k">return</span> <span class="n">Provenance</span><span class="p">,</span> <span class="n">actor_iri</span><span class="p">,</span> <span class="n">belief_context</span></div>
+
+
+
+<div class="viewcode-block" id="split_parameters">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.claim_provenance.html#tilie_server.routers.claim_provenance.split_parameters">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">split_parameters</span><span class="p">(</span>
+    <span class="n">body</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">optional</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">bytes</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Split a request into its parameters and what follows them.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        body: The request's body: the parameters' length in bytes (a</span>
+<span class="sd">            little-endian 32-bit integer), the parameters as a JSON object</span>
+<span class="sd">            in UTF-8, then the rest of the request (for the MatchClaim</span>
+<span class="sd">            routes the body ``POST /api/match-claims`` takes).</span>
+<span class="sd">        names: The parameters the route requires.</span>
+<span class="sd">        optional: The parameters the route takes besides, each of which a</span>
+<span class="sd">            request may leave out.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Refusal: 422, if the body is shorter than its prefix or than the</span>
+<span class="sd">            length it states, the parameters are no JSON object, or one is</span>
+<span class="sd">            missing or unknown (at the parameter's name).</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">body</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">PREFIX</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([],</span> <span class="s2">"the body does not start with the parameters' length"</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">length</span><span class="p">,)</span> <span class="o">=</span> <span class="n">PREFIX</span><span class="o">.</span><span class="n">unpack_from</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
+    <span class="n">rest</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">body</span><span class="p">)</span> <span class="o">-</span> <span class="n">PREFIX</span><span class="o">.</span><span class="n">size</span>
+    <span class="k">if</span> <span class="n">length</span> <span class="o">&gt;</span> <span class="n">rest</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">(</span>
+            <span class="p">[],</span> <span class="sa">f</span><span class="s2">"the body states parameters of </span><span class="si">{</span><span class="n">length</span><span class="si">}</span><span class="s2"> bytes and holds </span><span class="si">{</span><span class="n">rest</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">body</span><span class="p">[</span><span class="n">PREFIX</span><span class="o">.</span><span class="n">size</span> <span class="p">:</span> <span class="n">PREFIX</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="n">length</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">UnicodeDecodeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([],</span> <span class="s2">"the parameters are no JSON text"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([],</span> <span class="s2">"the parameters are no JSON object"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">names</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">optional</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([</span><span class="n">name</span><span class="p">],</span> <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">' is no parameter of this route"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([</span><span class="n">name</span><span class="p">],</span> <span class="sa">f</span><span class="s2">"the parameter '</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">' is missing"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">body</span><span class="p">[</span><span class="n">PREFIX</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="n">length</span> <span class="p">:]</span></div>
+
+
+
+<div class="viewcode-block" id="read_request">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.claim_provenance.html#tilie_server.routers.claim_provenance.read_request">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_request</span><span class="p">(</span>
+    <span class="n">body</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">bounds</span><span class="p">:</span> <span class="n">TableBounds</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The parameters, the posted table (read within ``bounds``), the</span>
+<span class="sd">    manifest (file form), ``timetoshare.tables``, timetoalign's</span>
+<span class="sd">    ``MatchClaimField`` and the table as timetoalign gives it back, once the</span>
+<span class="sd">    table's checks accept the table.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Refusal: As :func:`split_parameters`, and as the table route for the</span>
+<span class="sd">            rest of the body.</span>
+<span class="sd">    """</span>
+    <span class="n">read</span><span class="p">,</span> <span class="n">tables</span><span class="p">,</span> <span class="n">field_class</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">table_reader</span><span class="p">(</span><span class="n">bounds</span><span class="p">)</span>
+    <span class="n">parameters</span><span class="p">,</span> <span class="n">rest</span> <span class="o">=</span> <span class="n">split_parameters</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">names</span><span class="p">)</span>
+    <span class="n">manifest_data</span><span class="p">,</span> <span class="n">table_data</span> <span class="o">=</span> <span class="n">split_body</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span>
+    <span class="n">manifest</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">read_manifest</span><span class="p">(</span><span class="n">manifest_data</span><span class="p">,</span> <span class="s2">"the manifest"</span><span class="p">)</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">table_data</span><span class="p">)</span>
+    <span class="n">checked</span> <span class="o">=</span> <span class="n">checked_table</span><span class="p">(</span><span class="n">tables</span><span class="p">,</span> <span class="n">field_class</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">manifest</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">manifest</span><span class="p">,</span> <span class="n">tables</span><span class="p">,</span> <span class="n">field_class</span><span class="p">,</span> <span class="n">checked</span></div>
+
+
+
+<div class="viewcode-block" id="claim_rows">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.claim_provenance.html#tilie_server.routers.claim_provenance.claim_rows">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">claim_rows</span><span class="p">(</span><span class="n">table</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Each MatchClaim's row, by its ID (the checks hold every ID once)."""</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">claim</span><span class="p">:</span> <span class="n">row</span> <span class="k">for</span> <span class="n">row</span><span class="p">,</span> <span class="n">claim</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">column</span><span class="p">(</span><span class="s2">"id"</span><span class="p">)</span><span class="o">.</span><span class="n">to_pylist</span><span class="p">())}</span></div>
+
+
+
+<div class="viewcode-block" id="row_of">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.claim_provenance.html#tilie_server.routers.claim_provenance.row_of">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">row_of</span><span class="p">(</span><span class="n">rows</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">claim</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The row of the MatchClaim ``claim``.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Refusal: 422 at ``path`` if ``claim`` is no ID of the table.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">claim</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">claim</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="n">shown</span> <span class="o">=</span> <span class="n">claim</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">claim</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">claim</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"the MatchClaim table has no MatchClaim '</span><span class="si">{</span><span class="n">shown</span><span class="si">}</span><span class="s2">'"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rows</span><span class="p">[</span><span class="n">claim</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="provenance_answer">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.claim_provenance.html#tilie_server.routers.claim_provenance.provenance_answer">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">provenance_answer</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">bounds</span><span class="p">:</span> <span class="n">TableBounds</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The provenance of the MatchClaims a request names, its table read</span>
+<span class="sd">    within ``bounds``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``{"claims": [{"id", "provenance"}]}`` in the order the request names</span>
+<span class="sd">        them, ``provenance`` the entry the MatchClaim is read with (its row's</span>
+<span class="sd">        own, else the file's), its absent members left out, or ``None`` for</span>
+<span class="sd">        a MatchClaim stated without one. Each belief's actor is the IRI</span>
+<span class="sd">        timetoalign compares it as, expanded under the manifest's</span>
+<span class="sd">        ``@context``, as the MatchClaims route answers actors.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Refusal: As :func:`read_request`; 422 if ``claims`` is no list, or</span>
+<span class="sd">            names a MatchClaim the table lacks (at ``["claims", index]``);</span>
+<span class="sd">            as :func:`tilie_server.claim_columns.manifest_bundle`.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tilie_server.claim_columns</span><span class="w"> </span><span class="kn">import</span> <span class="n">manifest_bundle</span>
+
+    <span class="n">Provenance</span><span class="p">,</span> <span class="n">actor_iri</span><span class="p">,</span> <span class="n">belief_context</span> <span class="o">=</span> <span class="n">provenance_model</span><span class="p">()</span>
+    <span class="n">parameters</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">manifest</span><span class="p">,</span> <span class="n">tables</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">read_request</span><span class="p">(</span>
+        <span class="n">body</span><span class="p">,</span> <span class="n">PROVENANCE_PARAMETERS</span><span class="p">,</span> <span class="n">bounds</span>
+    <span class="p">)</span>
+    <span class="n">claims</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">"claims"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">claims</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([</span><span class="s2">"claims"</span><span class="p">],</span> <span class="s2">"the parameter 'claims' is no list of MatchClaim IDs"</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">claim_rows</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+    <span class="n">found</span> <span class="o">=</span> <span class="p">[</span><span class="n">row_of</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">claim</span><span class="p">,</span> <span class="p">[</span><span class="s2">"claims"</span><span class="p">,</span> <span class="n">at</span><span class="p">])</span> <span class="k">for</span> <span class="n">at</span><span class="p">,</span> <span class="n">claim</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">claims</span><span class="p">)]</span>
+    <span class="n">context</span> <span class="o">=</span> <span class="n">belief_context</span><span class="p">(</span><span class="n">manifest_bundle</span><span class="p">(</span><span class="n">manifest</span><span class="p">))</span>
+    <span class="n">cells</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">row_provenance</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">entry</span><span class="p">(</span><span class="n">cell</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""A row's provenance cell as an entry, each actor expanded; ``None`` stays."""</span>
+        <span class="k">if</span> <span class="n">cell</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">described</span> <span class="o">=</span> <span class="n">Provenance</span><span class="o">.</span><span class="n">from_row</span><span class="p">(</span><span class="n">cell</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">belief</span> <span class="ow">in</span> <span class="n">described</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"beliefs"</span><span class="p">,</span> <span class="p">()):</span>
+            <span class="n">belief</span><span class="p">[</span><span class="s2">"actor"</span><span class="p">]</span> <span class="o">=</span> <span class="n">actor_iri</span><span class="p">(</span><span class="n">belief</span><span class="p">[</span><span class="s2">"actor"</span><span class="p">],</span> <span class="n">context</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">described</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">"claims"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="n">claim</span><span class="p">,</span> <span class="s2">"provenance"</span><span class="p">:</span> <span class="n">entry</span><span class="p">(</span><span class="n">cells</span><span class="p">[</span><span class="n">row</span><span class="p">])}</span>
+            <span class="k">for</span> <span class="n">claim</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">claims</span><span class="p">,</span> <span class="n">found</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="checked_actor">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.claim_provenance.html#tilie_server.routers.claim_provenance.checked_actor">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">checked_actor</span><span class="p">(</span><span class="n">actor</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""An actor a request names: a non-empty string.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Refusal: 422 at ``["actor"]`` otherwise.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">actor</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">actor</span> <span class="o">==</span> <span class="s2">""</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([</span><span class="s2">"actor"</span><span class="p">],</span> <span class="s2">"an actor is named by a non-empty string"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">actor</span></div>
+
+
+
+<div class="viewcode-block" id="checked_date">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.claim_provenance.html#tilie_server.routers.claim_provenance.checked_date">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">checked_date</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The day a request states for a belief: a calendar date written ``YYYY-MM-DD``.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Refusal: 422 at ``["date"]`` otherwise.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">timetoshare.statements</span><span class="w"> </span><span class="kn">import</span> <span class="n">calendar_date</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([</span><span class="s2">"date"</span><span class="p">],</span> <span class="s2">"a date is a string written YYYY-MM-DD"</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">calendar_date</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([</span><span class="s2">"date"</span><span class="p">],</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">))</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+    <span class="k">return</span> <span class="n">date</span></div>
+
+
+
+<div class="viewcode-block" id="checked_belief">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.claim_provenance.html#tilie_server.routers.claim_provenance.checked_belief">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">checked_belief</span><span class="p">(</span>
+    <span class="n">parameters</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">rows</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The believed MatchClaim's ID, the actor, the belief and its date.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Refusal: 422 at the parameter at fault: a MatchClaim the table</span>
+<span class="sd">            lacks, an actor that is no non-empty string, a belief that is</span>
+<span class="sd">            none of TimeToShare's three words, a date that is no calendar</span>
+<span class="sd">            date written ``YYYY-MM-DD``.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">timetoshare</span><span class="w"> </span><span class="kn">import</span> <span class="n">BELIEFS</span>
+
+    <span class="n">claim</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">"claim"</span><span class="p">]</span>
+    <span class="n">row_of</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">claim</span><span class="p">,</span> <span class="p">[</span><span class="s2">"claim"</span><span class="p">])</span>
+    <span class="n">actor</span> <span class="o">=</span> <span class="n">checked_actor</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"actor"</span><span class="p">])</span>
+    <span class="n">belief</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">"belief"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">belief</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">belief</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">BELIEFS</span><span class="p">:</span>
+        <span class="n">words</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">word</span><span class="si">}</span><span class="s2">'"</span> <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">BELIEFS</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([</span><span class="s2">"belief"</span><span class="p">],</span> <span class="sa">f</span><span class="s2">"a belief is one of the strings </span><span class="si">{</span><span class="n">words</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">claim</span><span class="p">,</span> <span class="n">actor</span><span class="p">,</span> <span class="n">belief</span><span class="p">,</span> <span class="n">checked_date</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"date"</span><span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="believed_table">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.claim_provenance.html#tilie_server.routers.claim_provenance.believed_table">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">believed_table</span><span class="p">(</span><span class="n">table</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">believed</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The posted table with the provenance of the table timetoalign wrote.</span>
+
+<span class="sd">    ``believed`` is the posted table's MatchClaims as timetoalign holds them</span>
+<span class="sd">    after recording a belief: the same rows in the same order, the columns</span>
+<span class="sd">    the table type declares. Its provenance column replaces the posted</span>
+<span class="sd">    one, and the file's provenance for every row is the one ``believed``</span>
+<span class="sd">    states, if any (timetoalign keeps a shared entry only while it is every</span>
+<span class="sd">    row's). Every other column, the columns the table type does not declare</span>
+<span class="sd">    included, and the file's other metadata are kept.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">timetoshare.tables</span><span class="w"> </span><span class="kn">import</span> <span class="n">PROVENANCE_METADATA_KEY</span>
+
+    <span class="n">key</span> <span class="o">=</span> <span class="n">PROVENANCE_METADATA_KEY</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">get_field_index</span><span class="p">(</span><span class="s2">"provenance"</span><span class="p">)</span>
+    <span class="n">field</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">column</span> <span class="o">=</span> <span class="n">believed</span><span class="o">.</span><span class="n">column</span><span class="p">(</span><span class="s2">"provenance"</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">name</span><span class="p">:</span> <span class="n">value</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="n">key</span>
+    <span class="p">}</span>
+    <span class="n">shared</span> <span class="o">=</span> <span class="p">(</span><span class="n">believed</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">shared</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">shared</span>
+    <span class="n">new</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">set_column</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">column</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">new</span><span class="o">.</span><span class="n">replace_schema_metadata</span><span class="p">(</span><span class="n">metadata</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="succeeding">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.claim_provenance.html#tilie_server.routers.claim_provenance.succeeding">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">succeeding</span><span class="p">(</span><span class="n">tables</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">old</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">new</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Refuse ``new`` unless it succeeds ``old``.</span>
+
+<span class="sd">    Every MatchClaim of ``old`` is in ``new`` with the same timelines,</span>
+<span class="sd">    events, anchors and every other value but its provenance (TimeToShare's</span>
+<span class="sd">    ``succession_problems``).</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Refusal: 422 with every breach as the table problems, ``message``</span>
+<span class="sd">            the first one's.</span>
+<span class="sd">    """</span>
+    <span class="n">problems</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">succession_problems</span><span class="p">(</span><span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">problems</span><span class="p">:</span>
+        <span class="n">listed</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">"code"</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">code</span><span class="p">,</span>
+                <span class="s2">"row"</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">row</span><span class="p">,</span>
+                <span class="s2">"column"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">problem</span><span class="o">.</span><span class="n">column</span><span class="p">),</span>
+                <span class="s2">"message"</span><span class="p">:</span> <span class="n">problem</span><span class="o">.</span><span class="n">message</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">problem</span> <span class="ow">in</span> <span class="n">problems</span>
+        <span class="p">]</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([],</span> <span class="n">problems</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="p">,</span> <span class="n">problems</span><span class="o">=</span><span class="n">listed</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="belief_answer">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.claim_provenance.html#tilie_server.routers.claim_provenance.belief_answer">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">belief_answer</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">bounds</span><span class="p">:</span> <span class="n">TableBounds</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The Parquet file of the posted table with the posted belief recorded,</span>
+<span class="sd">    the table read within ``bounds``.</span>
+
+<span class="sd">    timetoalign records the belief: the manifest is read as an</span>
+<span class="sd">    ``AlignmentBundle``, the table's MatchClaims are added to it, and its</span>
+<span class="sd">    ``add_match_claim_belief`` replaces the actor's earlier belief in the</span>
+<span class="sd">    MatchClaim, actors compared as IRIs under every prefix the manifest's</span>
+<span class="sd">    ``@context`` declares. The new table is checked against the manifest</span>
+<span class="sd">    as a posted one is, and against the posted table by the succession</span>
+<span class="sd">    rule, before it is written.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Refusal: As :func:`read_request`, :func:`checked_belief` and</span>
+<span class="sd">            :func:`tilie_server.claim_columns.manifest_bundle`; 422 with</span>
+<span class="sd">            timetoalign's message if it refuses the MatchClaims or the</span>
+<span class="sd">            belief, with the problems if the new table fails its checks or</span>
+<span class="sd">            the succession rule.</span>
+<span class="sd">    """</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pa</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">parquet</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tilie_server.claim_columns</span><span class="w"> </span><span class="kn">import</span> <span class="n">manifest_bundle</span>
+
+    <span class="n">provenance_model</span><span class="p">()</span>  <span class="c1"># 501 before the body is split</span>
+    <span class="n">parameters</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">manifest</span><span class="p">,</span> <span class="n">tables</span><span class="p">,</span> <span class="n">field_class</span><span class="p">,</span> <span class="n">checked</span> <span class="o">=</span> <span class="n">read_request</span><span class="p">(</span>
+        <span class="n">body</span><span class="p">,</span> <span class="n">BELIEF_PARAMETERS</span><span class="p">,</span> <span class="n">bounds</span>
+    <span class="p">)</span>
+    <span class="n">claim</span><span class="p">,</span> <span class="n">actor</span><span class="p">,</span> <span class="n">belief</span><span class="p">,</span> <span class="n">date</span> <span class="o">=</span> <span class="n">checked_belief</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">claim_rows</span><span class="p">(</span><span class="n">table</span><span class="p">))</span>
+    <span class="n">bundle</span> <span class="o">=</span> <span class="n">manifest_bundle</span><span class="p">(</span><span class="n">manifest</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">bundle</span><span class="o">.</span><span class="n">add_match_claim_field</span><span class="p">(</span><span class="n">field_class</span><span class="o">.</span><span class="n">from_package_table</span><span class="p">(</span><span class="n">checked</span><span class="p">))</span>
+        <span class="n">bundle</span><span class="o">.</span><span class="n">add_match_claim_belief</span><span class="p">(</span><span class="n">claim</span><span class="p">,</span> <span class="n">actor</span><span class="o">=</span><span class="n">actor</span><span class="p">,</span> <span class="n">belief</span><span class="o">=</span><span class="n">belief</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">date</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([],</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">args</span> <span class="k">else</span> <span class="n">error</span><span class="p">))</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+    <span class="n">new</span> <span class="o">=</span> <span class="n">believed_table</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">bundle</span><span class="o">.</span><span class="n">match_claim_table</span><span class="o">.</span><span class="n">package_table</span><span class="p">)</span>
+    <span class="n">checked_table</span><span class="p">(</span><span class="n">tables</span><span class="p">,</span> <span class="n">field_class</span><span class="p">,</span> <span class="n">new</span><span class="p">,</span> <span class="n">manifest</span><span class="p">)</span>
+    <span class="n">succeeding</span><span class="p">(</span><span class="n">tables</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span>
+    <span class="n">sink</span> <span class="o">=</span> <span class="n">pa</span><span class="o">.</span><span class="n">BufferOutputStream</span><span class="p">()</span>
+    <span class="n">parquet</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span><span class="n">new</span><span class="p">,</span> <span class="n">sink</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sink</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span><span class="o">.</span><span class="n">to_pybytes</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="match_claim_provenance">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.claim_provenance.html#tilie_server.routers.claim_provenance.match_claim_provenance">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">API_PREFIX</span><span class="si">}</span><span class="s2">match-claims/provenance"</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">match_claim_provenance</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">PostedBody</span><span class="p">,</span> <span class="n">bounds</span><span class="p">:</span> <span class="n">PostedTableBounds</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Answer the provenance of the MatchClaims named, of the posted table.</span>
+
+<span class="sd">    The body is the parameters' length in bytes (a little-endian 32-bit</span>
+<span class="sd">    integer), the parameters ``{"claims": [&lt;MatchClaim ID&gt;, …]}`` as JSON,</span>
+<span class="sd">    then the body ``POST /api/match-claims`` takes. The answer is JSON</span>
+<span class="sd">    ``{"claims": [{"id", "provenance"}]}``. Refusals answer as that route's,</span>
+<span class="sd">    the parameters' at their name.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">answer</span> <span class="o">=</span> <span class="n">provenance_answer</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">Refusal</span> <span class="k">as</span> <span class="n">refusal</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">refusal</span><span class="o">.</span><span class="n">response</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">JSONResponse</span><span class="p">(</span><span class="n">answer</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="match_claim_belief">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.claim_provenance.html#tilie_server.routers.claim_provenance.match_claim_belief">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">API_PREFIX</span><span class="si">}</span><span class="s2">match-claims/belief"</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">match_claim_belief</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">PostedBody</span><span class="p">,</span> <span class="n">bounds</span><span class="p">:</span> <span class="n">PostedTableBounds</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Answer the posted table with an actor's belief in one MatchClaim.</span>
+
+<span class="sd">    The body is the parameters' length in bytes (a little-endian 32-bit</span>
+<span class="sd">    integer), the parameters ``{"claim", "actor", "belief", "date"}`` as</span>
+<span class="sd">    JSON, then the body ``POST /api/match-claims`` takes. The answer is the</span>
+<span class="sd">    new ``match_claims.parquet``; nothing is written on the server.</span>
+<span class="sd">    Refusals answer as that route's, the parameters' at their name.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">answer</span> <span class="o">=</span> <span class="n">belief_answer</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">Refusal</span> <span class="k">as</span> <span class="n">refusal</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">refusal</span><span class="o">.</span><span class="n">response</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">answer</span><span class="p">,</span> <span class="n">media_type</span><span class="o">=</span><span class="n">PARQUET_MEDIA_TYPE</span><span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

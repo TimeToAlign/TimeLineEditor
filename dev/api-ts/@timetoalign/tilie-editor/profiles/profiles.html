@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>profiles/profiles &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api-ts/@timetoalign/tilie-editor/profiles/profiles';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="profiles/profiles.svelte" href="profiles.svelte.html" />
+    <link rel="prev" title="pick.svelte" href="../pick.svelte.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-core/index.html">@timetoalign/tilie-core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-layout/index.html">@timetoalign/tilie-layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-writers/index.html">@timetoalign/tilie-writers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-client/index.html">@timetoalign/tilie-client</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-arranger/index.html">@timetoalign/tilie-arranger</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../index.html">@timetoalign/tilie-editor</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../attributions.html">attributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../autosave.html">autosave</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../autosaving.html">autosaving</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../combobox/keys.html">combobox/keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../embed.html">embed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html">examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../files.html">files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fixtureWorkspace.html">fixtureWorkspace</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fixtures.html">fixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/claimProvenance.html">inspector/claimProvenance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/codec.html">inspector/codec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/elisions.html">inspector/elisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/flow.html">inspector/flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/formats.svelte.html">inspector/formats.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/groups.html">inspector/groups</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/journal.html">inspector/journal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/lossless.html">inspector/lossless</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/manifestText.html">inspector/manifestText</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/manifestText.svelte.html">inspector/manifestText.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/matchstampLines.html">inspector/matchstampLines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/matchstamps.html">inspector/matchstamps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/metadata/catalogue.html">inspector/metadata/catalogue</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/metadata/composer.svelte.html">inspector/metadata/composer.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/metadata/edits.html">inspector/metadata/edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/metadata/frame.html">inspector/metadata/frame</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/metadata/proposals.html">inspector/metadata/proposals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/metadata/search.svelte.html">inspector/metadata/search.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/metadata/thumbnails.svelte.html">inspector/metadata/thumbnails.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/nulls.html">inspector/nulls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/problems.html">inspector/problems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/properties.html">inspector/properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/propertyDrafts.svelte.html">inspector/propertyDrafts.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/provenance.html">inspector/provenance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/selection.html">inspector/selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/stamps/commands.html">inspector/stamps/commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/stamps/drafts.svelte.html">inspector/stamps/drafts.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/stamps/settlements.svelte.html">inspector/stamps/settlements.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/tabs.html">inspector/tabs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/timestamp.html">inspector/timestamp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/toml.html">inspector/toml</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/words.html">inspector/words</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/yaml.html">inspector/yaml</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../iris.html">iris</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup.html">lookup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup/gnd.html">lookup/gnd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup/kinds.html">lookup/kinds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup/musicbrainz.html">lookup/musicbrainz</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup/reconciliation.html">lookup/reconciliation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup/services.html">lookup/services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup/wikidata.html">lookup/wikidata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup/youtube.html">lookup/youtube</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../main.html">main</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../matchClaims.svelte.html">matchClaims.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../measureMaps.html">measureMaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../messages.svelte.html">messages.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../options.html">options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../page.html">page</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../pane.html">pane</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../pick.svelte.html">pick.svelte</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">profiles/profiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="profiles.svelte.html">profiles/profiles.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../testHook.html">testHook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../transient.html">transient</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user.svelte.html">user.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workspaceSession.svelte.html">workspaceSession.svelte</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../../typescript.html" class="nav-link">TypeScript API</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">&#64;timetoalign/tilie-editor</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">profiles/profiles</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="profiles-profiles">
+<h1>profiles/profiles<a class="headerlink" href="#profiles-profiles" title="Link to this heading">#</a></h1>
+<section id="interfaces">
+<h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
+<section id="isachoice">
+<h3>IsAChoice<a class="headerlink" href="#isachoice" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L374">editor/src/profiles/profiles.ts:374</a></p>
+<p>The systems an “is a” is stated in, each with the catalogue’s patterns there.</p>
+<section id="properties">
+<h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
+<section id="label">
+<h5>label<a class="headerlink" href="#label" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>label</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L376">editor/src/profiles/profiles.ts:376</a></p>
+</section>
+<section id="options">
+<h5>options<a class="headerlink" href="#options" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>options</strong>: readonly <a class="reference internal" href="#patternoption"><code class="docutils literal notranslate"><span class="pre">PatternOption</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L377">editor/src/profiles/profiles.ts:377</a></p>
+</section>
+<section id="system">
+<h5>system<a class="headerlink" href="#system" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>system</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L375">editor/src/profiles/profiles.ts:375</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="lookupchoice">
+<h3>LookupChoice<a class="headerlink" href="#lookupchoice" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L478">editor/src/profiles/profiles.ts:478</a></p>
+<p>A system a profile may look its values up in.</p>
+<section id="id1">
+<h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
+<section id="id">
+<h5>id<a class="headerlink" href="#id" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>id</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L479">editor/src/profiles/profiles.ts:479</a></p>
+</section>
+<section id="id2">
+<h5>label<a class="headerlink" href="#id2" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>label</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L480">editor/src/profiles/profiles.ts:480</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="patternoption">
+<h3>PatternOption<a class="headerlink" href="#patternoption" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L365">editor/src/profiles/profiles.ts:365</a></p>
+<p>A pattern the “is a” of a profile may take in a system, with the catalogue types stating it.</p>
+<section id="id3">
+<h4>Properties<a class="headerlink" href="#id3" title="Link to this heading">#</a></h4>
+<section id="key">
+<h5>key<a class="headerlink" href="#key" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L366">editor/src/profiles/profiles.ts:366</a></p>
+</section>
+<section id="pattern">
+<h5>pattern<a class="headerlink" href="#pattern" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>pattern</strong>: <code class="docutils literal notranslate"><span class="pre">JsonObject</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L367">editor/src/profiles/profiles.ts:367</a></p>
+</section>
+<section id="text">
+<h5>text<a class="headerlink" href="#text" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>text</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L368">editor/src/profiles/profiles.ts:368</a></p>
+</section>
+<section id="types">
+<h5>types<a class="headerlink" href="#types" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>types</strong>: readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L370">editor/src/profiles/profiles.ts:370</a></p>
+<p>The labels of the catalogue types with this “is a” there, in catalogue order.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="profile">
+<h3>Profile<a class="headerlink" href="#profile" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L45">editor/src/profiles/profiles.ts:45</a></p>
+<p>A type of thing the viewer defined.</p>
+<section id="id4">
+<h4>Properties<a class="headerlink" href="#id4" title="Link to this heading">#</a></h4>
+<section id="id5">
+<h5>id<a class="headerlink" href="#id5" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>id</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L46">editor/src/profiles/profiles.ts:46</a></p>
+</section>
+<section id="is-a">
+<h5>is_a<a class="headerlink" href="#is-a" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>is_a</strong>: <code class="docutils literal notranslate"><span class="pre">Readonly</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Record</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, readonly <a class="reference internal" href="#profilepattern"><code class="docutils literal notranslate"><span class="pre">ProfilePattern</span></code></a>[]&gt;&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L49">editor/src/profiles/profiles.ts:49</a></p>
+<p>The “is a” alternatives per catalogue system.</p>
+</section>
+<section id="id6">
+<h5>label<a class="headerlink" href="#id6" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>label</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L47">editor/src/profiles/profiles.ts:47</a></p>
+</section>
+<section id="lookup">
+<h5>lookup<a class="headerlink" href="#lookup" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>lookup</strong>: readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L53">editor/src/profiles/profiles.ts:53</a></p>
+<p>Catalogue systems and <code class="docutils literal notranslate"><span class="pre">service:&lt;id&gt;</span></code> systems, most preferred first.</p>
+</section>
+<section id="verbs">
+<h5>verbs<a class="headerlink" href="#verbs" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>verbs</strong>: readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L51">editor/src/profiles/profiles.ts:51</a></p>
+<p>Catalogue verb IDs, in the order the composer offers them.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="profilepattern">
+<h3>ProfilePattern<a class="headerlink" href="#profilepattern" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L40">editor/src/profiles/profiles.ts:40</a></p>
+<p>One “is a” alternative of a profile: a statements fragment without slots.</p>
+<section id="id7">
+<h4>Properties<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>
+<section id="id8">
+<h5>pattern<a class="headerlink" href="#id8" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>pattern</strong>: <code class="docutils literal notranslate"><span class="pre">JsonObject</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L41">editor/src/profiles/profiles.ts:41</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="profiles">
+<h3>Profiles<a class="headerlink" href="#profiles" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L57">editor/src/profiles/profiles.ts:57</a></p>
+<p>The profiles and services of one file, or of the browser.</p>
+<section id="id9">
+<h4>Properties<a class="headerlink" href="#id9" title="Link to this heading">#</a></h4>
+<section id="id10">
+<h5>profiles<a class="headerlink" href="#id10" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>profiles</strong>: readonly <a class="reference internal" href="#profile"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L58">editor/src/profiles/profiles.ts:58</a></p>
+</section>
+<section id="services">
+<h5>services<a class="headerlink" href="#services" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>services</strong>: readonly <a class="reference internal" href="../lookup/services.html#id3"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Service</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L59">editor/src/profiles/profiles.ts:59</a></p>
+</section>
+</section>
+</section>
+</section>
+<section id="variables">
+<h2>Variables<a class="headerlink" href="#variables" title="Link to this heading">#</a></h2>
+<section id="no-profiles">
+<h3>NO_PROFILES<a class="headerlink" href="#no-profiles" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>NO_PROFILES</strong>: <a class="reference internal" href="#profiles"><code class="docutils literal notranslate"><span class="pre">Profiles</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L63">editor/src/profiles/profiles.ts:63</a></p>
+<p>No profile and no service: the shipped catalogue alone.</p>
+</section>
+<hr class="docutils" />
+<section id="profiles-file">
+<h3>PROFILES_FILE<a class="headerlink" href="#profiles-file" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>PROFILES_FILE</strong>: <a class="reference internal" href="../files.html#filekind"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">FileKind</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L66">editor/src/profiles/profiles.ts:66</a></p>
+<p>A profile file to import or export.</p>
+</section>
+<hr class="docutils" />
+<section id="profiles-file-name">
+<h3>PROFILES_FILE_NAME<a class="headerlink" href="#profiles-file-name" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>PROFILES_FILE_NAME</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;profiles.yaml&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;profiles.yaml&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L72">editor/src/profiles/profiles.ts:72</a></p>
+<p>The name a profile file is exported under.</p>
+</section>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<section id="isachoices">
+<h3>isAChoices()<a class="headerlink" href="#isachoices" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>isAChoices</strong>(<code class="docutils literal notranslate"><span class="pre">catalogue</span></code>): readonly <a class="reference internal" href="#isachoice"><code class="docutils literal notranslate"><span class="pre">IsAChoice</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L386">editor/src/profiles/profiles.ts:386</a></p>
+<p>The “is a” choices a profile is edited with: every system the catalogue’s
+“is a” verb has a pattern in, in catalogue order (the fallback labelled
+“Other vocabularies”), each with the distinct “is a” patterns of the
+catalogue’s types there, in the order the types first state them.</p>
+<section id="parameters">
+<h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
+<section id="catalogue">
+<h5>catalogue<a class="headerlink" href="#catalogue" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">Catalogue</span></code></p>
+</section>
+</section>
+<section id="returns">
+<h4>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h4>
+<p>readonly <a class="reference internal" href="#isachoice"><code class="docutils literal notranslate"><span class="pre">IsAChoice</span></code></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="lookupchoices">
+<h3>lookupChoices()<a class="headerlink" href="#lookupchoices" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>lookupChoices</strong>(<code class="docutils literal notranslate"><span class="pre">catalogue</span></code>, <code class="docutils literal notranslate"><span class="pre">services</span></code>): readonly <a class="reference internal" href="#lookupchoice"><code class="docutils literal notranslate"><span class="pre">LookupChoice</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L488">editor/src/profiles/profiles.ts:488</a></p>
+<p>The lookup systems a profile chooses among: the catalogue’s systems that
+are looked up somehow (all but those whose lookup route is <code class="docutils literal notranslate"><span class="pre">none</span></code>), then
+the services, in their order.</p>
+<section id="id11">
+<h4>Parameters<a class="headerlink" href="#id11" title="Link to this heading">#</a></h4>
+<section id="id12">
+<h5>catalogue<a class="headerlink" href="#id12" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">Catalogue</span></code></p>
+</section>
+<section id="id13">
+<h5>services<a class="headerlink" href="#id13" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="../lookup/services.html#id3"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Service</span></code></span></a>[]</p>
+</section>
+</section>
+<section id="id14">
+<h4>Returns<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
+<p>readonly <a class="reference internal" href="#lookupchoice"><code class="docutils literal notranslate"><span class="pre">LookupChoice</span></code></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="movedverb">
+<h3>movedVerb()<a class="headerlink" href="#movedverb" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>movedVerb</strong>(<code class="docutils literal notranslate"><span class="pre">profile</span></code>, <code class="docutils literal notranslate"><span class="pre">index</span></code>, <code class="docutils literal notranslate"><span class="pre">by</span></code>): <a class="reference internal" href="#profile"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L438">editor/src/profiles/profiles.ts:438</a></p>
+<p><code class="docutils literal notranslate"><span class="pre">profile</span></code> with the verb at <code class="docutils literal notranslate"><span class="pre">index</span></code> moved one place up (<code class="docutils literal notranslate"><span class="pre">-1</span></code>) or down (<code class="docutils literal notranslate"><span class="pre">1</span></code>); unchanged at an end.</p>
+<section id="id15">
+<h4>Parameters<a class="headerlink" href="#id15" title="Link to this heading">#</a></h4>
+<section id="id16">
+<h5>profile<a class="headerlink" href="#id16" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#profile"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a></p>
+</section>
+<section id="index">
+<h5>index<a class="headerlink" href="#index" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="by">
+<h5>by<a class="headerlink" href="#by" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">-1</span></code> | <code class="docutils literal notranslate"><span class="pre">1</span></code></p>
+</section>
+</section>
+<section id="id17">
+<h4>Returns<a class="headerlink" href="#id17" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#profile"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="newprofile">
+<h3>newProfile()<a class="headerlink" href="#newprofile" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>newProfile</strong>(<code class="docutils literal notranslate"><span class="pre">taken</span></code>, <code class="docutils literal notranslate"><span class="pre">from</span></code>): <a class="reference internal" href="#profile"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L515">editor/src/profiles/profiles.ts:515</a></p>
+<p>A new profile: a copy of the catalogue type <code class="docutils literal notranslate"><span class="pre">from</span></code> (its “is a” patterns
+without their notes and conditions, its verbs, its lookup systems) under
+its ID, so it replaces that type, or <code class="docutils literal notranslate"><span class="pre">&lt;id&gt;_2</span></code>, … where a profile has the
+ID; else an empty profile <code class="docutils literal notranslate"><span class="pre">type_1</span></code>, <code class="docutils literal notranslate"><span class="pre">type_2</span></code>, … labelled “new type”.</p>
+<section id="id18">
+<h4>Parameters<a class="headerlink" href="#id18" title="Link to this heading">#</a></h4>
+<section id="taken">
+<h5>taken<a class="headerlink" href="#taken" title="Link to this heading">#</a></h5>
+<p>readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</section>
+<section id="from">
+<h5>from<a class="headerlink" href="#from" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">CatalogueType</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id19">
+<h4>Returns<a class="headerlink" href="#id19" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#profile"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="parseprofiles">
+<h3>parseProfiles()<a class="headerlink" href="#parseprofiles" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>parseProfiles</strong>(<code class="docutils literal notranslate"><span class="pre">text</span></code>, <code class="docutils literal notranslate"><span class="pre">catalogue</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <a class="reference internal" href="#profiles"><code class="docutils literal notranslate"><span class="pre">Profiles</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L295">editor/src/profiles/profiles.ts:295</a></p>
+<p>The profiles of a file’s text, or what is wrong with it.</p>
+<section id="id20">
+<h4>Parameters<a class="headerlink" href="#id20" title="Link to this heading">#</a></h4>
+<section id="id21">
+<h5>text<a class="headerlink" href="#id21" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id22">
+<h5>catalogue<a class="headerlink" href="#id22" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">Catalogue</span></code></p>
+</section>
+</section>
+<section id="id23">
+<h4>Returns<a class="headerlink" href="#id23" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <a class="reference internal" href="#profiles"><code class="docutils literal notranslate"><span class="pre">Profiles</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="patternkey">
+<h3>patternKey()<a class="headerlink" href="#patternkey" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>patternKey</strong>(<code class="docutils literal notranslate"><span class="pre">pattern</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L360">editor/src/profiles/profiles.ts:360</a></p>
+<p>The one text two equal patterns share, whatever the order of their keys.</p>
+<section id="id24">
+<h4>Parameters<a class="headerlink" href="#id24" title="Link to this heading">#</a></h4>
+<section id="id25">
+<h5>pattern<a class="headerlink" href="#id25" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">JsonObject</span></code></p>
+</section>
+</section>
+<section id="id26">
+<h4>Returns<a class="headerlink" href="#id26" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="patterntext">
+<h3>patternText()<a class="headerlink" href="#patterntext" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>patternText</strong>(<code class="docutils literal notranslate"><span class="pre">pattern</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L346">editor/src/profiles/profiles.ts:346</a></p>
+<p>The words of a pattern: each pair as property and value, <code class="docutils literal notranslate"><span class="pre">type</span></code> items as <code class="docutils literal notranslate"><span class="pre">type</span> <span class="pre">&lt;class&gt;</span></code>, comma-separated.</p>
+<section id="id27">
+<h4>Parameters<a class="headerlink" href="#id27" title="Link to this heading">#</a></h4>
+<section id="id28">
+<h5>pattern<a class="headerlink" href="#id28" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">JsonObject</span></code></p>
+</section>
+</section>
+<section id="id29">
+<h4>Returns<a class="headerlink" href="#id29" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="profilestext">
+<h3>profilesText()<a class="headerlink" href="#profilestext" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>profilesText</strong>(<code class="docutils literal notranslate"><span class="pre">profiles</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L290">editor/src/profiles/profiles.ts:290</a></p>
+<p>The profile file of <code class="docutils literal notranslate"><span class="pre">profiles</span></code>: canonical YAML, as Export writes it and the browser keeps it.</p>
+<section id="id30">
+<h4>Parameters<a class="headerlink" href="#id30" title="Link to this heading">#</a></h4>
+<section id="id31">
+<h5>profiles<a class="headerlink" href="#id31" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#profiles"><code class="docutils literal notranslate"><span class="pre">Profiles</span></code></a></p>
+</section>
+</section>
+<section id="id32">
+<h4>Returns<a class="headerlink" href="#id32" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="readprofiles">
+<h3>readProfiles()<a class="headerlink" href="#readprofiles" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>readProfiles</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">catalogue</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <a class="reference internal" href="#profiles"><code class="docutils literal notranslate"><span class="pre">Profiles</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L261">editor/src/profiles/profiles.ts:261</a></p>
+<p>The profiles and services <code class="docutils literal notranslate"><span class="pre">value</span></code> holds, or the first problem, its
+path written <code class="docutils literal notranslate"><span class="pre">profiles/0/verbs/1:</span> <span class="pre">…</span></code>. Read in this order: the root’s
+members; the services (an ID twice is refused); each profile’s members,
+ID, label, “is a” (catalogue systems, patterns whose IRIs are absolute
+or under the catalogue’s prefixes), verbs (catalogue verbs, none twice)
+and lookup systems (catalogue systems and the file’s services, none
+twice); and last an ID given to two profiles.</p>
+<section id="id33">
+<h4>Parameters<a class="headerlink" href="#id33" title="Link to this heading">#</a></h4>
+<section id="value">
+<h5>value<a class="headerlink" href="#value" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">unknown</span></code></p>
+</section>
+<section id="id34">
+<h5>catalogue<a class="headerlink" href="#id34" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">Catalogue</span></code></p>
+</section>
+</section>
+<section id="id35">
+<h4>Returns<a class="headerlink" href="#id35" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <a class="reference internal" href="#profiles"><code class="docutils literal notranslate"><span class="pre">Profiles</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="withlookup">
+<h3>withLookup()<a class="headerlink" href="#withlookup" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>withLookup</strong>(<code class="docutils literal notranslate"><span class="pre">profile</span></code>, <code class="docutils literal notranslate"><span class="pre">system</span></code>, <code class="docutils literal notranslate"><span class="pre">chosen</span></code>, <code class="docutils literal notranslate"><span class="pre">order</span></code>): <a class="reference internal" href="#profile"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L449">editor/src/profiles/profiles.ts:449</a></p>
+<p><code class="docutils literal notranslate"><span class="pre">profile</span></code> with <code class="docutils literal notranslate"><span class="pre">system</span></code> among its lookup systems or not, kept in the order of <code class="docutils literal notranslate"><span class="pre">order</span></code>.</p>
+<section id="id36">
+<h4>Parameters<a class="headerlink" href="#id36" title="Link to this heading">#</a></h4>
+<section id="id37">
+<h5>profile<a class="headerlink" href="#id37" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#profile"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a></p>
+</section>
+<section id="id38">
+<h5>system<a class="headerlink" href="#id38" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="chosen">
+<h5>chosen<a class="headerlink" href="#chosen" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+<section id="order">
+<h5>order<a class="headerlink" href="#order" title="Link to this heading">#</a></h5>
+<p>readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</section>
+</section>
+<section id="id39">
+<h4>Returns<a class="headerlink" href="#id39" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#profile"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="withpattern">
+<h3>withPattern()<a class="headerlink" href="#withpattern" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>withPattern</strong>(<code class="docutils literal notranslate"><span class="pre">profile</span></code>, <code class="docutils literal notranslate"><span class="pre">system</span></code>, <code class="docutils literal notranslate"><span class="pre">pattern</span></code>, <code class="docutils literal notranslate"><span class="pre">stated</span></code>): <a class="reference internal" href="#profile"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L420">editor/src/profiles/profiles.ts:420</a></p>
+<p><code class="docutils literal notranslate"><span class="pre">profile</span></code> with <code class="docutils literal notranslate"><span class="pre">pattern</span></code> stated in <code class="docutils literal notranslate"><span class="pre">system</span></code> (appended) or not.</p>
+<section id="id40">
+<h4>Parameters<a class="headerlink" href="#id40" title="Link to this heading">#</a></h4>
+<section id="id41">
+<h5>profile<a class="headerlink" href="#id41" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#profile"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a></p>
+</section>
+<section id="id42">
+<h5>system<a class="headerlink" href="#id42" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id43">
+<h5>pattern<a class="headerlink" href="#id43" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">JsonObject</span></code></p>
+</section>
+<section id="stated">
+<h5>stated<a class="headerlink" href="#stated" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<section id="id44">
+<h4>Returns<a class="headerlink" href="#id44" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#profile"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="withprofiles">
+<h3>withProfiles()<a class="headerlink" href="#withprofiles" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>withProfiles</strong>(<code class="docutils literal notranslate"><span class="pre">catalogue</span></code>, <code class="docutils literal notranslate"><span class="pre">profiles</span></code>): <code class="docutils literal notranslate"><span class="pre">Catalogue</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L332">editor/src/profiles/profiles.ts:332</a></p>
+<p><code class="docutils literal notranslate"><span class="pre">catalogue</span></code> with <code class="docutils literal notranslate"><span class="pre">profiles</span></code>: the profiles first as types, then the
+catalogue’s types no profile replaces; the catalogue’s systems, then one
+per service. Without profiles or services, <code class="docutils literal notranslate"><span class="pre">catalogue</span></code> itself.</p>
+<section id="id45">
+<h4>Parameters<a class="headerlink" href="#id45" title="Link to this heading">#</a></h4>
+<section id="id46">
+<h5>catalogue<a class="headerlink" href="#id46" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">Catalogue</span></code></p>
+</section>
+<section id="id47">
+<h5>profiles<a class="headerlink" href="#id47" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#profiles"><code class="docutils literal notranslate"><span class="pre">Profiles</span></code></a></p>
+</section>
+</section>
+<section id="id48">
+<h4>Returns<a class="headerlink" href="#id48" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">Catalogue</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="withservicelookup">
+<h3>withServiceLookup()<a class="headerlink" href="#withservicelookup" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>withServiceLookup</strong>(<code class="docutils literal notranslate"><span class="pre">profile</span></code>, <code class="docutils literal notranslate"><span class="pre">from</span></code>, <code class="docutils literal notranslate"><span class="pre">to</span></code>): <a class="reference internal" href="#profile"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/profiles/profiles.ts#L467">editor/src/profiles/profiles.ts:467</a></p>
+<p><code class="docutils literal notranslate"><span class="pre">profile</span></code> following a change of the service <code class="docutils literal notranslate"><span class="pre">from</span></code>: its lookup system
+<code class="docutils literal notranslate"><span class="pre">service:&lt;from&gt;</span></code> becomes <code class="docutils literal notranslate"><span class="pre">service:&lt;to&gt;</span></code> in its place (the service’s ID
+changed to <code class="docutils literal notranslate"><span class="pre">to</span></code>), or is taken out (<code class="docutils literal notranslate"><span class="pre">to</span></code> null: the service deleted).</p>
+<section id="id49">
+<h4>Parameters<a class="headerlink" href="#id49" title="Link to this heading">#</a></h4>
+<section id="id50">
+<h5>profile<a class="headerlink" href="#id50" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#profile"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a></p>
+</section>
+<section id="id51">
+<h5>from<a class="headerlink" href="#id51" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="to">
+<h5>to<a class="headerlink" href="#to" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id52">
+<h4>Returns<a class="headerlink" href="#id52" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#profile"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a></p>
+</section>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../pick.svelte.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">pick.svelte</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="profiles.svelte.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">profiles/profiles.svelte</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isachoice">IsAChoice</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#label">label</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#options">options</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#system">system</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lookupchoice">LookupChoice</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id">id</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">label</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#patternoption">PatternOption</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#key">key</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pattern">pattern</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#text">text</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#types">types</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#profile">Profile</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">id</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#is-a">is_a</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">label</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#lookup">lookup</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#verbs">verbs</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#profilepattern">ProfilePattern</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">pattern</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#profiles">Profiles</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">profiles</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#services">services</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#variables">Variables</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#no-profiles">NO_PROFILES</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#profiles-file">PROFILES_FILE</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#profiles-file-name">PROFILES_FILE_NAME</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isachoices">isAChoices()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#catalogue">catalogue</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lookupchoices">lookupChoices()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">catalogue</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">services</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#movedverb">movedVerb()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">profile</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#index">index</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#by">by</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#newprofile">newProfile()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#taken">taken</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#from">from</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#parseprofiles">parseProfiles()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">text</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">catalogue</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#patternkey">patternKey()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">pattern</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id26">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#patterntext">patternText()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id27">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">pattern</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id29">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#profilestext">profilesText()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id30">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id31">profiles</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#readprofiles">readProfiles()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id33">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#value">value</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id34">catalogue</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id35">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#withlookup">withLookup()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id36">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id37">profile</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id38">system</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#chosen">chosen</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#order">order</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id39">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#withpattern">withPattern()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id40">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id41">profile</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id42">system</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id43">pattern</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#stated">stated</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id44">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#withprofiles">withProfiles()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id45">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id46">catalogue</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id47">profiles</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id48">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#withservicelookup">withServiceLookup()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id49">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id50">profile</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id51">from</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#to">to</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id52">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

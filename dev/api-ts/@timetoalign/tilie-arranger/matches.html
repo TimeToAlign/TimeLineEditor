@@ -1,0 +1,2469 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>matches &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api-ts/@timetoalign/tilie-arranger/matches';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="motion" href="motion.html" />
+    <link rel="prev" title="marquee" href="marquee.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../tilie-core/index.html">@timetoalign/tilie-core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-layout/index.html">@timetoalign/tilie-layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-writers/index.html">@timetoalign/tilie-writers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-client/index.html">@timetoalign/tilie-client</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">@timetoalign/tilie-arranger</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="affected.html">affected</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/cardMotions.svelte.html">animation/cardMotions.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/elide.html">animation/elide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/progress.svelte.html">animation/progress.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/raise.html">animation/raise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/unfold.html">animation/unfold</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/unfolding.svelte.html">animation/unfolding.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arrangeMenu.html">arrangeMenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bands.html">bands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="blockDrag.html">blockDrag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="boxes.html">boxes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cardAxis.html">cardAxis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html">commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="containers.html">containers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coordinates.html">coordinates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="focus.html">focus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gaps.html">gaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gesture.html">gesture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/arranged.html">gestures/arranged</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/band.html">gestures/band</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/canvas.html">gestures/canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/gap.html">gestures/gap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/wheel.html">gestures/wheel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index-1.html">index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="items.html">items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="keys.html">keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="liveStore.svelte.html">liveStore.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="marquee.html">marquee</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">matches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="motion.html">motion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="node.html">node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nodeActions.html">nodeActions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nodes.svelte.html">nodes.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="numbers.html">numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="onScreen.html">onScreen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pane.html">pane</a></li>
+<li class="toctree-l2"><a class="reference internal" href="picking.html">picking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="project.html">project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reorder.html">reorder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="resize.html">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="roving.html">roving</a></li>
+<li class="toctree-l2"><a class="reference internal" href="selection.html">selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="selectionRules.html">selectionRules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="snap.html">snap</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-editor/index.html">@timetoalign/tilie-editor</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../typescript.html" class="nav-link">TypeScript API</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">&#64;timetoalign/tilie-arranger</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">matches</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="matches">
+<h1>matches<a class="headerlink" href="#matches" title="Link to this heading">#</a></h1>
+<section id="interfaces">
+<h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
+<section id="beliefoverlay">
+<h3>BeliefOverlay<a class="headerlink" href="#beliefoverlay" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L828">arranger/src/matches.ts:828</a></p>
+<p>A part of a MatchStamp shown in one colour: its connectors by belief, with the lines in blue.</p>
+<section id="properties">
+<h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
+<section id="belief">
+<h5>belief<a class="headerlink" href="#belief" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>belief</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;false&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;unlikely&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;undecided&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;true&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L830">arranger/src/matches.ts:830</a></p>
+<p>The belief its connectors are drawn by; <code class="docutils literal notranslate"><span class="pre">undecided</span></code> holds the cross-section lines too.</p>
+</section>
+<section id="overlay">
+<h5>overlay<a class="headerlink" href="#overlay" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>overlay</strong>: <a class="reference internal" href="#matchoverlay"><code class="docutils literal notranslate"><span class="pre">MatchOverlay</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L832">arranger/src/matches.ts:832</a></p>
+</section>
+<section id="stroke">
+<h5>stroke<a class="headerlink" href="#stroke" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>stroke</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L831">arranger/src/matches.ts:831</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="fadedpath">
+<h3>FadedPath<a class="headerlink" href="#fadedpath" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L974">arranger/src/matches.ts:974</a></p>
+<p>One path of an overlay’s lines at an opacity other than 1, and that opacity.</p>
+<section id="id1">
+<h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
+<section id="d">
+<h5>d<a class="headerlink" href="#d" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>d</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L976">arranger/src/matches.ts:976</a></p>
+</section>
+<section id="opacity">
+<h5>opacity<a class="headerlink" href="#opacity" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>opacity</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L975">arranger/src/matches.ts:975</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="flaggroups">
+<h3>FlagGroups<a class="headerlink" href="#flaggroups" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L647">arranger/src/matches.ts:647</a></p>
+<p>How a MatchStamp’s flag reads its groupstamps: in block <code class="docutils literal notranslate"><span class="pre">block</span></code>, read
+with <code class="docutils literal notranslate"><span class="pre">granularity</span></code>, each coordinate <code class="docutils literal notranslate"><span class="pre">groupstampAt</span></code> says naming would
+store as a groupstamp (<code class="docutils literal notranslate"><span class="pre">namedGroupstamps</span></code>) read across its groups.</p>
+<section id="id2">
+<h4>Properties<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
+<section id="block">
+<h5>block<a class="headerlink" href="#block" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>block</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L648">arranger/src/matches.ts:648</a></p>
+</section>
+<section id="granularity">
+<h5>granularity<a class="headerlink" href="#granularity" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>granularity</strong>: <a class="reference internal" href="../tilie-core/workspace/view.html#granularity"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Granularity</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L649">arranger/src/matches.ts:649</a></p>
+</section>
+<section id="groupstampat">
+<h5>groupstampAt<a class="headerlink" href="#groupstampat" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>groupstampAt</strong>: <a class="reference internal" href="#id42"><code class="docutils literal notranslate"><span class="pre">GroupstampAt</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L650">arranger/src/matches.ts:650</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchflaggroup">
+<h3>MatchFlagGroup<a class="headerlink" href="#matchflaggroup" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L635">arranger/src/matches.ts:635</a></p>
+<p>One run of a MatchStamp’s flag on one timeline: its key among the groups
+(its first row’s), the timeline’s ID, its name and the timestamps drawn
+one after the other on it.</p>
+<section id="id3">
+<h4>Properties<a class="headerlink" href="#id3" title="Link to this heading">#</a></h4>
+<section id="key">
+<h5>key<a class="headerlink" href="#key" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L636">arranger/src/matches.ts:636</a></p>
+</section>
+<section id="name">
+<h5>name<a class="headerlink" href="#name" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>name</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L638">arranger/src/matches.ts:638</a></p>
+</section>
+<section id="rows">
+<h5>rows<a class="headerlink" href="#rows" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>rows</strong>: readonly <a class="reference internal" href="#matchflagrow"><code class="docutils literal notranslate"><span class="pre">MatchFlagRow</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L639">arranger/src/matches.ts:639</a></p>
+</section>
+<section id="timeline">
+<h5>timeline<a class="headerlink" href="#timeline" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>timeline</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L637">arranger/src/matches.ts:637</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchflagrow">
+<h3>MatchFlagRow<a class="headerlink" href="#matchflagrow" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L624">arranger/src/matches.ts:624</a></p>
+<p>One timestamp of a MatchStamp’s flag: its key among the rows, its
+coordinate’s number in the index (<code class="docutils literal notranslate"><span class="pre">null</span></code> for a coordinate a groupstamp
+reads on another member of its group) and its value as the flag writes it.</p>
+<section id="id4">
+<h4>Properties<a class="headerlink" href="#id4" title="Link to this heading">#</a></h4>
+<section id="coordinate">
+<h5>coordinate<a class="headerlink" href="#coordinate" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>coordinate</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L626">arranger/src/matches.ts:626</a></p>
+</section>
+<section id="id5">
+<h5>key<a class="headerlink" href="#id5" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L625">arranger/src/matches.ts:625</a></p>
+</section>
+<section id="text">
+<h5>text<a class="headerlink" href="#text" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>text</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L627">arranger/src/matches.ts:627</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchhit">
+<h3>MatchHit<a class="headerlink" href="#matchhit" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L537">arranger/src/matches.ts:537</a></p>
+<p>What the pointer hovers among the potential MatchStamps of a block.</p>
+<section id="id6">
+<h4>Properties<a class="headerlink" href="#id6" title="Link to this heading">#</a></h4>
+<section id="anchor">
+<h5>anchor<a class="headerlink" href="#anchor" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>anchor</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L542">arranger/src/matches.ts:542</a></p>
+</section>
+<section id="at">
+<h5>at<a class="headerlink" href="#at" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>at</strong>: <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L546">arranger/src/matches.ts:546</a></p>
+<p>Where the flag’s pole stands: its abscissa, its foot and its top, in block-local canvas units.</p>
+<section id="top">
+<h6>top<a class="headerlink" href="#top" title="Link to this heading">#</a></h6>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>top</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+</section>
+<section id="x">
+<h6>x<a class="headerlink" href="#x" title="Link to this heading">#</a></h6>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>x</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+</section>
+<section id="y">
+<h6>y<a class="headerlink" href="#y" title="Link to this heading">#</a></h6>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>y</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+</section>
+</section>
+<section id="id7">
+<h5>coordinate<a class="headerlink" href="#id7" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>coordinate</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L541">arranger/src/matches.ts:541</a></p>
+<p>The coordinate whose line is hovered, or the anchor whose connector is.</p>
+</section>
+<section id="distance">
+<h5>distance<a class="headerlink" href="#distance" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>distance</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L544">arranger/src/matches.ts:544</a></p>
+<p>The distance from the pointer to it, in block-local canvas units.</p>
+</section>
+<section id="stamp">
+<h5>stamp<a class="headerlink" href="#stamp" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>stamp</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L539">arranger/src/matches.ts:539</a></p>
+<p>The potential MatchStamp hovered.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchlayer">
+<h3>MatchLayer<a class="headerlink" href="#matchlayer" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L960">arranger/src/matches.ts:960</a></p>
+<p>What the overlay draws in one block’s node: the potential MatchStamps, the hovered and the pinned one.</p>
+<section id="id8">
+<h4>Properties<a class="headerlink" href="#id8" title="Link to this heading">#</a></h4>
+<section id="id9">
+<h5>block<a class="headerlink" href="#id9" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>block</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L961">arranger/src/matches.ts:961</a></p>
+</section>
+<section id="height">
+<h5>height<a class="headerlink" href="#height" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>height</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L964">arranger/src/matches.ts:964</a></p>
+</section>
+<section id="hovered">
+<h5>hovered<a class="headerlink" href="#hovered" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>hovered</strong>: <a class="reference internal" href="#matchoverlay"><code class="docutils literal notranslate"><span class="pre">MatchOverlay</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L968">arranger/src/matches.ts:968</a></p>
+</section>
+<section id="origin">
+<h5>origin<a class="headerlink" href="#origin" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>origin</strong>: <a class="reference internal" href="gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L965">arranger/src/matches.ts:965</a></p>
+</section>
+<section id="pinned">
+<h5>pinned<a class="headerlink" href="#pinned" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>pinned</strong>: readonly <a class="reference internal" href="#beliefoverlay"><code class="docutils literal notranslate"><span class="pre">BeliefOverlay</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L970">arranger/src/matches.ts:970</a></p>
+<p>The pinned MatchStamp by colour (<code class="docutils literal notranslate"><span class="pre">pinnedOverlays</span></code>); empty for none.</p>
+</section>
+<section id="potential">
+<h5>potential<a class="headerlink" href="#potential" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>potential</strong>: <a class="reference internal" href="#matchoverlay"><code class="docutils literal notranslate"><span class="pre">MatchOverlay</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L967">arranger/src/matches.ts:967</a></p>
+</section>
+<section id="scale">
+<h5>scale<a class="headerlink" href="#scale" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>scale</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L966">arranger/src/matches.ts:966</a></p>
+</section>
+<section id="width">
+<h5>width<a class="headerlink" href="#width" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>width</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L963">arranger/src/matches.ts:963</a></p>
+<p>The block’s drawing’s size, in its units.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchline">
+<h3>MatchLine<a class="headerlink" href="#matchline" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L143">arranger/src/matches.ts:143</a></p>
+<p>A line of a drawing holding a timeline of the index, as floats: where its
+coordinates lie and how far its cross-section lines reach.</p>
+<section id="id10">
+<h4>Properties<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
+<section id="card">
+<h5>card<a class="headerlink" href="#card" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>card</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L147">arranger/src/matches.ts:147</a></p>
+<p>The place key text of the card drawing it.</p>
+</section>
+<section id="from">
+<h5>from<a class="headerlink" href="#from" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>from</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L169">arranger/src/matches.ts:169</a></p>
+<p>The positions on the timeline’s own axis the line draws, from <code class="docutils literal notranslate"><span class="pre">from</span></code> to <code class="docutils literal notranslate"><span class="pre">to</span></code>, each end
+included unless the line’s run does not hold it: a position at a seam where the run meets
+another run of its line lies on one of the two alone (<code class="docutils literal notranslate"><span class="pre">holdsAt</span></code>, <code class="docutils literal notranslate"><span class="pre">docs/drawing.md</span></code> in
+TimeToShare, section 3.2, Seams), so a coordinate there is drawn once.</p>
+</section>
+<section id="fromheld">
+<h5>fromHeld<a class="headerlink" href="#fromheld" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>fromHeld</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L172">arranger/src/matches.ts:172</a></p>
+<p>Whether the line draws the position <code class="docutils literal notranslate"><span class="pre">from</span></code>, and the position <code class="docutils literal notranslate"><span class="pre">to</span></code>.</p>
+</section>
+<section id="id11">
+<h5>key<a class="headerlink" href="#id11" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L145">arranger/src/matches.ts:145</a></p>
+<p>The key of the line in <code class="docutils literal notranslate"><span class="pre">lineAxes</span></code>.</p>
+</section>
+<section id="length">
+<h5>length<a class="headerlink" href="#length" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>length</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L160">arranger/src/matches.ts:160</a></p>
+<p>The coordinates from <code class="docutils literal notranslate"><span class="pre">xStart</span></code> to <code class="docutils literal notranslate"><span class="pre">xEnd</span></code> as drawn (layout’s <code class="docutils literal notranslate"><span class="pre">drawnLength</span></code>); 0 where it draws none.</p>
+</section>
+<section id="offset">
+<h5>offset<a class="headerlink" href="#offset" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>offset</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L162">arranger/src/matches.ts:162</a></p>
+<p>Where the timeline’s zero lies on the line’s axis: 0, or a segment’s offset.</p>
+</section>
+<section id="start">
+<h5>start<a class="headerlink" href="#start" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>start</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L158">arranger/src/matches.ts:158</a></p>
+<p>The coordinate at <code class="docutils literal notranslate"><span class="pre">xStart</span></code> on the line’s own axis.</p>
+</section>
+<section id="id12">
+<h5>timeline<a class="headerlink" href="#id12" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>timeline</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L149">arranger/src/matches.ts:149</a></p>
+<p>The timeline’s number in the index.</p>
+</section>
+<section id="to">
+<h5>to<a class="headerlink" href="#to" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>to</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L170">arranger/src/matches.ts:170</a></p>
+</section>
+<section id="toheld">
+<h5>toHeld<a class="headerlink" href="#toheld" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>toHeld</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L173">arranger/src/matches.ts:173</a></p>
+</section>
+<section id="xend">
+<h5>xEnd<a class="headerlink" href="#xend" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>xEnd</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L151">arranger/src/matches.ts:151</a></p>
+</section>
+<section id="xstart">
+<h5>xStart<a class="headerlink" href="#xstart" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>xStart</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L150">arranger/src/matches.ts:150</a></p>
+</section>
+<section id="id13">
+<h5>y<a class="headerlink" href="#id13" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>y</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L153">arranger/src/matches.ts:153</a></p>
+<p>The line’s ordinate.</p>
+</section>
+<section id="y1">
+<h5>y1<a class="headerlink" href="#y1" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>y1</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L155">arranger/src/matches.ts:155</a></p>
+<p>The extent of its cross-section lines (<code class="docutils literal notranslate"><span class="pre">crossSectionSegment</span></code>): the line’s ordinate twice without one.</p>
+</section>
+<section id="y2">
+<h5>y2<a class="headerlink" href="#y2" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>y2</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L156">arranger/src/matches.ts:156</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchlines">
+<h3>MatchLines<a class="headerlink" href="#matchlines" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L208">arranger/src/matches.ts:208</a></p>
+<p>The lines of a drawing for one index, all of them and by the index’s timeline number.</p>
+<section id="id14">
+<h4>Properties<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
+<section id="all">
+<h5>all<a class="headerlink" href="#all" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>all</strong>: readonly <a class="reference internal" href="#matchline"><code class="docutils literal notranslate"><span class="pre">MatchLine</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L213">arranger/src/matches.ts:213</a></p>
+</section>
+<section id="bytimeline">
+<h5>byTimeline<a class="headerlink" href="#bytimeline" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>byTimeline</strong>: <code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">number</span></code>, readonly <a class="reference internal" href="#matchline"><code class="docutils literal notranslate"><span class="pre">MatchLine</span></code></a>[]&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L214">arranger/src/matches.ts:214</a></p>
+</section>
+<section id="drawing">
+<h5>drawing<a class="headerlink" href="#drawing" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>drawing</strong>: <a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L210">arranger/src/matches.ts:210</a></p>
+<p>The drawing they were read from.</p>
+</section>
+<section id="raised">
+<h5>raised<a class="headerlink" href="#raised" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>raised</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L212">arranger/src/matches.ts:212</a></p>
+<p>The root whose ancestor cards were raised as they were read (<code class="docutils literal notranslate"><span class="pre">raisedRoot</span></code>), else <code class="docutils literal notranslate"><span class="pre">null</span></code>.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchoverlay">
+<h3>MatchOverlay<a class="headerlink" href="#matchoverlay" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L335">arranger/src/matches.ts:335</a></p>
+<p>What the overlay draws in one block.</p>
+<section id="id15">
+<h4>Properties<a class="headerlink" href="#id15" title="Link to this heading">#</a></h4>
+<section id="connectors">
+<h5>connectors<a class="headerlink" href="#connectors" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>connectors</strong>: readonly <a class="reference internal" href="#overlayconnector"><code class="docutils literal notranslate"><span class="pre">OverlayConnector</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L337">arranger/src/matches.ts:337</a></p>
+</section>
+<section id="lines">
+<h5>lines<a class="headerlink" href="#lines" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>lines</strong>: readonly <a class="reference internal" href="#overlayline"><code class="docutils literal notranslate"><span class="pre">OverlayLine</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L336">arranger/src/matches.ts:336</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchoverlayinput">
+<h3>MatchOverlayInput<a class="headerlink" href="#matchoverlayinput" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L76">arranger/src/matches.ts:76</a></p>
+<p>What “Show matches” draws in one block: the anchor index of the MatchClaim
+table loaded for block <code class="docutils literal notranslate"><span class="pre">block</span></code> (its potential MatchStamps, under the
+block’s MatchClaim filter), the block’s named MatchStamps compared with
+the table, and the editor user’s belief in each MatchClaim of the table
+(per row, core’s <code class="docutils literal notranslate"><span class="pre">believedBy</span></code>), which the anchors of the MatchStamps shown
+are drawn by; without <code class="docutils literal notranslate"><span class="pre">beliefs</span></code> (a host without a user) every MatchClaim
+is undecided.</p>
+<section id="id16">
+<h4>Properties<a class="headerlink" href="#id16" title="Link to this heading">#</a></h4>
+<section id="beliefs">
+<h5>beliefs?<a class="headerlink" href="#beliefs" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>beliefs?</strong>: <code class="docutils literal notranslate"><span class="pre">Uint8Array</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">ArrayBufferLike</span></code>&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L80">arranger/src/matches.ts:80</a></p>
+</section>
+<section id="id17">
+<h5>block<a class="headerlink" href="#id17" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>block</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L77">arranger/src/matches.ts:77</a></p>
+</section>
+<section id="index">
+<h5>index<a class="headerlink" href="#index" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>index</strong>: <a class="reference internal" href="../tilie-core/matches/anchors.html#anchorindex"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorIndex</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L78">arranger/src/matches.ts:78</a></p>
+</section>
+<section id="named">
+<h5>named<a class="headerlink" href="#named" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>named</strong>: readonly <a class="reference internal" href="#namedcomparison"><code class="docutils literal notranslate"><span class="pre">NamedComparison</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L79">arranger/src/matches.ts:79</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchstamppin">
+<h3>MatchStampPin<a class="headerlink" href="#matchstamppin" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L88">arranger/src/matches.ts:88</a></p>
+<p>A pinned potential MatchStamp: the block whose table holds it and its
+number in that table’s index. Every block’s table numbers its own
+MatchStamps from 0, so a number alone names none.</p>
+<section id="id18">
+<h4>Properties<a class="headerlink" href="#id18" title="Link to this heading">#</a></h4>
+<section id="id19">
+<h5>block<a class="headerlink" href="#id19" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>block</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L89">arranger/src/matches.ts:89</a></p>
+</section>
+<section id="matchstamp">
+<h5>matchStamp<a class="headerlink" href="#matchstamp" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>matchStamp</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L90">arranger/src/matches.ts:90</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="namedcomparison">
+<h3>NamedComparison<a class="headerlink" href="#namedcomparison" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L62">arranger/src/matches.ts:62</a></p>
+<p>A named MatchStamp of a block’s manifest compared with the current table
+(core’s <code class="docutils literal notranslate"><span class="pre">checkMatchStamp</span></code>): <code class="docutils literal notranslate"><span class="pre">stated</span></code> follows the order of its
+<code class="docutils literal notranslate"><span class="pre">alignment_anchors</span></code>.</p>
+<section id="id20">
+<h4>Properties<a class="headerlink" href="#id20" title="Link to this heading">#</a></h4>
+<section id="comparison">
+<h5>comparison<a class="headerlink" href="#comparison" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>comparison</strong>: <a class="reference internal" href="../tilie-core/matches/compare.html#matchstampcheck"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MatchStampCheck</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L64">arranger/src/matches.ts:64</a></p>
+</section>
+<section id="id">
+<h5>id<a class="headerlink" href="#id" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>id</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L63">arranger/src/matches.ts:63</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="overlayconnector">
+<h3>OverlayConnector<a class="headerlink" href="#overlayconnector" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L326">arranger/src/matches.ts:326</a></p>
+<p>An anchor’s connector as the overlay draws it, in block-local canvas units.</p>
+<section id="id21">
+<h4>Properties<a class="headerlink" href="#id21" title="Link to this heading">#</a></h4>
+<section id="id22">
+<h5>anchor<a class="headerlink" href="#id22" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>anchor</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L327">arranger/src/matches.ts:327</a></p>
+</section>
+<section id="x1">
+<h5>x1<a class="headerlink" href="#x1" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>x1</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L328">arranger/src/matches.ts:328</a></p>
+</section>
+<section id="x2">
+<h5>x2<a class="headerlink" href="#x2" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>x2</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L330">arranger/src/matches.ts:330</a></p>
+</section>
+<section id="id23">
+<h5>y1<a class="headerlink" href="#id23" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>y1</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L329">arranger/src/matches.ts:329</a></p>
+</section>
+<section id="id24">
+<h5>y2<a class="headerlink" href="#id24" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>y2</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L331">arranger/src/matches.ts:331</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="overlayline">
+<h3>OverlayLine<a class="headerlink" href="#overlayline" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L317">arranger/src/matches.ts:317</a></p>
+<p>A coordinate’s cross-section line as the overlay draws it, in block-local
+canvas units, and its opacity: 1 on a line holding the coordinate, a
+groupstamp’s piece’s own across a frame (layout’s <code class="docutils literal notranslate"><span class="pre">groupCrossSections</span></code>:
+faded over a member card where the group gives the coordinate no value),
+drawn in place of the overlay’s.</p>
+<section id="id25">
+<h4>Properties<a class="headerlink" href="#id25" title="Link to this heading">#</a></h4>
+<section id="id26">
+<h5>coordinate<a class="headerlink" href="#id26" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>coordinate</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L318">arranger/src/matches.ts:318</a></p>
+</section>
+<section id="id27">
+<h5>opacity<a class="headerlink" href="#id27" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>opacity</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L322">arranger/src/matches.ts:322</a></p>
+</section>
+<section id="id28">
+<h5>x<a class="headerlink" href="#id28" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>x</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L319">arranger/src/matches.ts:319</a></p>
+</section>
+<section id="id29">
+<h5>y1<a class="headerlink" href="#id29" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>y1</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L320">arranger/src/matches.ts:320</a></p>
+</section>
+<section id="id30">
+<h5>y2<a class="headerlink" href="#id30" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>y2</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L321">arranger/src/matches.ts:321</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="paint">
+<h3>Paint<a class="headerlink" href="#paint" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L883">arranger/src/matches.ts:883</a></p>
+<p>How a drawn part of a named MatchStamp is painted over its style.</p>
+<section id="id31">
+<h4>Properties<a class="headerlink" href="#id31" title="Link to this heading">#</a></h4>
+<section id="attribute">
+<h5>attribute<a class="headerlink" href="#attribute" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>attribute</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;fill&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;stroke&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L885">arranger/src/matches.ts:885</a></p>
+<p>What it sets: a line’s stroke, a label’s fill.</p>
+</section>
+<section id="colour">
+<h5>colour<a class="headerlink" href="#colour" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>colour</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L886">arranger/src/matches.ts:886</a></p>
+</section>
+<section id="marked">
+<h5>marked<a class="headerlink" href="#marked" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>marked</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L888">arranger/src/matches.ts:888</a></p>
+<p>Whether its text begins with <code class="docutils literal notranslate"><span class="pre">OUT_OF_DATE_MARK</span></code>.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="placed">
+<h3>Placed<a class="headerlink" href="#placed" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L351">arranger/src/matches.ts:351</a></p>
+<p>A block’s node on the canvas: its top-left corner and its scale.</p>
+<section id="id32">
+<h4>Properties<a class="headerlink" href="#id32" title="Link to this heading">#</a></h4>
+<section id="id33">
+<h5>origin<a class="headerlink" href="#id33" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>origin</strong>: <a class="reference internal" href="gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L352">arranger/src/matches.ts:352</a></p>
+</section>
+<section id="id34">
+<h5>scale<a class="headerlink" href="#id34" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>scale</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L353">arranger/src/matches.ts:353</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="screen">
+<h3>Screen<a class="headerlink" href="#screen" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L341">arranger/src/matches.ts:341</a></p>
+<p>The canvas as seen: the viewport, the canvas’s size in CSS pixels and the device pixels per CSS pixel.</p>
+<section id="id35">
+<h4>Properties<a class="headerlink" href="#id35" title="Link to this heading">#</a></h4>
+<section id="id36">
+<h5>height<a class="headerlink" href="#id36" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>height</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L346">arranger/src/matches.ts:346</a></p>
+</section>
+<section id="ratio">
+<h5>ratio<a class="headerlink" href="#ratio" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>ratio</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L347">arranger/src/matches.ts:347</a></p>
+</section>
+<section id="id37">
+<h5>width<a class="headerlink" href="#id37" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>width</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L345">arranger/src/matches.ts:345</a></p>
+</section>
+<section id="id38">
+<h5>x<a class="headerlink" href="#id38" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>x</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L342">arranger/src/matches.ts:342</a></p>
+</section>
+<section id="id39">
+<h5>y<a class="headerlink" href="#id39" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>y</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L343">arranger/src/matches.ts:343</a></p>
+</section>
+<section id="zoom">
+<h5>zoom<a class="headerlink" href="#zoom" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>zoom</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L344">arranger/src/matches.ts:344</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="screencoordinate">
+<h3>ScreenCoordinate<a class="headerlink" href="#screencoordinate" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L654">arranger/src/matches.ts:654</a></p>
+<p>A coordinate as screen order reads it: a timeline’s ID and a value on that timeline’s own axis.</p>
+<section id="id40">
+<h4>Properties<a class="headerlink" href="#id40" title="Link to this heading">#</a></h4>
+<section id="id41">
+<h5>timeline<a class="headerlink" href="#id41" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>timeline</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L655">arranger/src/matches.ts:655</a></p>
+</section>
+<section id="value">
+<h5>value<a class="headerlink" href="#value" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>value</strong>: <a class="reference internal" href="../tilie-core/number/coordinate.html#coordinatevalue"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">CoordinateValue</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L656">arranger/src/matches.ts:656</a></p>
+</section>
+</section>
+</section>
+</section>
+<section id="type-aliases">
+<h2>Type Aliases<a class="headerlink" href="#type-aliases" title="Link to this heading">#</a></h2>
+<section id="id42">
+<h3>GroupstampAt<a class="headerlink" href="#id42" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>GroupstampAt</strong> = (<code class="docutils literal notranslate"><span class="pre">coordinate</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L486">arranger/src/matches.ts:486</a></p>
+<p>Whether naming would store a coordinate of an index as a groupstamp, by the coordinate’s number.</p>
+<section id="parameters">
+<h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
+<section id="id43">
+<h5>coordinate<a class="headerlink" href="#id43" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="returns">
+<h4>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchpaint">
+<h3>MatchPaint<a class="headerlink" href="#matchpaint" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>MatchPaint</strong> = <code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, <a class="reference internal" href="#paint"><code class="docutils literal notranslate"><span class="pre">Paint</span></code></a>&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L892">arranger/src/matches.ts:892</a></p>
+<p>The paint of a block’s named MatchStamps’ drawn parts, by the key of each part’s address.</p>
+</section>
+</section>
+<section id="variables">
+<h2>Variables<a class="headerlink" href="#variables" title="Link to this heading">#</a></h2>
+<section id="belief-strokes">
+<h3>BELIEF_STROKES<a class="headerlink" href="#belief-strokes" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>BELIEF_STROKES</strong>: <code class="docutils literal notranslate"><span class="pre">Readonly</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Record</span></code>&lt;<a class="reference internal" href="../tilie-core/matches/beliefs.html#anchorbelief"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorBelief</span></code></span></a>, <code class="docutils literal notranslate"><span class="pre">string</span></code>&gt;&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L120">arranger/src/matches.ts:120</a></p>
+<p>The stroke of an alignment anchor for each belief.</p>
+</section>
+<hr class="docutils" />
+<section id="false-stroke">
+<h3>FALSE_STROKE<a class="headerlink" href="#false-stroke" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>FALSE_STROKE</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;#E51400&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;#E51400&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L118">arranger/src/matches.ts:118</a></p>
+<p>The stroke of an anchor the user believes false: red.</p>
+</section>
+<hr class="docutils" />
+<section id="hovered-stroke">
+<h3>HOVERED_STROKE<a class="headerlink" href="#hovered-stroke" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>HOVERED_STROKE</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;#6E6E6E&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;#6E6E6E&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L101">arranger/src/matches.ts:101</a></p>
+<p>The hovered MatchStamp’s.</p>
+</section>
+<hr class="docutils" />
+<section id="match-dash">
+<h3>MATCH_DASH<a class="headerlink" href="#match-dash" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>MATCH_DASH</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;3</span> <span class="pre">3&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;3</span> <span class="pre">3&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L137">arranger/src/matches.ts:137</a></p>
+<p>The dash pattern of the MatchStamp lines the overlay draws.</p>
+</section>
+<hr class="docutils" />
+<section id="match-stroke-width">
+<h3>MATCH_STROKE_WIDTH<a class="headerlink" href="#match-stroke-width" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>MATCH_STROKE_WIDTH</strong>: <code class="docutils literal notranslate"><span class="pre">1</span></code> = <code class="docutils literal notranslate"><span class="pre">1</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L135">arranger/src/matches.ts:135</a></p>
+<p>The stroke width of the MatchStamp lines the overlay draws: potential, hovered and pinned.</p>
+</section>
+<hr class="docutils" />
+<section id="no-paint">
+<h3>NO_PAINT<a class="headerlink" href="#no-paint" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>NO_PAINT</strong>: <a class="reference internal" href="#matchpaint"><code class="docutils literal notranslate"><span class="pre">MatchPaint</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L895">arranger/src/matches.ts:895</a></p>
+<p>No paint: a block without a table.</p>
+</section>
+<hr class="docutils" />
+<section id="no-tables">
+<h3>NO_TABLES<a class="headerlink" href="#no-tables" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>NO_TABLES</strong>: readonly <a class="reference internal" href="#matchoverlayinput"><code class="docutils literal notranslate"><span class="pre">MatchOverlayInput</span></code></a>[] = <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L94">arranger/src/matches.ts:94</a></p>
+<p>No block with a table: what the canvas draws from by default.</p>
+</section>
+<hr class="docutils" />
+<section id="out-of-date-mark">
+<h3>OUT_OF_DATE_MARK<a class="headerlink" href="#out-of-date-mark" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>OUT_OF_DATE_MARK</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;!</span> <span class="pre">&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;!</span> <span class="pre">&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L133">arranger/src/matches.ts:133</a></p>
+<p>The text an out-of-date named MatchStamp’s name label begins with.</p>
+</section>
+<hr class="docutils" />
+<section id="out-of-date-stroke">
+<h3>OUT_OF_DATE_STROKE<a class="headerlink" href="#out-of-date-stroke" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>OUT_OF_DATE_STROKE</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;#E51400&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">FALSE_STROKE</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L131">arranger/src/matches.ts:131</a></p>
+<p>A named MatchStamp out of date (core’s <code class="docutils literal notranslate"><span class="pre">checkMatchStamp</span></code>): its anchors’
+lines, its match timestamps’ lines and its name label, whatever their
+style; the label begins with <code class="docutils literal notranslate"><span class="pre">OUT_OF_DATE_MARK</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="pinned-stroke">
+<h3>PINNED_STROKE<a class="headerlink" href="#pinned-stroke" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>PINNED_STROKE</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;#1BA1E2&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;#1BA1E2&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L103">arranger/src/matches.ts:103</a></p>
+<p>The pinned MatchStamp’s: the blue of a cross-section line (TimeToShare’s <code class="docutils literal notranslate"><span class="pre">docs/drawing.md</span></code>, section 6.6).</p>
+</section>
+<hr class="docutils" />
+<section id="potential-opacity">
+<h3>POTENTIAL_OPACITY<a class="headerlink" href="#potential-opacity" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>POTENTIAL_OPACITY</strong>: <code class="docutils literal notranslate"><span class="pre">0.7</span></code> = <code class="docutils literal notranslate"><span class="pre">0.7</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L99">arranger/src/matches.ts:99</a></p>
+<p>The opacity of the potential MatchStamps’ lines and connectors.</p>
+</section>
+<hr class="docutils" />
+<section id="potential-stroke">
+<h3>POTENTIAL_STROKE<a class="headerlink" href="#potential-stroke" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>POTENTIAL_STROKE</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;#C8C8C8&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;#C8C8C8&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L97">arranger/src/matches.ts:97</a></p>
+<p>The potential MatchStamps’ lines and connectors: light grey, 70 % opaque, width 1, dash 3 3.</p>
+</section>
+<hr class="docutils" />
+<section id="true-stroke">
+<h3>TRUE_STROKE<a class="headerlink" href="#true-stroke" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>TRUE_STROKE</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;#339933&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;#339933&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L114">arranger/src/matches.ts:114</a></p>
+<p>The stroke of an anchor the user believes true: green.</p>
+</section>
+<hr class="docutils" />
+<section id="undecided-stroke">
+<h3>UNDECIDED_STROKE<a class="headerlink" href="#undecided-stroke" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>UNDECIDED_STROKE</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;#1BA1E2&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">PINNED_STROKE</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L112">arranger/src/matches.ts:112</a></p>
+<p>An alignment anchor of a shown MatchStamp (the pinned one, a named one)
+by the editor user’s belief in the MatchClaims stating it (core’s
+<code class="docutils literal notranslate"><span class="pre">anchorBelief</span></code>): undecided the cross-section blue, true green, unlikely
+dark orange, false red, whatever the anchor’s style. The green and the
+orange lie between the blue and the red in luminance, each at least 3:1
+against the white of a card and the canvas’s dark <code class="docutils literal notranslate"><span class="pre">#1A1D23</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="unlikely-stroke">
+<h3>UNLIKELY_STROKE<a class="headerlink" href="#unlikely-stroke" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>UNLIKELY_STROKE</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;#E07000&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;#E07000&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L116">arranger/src/matches.ts:116</a></p>
+<p>The stroke of an anchor the user believes unlikely: dark orange.</p>
+</section>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<section id="abscissa">
+<h3>abscissa()<a class="headerlink" href="#abscissa" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>abscissa</strong>(<code class="docutils literal notranslate"><span class="pre">line</span></code>, <code class="docutils literal notranslate"><span class="pre">position</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L190">arranger/src/matches.ts:190</a></p>
+<p>The abscissa of <code class="docutils literal notranslate"><span class="pre">position</span></code>, on <code class="docutils literal notranslate"><span class="pre">line</span></code>’s timeline’s own axis, in
+block-local canvas units, as layout’s <code class="docutils literal notranslate"><span class="pre">abscissaOf</span></code> computes it in
+doubles: <code class="docutils literal notranslate"><span class="pre">xStart</span> <span class="pre">+</span> <span class="pre">(position</span> <span class="pre">+</span> <span class="pre">offset</span> <span class="pre">−</span> <span class="pre">start)</span> <span class="pre">/</span> <span class="pre">length</span> <span class="pre">×</span> <span class="pre">(xEnd</span> <span class="pre">−</span> <span class="pre">xStart)</span></code>; <code class="docutils literal notranslate"><span class="pre">xStart</span></code> on a line of no drawn length.</p>
+<section id="id44">
+<h4>Parameters<a class="headerlink" href="#id44" title="Link to this heading">#</a></h4>
+<section id="line">
+<h5>line<a class="headerlink" href="#line" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#matchline"><code class="docutils literal notranslate"><span class="pre">MatchLine</span></code></a></p>
+</section>
+<section id="position">
+<h5>position<a class="headerlink" href="#position" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id45">
+<h4>Returns<a class="headerlink" href="#id45" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="fadedpathsof">
+<h3>fadedPathsOf()<a class="headerlink" href="#fadedpathsof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>fadedPathsOf</strong>(<code class="docutils literal notranslate"><span class="pre">overlay</span></code>): readonly <a class="reference internal" href="#fadedpath"><code class="docutils literal notranslate"><span class="pre">FadedPath</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L1035">arranger/src/matches.ts:1035</a></p>
+<p>The paths of an overlay’s lines at each opacity other than 1, in the order first met (<code class="docutils literal notranslate"><span class="pre">pathsOf</span></code>).</p>
+<section id="id46">
+<h4>Parameters<a class="headerlink" href="#id46" title="Link to this heading">#</a></h4>
+<section id="id47">
+<h5>overlay<a class="headerlink" href="#id47" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#matchoverlay"><code class="docutils literal notranslate"><span class="pre">MatchOverlay</span></code></a></p>
+</section>
+</section>
+<section id="id48">
+<h4>Returns<a class="headerlink" href="#id48" title="Link to this heading">#</a></h4>
+<p>readonly <a class="reference internal" href="#fadedpath"><code class="docutils literal notranslate"><span class="pre">FadedPath</span></code></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="inscreenorder">
+<h3>inScreenOrder()<a class="headerlink" href="#inscreenorder" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>inScreenOrder</strong>&lt;<code class="docutils literal notranslate"><span class="pre">T</span></code>&gt;(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">items</span></code>, <code class="docutils literal notranslate"><span class="pre">coordinateOf</span></code>, <code class="docutils literal notranslate"><span class="pre">raised?</span></code>): <code class="docutils literal notranslate"><span class="pre">T</span></code>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L702">arranger/src/matches.ts:702</a></p>
+<p><code class="docutils literal notranslate"><span class="pre">items</span></code> in screen order (<code class="docutils literal notranslate"><span class="pre">screenOrder</span></code> of each one’s <code class="docutils literal notranslate"><span class="pre">screenPlace</span></code> in
+<code class="docutils literal notranslate"><span class="pre">drawing</span></code> with <code class="docutils literal notranslate"><span class="pre">raised</span></code>, <code class="docutils literal notranslate"><span class="pre">coordinateOf</span></code> giving its coordinate); items at
+one place, or none drawn, keep their given order. The one screen order of
+the flag of a potential MatchStamp and of the coordinates and alignment
+anchors of a MatchStamp wherever it is listed or named.</p>
+<section id="type-parameters">
+<h4>Type Parameters<a class="headerlink" href="#type-parameters" title="Link to this heading">#</a></h4>
+<section id="t">
+<h5>T<a class="headerlink" href="#t" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">T</span></code></p>
+</section>
+</section>
+<section id="id49">
+<h4>Parameters<a class="headerlink" href="#id49" title="Link to this heading">#</a></h4>
+<section id="id50">
+<h5>drawing<a class="headerlink" href="#id50" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="items">
+<h5>items<a class="headerlink" href="#items" title="Link to this heading">#</a></h5>
+<p>readonly <code class="docutils literal notranslate"><span class="pre">T</span></code>[]</p>
+</section>
+<section id="coordinateof">
+<h5>coordinateOf<a class="headerlink" href="#coordinateof" title="Link to this heading">#</a></h5>
+<p>(<code class="docutils literal notranslate"><span class="pre">item</span></code>) =&gt; <a class="reference internal" href="#screencoordinate"><code class="docutils literal notranslate"><span class="pre">ScreenCoordinate</span></code></a></p>
+</section>
+<section id="id51">
+<h5>raised?<a class="headerlink" href="#id51" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code> = <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id52">
+<h4>Returns<a class="headerlink" href="#id52" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">T</span></code>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchflag">
+<h3>matchFlag()<a class="headerlink" href="#matchflag" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>matchFlag</strong>(<code class="docutils literal notranslate"><span class="pre">index</span></code>, <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">lines</span></code>, <code class="docutils literal notranslate"><span class="pre">stamp</span></code>, <code class="docutils literal notranslate"><span class="pre">decimals</span></code>, <code class="docutils literal notranslate"><span class="pre">groups?</span></code>): <a class="reference internal" href="#matchflaggroup"><code class="docutils literal notranslate"><span class="pre">MatchFlagGroup</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L734">arranger/src/matches.ts:734</a></p>
+<p>The flag of the potential MatchStamp <code class="docutils literal notranslate"><span class="pre">stamp</span></code>: every coordinate of it, and
+with <code class="docutils literal notranslate"><span class="pre">groups</span></code> (above a timeline editor) every coordinate its groupstamps
+read on the other members of their groups (<code class="docutils literal notranslate"><span class="pre">groups.groupstampAt</span></code>: the
+scaled members of the coordinate’s GroupStamp pin, the arranger’s
+<code class="docutils literal notranslate"><span class="pre">timelinePin</span></code> read by the group, as the Matchstamp tab’s Coordinates
+read it), each value once per timeline. Each coordinate is a row written
+as core’s <code class="docutils literal notranslate"><span class="pre">prettyText</span></code> with <code class="docutils literal notranslate"><span class="pre">decimals</span></code> places, in the timeline’s unit,
+but a member the group gives no value (a length of the group not known:
+the pin’s member <code class="docutils literal notranslate"><span class="pre">valueless</span></code>), written core’s <code class="docutils literal notranslate"><span class="pre">VALUELESS_TEXT</span></code>, as the
+coordinate flag and the stamp tabs write it; rows in the order they are drawn, top to bottom, then left to right (a
+coordinate of the stamp at its <code class="docutils literal notranslate"><span class="pre">screenPlace</span></code> over the drawing <code class="docutils literal notranslate"><span class="pre">lines</span></code>
+were read from, with the root raised as they were read; a groupstamp’s at
+the ordinate its pin reads the member at, on its coordinate’s abscissa),
+what the block does not draw last, in the index’s order. The rows are
+grouped by runs: one group for each run of rows on one timeline, named as
+<code class="docutils literal notranslate"><span class="pre">manifest</span></code> names it (its ID where it holds none), so the flag reads top
+to bottom exactly as drawn, a timeline whose rows lie apart in that order
+heading each run, and one whose rows are adjacent heading them once.</p>
+<section id="id53">
+<h4>Parameters<a class="headerlink" href="#id53" title="Link to this heading">#</a></h4>
+<section id="id54">
+<h5>index<a class="headerlink" href="#id54" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/matches/anchors.html#anchorindex"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorIndex</span></code></span></a></p>
+</section>
+<section id="manifest">
+<h5>manifest<a class="headerlink" href="#manifest" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="id55">
+<h5>lines<a class="headerlink" href="#id55" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#matchlines"><code class="docutils literal notranslate"><span class="pre">MatchLines</span></code></a></p>
+</section>
+<section id="id56">
+<h5>stamp<a class="headerlink" href="#id56" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="decimals">
+<h5>decimals<a class="headerlink" href="#decimals" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="groups">
+<h5>groups?<a class="headerlink" href="#groups" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#flaggroups"><code class="docutils literal notranslate"><span class="pre">FlagGroups</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code> = <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id57">
+<h4>Returns<a class="headerlink" href="#id57" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#matchflaggroup"><code class="docutils literal notranslate"><span class="pre">MatchFlagGroup</span></code></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchhitat">
+<h3>matchHitAt()<a class="headerlink" href="#matchhitat" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>matchHitAt</strong>(<code class="docutils literal notranslate"><span class="pre">index</span></code>, <code class="docutils literal notranslate"><span class="pre">lines</span></code>, <code class="docutils literal notranslate"><span class="pre">connectors</span></code>, <code class="docutils literal notranslate"><span class="pre">point</span></code>, <code class="docutils literal notranslate"><span class="pre">tolerance</span></code>): <a class="reference internal" href="#matchhit"><code class="docutils literal notranslate"><span class="pre">MatchHit</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L571">arranger/src/matches.ts:571</a></p>
+<p>What <code class="docutils literal notranslate"><span class="pre">point</span></code> (block-local) hovers within <code class="docutils literal notranslate"><span class="pre">tolerance</span></code> canvas units: of
+every line’s nearest coordinate (core’s <code class="docutils literal notranslate"><span class="pre">coordinateNear</span></code>, whatever was
+drawn) lying on the part of the line <code class="docutils literal notranslate"><span class="pre">lines</span></code> holds (<code class="docutils literal notranslate"><span class="pre">matchLinesOf</span></code>: where
+the timeline is seen, so never where its line is covered) whose
+cross-section line, from <code class="docutils literal notranslate"><span class="pre">y1</span></code> to <code class="docutils literal notranslate"><span class="pre">y2</span></code>, lies within the tolerance, and of
+every connector drawn (<code class="docutils literal notranslate"><span class="pre">connectors</span></code>, the overlay’s),
+the nearest by Euclidean distance, a line before a connector and an
+earlier one before a later on a tie; <code class="docutils literal notranslate"><span class="pre">null</span></code> where none is near.</p>
+<section id="id58">
+<h4>Parameters<a class="headerlink" href="#id58" title="Link to this heading">#</a></h4>
+<section id="id59">
+<h5>index<a class="headerlink" href="#id59" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/matches/anchors.html#anchorindex"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorIndex</span></code></span></a></p>
+</section>
+<section id="id60">
+<h5>lines<a class="headerlink" href="#id60" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#matchlines"><code class="docutils literal notranslate"><span class="pre">MatchLines</span></code></a></p>
+</section>
+<section id="id61">
+<h5>connectors<a class="headerlink" href="#id61" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="#overlayconnector"><code class="docutils literal notranslate"><span class="pre">OverlayConnector</span></code></a>[]</p>
+</section>
+<section id="point">
+<h5>point<a class="headerlink" href="#point" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a></p>
+</section>
+<section id="tolerance">
+<h5>tolerance<a class="headerlink" href="#tolerance" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id62">
+<h4>Returns<a class="headerlink" href="#id62" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#matchhit"><code class="docutils literal notranslate"><span class="pre">MatchHit</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchlinesof">
+<h3>matchLinesOf()<a class="headerlink" href="#matchlinesof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>matchLinesOf</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">index</span></code>, <code class="docutils literal notranslate"><span class="pre">raised?</span></code>): <a class="reference internal" href="#matchlines"><code class="docutils literal notranslate"><span class="pre">MatchLines</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L238">arranger/src/matches.ts:238</a></p>
+<p>The lines of <code class="docutils literal notranslate"><span class="pre">drawing</span></code> holding a timeline of <code class="docutils literal notranslate"><span class="pre">index</span></code> (matched by ID), once
+per drawing, index and raised root: for every timeline the parts of the
+lines it is seen on (<code class="docutils literal notranslate"><span class="pre">seenOn</span></code>, <code class="docutils literal notranslate"><span class="pre">raised</span></code> the root whose ancestor cards are
+raised, <code class="docutils literal notranslate"><span class="pre">raisedRoot</span></code> of the block’s editor, none by default: every line
+of the timeline, an ancestor card’s below the frames only beyond the
+frames and cards drawn over it, its ancestor lines in its members’ cards
+in between), in the drawing’s order of its lines, a
+timeline of the index before a later one on one line, the parts of one
+line left to right. A line of its own draws its drawn span; a segment’s
+line the part of it the segment covers; a part of a line the positions
+from its left end to its right end, an end at a seam its run does not
+hold left out (<code class="docutils literal notranslate"><span class="pre">holdsAt</span></code>). On an ancestor line a coordinate’s
+line spans the cross-section of the member’s line it belongs to, which
+reaches the ancestor line on whichever side it lies.</p>
+<section id="id63">
+<h4>Parameters<a class="headerlink" href="#id63" title="Link to this heading">#</a></h4>
+<section id="id64">
+<h5>drawing<a class="headerlink" href="#id64" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id65">
+<h5>index<a class="headerlink" href="#id65" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/matches/anchors.html#anchorindex"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorIndex</span></code></span></a></p>
+</section>
+<section id="id66">
+<h5>raised?<a class="headerlink" href="#id66" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code> = <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id67">
+<h4>Returns<a class="headerlink" href="#id67" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#matchlines"><code class="docutils literal notranslate"><span class="pre">MatchLines</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="namedgroupstamps">
+<h3>namedGroupstamps()<a class="headerlink" href="#namedgroupstamps" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>namedGroupstamps</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">index</span></code>): <a class="reference internal" href="#id42"><code class="docutils literal notranslate"><span class="pre">GroupstampAt</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L494">arranger/src/matches.ts:494</a></p>
+<p>Whether naming a MatchStamp in <code class="docutils literal notranslate"><span class="pre">manifest</span></code> would store each coordinate of
+<code class="docutils literal notranslate"><span class="pre">index</span></code> as a groupstamp (core’s <code class="docutils literal notranslate"><span class="pre">namedAsGroupstamp</span></code>: the <code class="docutils literal notranslate"><span class="pre">groupstamp</span></code> of
+the match timestamp <code class="docutils literal notranslate"><span class="pre">manifest</span></code> holds there, else whether its timeline is a
+member of a group).</p>
+<section id="id68">
+<h4>Parameters<a class="headerlink" href="#id68" title="Link to this heading">#</a></h4>
+<section id="id69">
+<h5>manifest<a class="headerlink" href="#id69" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="id70">
+<h5>index<a class="headerlink" href="#id70" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/matches/anchors.html#anchorindex"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorIndex</span></code></span></a></p>
+</section>
+</section>
+<section id="id71">
+<h4>Returns<a class="headerlink" href="#id71" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#id42"><code class="docutils literal notranslate"><span class="pre">GroupstampAt</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="namedpaint">
+<h3>namedPaint()<a class="headerlink" href="#namedpaint" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>namedPaint</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">named</span></code>, <code class="docutils literal notranslate"><span class="pre">beliefs</span></code>): <a class="reference internal" href="#matchpaint"><code class="docutils literal notranslate"><span class="pre">MatchPaint</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L919">arranger/src/matches.ts:919</a></p>
+<p>How the named MatchStamps of <code class="docutils literal notranslate"><span class="pre">manifest</span></code> are painted, <code class="docutils literal notranslate"><span class="pre">named</span></code> each one
+compared with the table by ID: one out of date all red
+(<code class="docutils literal notranslate"><span class="pre">OUT_OF_DATE_STROKE</span></code>), its alignment anchors’ lines, its match
+timestamps’ lines and its name labels, which take <code class="docutils literal notranslate"><span class="pre">OUT_OF_DATE_MARK</span></code>;
+of any other, each anchor’s line by the belief in the MatchClaims stating
+it (<code class="docutils literal notranslate"><span class="pre">statedBy</span></code>, <code class="docutils literal notranslate"><span class="pre">anchorBelief</span></code> over <code class="docutils literal notranslate"><span class="pre">beliefs</span></code>, undecided without them).
+A match timestamp of an out-of-date MatchStamp is red whatever another
+MatchStamp holding it is. Keyed by the address key of each part: an
+anchor’s line <code class="docutils literal notranslate"><span class="pre">{id:</span> <span class="pre">A}</span></code>, its label <code class="docutils literal notranslate"><span class="pre">{id:</span> <span class="pre">A,</span> <span class="pre">part:</span> <span class="pre">[&quot;name&quot;]}</span></code>, a match
+timestamp’s line <code class="docutils literal notranslate"><span class="pre">{id:</span> <span class="pre">T,</span> <span class="pre">part:</span> <span class="pre">[&quot;line&quot;]}</span></code>. Once per comparisons,
+manifest and beliefs.</p>
+<section id="id72">
+<h4>Parameters<a class="headerlink" href="#id72" title="Link to this heading">#</a></h4>
+<section id="id73">
+<h5>manifest<a class="headerlink" href="#id73" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="id74">
+<h5>named<a class="headerlink" href="#id74" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="#namedcomparison"><code class="docutils literal notranslate"><span class="pre">NamedComparison</span></code></a>[]</p>
+</section>
+<section id="id75">
+<h5>beliefs<a class="headerlink" href="#id75" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">Uint8Array</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">ArrayBufferLike</span></code>&gt; | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</section>
+</section>
+<section id="id76">
+<h4>Returns<a class="headerlink" href="#id76" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#matchpaint"><code class="docutils literal notranslate"><span class="pre">MatchPaint</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="overlayof">
+<h3>overlayOf()<a class="headerlink" href="#overlayof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>overlayOf</strong>(<code class="docutils literal notranslate"><span class="pre">index</span></code>, <code class="docutils literal notranslate"><span class="pre">lines</span></code>, <code class="docutils literal notranslate"><span class="pre">placed</span></code>, <code class="docutils literal notranslate"><span class="pre">screen</span></code>): <a class="reference internal" href="#matchoverlay"><code class="docutils literal notranslate"><span class="pre">MatchOverlay</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L417">arranger/src/matches.ts:417</a></p>
+<p>What the overlay draws of <code class="docutils literal notranslate"><span class="pre">index</span></code> in a block, its lines <code class="docutils literal notranslate"><span class="pre">lines</span></code> (<code class="docutils literal notranslate"><span class="pre">matchLinesOf</span></code>)
+and its node <code class="docutils literal notranslate"><span class="pre">placed</span></code>, on <code class="docutils literal notranslate"><span class="pre">screen</span></code>: on every line, the coordinates whose
+abscissa lies in view on the line’s drawn part, the line’s cross-section
+extent meeting the view, at most one per device pixel column of the
+card (the first in the drawing’s order of lines, then by position, takes
+the column); then every anchor of a drawn coordinate, each once, joined
+to its other coordinate wherever the block draws it. A column is `⌊(screen.x</p>
+<ul class="simple">
+<li><p>(origin.x + x · scale) · zoom) · ratio⌋`; after a coordinate the next one
+looked at is the first at or past the next column.</p></li>
+</ul>
+<section id="id77">
+<h4>Parameters<a class="headerlink" href="#id77" title="Link to this heading">#</a></h4>
+<section id="id78">
+<h5>index<a class="headerlink" href="#id78" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/matches/anchors.html#anchorindex"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorIndex</span></code></span></a></p>
+</section>
+<section id="id79">
+<h5>lines<a class="headerlink" href="#id79" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#matchlines"><code class="docutils literal notranslate"><span class="pre">MatchLines</span></code></a></p>
+</section>
+<section id="id80">
+<h5>placed<a class="headerlink" href="#id80" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#placed"><code class="docutils literal notranslate"><span class="pre">Placed</span></code></a></p>
+</section>
+<section id="id81">
+<h5>screen<a class="headerlink" href="#id81" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#screen"><code class="docutils literal notranslate"><span class="pre">Screen</span></code></a></p>
+</section>
+</section>
+<section id="id82">
+<h4>Returns<a class="headerlink" href="#id82" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#matchoverlay"><code class="docutils literal notranslate"><span class="pre">MatchOverlay</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="pathof">
+<h3>pathOf()<a class="headerlink" href="#pathof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>pathOf</strong>(<code class="docutils literal notranslate"><span class="pre">overlay</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L1030">arranger/src/matches.ts:1030</a></p>
+<p>The path of an overlay’s lines at opacity 1 and its connectors (<code class="docutils literal notranslate"><span class="pre">pathsOf</span></code>).</p>
+<section id="id83">
+<h4>Parameters<a class="headerlink" href="#id83" title="Link to this heading">#</a></h4>
+<section id="id84">
+<h5>overlay<a class="headerlink" href="#id84" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#matchoverlay"><code class="docutils literal notranslate"><span class="pre">MatchOverlay</span></code></a></p>
+</section>
+</section>
+<section id="id85">
+<h4>Returns<a class="headerlink" href="#id85" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="pinnedoverlays">
+<h3>pinnedOverlays()<a class="headerlink" href="#pinnedoverlays" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>pinnedOverlays</strong>(<code class="docutils literal notranslate"><span class="pre">index</span></code>, <code class="docutils literal notranslate"><span class="pre">overlay</span></code>, <code class="docutils literal notranslate"><span class="pre">beliefs</span></code>): readonly <a class="reference internal" href="#beliefoverlay"><code class="docutils literal notranslate"><span class="pre">BeliefOverlay</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L850">arranger/src/matches.ts:850</a></p>
+<p>The pinned MatchStamp <code class="docutils literal notranslate"><span class="pre">overlay</span></code> (<code class="docutils literal notranslate"><span class="pre">stampOverlay</span></code> of <code class="docutils literal notranslate"><span class="pre">index</span></code>) by colour: its
+cross-section lines in the cross-section blue, each connector by the
+belief in the MatchClaims stating its anchor (<code class="docutils literal notranslate"><span class="pre">anchorBelief</span></code> over
+<code class="docutils literal notranslate"><span class="pre">beliefs</span></code>, every one undecided without them); a part per colour that has
+anything, true first and false last. Once per overlay and beliefs.</p>
+<section id="id86">
+<h4>Parameters<a class="headerlink" href="#id86" title="Link to this heading">#</a></h4>
+<section id="id87">
+<h5>index<a class="headerlink" href="#id87" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/matches/anchors.html#anchorindex"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorIndex</span></code></span></a></p>
+</section>
+<section id="id88">
+<h5>overlay<a class="headerlink" href="#id88" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#matchoverlay"><code class="docutils literal notranslate"><span class="pre">MatchOverlay</span></code></a></p>
+</section>
+<section id="id89">
+<h5>beliefs<a class="headerlink" href="#id89" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">Uint8Array</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">ArrayBufferLike</span></code>&gt; | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</section>
+</section>
+<section id="id90">
+<h4>Returns<a class="headerlink" href="#id90" title="Link to this heading">#</a></h4>
+<p>readonly <a class="reference internal" href="#beliefoverlay"><code class="docutils literal notranslate"><span class="pre">BeliefOverlay</span></code></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="screenorder">
+<h3>screenOrder()<a class="headerlink" href="#screenorder" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>screenOrder</strong>(<code class="docutils literal notranslate"><span class="pre">left</span></code>, <code class="docutils literal notranslate"><span class="pre">right</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L690">arranger/src/matches.ts:690</a></p>
+<p>Screen order of two places (<code class="docutils literal notranslate"><span class="pre">screenPlace</span></code>): top to bottom, then left to
+right; a place not drawn (<code class="docutils literal notranslate"><span class="pre">null</span></code>) after every drawn one. Negative where
+<code class="docutils literal notranslate"><span class="pre">left</span></code> comes first, positive where <code class="docutils literal notranslate"><span class="pre">right</span></code> does, 0 for one place.</p>
+<section id="id91">
+<h4>Parameters<a class="headerlink" href="#id91" title="Link to this heading">#</a></h4>
+<section id="left">
+<h5>left<a class="headerlink" href="#left" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+<section id="right">
+<h5>right<a class="headerlink" href="#right" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id92">
+<h4>Returns<a class="headerlink" href="#id92" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="screenplace">
+<h3>screenPlace()<a class="headerlink" href="#screenplace" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>screenPlace</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">coordinate</span></code>, <code class="docutils literal notranslate"><span class="pre">raised?</span></code>): <a class="reference internal" href="gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L666">arranger/src/matches.ts:666</a></p>
+<p>Where <code class="docutils literal notranslate"><span class="pre">coordinate</span></code> shows first in <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, in block-local canvas units,
+<code class="docutils literal notranslate"><span class="pre">raised</span></code> naming the root whose ancestor cards are raised (<code class="docutils literal notranslate"><span class="pre">raisedRoot</span></code>),
+else <code class="docutils literal notranslate"><span class="pre">null</span></code>: of its places (<code class="docutils literal notranslate"><span class="pre">placesAt</span></code>: where the user sees a line of its
+timeline at its value, the parts “Show matches” draws it on), the
+topmost, then the leftmost; <code class="docutils literal notranslate"><span class="pre">null</span></code> where it has none.</p>
+<section id="id93">
+<h4>Parameters<a class="headerlink" href="#id93" title="Link to this heading">#</a></h4>
+<section id="id94">
+<h5>drawing<a class="headerlink" href="#id94" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id95">
+<h5>coordinate<a class="headerlink" href="#id95" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#screencoordinate"><code class="docutils literal notranslate"><span class="pre">ScreenCoordinate</span></code></a></p>
+</section>
+<section id="id96">
+<h5>raised?<a class="headerlink" href="#id96" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code> = <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id97">
+<h4>Returns<a class="headerlink" href="#id97" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="stampoverlay">
+<h3>stampOverlay()<a class="headerlink" href="#stampoverlay" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>stampOverlay</strong>(<code class="docutils literal notranslate"><span class="pre">index</span></code>, <code class="docutils literal notranslate"><span class="pre">lines</span></code>, <code class="docutils literal notranslate"><span class="pre">stamp</span></code>, <code class="docutils literal notranslate"><span class="pre">groupstampAt?</span></code>): <a class="reference internal" href="#matchoverlay"><code class="docutils literal notranslate"><span class="pre">MatchOverlay</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/matches.ts#L513">arranger/src/matches.ts:513</a></p>
+<p>Every line and connector of the potential MatchStamp <code class="docutils literal notranslate"><span class="pre">stamp</span></code> in a block,
+as a named one would draw them: each of its coordinates on every line
+holding it, and where <code class="docutils literal notranslate"><span class="pre">groupstampAt</span></code> says naming would store it as a
+groupstamp, after each such line the lines layout’s <code class="docutils literal notranslate"><span class="pre">groupCrossSections</span></code>
+draws across the frame holding that line’s card (none on a line in no
+frame), each at its piece’s opacity; then each of its anchors. Without <code class="docutils literal notranslate"><span class="pre">groupstampAt</span></code> no coordinate is
+taken for a groupstamp. Nothing for a number the index does not have.</p>
+<section id="id98">
+<h4>Parameters<a class="headerlink" href="#id98" title="Link to this heading">#</a></h4>
+<section id="id99">
+<h5>index<a class="headerlink" href="#id99" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/matches/anchors.html#anchorindex"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorIndex</span></code></span></a></p>
+</section>
+<section id="id100">
+<h5>lines<a class="headerlink" href="#id100" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#matchlines"><code class="docutils literal notranslate"><span class="pre">MatchLines</span></code></a></p>
+</section>
+<section id="id101">
+<h5>stamp<a class="headerlink" href="#id101" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id102">
+<h5>groupstampAt?<a class="headerlink" href="#id102" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#id42"><code class="docutils literal notranslate"><span class="pre">GroupstampAt</span></code></a></p>
+</section>
+</section>
+<section id="id103">
+<h4>Returns<a class="headerlink" href="#id103" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#matchoverlay"><code class="docutils literal notranslate"><span class="pre">MatchOverlay</span></code></a></p>
+</section>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="marquee.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">marquee</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="motion.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">motion</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#beliefoverlay">BeliefOverlay</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#belief">belief</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#overlay">overlay</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#stroke">stroke</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fadedpath">FadedPath</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#d">d</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#opacity">opacity</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flaggroups">FlagGroups</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#block">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#granularity">granularity</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#groupstampat">groupstampAt</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchflaggroup">MatchFlagGroup</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#key">key</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#name">name</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#rows">rows</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#timeline">timeline</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchflagrow">MatchFlagRow</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#coordinate">coordinate</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">key</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#text">text</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchhit">MatchHit</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#anchor">anchor</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#at">at</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#top">top</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#x">x</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#y">y</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">coordinate</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#distance">distance</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#stamp">stamp</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchlayer">MatchLayer</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#height">height</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#hovered">hovered</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#origin">origin</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pinned">pinned</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#potential">potential</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#scale">scale</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#width">width</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchline">MatchLine</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#card">card</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#from">from</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#fromheld">fromHeld</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">key</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#length">length</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#offset">offset</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#start">start</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">timeline</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#to">to</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#toheld">toHeld</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#xend">xEnd</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#xstart">xStart</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">y</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#y1">y1</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#y2">y2</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchlines">MatchLines</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#all">all</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#bytimeline">byTimeline</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#drawing">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#raised">raised</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchoverlay">MatchOverlay</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#connectors">connectors</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#lines">lines</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchoverlayinput">MatchOverlayInput</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#beliefs">beliefs?</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#index">index</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#named">named</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchstamppin">MatchStampPin</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#matchstamp">matchStamp</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#namedcomparison">NamedComparison</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#comparison">comparison</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id">id</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#overlayconnector">OverlayConnector</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">anchor</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#x1">x1</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#x2">x2</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">y1</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">y2</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#overlayline">OverlayLine</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id26">coordinate</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id27">opacity</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">x</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id29">y1</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id30">y2</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#paint">Paint</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id31">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#attribute">attribute</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#colour">colour</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#marked">marked</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placed">Placed</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id33">origin</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id34">scale</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#screen">Screen</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id35">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id36">height</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#ratio">ratio</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id37">width</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id38">x</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id39">y</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#zoom">zoom</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#screencoordinate">ScreenCoordinate</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id40">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id41">timeline</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#value">value</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#type-aliases">Type Aliases</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id42">GroupstampAt</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id43">coordinate</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchpaint">MatchPaint</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#variables">Variables</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#belief-strokes">BELIEF_STROKES</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#false-stroke">FALSE_STROKE</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hovered-stroke">HOVERED_STROKE</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#match-dash">MATCH_DASH</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#match-stroke-width">MATCH_STROKE_WIDTH</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#no-paint">NO_PAINT</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#no-tables">NO_TABLES</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#out-of-date-mark">OUT_OF_DATE_MARK</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#out-of-date-stroke">OUT_OF_DATE_STROKE</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pinned-stroke">PINNED_STROKE</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#potential-opacity">POTENTIAL_OPACITY</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#potential-stroke">POTENTIAL_STROKE</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#true-stroke">TRUE_STROKE</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#undecided-stroke">UNDECIDED_STROKE</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#unlikely-stroke">UNLIKELY_STROKE</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#abscissa">abscissa()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id44">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#line">line</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#position">position</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id45">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fadedpathsof">fadedPathsOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id46">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id47">overlay</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id48">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#inscreenorder">inScreenOrder()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#type-parameters">Type Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#t">T</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id49">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id50">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#items">items</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#coordinateof">coordinateOf</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id51">raised?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id52">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchflag">matchFlag()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id53">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id54">index</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#manifest">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id55">lines</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id56">stamp</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#decimals">decimals</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#groups">groups?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id57">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchhitat">matchHitAt()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id58">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id59">index</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id60">lines</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id61">connectors</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#point">point</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#tolerance">tolerance</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id62">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchlinesof">matchLinesOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id63">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id64">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id65">index</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id66">raised?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id67">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#namedgroupstamps">namedGroupstamps()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id68">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id69">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id70">index</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id71">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#namedpaint">namedPaint()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id72">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id73">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id74">named</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id75">beliefs</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id76">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#overlayof">overlayOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id77">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id78">index</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id79">lines</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id80">placed</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id81">screen</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id82">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pathof">pathOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id83">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id84">overlay</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id85">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pinnedoverlays">pinnedOverlays()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id86">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id87">index</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id88">overlay</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id89">beliefs</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id90">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#screenorder">screenOrder()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id91">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#left">left</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#right">right</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id92">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#screenplace">screenPlace()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id93">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id94">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id95">coordinate</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id96">raised?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id97">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stampoverlay">stampOverlay()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id98">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id99">index</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id100">lines</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id101">stamp</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id102">groupstampAt?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id103">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

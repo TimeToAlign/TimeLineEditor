@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>animation/unfold &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api-ts/@timetoalign/tilie-arranger/animation/unfold';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="animation/unfolding.svelte" href="unfolding.svelte.html" />
+    <link rel="prev" title="animation/raise" href="raise.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-core/index.html">@timetoalign/tilie-core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-layout/index.html">@timetoalign/tilie-layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-writers/index.html">@timetoalign/tilie-writers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-client/index.html">@timetoalign/tilie-client</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../index.html">@timetoalign/tilie-arranger</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../affected.html">affected</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cardMotions.svelte.html">animation/cardMotions.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="elide.html">animation/elide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="progress.svelte.html">animation/progress.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="raise.html">animation/raise</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">animation/unfold</a></li>
+<li class="toctree-l2"><a class="reference internal" href="unfolding.svelte.html">animation/unfolding.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../arrangeMenu.html">arrangeMenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bands.html">bands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../blockDrag.html">blockDrag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxes.html">boxes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cardAxis.html">cardAxis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../commands.html">commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../containers.html">containers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coordinates.html">coordinates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../editing.html">editing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../editorFocus.svelte.html">editorFocus.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../focus.html">focus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gaps.html">gaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gesture.html">gesture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/arranged.html">gestures/arranged</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/band.html">gestures/band</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/canvas.html">gestures/canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/gap.html">gestures/gap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/held.html">gestures/held</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/host.html">gestures/host</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/wheel.html">gestures/wheel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index-1.html">index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../items.html">items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../keys.html">keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../liveStore.svelte.html">liveStore.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../marquee.html">marquee</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../matches.html">matches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../motion.html">motion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../node.html">node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../nodeActions.html">nodeActions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../nodes.svelte.html">nodes.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../numbers.html">numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onScreen.html">onScreen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../pane.html">pane</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../picking.html">picking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../project.html">project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reorder.html">reorder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resize.html">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../roving.html">roving</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../selection.html">selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../selectionRules.html">selectionRules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../snap.html">snap</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-editor/index.html">@timetoalign/tilie-editor</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../../typescript.html" class="nav-link">TypeScript API</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">&#64;timetoalign/tilie-arranger</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">animation/unfold</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="animation-unfold">
+<h1>animation/unfold<a class="headerlink" href="#animation-unfold" title="Link to this heading">#</a></h1>
+<section id="interfaces">
+<h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
+<section id="across">
+<h3>Across<a class="headerlink" href="#across" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L227">arranger/src/animation/unfold.ts:227</a></p>
+<p>How an element moves sideways: <code class="docutils literal notranslate"><span class="pre">left</span></code> and <code class="docutils literal notranslate"><span class="pre">right</span></code> its extent at rest,
+<code class="docutils literal notranslate"><span class="pre">fromLeft</span></code> and <code class="docutils literal notranslate"><span class="pre">fromRight</span></code> where the motion starts them (equal ends for
+an element drawn at one abscissa, a text or a mark, which moves without
+stretching).</p>
+<section id="properties">
+<h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
+<section id="fromleft">
+<h5>fromLeft<a class="headerlink" href="#fromleft" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>fromLeft</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L230">arranger/src/animation/unfold.ts:230</a></p>
+</section>
+<section id="fromright">
+<h5>fromRight<a class="headerlink" href="#fromright" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>fromRight</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L231">arranger/src/animation/unfold.ts:231</a></p>
+</section>
+<section id="left">
+<h5>left<a class="headerlink" href="#left" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>left</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L228">arranger/src/animation/unfold.ts:228</a></p>
+</section>
+<section id="right">
+<h5>right<a class="headerlink" href="#right" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>right</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L229">arranger/src/animation/unfold.ts:229</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="frame">
+<h3>Frame<a class="headerlink" href="#frame" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L47">arranger/src/animation/unfold.ts:47</a></p>
+<p>Where an element lies at a progress: shifted vertically by <code class="docutils literal notranslate"><span class="pre">dy</span></code>, drawn at <code class="docutils literal notranslate"><span class="pre">opacity</span></code> times its own.</p>
+<section id="id1">
+<h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
+<section id="dy">
+<h5>dy<a class="headerlink" href="#dy" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>dy</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L48">arranger/src/animation/unfold.ts:48</a></p>
+</section>
+<section id="opacity">
+<h5>opacity<a class="headerlink" href="#opacity" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>opacity</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L49">arranger/src/animation/unfold.ts:49</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="knot">
+<h3>Knot<a class="headerlink" href="#knot" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L138">arranger/src/animation/unfold.ts:138</a></p>
+<p>A point of a card’s horizontal axis: the abscissa <code class="docutils literal notranslate"><span class="pre">x</span></code> and the position
+<code class="docutils literal notranslate"><span class="pre">at</span></code> it draws, on the card’s root’s own axis, as a float. A card’s knots,
+sorted by <code class="docutils literal notranslate"><span class="pre">x</span></code>, draw its positions piecewise linearly between them: a full
+run at its own scale, a gap at its own width.</p>
+<section id="id2">
+<h4>Properties<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
+<section id="id3">
+<h5>across?<a class="headerlink" href="#id3" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>across?</strong>: <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L146">arranger/src/animation/unfold.ts:146</a></p>
+<p>Set where the knot ends a run at a seam whose position lies on the
+other run (<code class="docutils literal notranslate"><span class="pre">docs/drawing.md</span></code> in TimeToShare, section 3.2): the
+position is drawn at the other run’s knot, never at this one.</p>
+</section>
+<section id="at">
+<h5>at<a class="headerlink" href="#at" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>at</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L140">arranger/src/animation/unfold.ts:140</a></p>
+</section>
+<section id="x">
+<h5>x<a class="headerlink" href="#x" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>x</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L139">arranger/src/animation/unfold.ts:139</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="motion">
+<h3>Motion<a class="headerlink" href="#motion" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L239">arranger/src/animation/unfold.ts:239</a></p>
+<p>How an element of a card moves between two drawings: sideways <code class="docutils literal notranslate"><span class="pre">across</span></code>
+(<code class="docutils literal notranslate"><span class="pre">null</span></code>: it does not), down by <code class="docutils literal notranslate"><span class="pre">dy</span></code> at the start (its start’s ordinate
+less its own), and whether it <code class="docutils literal notranslate"><span class="pre">enters</span></code>, blending in.</p>
+<section id="id4">
+<h4>Properties<a class="headerlink" href="#id4" title="Link to this heading">#</a></h4>
+<section id="id5">
+<h5>across<a class="headerlink" href="#id5" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>across</strong>: <a class="reference internal" href="#across"><code class="docutils literal notranslate"><span class="pre">Across</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L240">arranger/src/animation/unfold.ts:240</a></p>
+</section>
+<section id="id6">
+<h5>dy<a class="headerlink" href="#id6" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>dy</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L241">arranger/src/animation/unfold.ts:241</a></p>
+</section>
+<section id="enters">
+<h5>enters<a class="headerlink" href="#enters" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>enters</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L242">arranger/src/animation/unfold.ts:242</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="placed">
+<h3>Placed<a class="headerlink" href="#placed" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L266">arranger/src/animation/unfold.ts:266</a></p>
+<p>Where an element lies at a progress, as the map <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">↦</span> <span class="pre">sx</span> <span class="pre">·</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">dx</span></code>,
+<code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">↦</span> <span class="pre">y</span> <span class="pre">+</span> <span class="pre">dy</span></code> and its opacity times its own: the identity with opacity 1
+at rest.</p>
+<section id="id7">
+<h4>Properties<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>
+<section id="dx">
+<h5>dx<a class="headerlink" href="#dx" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>dx</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L268">arranger/src/animation/unfold.ts:268</a></p>
+</section>
+<section id="id8">
+<h5>dy<a class="headerlink" href="#id8" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>dy</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L269">arranger/src/animation/unfold.ts:269</a></p>
+</section>
+<section id="id9">
+<h5>opacity<a class="headerlink" href="#id9" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>opacity</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L270">arranger/src/animation/unfold.ts:270</a></p>
+</section>
+<section id="sx">
+<h5>sx<a class="headerlink" href="#sx" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>sx</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L267">arranger/src/animation/unfold.ts:267</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="rect">
+<h3>Rect<a class="headerlink" href="#rect" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L29">arranger/src/animation/unfold.ts:29</a></p>
+<p>A rectangle in drawing units.</p>
+<section id="id10">
+<h4>Properties<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
+<section id="height">
+<h5>height<a class="headerlink" href="#height" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>height</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L33">arranger/src/animation/unfold.ts:33</a></p>
+</section>
+<section id="width">
+<h5>width<a class="headerlink" href="#width" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>width</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L32">arranger/src/animation/unfold.ts:32</a></p>
+</section>
+<section id="id11">
+<h5>x<a class="headerlink" href="#id11" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>x</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L30">arranger/src/animation/unfold.ts:30</a></p>
+</section>
+<section id="y">
+<h5>y<a class="headerlink" href="#y" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>y</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L31">arranger/src/animation/unfold.ts:31</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="row">
+<h3>Row<a class="headerlink" href="#row" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L23">arranger/src/animation/unfold.ts:23</a></p>
+<p>A row of a drawing: what pairs it with a row of another drawing, and the ordinate of its line.</p>
+<section id="id12">
+<h4>Properties<a class="headerlink" href="#id12" title="Link to this heading">#</a></h4>
+<section id="key">
+<h5>key<a class="headerlink" href="#key" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L24">arranger/src/animation/unfold.ts:24</a></p>
+</section>
+<section id="id13">
+<h5>y<a class="headerlink" href="#id13" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>y</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L25">arranger/src/animation/unfold.ts:25</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="rowmotion">
+<h3>RowMotion<a class="headerlink" href="#rowmotion" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L41">arranger/src/animation/unfold.ts:41</a></p>
+<p>How a row of the end drawing moves: <code class="docutils literal notranslate"><span class="pre">shift</span></code> the vertical distance from
+its place at rest to where the motion starts it (the paired row’s
+ordinate less its own), <code class="docutils literal notranslate"><span class="pre">enters</span></code> whether it has no pair and so blends in.</p>
+<section id="id14">
+<h4>Properties<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
+<section id="id15">
+<h5>enters<a class="headerlink" href="#id15" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>enters</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L43">arranger/src/animation/unfold.ts:43</a></p>
+</section>
+<section id="shift">
+<h5>shift<a class="headerlink" href="#shift" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>shift</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L42">arranger/src/animation/unfold.ts:42</a></p>
+</section>
+</section>
+</section>
+</section>
+<section id="variables">
+<h2>Variables<a class="headerlink" href="#variables" title="Link to this heading">#</a></h2>
+<section id="at-rest">
+<h3>AT_REST<a class="headerlink" href="#at-rest" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>AT_REST</strong>: <a class="reference internal" href="#placed"><code class="docutils literal notranslate"><span class="pre">Placed</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L274">arranger/src/animation/unfold.ts:274</a></p>
+<p>Where an element lies at rest.</p>
+</section>
+<hr class="docutils" />
+<section id="unfold-duration">
+<h3>UNFOLD_DURATION<a class="headerlink" href="#unfold-duration" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>UNFOLD_DURATION</strong>: <code class="docutils literal notranslate"><span class="pre">400</span></code> = <code class="docutils literal notranslate"><span class="pre">400</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L53">arranger/src/animation/unfold.ts:53</a></p>
+<p>The time a whole motion takes, from 0 to 1 or back, in milliseconds.</p>
+</section>
+<hr class="docutils" />
+<section id="unfold-easing">
+<h3>UNFOLD_EASING<a class="headerlink" href="#unfold-easing" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>UNFOLD_EASING</strong>: (<code class="docutils literal notranslate"><span class="pre">t</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">number</span></code> = <code class="docutils literal notranslate"><span class="pre">cubicInOut</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L56">arranger/src/animation/unfold.ts:56</a></p>
+<p>The easing of the progress: slow at both ends, so the rows leave and settle softly.</p>
+<section id="parameters">
+<h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
+<section id="t">
+<h5>t<a class="headerlink" href="#t" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="returns">
+<h4>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<section id="abscissaat">
+<h3>abscissaAt()<a class="headerlink" href="#abscissaat" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>abscissaAt</strong>(<code class="docutils literal notranslate"><span class="pre">knots</span></code>, <code class="docutils literal notranslate"><span class="pre">at</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L178">arranger/src/animation/unfold.ts:178</a></p>
+<p>The abscissa drawing the position <code class="docutils literal notranslate"><span class="pre">at</span></code> among <code class="docutils literal notranslate"><span class="pre">knots</span></code> (sorted by <code class="docutils literal notranslate"><span class="pre">x</span></code>, so by
+<code class="docutils literal notranslate"><span class="pre">at</span></code> too): linear between the two knots around it, a knot’s own abscissa
+exactly at its position (but a knot <code class="docutils literal notranslate"><span class="pre">across</span></code> a seam’s), the first or the
+last knot’s beyond them (a position the knots do not reach is drawn at
+their nearer end); <code class="docutils literal notranslate"><span class="pre">null</span></code> without knots.</p>
+<section id="id16">
+<h4>Parameters<a class="headerlink" href="#id16" title="Link to this heading">#</a></h4>
+<section id="knots">
+<h5>knots<a class="headerlink" href="#knots" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="#knot"><code class="docutils literal notranslate"><span class="pre">Knot</span></code></a>[]</p>
+</section>
+<section id="id17">
+<h5>at<a class="headerlink" href="#id17" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id18">
+<h4>Returns<a class="headerlink" href="#id18" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="composed">
+<h3>composed()<a class="headerlink" href="#composed" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>composed</strong>(<code class="docutils literal notranslate"><span class="pre">outer</span></code>, <code class="docutils literal notranslate"><span class="pre">inner</span></code>): <a class="reference internal" href="#placed"><code class="docutils literal notranslate"><span class="pre">Placed</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L299">arranger/src/animation/unfold.ts:299</a></p>
+<p><code class="docutils literal notranslate"><span class="pre">inner</span></code>, then <code class="docutils literal notranslate"><span class="pre">outer</span></code>: the map of both, the opacities multiplied.</p>
+<section id="id19">
+<h4>Parameters<a class="headerlink" href="#id19" title="Link to this heading">#</a></h4>
+<section id="outer">
+<h5>outer<a class="headerlink" href="#outer" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#placed"><code class="docutils literal notranslate"><span class="pre">Placed</span></code></a></p>
+</section>
+<section id="inner">
+<h5>inner<a class="headerlink" href="#inner" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#placed"><code class="docutils literal notranslate"><span class="pre">Placed</span></code></a></p>
+</section>
+</section>
+<section id="id20">
+<h4>Returns<a class="headerlink" href="#id20" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#placed"><code class="docutils literal notranslate"><span class="pre">Placed</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="durationof">
+<h3>durationOf()<a class="headerlink" href="#durationof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>durationOf</strong>(<code class="docutils literal notranslate"><span class="pre">from</span></code>, <code class="docutils literal notranslate"><span class="pre">to</span></code>, <code class="docutils literal notranslate"><span class="pre">reduced</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L128">arranger/src/animation/unfold.ts:128</a></p>
+<p>The milliseconds a progress takes from <code class="docutils literal notranslate"><span class="pre">from</span></code> to <code class="docutils literal notranslate"><span class="pre">to</span></code>: the part of
+<code class="docutils literal notranslate"><span class="pre">UNFOLD_DURATION</span></code> the distance is, so a motion reversed half-way takes
+half the time back; 0 under reduced motion, a plain switch.</p>
+<section id="id21">
+<h4>Parameters<a class="headerlink" href="#id21" title="Link to this heading">#</a></h4>
+<section id="from">
+<h5>from<a class="headerlink" href="#from" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="to">
+<h5>to<a class="headerlink" href="#to" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="reduced">
+<h5>reduced<a class="headerlink" href="#reduced" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<section id="id22">
+<h4>Returns<a class="headerlink" href="#id22" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="frameat">
+<h3>frameAt()<a class="headerlink" href="#frameat" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>frameAt</strong>(<code class="docutils literal notranslate"><span class="pre">motion</span></code>, <code class="docutils literal notranslate"><span class="pre">t</span></code>): <a class="reference internal" href="#frame"><code class="docutils literal notranslate"><span class="pre">Frame</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L107">arranger/src/animation/unfold.ts:107</a></p>
+<p>Where an element moving by <code class="docutils literal notranslate"><span class="pre">motion</span></code> lies at progress <code class="docutils literal notranslate"><span class="pre">t</span></code>: shifted by
+<code class="docutils literal notranslate"><span class="pre">shift</span> <span class="pre">×</span> <span class="pre">(1</span> <span class="pre">−</span> <span class="pre">t)</span></code>, opaque when its row is paired and at <code class="docutils literal notranslate"><span class="pre">t</span></code> when it
+enters; an element of no row (<code class="docutils literal notranslate"><span class="pre">null</span></code>) does not move and blends in.</p>
+<section id="id23">
+<h4>Parameters<a class="headerlink" href="#id23" title="Link to this heading">#</a></h4>
+<section id="id24">
+<h5>motion<a class="headerlink" href="#id24" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#rowmotion"><code class="docutils literal notranslate"><span class="pre">RowMotion</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+<section id="id25">
+<h5>t<a class="headerlink" href="#id25" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id26">
+<h4>Returns<a class="headerlink" href="#id26" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#frame"><code class="docutils literal notranslate"><span class="pre">Frame</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="frameplaced">
+<h3>framePlaced()<a class="headerlink" href="#frameplaced" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>framePlaced</strong>(<code class="docutils literal notranslate"><span class="pre">__namedParameters</span></code>): <a class="reference internal" href="#placed"><code class="docutils literal notranslate"><span class="pre">Placed</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L294">arranger/src/animation/unfold.ts:294</a></p>
+<p>A raise’s frame (<code class="docutils literal notranslate"><span class="pre">frameAt</span></code>) as the map <code class="docutils literal notranslate"><span class="pre">placedAt</span></code> gives.</p>
+<section id="id27">
+<h4>Parameters<a class="headerlink" href="#id27" title="Link to this heading">#</a></h4>
+<section id="namedparameters">
+<h5>__namedParameters<a class="headerlink" href="#namedparameters" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#frame"><code class="docutils literal notranslate"><span class="pre">Frame</span></code></a></p>
+</section>
+</section>
+<section id="id28">
+<h4>Returns<a class="headerlink" href="#id28" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#placed"><code class="docutils literal notranslate"><span class="pre">Placed</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="pairrows">
+<h3>pairRows()<a class="headerlink" href="#pairrows" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>pairRows</strong>(<code class="docutils literal notranslate"><span class="pre">from</span></code>, <code class="docutils literal notranslate"><span class="pre">to</span></code>): <code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, <a class="reference internal" href="#rowmotion"><code class="docutils literal notranslate"><span class="pre">RowMotion</span></code></a>&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L68">arranger/src/animation/unfold.ts:68</a></p>
+<p>The motion of every row of <code class="docutils literal notranslate"><span class="pre">to</span></code>, the end drawing, keyed by its row’s key,
+against <code class="docutils literal notranslate"><span class="pre">from</span></code>, the drawing the motion starts from. A row whose key
+<code class="docutils literal notranslate"><span class="pre">from</span></code> holds is paired with the first such row of <code class="docutils literal notranslate"><span class="pre">from</span></code> and shifted by
+its ordinate less its own. A row <code class="docutils literal notranslate"><span class="pre">from</span></code> lacks enters, shifted as the
+paired rows around it: by the paired rows’ ordinates in <code class="docutils literal notranslate"><span class="pre">to</span></code>, the shift
+interpolated linearly between the nearest paired row above it and the
+nearest below, the nearest one’s beyond the first or the last, 0 where no
+row is paired. A key repeated in <code class="docutils literal notranslate"><span class="pre">to</span></code> keeps its first row.</p>
+<section id="id29">
+<h4>Parameters<a class="headerlink" href="#id29" title="Link to this heading">#</a></h4>
+<section id="id30">
+<h5>from<a class="headerlink" href="#id30" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="#row"><code class="docutils literal notranslate"><span class="pre">Row</span></code></a>[]</p>
+</section>
+<section id="id31">
+<h5>to<a class="headerlink" href="#id31" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="#row"><code class="docutils literal notranslate"><span class="pre">Row</span></code></a>[]</p>
+</section>
+</section>
+<section id="id32">
+<h4>Returns<a class="headerlink" href="#id32" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, <a class="reference internal" href="#rowmotion"><code class="docutils literal notranslate"><span class="pre">RowMotion</span></code></a>&gt;</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="placedat">
+<h3>placedAt()<a class="headerlink" href="#placedat" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>placedAt</strong>(<code class="docutils literal notranslate"><span class="pre">motion</span></code>, <code class="docutils literal notranslate"><span class="pre">t</span></code>): <a class="reference internal" href="#placed"><code class="docutils literal notranslate"><span class="pre">Placed</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L282">arranger/src/animation/unfold.ts:282</a></p>
+<p>Where an element moving by <code class="docutils literal notranslate"><span class="pre">motion</span></code> lies at progress <code class="docutils literal notranslate"><span class="pre">t</span></code>: its extent
+<code class="docutils literal notranslate"><span class="pre">spanAt</span></code> (stretched from its start’s to its own, moved without
+stretching where it has no width), shifted down by <code class="docutils literal notranslate"><span class="pre">dy</span> <span class="pre">×</span> <span class="pre">(1</span> <span class="pre">−</span> <span class="pre">t)</span></code>, at
+opacity <code class="docutils literal notranslate"><span class="pre">t</span></code> when it enters and 1 otherwise; exactly <code class="docutils literal notranslate"><span class="pre">AT_REST</span></code> at 1.</p>
+<section id="id33">
+<h4>Parameters<a class="headerlink" href="#id33" title="Link to this heading">#</a></h4>
+<section id="id34">
+<h5>motion<a class="headerlink" href="#id34" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#motion"><code class="docutils literal notranslate"><span class="pre">Motion</span></code></a></p>
+</section>
+<section id="id35">
+<h5>t<a class="headerlink" href="#id35" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id36">
+<h4>Returns<a class="headerlink" href="#id36" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#placed"><code class="docutils literal notranslate"><span class="pre">Placed</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="positionat">
+<h3>positionAt()<a class="headerlink" href="#positionat" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>positionAt</strong>(<code class="docutils literal notranslate"><span class="pre">knots</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L154">arranger/src/animation/unfold.ts:154</a></p>
+<p>The position the abscissa <code class="docutils literal notranslate"><span class="pre">x</span></code> draws among <code class="docutils literal notranslate"><span class="pre">knots</span></code> (sorted by <code class="docutils literal notranslate"><span class="pre">x</span></code>): linear
+between the two knots around it, a knot’s own position exactly at it,
+the first or the last knot’s beyond them; <code class="docutils literal notranslate"><span class="pre">null</span></code> without knots.</p>
+<section id="id37">
+<h4>Parameters<a class="headerlink" href="#id37" title="Link to this heading">#</a></h4>
+<section id="id38">
+<h5>knots<a class="headerlink" href="#id38" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="#knot"><code class="docutils literal notranslate"><span class="pre">Knot</span></code></a>[]</p>
+</section>
+<section id="id39">
+<h5>x<a class="headerlink" href="#id39" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id40">
+<h4>Returns<a class="headerlink" href="#id40" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="rectat">
+<h3>rectAt()<a class="headerlink" href="#rectat" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>rectAt</strong>(<code class="docutils literal notranslate"><span class="pre">from</span></code>, <code class="docutils literal notranslate"><span class="pre">to</span></code>, <code class="docutils literal notranslate"><span class="pre">t</span></code>): <a class="reference internal" href="#rect"><code class="docutils literal notranslate"><span class="pre">Rect</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L113">arranger/src/animation/unfold.ts:113</a></p>
+<p>The rectangle between <code class="docutils literal notranslate"><span class="pre">from</span></code> (at <code class="docutils literal notranslate"><span class="pre">t</span></code> = 0) and <code class="docutils literal notranslate"><span class="pre">to</span></code> (at <code class="docutils literal notranslate"><span class="pre">t</span></code> = 1), each edge linearly.</p>
+<section id="id41">
+<h4>Parameters<a class="headerlink" href="#id41" title="Link to this heading">#</a></h4>
+<section id="id42">
+<h5>from<a class="headerlink" href="#id42" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#rect"><code class="docutils literal notranslate"><span class="pre">Rect</span></code></a></p>
+</section>
+<section id="id43">
+<h5>to<a class="headerlink" href="#id43" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#rect"><code class="docutils literal notranslate"><span class="pre">Rect</span></code></a></p>
+</section>
+<section id="id44">
+<h5>t<a class="headerlink" href="#id44" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id45">
+<h4>Returns<a class="headerlink" href="#id45" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#rect"><code class="docutils literal notranslate"><span class="pre">Rect</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="spanat">
+<h3>spanAt()<a class="headerlink" href="#spanat" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>spanAt</strong>(<code class="docutils literal notranslate"><span class="pre">across</span></code>, <code class="docutils literal notranslate"><span class="pre">t</span></code>): <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L249">arranger/src/animation/unfold.ts:249</a></p>
+<p>An element’s extent at a progress: each end linearly from where the
+motion starts it to its own, exactly its start at 0 and its own at 1.</p>
+<section id="id46">
+<h4>Parameters<a class="headerlink" href="#id46" title="Link to this heading">#</a></h4>
+<section id="id47">
+<h5>across<a class="headerlink" href="#id47" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#across"><code class="docutils literal notranslate"><span class="pre">Across</span></code></a></p>
+</section>
+<section id="id48">
+<h5>t<a class="headerlink" href="#id48" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id49">
+<h4>Returns<a class="headerlink" href="#id49" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">object</span></code></p>
+<section id="id50">
+<h5>left<a class="headerlink" href="#id50" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>left</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+</section>
+<section id="id51">
+<h5>right<a class="headerlink" href="#id51" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>right</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="startof">
+<h3>startOf()<a class="headerlink" href="#startof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>startOf</strong>(<code class="docutils literal notranslate"><span class="pre">from</span></code>, <code class="docutils literal notranslate"><span class="pre">to</span></code>, <code class="docutils literal notranslate"><span class="pre">offset</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/unfold.ts#L205">arranger/src/animation/unfold.ts:205</a></p>
+<p>Where the motion starts the abscissa <code class="docutils literal notranslate"><span class="pre">x</span></code> of the end drawing, whose card
+draws through <code class="docutils literal notranslate"><span class="pre">to</span></code>: at the abscissa the start drawing’s card draws the
+same position through <code class="docutils literal notranslate"><span class="pre">from</span></code>, plus <code class="docutils literal notranslate"><span class="pre">offset</span></code> (the move of the place origin
+between the two drawings, so both are read on the canvas); <code class="docutils literal notranslate"><span class="pre">x</span></code> itself
+moved by <code class="docutils literal notranslate"><span class="pre">offset</span></code> where either drawing has no knots. An abscissa beyond
+<code class="docutils literal notranslate"><span class="pre">to</span></code>’s first or last knot starts as far beyond that knot’s start, so a
+card’s names and padding travel with its line’s ends.</p>
+<section id="id52">
+<h4>Parameters<a class="headerlink" href="#id52" title="Link to this heading">#</a></h4>
+<section id="id53">
+<h5>from<a class="headerlink" href="#id53" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="#knot"><code class="docutils literal notranslate"><span class="pre">Knot</span></code></a>[]</p>
+</section>
+<section id="id54">
+<h5>to<a class="headerlink" href="#id54" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="#knot"><code class="docutils literal notranslate"><span class="pre">Knot</span></code></a>[]</p>
+</section>
+<section id="offset">
+<h5>offset<a class="headerlink" href="#offset" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id55">
+<h5>x<a class="headerlink" href="#id55" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id56">
+<h4>Returns<a class="headerlink" href="#id56" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="raise.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">animation/raise</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="unfolding.svelte.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">animation/unfolding.svelte</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#across">Across</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#fromleft">fromLeft</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#fromright">fromRight</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#left">left</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#right">right</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#frame">Frame</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#dy">dy</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#opacity">opacity</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#knot">Knot</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">across?</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#at">at</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#x">x</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#motion">Motion</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">across</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">dy</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#enters">enters</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placed">Placed</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#dx">dx</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">dy</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">opacity</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#sx">sx</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#rect">Rect</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#height">height</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#width">width</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">x</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#y">y</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#row">Row</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#key">key</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">y</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#rowmotion">RowMotion</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">enters</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#shift">shift</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#variables">Variables</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#at-rest">AT_REST</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#unfold-duration">UNFOLD_DURATION</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#unfold-easing">UNFOLD_EASING</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#t">t</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#abscissaat">abscissaAt()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#knots">knots</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">at</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#composed">composed()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#outer">outer</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#inner">inner</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#durationof">durationOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#from">from</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#to">to</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#reduced">reduced</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#frameat">frameAt()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">motion</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">t</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id26">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#frameplaced">framePlaced()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id27">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#namedparameters">__namedParameters</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pairrows">pairRows()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id29">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id30">from</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id31">to</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placedat">placedAt()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id33">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id34">motion</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id35">t</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id36">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#positionat">positionAt()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id37">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id38">knots</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id39">x</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id40">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#rectat">rectAt()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id41">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id42">from</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id43">to</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id44">t</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id45">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#spanat">spanAt()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id46">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id47">across</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id48">t</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id49">Returns</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id50">left</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id51">right</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#startof">startOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id52">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id53">from</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id54">to</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#offset">offset</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id55">x</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id56">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

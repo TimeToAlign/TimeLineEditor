@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>items &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api-ts/@timetoalign/tilie-arranger/items';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="keys" href="keys.html" />
+    <link rel="prev" title="index" href="index-1.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../tilie-core/index.html">@timetoalign/tilie-core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-layout/index.html">@timetoalign/tilie-layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-writers/index.html">@timetoalign/tilie-writers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-client/index.html">@timetoalign/tilie-client</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">@timetoalign/tilie-arranger</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="affected.html">affected</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/cardMotions.svelte.html">animation/cardMotions.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/elide.html">animation/elide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/progress.svelte.html">animation/progress.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/raise.html">animation/raise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/unfold.html">animation/unfold</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/unfolding.svelte.html">animation/unfolding.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arrangeMenu.html">arrangeMenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bands.html">bands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="blockDrag.html">blockDrag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="boxes.html">boxes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cardAxis.html">cardAxis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html">commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="containers.html">containers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coordinates.html">coordinates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="focus.html">focus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gaps.html">gaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gesture.html">gesture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/arranged.html">gestures/arranged</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/band.html">gestures/band</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/canvas.html">gestures/canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/gap.html">gestures/gap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/wheel.html">gestures/wheel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index-1.html">index</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="keys.html">keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="liveStore.svelte.html">liveStore.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="marquee.html">marquee</a></li>
+<li class="toctree-l2"><a class="reference internal" href="matches.html">matches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="motion.html">motion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="node.html">node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nodeActions.html">nodeActions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nodes.svelte.html">nodes.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="numbers.html">numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="onScreen.html">onScreen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pane.html">pane</a></li>
+<li class="toctree-l2"><a class="reference internal" href="picking.html">picking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="project.html">project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reorder.html">reorder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="resize.html">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="roving.html">roving</a></li>
+<li class="toctree-l2"><a class="reference internal" href="selection.html">selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="selectionRules.html">selectionRules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="snap.html">snap</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-editor/index.html">@timetoalign/tilie-editor</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../typescript.html" class="nav-link">TypeScript API</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">&#64;timetoalign/tilie-arranger</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">items</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="items">
+<h1>items<a class="headerlink" href="#items" title="Link to this heading">#</a></h1>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
+<section id="stretch">
+<h3>Stretch<a class="headerlink" href="#stretch" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L353">arranger/src/items.ts:353</a></p>
+<p>A stretch of one frame or card of a block on one axis, as a function of
+the factor’s value (<code class="docutils literal notranslate"><span class="pre">length</span></code> along time, <code class="docutils literal notranslate"><span class="pre">spacing</span></code> or <code class="docutils literal notranslate"><span class="pre">margin</span></code>
+vertically), built from one drawing of the block before the stretch and
+memoized per value, so a search and the changes it settles on draw each
+value once.</p>
+<p>At a value, the factor is stated on its key (a held card stretches its
+group’s <code class="docutils literal notranslate"><span class="pre">length</span></code> and its own <code class="docutils literal notranslate"><span class="pre">spacing</span></code> or <code class="docutils literal notranslate"><span class="pre">margin</span></code>, <code class="docutils literal notranslate"><span class="pre">resizingOf</span></code>), and every stated
+size of the boxes stretched follows its own content by <code class="docutils literal notranslate"><span class="pre">kept</span></code>, keeping its
+proportion to it: along time the widths of the item and of the cards its
+frame holds, so the members’ lines keep one length and every margin
+stretches with them; vertically the heights of a frame and its cards, or
+of a held card and its frame; the cards first, since the item’s content
+holds them. Where the level pins the frame’s width
+(<code class="docutils literal notranslate"><span class="pre">frameWidthPinned</span></code>), a stretch along time keeps the frame at its drawn
+width while the content, the cards’ widths following, fits in it (its
+<code class="docutils literal notranslate"><span class="pre">width</span></code> stated at that width), and lets the frame follow the content once
+the content is wider (its <code class="docutils literal notranslate"><span class="pre">width</span></code> unstated), so a stretch shrinks the
+members inside the frame and grows the frame with them. Sizes are in item
+coordinates.</p>
+<section id="constructors">
+<h4>Constructors<a class="headerlink" href="#constructors" title="Link to this heading">#</a></h4>
+<section id="constructor">
+<h5>Constructor<a class="headerlink" href="#constructor" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>new Stretch</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">box</span></code>, <code class="docutils literal notranslate"><span class="pre">level</span></code>, <code class="docutils literal notranslate"><span class="pre">factor</span></code>, <code class="docutils literal notranslate"><span class="pre">metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">pane?</span></code>): <a class="reference internal" href="#stretch"><code class="docutils literal notranslate"><span class="pre">Stretch</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L376">arranger/src/items.ts:376</a></p>
+<section id="parameters">
+<h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
+</section>
+<section id="view">
+<h6>view<a class="headerlink" href="#view" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</section>
+<section id="block">
+<h6>block<a class="headerlink" href="#block" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="box">
+<h6>box<a class="headerlink" href="#box" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+<section id="level">
+<h6>level<a class="headerlink" href="#level" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="containers.html#level"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Level</span></code></span></a></p>
+</section>
+<section id="factor">
+<h6>factor<a class="headerlink" href="#factor" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">Factor</span></code></p>
+</section>
+<section id="metrics">
+<h6>metrics<a class="headerlink" href="#metrics" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">FontMetrics</span></code></p>
+</section>
+<section id="pane">
+<h6>pane?<a class="headerlink" href="#pane" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="pane.html#panesource"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PaneSource</span></code></span></a></p>
+</section>
+<section id="returns">
+<h6>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#stretch"><code class="docutils literal notranslate"><span class="pre">Stretch</span></code></a></p>
+</section>
+</section>
+</section>
+<section id="properties">
+<h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
+<section id="pinned">
+<h5>pinned<a class="headerlink" href="#pinned" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>pinned</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L357">arranger/src/items.ts:357</a></p>
+<p>The frame’s width kept along time while the content fits in it; <code class="docutils literal notranslate"><span class="pre">null</span></code> where it adapts.</p>
+</section>
+<section id="start">
+<h5>start<a class="headerlink" href="#start" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>start</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L355">arranger/src/items.ts:355</a></p>
+<p>The factor’s value before the stretch.</p>
+</section>
+</section>
+<section id="methods">
+<h4>Methods<a class="headerlink" href="#methods" title="Link to this heading">#</a></h4>
+<section id="changes">
+<h5>changes()<a class="headerlink" href="#changes" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>changes</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>): <a class="reference internal" href="#placechanges"><code class="docutils literal notranslate"><span class="pre">PlaceChanges</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L446">arranger/src/items.ts:446</a></p>
+<p>The places a Stretch to <code class="docutils literal notranslate"><span class="pre">value</span></code> writes.</p>
+<section id="id1">
+<h6>Parameters<a class="headerlink" href="#id1" title="Link to this heading">#</a></h6>
+</section>
+<section id="value">
+<h6>value<a class="headerlink" href="#value" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id2">
+<h6>Returns<a class="headerlink" href="#id2" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#placechanges"><code class="docutils literal notranslate"><span class="pre">PlaceChanges</span></code></a></p>
+</section>
+</section>
+<section id="content">
+<h5>content()<a class="headerlink" href="#content" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>content</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L436">arranger/src/items.ts:436</a></p>
+<p>The holding item’s content on the axis at <code class="docutils literal notranslate"><span class="pre">value</span></code>, its own stated size left out.</p>
+<section id="id3">
+<h6>Parameters<a class="headerlink" href="#id3" title="Link to this heading">#</a></h6>
+</section>
+<section id="id4">
+<h6>value<a class="headerlink" href="#id4" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id5">
+<h6>Returns<a class="headerlink" href="#id5" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="drawn">
+<h5>drawn()<a class="headerlink" href="#drawn" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>drawn</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L441">arranger/src/items.ts:441</a></p>
+<p>The stretched box’s drawn size on the axis at <code class="docutils literal notranslate"><span class="pre">value</span></code>.</p>
+<section id="id6">
+<h6>Parameters<a class="headerlink" href="#id6" title="Link to this heading">#</a></h6>
+</section>
+<section id="id7">
+<h6>value<a class="headerlink" href="#id7" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id8">
+<h6>Returns<a class="headerlink" href="#id8" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+</section>
+</section>
+</section>
+<section id="interfaces">
+<h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
+<section id="placedvalues">
+<h3>PlacedValues<a class="headerlink" href="#placedvalues" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L64">arranger/src/items.ts:64</a></p>
+<p>The values a gesture sets on the place under <code class="docutils literal notranslate"><span class="pre">key</span></code>.</p>
+<section id="id9">
+<h4>Properties<a class="headerlink" href="#id9" title="Link to this heading">#</a></h4>
+<section id="key">
+<h5>key<a class="headerlink" href="#key" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <a class="reference internal" href="../tilie-core/manifest/containers.html#placekey"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PlaceKey</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L65">arranger/src/items.ts:65</a></p>
+</section>
+<section id="values">
+<h5>values<a class="headerlink" href="#values" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>values</strong>: <a class="reference internal" href="#placevalues"><code class="docutils literal notranslate"><span class="pre">PlaceValues</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L66">arranger/src/items.ts:66</a></p>
+</section>
+</section>
+</section>
+</section>
+<section id="type-aliases">
+<h2>Type Aliases<a class="headerlink" href="#type-aliases" title="Link to this heading">#</a></h2>
+<section id="placechanges">
+<h3>PlaceChanges<a class="headerlink" href="#placechanges" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>PlaceChanges</strong> = <code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, <a class="reference internal" href="#placedvalues"><code class="docutils literal notranslate"><span class="pre">PlacedValues</span></code></a>&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L70">arranger/src/items.ts:70</a></p>
+<p>The places a gesture sets, each with its values, in order, by <code class="docutils literal notranslate"><span class="pre">placeKeyText</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="placevalues">
+<h3>PlaceValues<a class="headerlink" href="#placevalues" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>PlaceValues</strong> = { -readonly [member in keyof ItemPlace]?: number | null }</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L61">arranger/src/items.ts:61</a></p>
+<p>Members of a place to set: a number states the member, <code class="docutils literal notranslate"><span class="pre">null</span></code> unstates it.</p>
+</section>
+<hr class="docutils" />
+<section id="shownvalues">
+<h3>ShownValues<a class="headerlink" href="#shownvalues" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>ShownValues</strong> = <code class="docutils literal notranslate"><span class="pre">{</span> <span class="pre">readonly</span> <span class="pre">[property</span> <span class="pre">in</span> <span class="pre">PlaceProperty]?:</span> <span class="pre">number</span> <span class="pre">}</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L672">arranger/src/items.ts:672</a></p>
+<p>The value of each place member a frame or a card shows.</p>
+</section>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<section id="itemhandlesfor">
+<h3>itemHandlesFor()<a class="headerlink" href="#itemhandlesfor" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>itemHandlesFor</strong>(<code class="docutils literal notranslate"><span class="pre">mode</span></code>, <code class="docutils literal notranslate"><span class="pre">box</span></code>, <code class="docutils literal notranslate"><span class="pre">level</span></code>): readonly <a class="reference internal" href="resize.html#handle"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Handle</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L131">arranger/src/items.ts:131</a></p>
+<p>The handles <code class="docutils literal notranslate"><span class="pre">box</span></code>, a frame or a card, offers in <code class="docutils literal notranslate"><span class="pre">mode</span></code> at <code class="docutils literal notranslate"><span class="pre">level</span></code>. A frame
+or a block-held card offers a block’s: the corners to scale, all eight to
+size or stretch its box; where the level pins the frame’s width
+(<code class="docutils literal notranslate"><span class="pre">frameWidthPinned</span></code>), its stretch leaves out the left edge and the left
+corners. A held card never moves its top left corner, which its frame
+decides: it scales from its bottom right corner, and sizes and stretches
+its box from its right and bottom edges.</p>
+<section id="id10">
+<h4>Parameters<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
+<section id="mode">
+<h5>mode<a class="headerlink" href="#mode" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="resize.html#resizemode"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ResizeMode</span></code></span></a></p>
+</section>
+<section id="id11">
+<h5>box<a class="headerlink" href="#id11" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+<section id="id12">
+<h5>level<a class="headerlink" href="#id12" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="containers.html#level"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Level</span></code></span></a></p>
+</section>
+</section>
+<section id="id13">
+<h4>Returns<a class="headerlink" href="#id13" title="Link to this heading">#</a></h4>
+<p>readonly <a class="reference internal" href="resize.html#handle"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Handle</span></code></span></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="itemmovecommand">
+<h3>itemMoveCommand()<a class="headerlink" href="#itemmovecommand" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>itemMoveCommand</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">key</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code>, <code class="docutils literal notranslate"><span class="pre">metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">together?</span></code>, <code class="docutils literal notranslate"><span class="pre">pane?</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L263">arranger/src/items.ts:263</a></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">set</span></code> that moves the item <code class="docutils literal notranslate"><span class="pre">key</span></code> of block <code class="docutils literal notranslate"><span class="pre">block</span></code> to the place
+position <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code> (in the drawing’s units, measured from the place origin,
+quantized to <code class="docutils literal notranslate"><span class="pre">GRID_FREE</span></code>) and every item of <code class="docutils literal notranslate"><span class="pre">together</span></code> by the same travel,
+so that each keeps its offset to <code class="docutils literal notranslate"><span class="pre">key</span></code>, stating the drawn position of
+every other item that states none (the bundle editor’s rule,
+<code class="docutils literal notranslate"><span class="pre">placeCommand</span></code>). <code class="docutils literal notranslate"><span class="pre">null</span></code> when the item would stay where it is drawn.</p>
+<section id="id14">
+<h4>Parameters<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
+<section id="id15">
+<h5>view<a class="headerlink" href="#id15" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</section>
+<section id="id16">
+<h5>block<a class="headerlink" href="#id16" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id17">
+<h5>key<a class="headerlink" href="#id17" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/containers.html#placekey"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PlaceKey</span></code></span></a></p>
+</section>
+<section id="x">
+<h5>x<a class="headerlink" href="#x" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="y">
+<h5>y<a class="headerlink" href="#y" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id18">
+<h5>metrics<a class="headerlink" href="#id18" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">FontMetrics</span></code></p>
+</section>
+<section id="together">
+<h5>together?<a class="headerlink" href="#together" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="../tilie-core/manifest/containers.html#placekey"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PlaceKey</span></code></span></a>[] = <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+</section>
+<section id="id19">
+<h5>pane?<a class="headerlink" href="#id19" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="pane.html#panesource"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PaneSource</span></code></span></a></p>
+</section>
+</section>
+<section id="id20">
+<h4>Returns<a class="headerlink" href="#id20" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="itemresizecommand">
+<h3>itemResizeCommand()<a class="headerlink" href="#itemresizecommand" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>itemResizeCommand</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">places</span></code>, <code class="docutils literal notranslate"><span class="pre">level</span></code>, <code class="docutils literal notranslate"><span class="pre">metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">pane?</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L292">arranger/src/items.ts:292</a></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">set</span></code> storing a resize’s places (<code class="docutils literal notranslate"><span class="pre">itemResizeValues</span></code>), made at
+<code class="docutils literal notranslate"><span class="pre">level</span></code>, stating the drawn position of every other item that states none
+where the level’s items lie freely (<code class="docutils literal notranslate"><span class="pre">itemsFree</span></code>, <code class="docutils literal notranslate"><span class="pre">placeCommand</span></code>). <code class="docutils literal notranslate"><span class="pre">null</span></code>
+when every value is the one its place states already.</p>
+<section id="id21">
+<h4>Parameters<a class="headerlink" href="#id21" title="Link to this heading">#</a></h4>
+<section id="id22">
+<h5>view<a class="headerlink" href="#id22" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</section>
+<section id="id23">
+<h5>block<a class="headerlink" href="#id23" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="places">
+<h5>places<a class="headerlink" href="#places" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#placechanges"><code class="docutils literal notranslate"><span class="pre">PlaceChanges</span></code></a></p>
+</section>
+<section id="id24">
+<h5>level<a class="headerlink" href="#id24" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="containers.html#level"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Level</span></code></span></a></p>
+</section>
+<section id="id25">
+<h5>metrics<a class="headerlink" href="#id25" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">FontMetrics</span></code></p>
+</section>
+<section id="id26">
+<h5>pane?<a class="headerlink" href="#id26" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="pane.html#panesource"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PaneSource</span></code></span></a></p>
+</section>
+</section>
+<section id="id27">
+<h4>Returns<a class="headerlink" href="#id27" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="itemresizevalues">
+<h3>itemResizeValues()<a class="headerlink" href="#itemresizevalues" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>itemResizeValues</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">box</span></code>, <code class="docutils literal notranslate"><span class="pre">level</span></code>, <code class="docutils literal notranslate"><span class="pre">mode</span></code>, <code class="docutils literal notranslate"><span class="pre">handle</span></code>, <code class="docutils literal notranslate"><span class="pre">delta</span></code>, <code class="docutils literal notranslate"><span class="pre">metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">pane?</span></code>): <a class="reference internal" href="#placechanges"><code class="docutils literal notranslate"><span class="pre">PlaceChanges</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L535">arranger/src/items.ts:535</a></p>
+<p>The places that resize <code class="docutils literal notranslate"><span class="pre">box</span></code>, a frame or a card of block <code class="docutils literal notranslate"><span class="pre">block</span></code>, by
+dragging <code class="docutils literal notranslate"><span class="pre">handle</span></code> by <code class="docutils literal notranslate"><span class="pre">delta</span></code> (canvas units, as for a block) at <code class="docutils literal notranslate"><span class="pre">level</span></code>:
+each key of <code class="docutils literal notranslate"><span class="pre">places</span></code> with its values, in order. Every position is in the
+drawing’s units, measured from the place origin; every size in the item’s
+own coordinates, before its scale, so the pointer’s travel is divided by
+the block’s scale and the item’s; every number is quantized to
+<code class="docutils literal notranslate"><span class="pre">GRID_FREE</span></code>. The dragged edge or corner ends under the pointer and the
+opposite one stays exactly where it is drawn: for a left or top handle the
+stated <code class="docutils literal notranslate"><span class="pre">x</span></code> or <code class="docutils literal notranslate"><span class="pre">y</span></code> is the opposite edge less the achieved drawn size.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">scale</span></code> (corners only) sets the item’s <code class="docutils literal notranslate"><span class="pre">scale</span></code> to its scale times the
+larger of the two axis ratios of the dragged corner’s distance from the
+fixed corner after and before the drag, floored at <code class="docutils literal notranslate"><span class="pre">MIN_SCALE</span></code>; scale 1,
+the default, unstates it. On a held card the fixed corner is its frame’s
+top left and the dragged corner the card’s bottom right, and the scale
+is the group’s.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">box</span></code> sets <code class="docutils literal notranslate"><span class="pre">width</span></code> and <code class="docutils literal notranslate"><span class="pre">height</span></code>; a request at or below the box’s own
+content stores <code class="docutils literal notranslate"><span class="pre">null</span></code>. On a held card they are the card’s own.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stretch</span></code> sets <code class="docutils literal notranslate"><span class="pre">length</span></code> from a left or right handle and, from a top or
+bottom one, <code class="docutils literal notranslate"><span class="pre">spacing</span></code>, or <code class="docutils literal notranslate"><span class="pre">margin</span></code> for a container with exactly one
+content (<code class="docutils literal notranslate"><span class="pre">verticalStretchOf</span></code>), both from a corner: the largest value whose box
+does not pass the pointer, floored at <code class="docutils literal notranslate"><span class="pre">MIN_LENGTH</span></code> and at 0, the places
+being what a <code class="docutils literal notranslate"><span class="pre">Stretch</span></code> to it writes. Vertically a frame’s <code class="docutils literal notranslate"><span class="pre">spacing</span></code> is
+the gap between its cards and a box-held card’s the gap between its
+rows and bands, a margin the empty space above its one content and
+below it, and a value the search leaves where it was drawn is not
+stated; a held card stretches its group along time, the card’s own box
+following the pointer, and only its own card’s <code class="docutils literal notranslate"><span class="pre">spacing</span></code> or <code class="docutils literal notranslate"><span class="pre">margin</span></code>
+vertically. Where the frame keeps its
+width (<code class="docutils literal notranslate"><span class="pre">Stretch</span></code>), a stretch along time makes the frame’s content
+follow the pointer, whichever box is dragged; vertically the frame
+adapts.</p></li>
+</ul>
+<section id="id28">
+<h4>Parameters<a class="headerlink" href="#id28" title="Link to this heading">#</a></h4>
+<section id="id29">
+<h5>view<a class="headerlink" href="#id29" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</section>
+<section id="id30">
+<h5>block<a class="headerlink" href="#id30" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id31">
+<h5>box<a class="headerlink" href="#id31" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+<section id="id32">
+<h5>level<a class="headerlink" href="#id32" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="containers.html#level"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Level</span></code></span></a></p>
+</section>
+<section id="id33">
+<h5>mode<a class="headerlink" href="#id33" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="resize.html#resizemode"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ResizeMode</span></code></span></a></p>
+</section>
+<section id="handle">
+<h5>handle<a class="headerlink" href="#handle" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="resize.html#handle"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Handle</span></code></span></a></p>
+</section>
+<section id="delta">
+<h5>delta<a class="headerlink" href="#delta" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="resize.html#delta"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Delta</span></code></span></a></p>
+</section>
+<section id="id34">
+<h5>metrics<a class="headerlink" href="#id34" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">FontMetrics</span></code></p>
+</section>
+<section id="id35">
+<h5>pane?<a class="headerlink" href="#id35" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="pane.html#panesource"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PaneSource</span></code></span></a></p>
+</section>
+</section>
+<section id="id36">
+<h4>Returns<a class="headerlink" href="#id36" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#placechanges"><code class="docutils literal notranslate"><span class="pre">PlaceChanges</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="itemsmovedwith">
+<h3>itemsMovedWith()<a class="headerlink" href="#itemsmovedwith" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>itemsMovedWith</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">selected</span></code>, <code class="docutils literal notranslate"><span class="pre">key</span></code>): <a class="reference internal" href="../tilie-core/manifest/containers.html#placekey"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PlaceKey</span></code></span></a>[] | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L225">arranger/src/items.ts:225</a></p>
+<p>The other items of <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, the drawing of <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, that a drag of
+the item <code class="docutils literal notranslate"><span class="pre">key</span></code> moves with it: every other item in the selection
+<code class="docutils literal notranslate"><span class="pre">selected</span></code> (the block’s selected element addresses, by their keys), in
+the drawing’s order and possibly none, when <code class="docutils literal notranslate"><span class="pre">key</span></code> is in it; <code class="docutils literal notranslate"><span class="pre">null</span></code> when it
+is not. A selected frame puts in the selection only itself, a selected
+card every item drawing it (the card itself, a held card’s frame, each
+frame of a member of several groups); any other selected address puts
+there every item containing it by core’s <code class="docutils literal notranslate"><span class="pre">contains</span></code>, its key naming the
+group or the ungrouped root, wherever the address is drawn.</p>
+<section id="id37">
+<h4>Parameters<a class="headerlink" href="#id37" title="Link to this heading">#</a></h4>
+<section id="manifest">
+<h5>manifest<a class="headerlink" href="#manifest" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="drawing">
+<h5>drawing<a class="headerlink" href="#drawing" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="selected">
+<h5>selected<a class="headerlink" href="#selected" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, <a class="reference internal" href="../tilie-core/manifest/address.html#elementaddress"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElementAddress</span></code></span></a>&gt;</p>
+</section>
+<section id="id38">
+<h5>key<a class="headerlink" href="#id38" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/containers.html#placekey"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PlaceKey</span></code></span></a></p>
+</section>
+</section>
+<section id="id39">
+<h4>Returns<a class="headerlink" href="#id39" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../tilie-core/manifest/containers.html#placekey"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PlaceKey</span></code></span></a>[] | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="id40">
+<h3>placeChanges()<a class="headerlink" href="#id40" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>placeChanges</strong>(<code class="docutils literal notranslate"><span class="pre">entries</span></code>): <code class="docutils literal notranslate"><span class="pre">Map</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, <a class="reference internal" href="#placedvalues"><code class="docutils literal notranslate"><span class="pre">PlacedValues</span></code></a>&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L73">arranger/src/items.ts:73</a></p>
+<p>The place changes <code class="docutils literal notranslate"><span class="pre">entries</span></code> gives, each place once, its values merged in order.</p>
+<section id="id41">
+<h4>Parameters<a class="headerlink" href="#id41" title="Link to this heading">#</a></h4>
+<section id="entries">
+<h5>entries<a class="headerlink" href="#entries" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">Iterable</span></code>&lt;readonly [<a class="reference internal" href="../tilie-core/manifest/containers.html#placekey"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PlaceKey</span></code></span></a>, <a class="reference internal" href="#placevalues"><code class="docutils literal notranslate"><span class="pre">PlaceValues</span></code></a>]&gt;</p>
+</section>
+</section>
+<section id="id42">
+<h4>Returns<a class="headerlink" href="#id42" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">Map</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, <a class="reference internal" href="#placedvalues"><code class="docutils literal notranslate"><span class="pre">PlacedValues</span></code></a>&gt;</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="placecommand">
+<h3>placeCommand()<a class="headerlink" href="#placecommand" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>placeCommand</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">places</span></code>, <code class="docutils literal notranslate"><span class="pre">others</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L186">arranger/src/items.ts:186</a></p>
+<p>One <code class="docutils literal notranslate"><span class="pre">set</span></code> of <code class="docutils literal notranslate"><span class="pre">places</span></code>, the values of each key’s place in their order, and
+with <code class="docutils literal notranslate"><span class="pre">others</span></code>, the drawn <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">y</span></code> of every other item of <code class="docutils literal notranslate"><span class="pre">drawing</span></code> that
+does not state them, each stated once, so that no other item moves when the
+defaults would place it anew (an item below another follows its bottom
+edge unless it states its <code class="docutils literal notranslate"><span class="pre">y</span></code>). The frame holding an edited held card is
+no other item: a card’s size never moves its frame’s top left corner.</p>
+<section id="id43">
+<h4>Parameters<a class="headerlink" href="#id43" title="Link to this heading">#</a></h4>
+<section id="id44">
+<h5>block<a class="headerlink" href="#id44" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/workspace/blocks.html#block"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Block</span></code></span></a></p>
+</section>
+<section id="id45">
+<h5>drawing<a class="headerlink" href="#id45" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id46">
+<h5>places<a class="headerlink" href="#id46" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#placechanges"><code class="docutils literal notranslate"><span class="pre">PlaceChanges</span></code></a></p>
+</section>
+<section id="others">
+<h5>others<a class="headerlink" href="#others" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<section id="id47">
+<h4>Returns<a class="headerlink" href="#id47" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="placeedit">
+<h3>placeEdit()<a class="headerlink" href="#placeedit" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>placeEdit</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">selection</span></code>, <code class="docutils literal notranslate"><span class="pre">property</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">editing</span></code>, <code class="docutils literal notranslate"><span class="pre">metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">pane?</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <a class="reference internal" href="../tilie-core/errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L731">arranger/src/items.ts:731</a></p>
+<p>The one <code class="docutils literal notranslate"><span class="pre">set</span></code> the inspector dispatches for a typed or stepped property:
+<code class="docutils literal notranslate"><span class="pre">property</span></code> of every block, frame or card the selection names (core’s
+resolver, <code class="docutils literal notranslate"><span class="pre">resolveSelection</span></code> where <code class="docutils literal notranslate"><span class="pre">editing</span></code>, the innermost open editor,
+works: a part of a group or of a timeline drawn in a card names that
+frame or card; bands are left out) given <code class="docutils literal notranslate"><span class="pre">value</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">value(current)</span></code>, <code class="docutils literal notranslate"><span class="pre">current</span></code> being the element’s shown value (stated, else
+drawn). A block sets its own member; a frame or a card a member of the
+place its resizing writes (<code class="docutils literal notranslate"><span class="pre">resizingOf</span></code>: a held card’s scale and length
+are its group’s), each place once, with the first element’s value. A
+<code class="docutils literal notranslate"><span class="pre">length</span></code>, <code class="docutils literal notranslate"><span class="pre">spacing</span></code> or <code class="docutils literal notranslate"><span class="pre">margin</span></code> writes what a Stretch to it writes (<code class="docutils literal notranslate"><span class="pre">Stretch</span></code>),
+each element’s stretch starting from what the ones before it wrote; and
+where the level’s items lie freely (<code class="docutils literal notranslate"><span class="pre">itemsFree</span></code>), the same <code class="docutils literal notranslate"><span class="pre">set</span></code> states
+the drawn position of every other item that states none
+(<code class="docutils literal notranslate"><span class="pre">placeCommand</span></code>). <code class="docutils literal notranslate"><span class="pre">null</span></code> when every element stores that value already.</p>
+<p>Refused (<code class="docutils literal notranslate"><span class="pre">CommandError</span></code>): a selection naming no block, frame or card
+(<code class="docutils literal notranslate"><span class="pre">unknown_target</span></code> when nothing resolves, <code class="docutils literal notranslate"><span class="pre">wrong_target_kind</span></code> for an
+element with no geometry of its own, elements in several blocks, or
+blocks mixed with frames or cards), a position of a held card
+(<code class="docutils literal notranslate"><span class="pre">unknown_property</span></code>), and a value that is not finite or, except a
+<code class="docutils literal notranslate"><span class="pre">width</span></code> or <code class="docutils literal notranslate"><span class="pre">height</span></code>, empty (<code class="docutils literal notranslate"><span class="pre">invalid_value</span></code>).</p>
+<section id="id48">
+<h4>Parameters<a class="headerlink" href="#id48" title="Link to this heading">#</a></h4>
+<section id="id49">
+<h5>view<a class="headerlink" href="#id49" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</section>
+<section id="selection">
+<h5>selection<a class="headerlink" href="#selection" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="selection.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Selection</span></code></span></a></p>
+</section>
+<section id="property">
+<h5>property<a class="headerlink" href="#property" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">&quot;width&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;height&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;y&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;scale&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;length&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;spacing&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;margin&quot;</span></code></p>
+</section>
+<section id="id50">
+<h5>value<a class="headerlink" href="#id50" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code> | ((<code class="docutils literal notranslate"><span class="pre">current</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">number</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code>) | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+<section id="editing">
+<h5>editing<a class="headerlink" href="#editing" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="editing.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Editing</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+<section id="id51">
+<h5>metrics<a class="headerlink" href="#id51" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">FontMetrics</span></code></p>
+</section>
+<section id="id52">
+<h5>pane?<a class="headerlink" href="#id52" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="pane.html#panesource"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PaneSource</span></code></span></a></p>
+</section>
+</section>
+<section id="id53">
+<h4>Returns<a class="headerlink" href="#id53" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <a class="reference internal" href="../tilie-core/errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="id54">
+<h3>shownValues()<a class="headerlink" href="#id54" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>shownValues</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">box</span></code>): <a class="reference internal" href="#shownvalues"><code class="docutils literal notranslate"><span class="pre">ShownValues</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/items.ts#L680">arranger/src/items.ts:680</a></p>
+<p>What <code class="docutils literal notranslate"><span class="pre">box</span></code> of <code class="docutils literal notranslate"><span class="pre">drawing</span></code> shows for each of its place members: stated, else
+drawn. An item shows every member of its place; a card a frame holds its
+own spacing, margin and size, and the scale and length of its frame,
+which its group’s members share.</p>
+<section id="id55">
+<h4>Parameters<a class="headerlink" href="#id55" title="Link to this heading">#</a></h4>
+<section id="id56">
+<h5>drawing<a class="headerlink" href="#id56" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id57">
+<h5>box<a class="headerlink" href="#id57" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="boxes.html#itembox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ItemBox</span></code></span></a> | <a class="reference internal" href="boxes.html#cardbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">CardBox</span></code></span></a></p>
+</section>
+</section>
+<section id="id58">
+<h4>Returns<a class="headerlink" href="#id58" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#shownvalues"><code class="docutils literal notranslate"><span class="pre">ShownValues</span></code></a></p>
+</section>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index-1.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">index</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="keys.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">keys</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stretch">Stretch</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#constructors">Constructors</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#constructor">Constructor</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#view">view</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#block">block</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#box">box</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#level">level</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#factor">factor</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#metrics">metrics</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#pane">pane?</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pinned">pinned</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#start">start</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#methods">Methods</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#changes">changes()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#value">value</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#content">content()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">value</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#drawn">drawn()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">value</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placedvalues">PlacedValues</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#key">key</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#values">values</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#type-aliases">Type Aliases</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placechanges">PlaceChanges</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placevalues">PlaceValues</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#shownvalues">ShownValues</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#itemhandlesfor">itemHandlesFor()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mode">mode</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">box</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">level</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#itemmovecommand">itemMoveCommand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">view</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">key</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#x">x</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#y">y</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">metrics</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#together">together?</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">pane?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#itemresizecommand">itemResizeCommand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">view</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#places">places</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">level</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">metrics</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id26">pane?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id27">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#itemresizevalues">itemResizeValues()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id29">view</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id30">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id31">box</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">level</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id33">mode</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#handle">handle</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#delta">delta</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id34">metrics</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id35">pane?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id36">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#itemsmovedwith">itemsMovedWith()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id37">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#manifest">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#drawing">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#selected">selected</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id38">key</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id39">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id40">placeChanges()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id41">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#entries">entries</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id42">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placecommand">placeCommand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id43">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id44">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id45">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id46">places</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#others">others</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id47">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placeedit">placeEdit()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id48">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id49">view</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#selection">selection</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#property">property</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id50">value</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#editing">editing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id51">metrics</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id52">pane?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id53">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id54">shownValues()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id55">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id56">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id57">box</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id58">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

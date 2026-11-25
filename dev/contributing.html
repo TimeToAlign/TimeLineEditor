@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Contributing to TiLiE &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="_static/documentation_options.js?v=0926e583"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'contributing';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Building these docs" href="README.html" />
+    <link rel="prev" title="Changelog" href="changelog.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#" aria-current="page">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#" aria-current="page">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="README.html">Building these docs</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Contributing to TiLiE</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="contributing-to-tilie">
+<h1>Contributing to TiLiE<a class="headerlink" href="#contributing-to-tilie" title="Link to this heading">#</a></h1>
+<p>TiLiE is a pnpm TypeScript workspace with a Svelte 5 application and a separate Python server. The application is an early alpha that arranges, inspects, opens and saves workspaces but does not yet load sources through the server, so contributions should preserve the package boundaries and document exactly what a new behavior proves.</p>
+<section id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">#</a></h2>
+<p>Install Node.js 22.18 or newer, pnpm 12.10.1, Python 3.11 or newer, and uv.</p>
+<p>The five application packages that use the schema, <code class="docutils literal notranslate"><span class="pre">core</span></code>, <code class="docutils literal notranslate"><span class="pre">layout</span></code>, <code class="docutils literal notranslate"><span class="pre">writers</span></code>, <code class="docutils literal notranslate"><span class="pre">arranger</span></code> and <code class="docutils literal notranslate"><span class="pre">editor</span></code>, take it from the <code class="docutils literal notranslate"><span class="pre">&#64;timetoalign/timetoshare</span></code> package on npm (<code class="docutils literal notranslate"><span class="pre">^0.2.0</span></code>). To try a schema change before it is released, replace that range in the five package manifests with a <code class="docutils literal notranslate"><span class="pre">link:</span></code> to the <code class="docutils literal notranslate"><span class="pre">js/</span></code> directory of a <a class="reference external" href="https://github.com/TimeToAlign/TimeToShare">TimeToShare</a> checkout beside this repository (<code class="docutils literal notranslate"><span class="pre">link:../../../../TimeToShare/js</span></code>), built there with <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">build</span></code>; the repository is never published in that state (<code class="docutils literal notranslate"><span class="pre">AGENTS.md</span></code>, “Dependency Policy”). Until schema 0.2.0 is published on npm, the five package manifests carry that <code class="docutils literal notranslate"><span class="pre">link:</span></code> in place of <code class="docutils literal notranslate"><span class="pre">^0.2.0</span></code>, so clone TimeToShare beside this repository and run <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">install</span></code> and <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">build</span></code> in its <code class="docutils literal notranslate"><span class="pre">js/</span></code> directory before installing here; the <code class="docutils literal notranslate"><span class="pre">link:</span></code> gives way to <code class="docutils literal notranslate"><span class="pre">^0.2.0</span></code> once 0.2.0 is on npm. <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">dev</span></code> may read a linked package’s directory, so the editor still loads its bundled fonts.</p>
+<p>The server declares <code class="docutils literal notranslate"><span class="pre">timetoalign&gt;=1.2.0</span></code>, but its measure-maps route needs timetoalign’s measure-map expansion (<code class="docutils literal notranslate"><span class="pre">timetoalign.timelines.structure.MeasureMap</span></code>), which no release carries yet. Until one does, <code class="docutils literal notranslate"><span class="pre">server/pyproject.toml</span></code> adds a uv source for the <a class="reference external" href="https://github.com/TimeToAlign/timetoalign">timetoalign</a> checkout beside this repository (<code class="docutils literal notranslate"><span class="pre">[tool.uv.sources]</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span> <span class="pre">=</span> <span class="pre">&quot;../../timetoalign&quot;</span></code>), so clone timetoalign there as you clone TimeToShare, on a branch that carries the expansion (currently <code class="docutils literal notranslate"><span class="pre">development</span></code>); <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">sync</span></code> in <code class="docutils literal notranslate"><span class="pre">server/</span></code> then installs it editable. A checkout whose requirements differ from the lockfile fails <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">sync</span> <span class="pre">--locked</span></code>; <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">lock</span></code> refreshes the lockfile. Published metadata does not see the source, and the repository is never published in that state (<code class="docutils literal notranslate"><span class="pre">AGENTS.md</span></code>, “Dependency Policy”); the source gives way to a range naming the release that carries the expansion. A server whose timetoalign lacks the expansion still starts, and its measure-maps route answers 501 (“the installed timetoalign <version> cannot expand measure maps”).</p>
+<p>timetoalign reads links and schemes through the <code class="docutils literal notranslate"><span class="pre">timetoshare</span></code> Python package, which it requires by a git reference to TimeToShare’s <code class="docutils literal notranslate"><span class="pre">main</span></code>. Until a timetoshare release carries schema 0.2.0, <code class="docutils literal notranslate"><span class="pre">server/pyproject.toml</span></code> replaces that requirement in the lockfile (<code class="docutils literal notranslate"><span class="pre">[tool.uv]</span> <span class="pre">override-dependencies</span> <span class="pre">=</span> <span class="pre">[&quot;timetoshare&gt;=0.2.0,&lt;1&quot;]</span></code>) and takes the package from the TimeToShare checkout you cloned for the schema package (<code class="docutils literal notranslate"><span class="pre">[tool.uv.sources]</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span> <span class="pre">=</span> <span class="pre">&quot;../../TimeToShare/python&quot;</span></code>), which <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">sync</span></code> installs editable; without the override the lockfile would follow timetoalign’s git reference, and uv takes no package from two places. The server itself imports nothing from timetoshare and does not list it among its requirements, and published metadata sees neither the override nor the source (<code class="docutils literal notranslate"><span class="pre">AGENTS.md</span></code>, “Dependency Policy”).</p>
+<p>CI lays the repositories out the same way. Every job that installs the app checks out TimeToShare at <code class="docutils literal notranslate"><span class="pre">main</span></code> beside this repository and builds its <code class="docutils literal notranslate"><span class="pre">js/</span></code> package first (<code class="docutils literal notranslate"><span class="pre">.github/actions/install-app</span></code>); the server job and the release build check out timetoalign at the commit <code class="docutils literal notranslate"><span class="pre">server/uv.lock</span></code> was locked against, named in <code class="docutils literal notranslate"><span class="pre">.github/workflows/ci.yml</span></code> and <code class="docutils literal notranslate"><span class="pre">.github/workflows/release.yml</span></code>, and the server job checks out TimeToShare at <code class="docutils literal notranslate"><span class="pre">main</span></code> too, for timetoshare. A lockfile refreshed against another timetoalign commit moves that commit in both workflows.</p>
+<p>From the repository root, prepare both parts of the repository:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>app
+pnpm<span class="w"> </span>install
+<span class="nb">cd</span><span class="w"> </span>../server
+uv<span class="w"> </span>sync
+</pre></div>
+</div>
+</section>
+<section id="run-test-and-build">
+<h2>Run, Test, and Build<a class="headerlink" href="#run-test-and-build" title="Link to this heading">#</a></h2>
+<p>Run application commands from <code class="docutils literal notranslate"><span class="pre">app/</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pnpm<span class="w"> </span>lint
+pnpm<span class="w"> </span>typecheck
+pnpm<span class="w"> </span><span class="nb">test</span>
+pnpm<span class="w"> </span>test:budget
+pnpm<span class="w"> </span>test:build
+pnpm<span class="w"> </span>build
+pnpm<span class="w"> </span>build:embed
+pnpm<span class="w"> </span>dev
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">test:budget</span></code> runs the workspace store’s timing budgets alone, one file at a time, and <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">test:build</span></code> the tests that make a production build; <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">test</span></code> excludes both. <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">build:embed</span></code> builds the embeddable editor into <code class="docutils literal notranslate"><span class="pre">app/packages/editor/dist-embed/</span></code> (<a class="reference internal" href="architecture.html#embedding"><span class="std std-ref">embedding</span></a>); the wheel bundles only <code class="docutils literal notranslate"><span class="pre">dist/</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">dev</span></code> passes <code class="docutils literal notranslate"><span class="pre">/api</span></code> on to a server at <code class="docutils literal notranslate"><span class="pre">127.0.0.1:$TILIE_PORT</span></code> (8000 when <code class="docutils literal notranslate"><span class="pre">TILIE_PORT</span></code> is unset), replacing the development page’s own <code class="docutils literal notranslate"><span class="pre">Origin</span></code> with the server’s, since the server refuses every origin but its own; any other <code class="docutils literal notranslate"><span class="pre">Origin</span></code> is passed on for the server to refuse. Start one from <code class="docutils literal notranslate"><span class="pre">server/</span></code> with <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">tilie</span> <span class="pre">--port</span> <span class="pre">8000</span> <span class="pre">--no-browser</span></code> (8000 is <code class="docutils literal notranslate"><span class="pre">tilie</span></code>’s default port too, but without <code class="docutils literal notranslate"><span class="pre">--port</span></code> it moves to a free port while 8000 is taken, where <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">dev</span></code> does not look), which prints the page’s URL with a <code class="docutils literal notranslate"><span class="pre">#token=…</span></code> fragment, and open the development server’s page with that fragment appended; the flag and the stamp tabs then show the values of the conversion maps that read a measure map, Show matches reads MatchClaim tables, and Open…, Import manifest… and Save as… use the editor’s file dialog over the files below the server’s root folder (<code class="docutils literal notranslate"><span class="pre">--root</span> <span class="pre">&lt;folder&gt;</span></code>, by default your home folder). Without a server, every conversion map that reads a measure map has no value in the flag and the stamp tabs, which say why instead, no MatchClaim table is read, and files go through the browser’s pickers and downloads. The public mode and the container image are tried as <a class="reference internal" href="overview.html#a-public-instance"><span class="std std-ref">A public instance</span></a> describes.</p>
+<p>Run server commands from <code class="docutils literal notranslate"><span class="pre">server/</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>check<span class="w"> </span>.
+uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>format<span class="w"> </span>--check<span class="w"> </span>.
+uv<span class="w"> </span>run<span class="w"> </span>pytest
+uv<span class="w"> </span>build
+uv<span class="w"> </span>run<span class="w"> </span>tilie<span class="w"> </span>--check<span class="w"> </span>--no-browser
+</pre></div>
+</div>
+<p>Build the application before building a distributable server wheel. The server build hook copies <code class="docutils literal notranslate"><span class="pre">app/packages/editor/dist</span></code> into the wheel; the CI workflow verifies this and runs the installed wheel’s self-check. For a development build, run <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">tilie</span> <span class="pre">--check</span> <span class="pre">--static-dir</span> <span class="pre">../app/packages/editor/dist</span></code> from <code class="docutils literal notranslate"><span class="pre">server/</span></code>.</p>
+<p>The writers’ compile test runs every review drawing through <code class="docutils literal notranslate"><span class="pre">lualatex</span></code>, which needs TikZ, the <code class="docutils literal notranslate"><span class="pre">standalone</span></code> class, and <code class="docutils literal notranslate"><span class="pre">fontspec</span></code> (on Ubuntu: <code class="docutils literal notranslate"><span class="pre">texlive-luatex</span></code>, <code class="docutils literal notranslate"><span class="pre">texlive-latex-recommended</span></code>, <code class="docutils literal notranslate"><span class="pre">texlive-latex-extra</span></code>, and <code class="docutils literal notranslate"><span class="pre">texlive-pictures</span></code>). It uses the DejaVu Sans and Noto Music files bundled by TimeToShare, Noto Music a fallback of DejaVu Sans for every code point DejaVu Sans does not map; no system font is needed. Without <code class="docutils literal notranslate"><span class="pre">lualatex</span></code> the test is skipped; set <code class="docutils literal notranslate"><span class="pre">TILIE_REQUIRE_LUALATEX=1</span></code> to make its absence a failure, as the <code class="docutils literal notranslate"><span class="pre">tikz</span></code> CI job does.</p>
+<p>The SVG and TikZ fixtures that pin a drawing belong to TimeToShare. There is no drawing schema, and a drawing’s JSON form is internal to TiLiE. The source of truth for layout and writer behavior is TimeToShare’s <a class="reference external" href="https://github.com/TimeToAlign/TimeToShare/blob/main/docs/drawing.md">drawing specification</a>.</p>
+<p>Review drawing changes with <code class="docutils literal notranslate"><span class="pre">rsvg-convert</span></code> installed:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pnpm<span class="w"> </span>-C<span class="w"> </span>app/packages/writers<span class="w"> </span>review
+</pre></div>
+</div>
+<p>The command draws every manifest fixture of the installed schema version except the corpus ones and the minimal twins, together with resized and restyled cases, writes their SVG and PNG files under <code class="docutils literal notranslate"><span class="pre">app/packages/writers/review/</span></code>, and lists them in <code class="docutils literal notranslate"><span class="pre">review/index.html</span></code>. It rasterizes at twice the size (<code class="docutils literal notranslate"><span class="pre">rsvg-convert</span> <span class="pre">--zoom</span> <span class="pre">2</span></code>) with fontconfig restricted to TimeToShare’s bundled <code class="docutils literal notranslate"><span class="pre">DejaVuSans.ttf</span></code> and <code class="docutils literal notranslate"><span class="pre">NotoMusic-Regular.ttf</span></code>, and refuses to continue if another font is visible or <code class="docutils literal notranslate"><span class="pre">rsvg-convert</span></code> fails.</p>
+<section id="end-to-end-tests">
+<h3>End-to-end tests<a class="headerlink" href="#end-to-end-tests" title="Link to this heading">#</a></h3>
+<p>The canvas is tested in real browsers with Playwright. Every run happens inside the official Playwright image of the locked <code class="docutils literal notranslate"><span class="pre">&#64;playwright/test</span></code> version (<code class="docutils literal notranslate"><span class="pre">mcr.microsoft.com/playwright:v&lt;version&gt;-noble</span></code>), which carries Chromium, Firefox and WebKit with their system libraries and fonts, so the browsers are the same on every machine. Locally, <code class="docutils literal notranslate"><span class="pre">e2e/run.ts</span></code> starts that image through rootless <a class="reference external" href="https://podman.io">podman</a> with the <code class="docutils literal notranslate"><span class="pre">app/</span></code> directory mounted and the host network; install podman and pull the image once. In CI the job already runs inside the image, and the script starts Playwright directly.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>app
+pnpm<span class="w"> </span>e2e<span class="w">                  </span><span class="c1"># Chromium only, the quick run</span>
+pnpm<span class="w"> </span>e2e:all<span class="w">              </span><span class="c1"># Chromium, Firefox, WebKit and the touch project, as in CI</span>
+pnpm<span class="w"> </span>e2e:budget<span class="w">           </span><span class="c1"># the canvas timing budgets, Chromium only</span>
+pnpm<span class="w"> </span>e2e:visual<span class="w">           </span><span class="c1"># the zero-tolerance screenshots; local only, never in CI</span>
+pnpm<span class="w"> </span>e2e:visual:update<span class="w">    </span><span class="c1"># re-create the screenshot baselines</span>
+pnpm<span class="w"> </span>e2e:fixtures:check<span class="w">   </span><span class="c1"># the committed test workspaces equal their generator's output</span>
+</pre></div>
+</div>
+<p>Each run builds the editor with the test hook (<code class="docutils literal notranslate"><span class="pre">VITE_TILIE_TEST_HOOK=1</span></code>) into <code class="docutils literal notranslate"><span class="pre">app/packages/editor/dist-e2e</span></code>, never into the <code class="docutils literal notranslate"><span class="pre">dist</span></code> folder the wheel bundles, and serves it on <code class="docutils literal notranslate"><span class="pre">127.0.0.1:4317</span></code>. Runs share that port and the output folder <code class="docutils literal notranslate"><span class="pre">app/e2e/test-results/</span></code>, so run one at a time. A spec file name runs that spec alone (<code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">e2e</span> <span class="pre">resize.spec.ts</span></code>); <code class="docutils literal notranslate"><span class="pre">TILIE_E2E_WORKERS</span></code> sets the number of workers (a positive integer, default 4) and is passed into the container. Screenshot baselines are valid only when made inside the image; review every changed image before committing it. When a schema release changes the manifest fixtures, regenerate the test workspaces with <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">e2e:fixtures</span></code>; never edit them by hand. For debugging, Chromium and Firefox also run natively with <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">exec</span> <span class="pre">playwright</span> <span class="pre">test</span> <span class="pre">--project=chromium</span> <span class="pre">--headed</span></code> after <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">exec</span> <span class="pre">playwright</span> <span class="pre">install</span> <span class="pre">chromium</span></code>; WebKit’s Linux build needs the image’s libraries on hosts other than Ubuntu and Debian. In <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">dev</span></code> the header’s Fixture menu offers, for trying the canvas by hand, every manifest fixture of the installed schema version (corpus fixtures and minimal twins included), the manifest of every warning case and any of these workspaces, as the Examples menu offers its examples: a manifest is imported as one more block into the open workspace, as Import manifest… adds a file, and a workspace replaces the open one after the question New and Open ask about unsaved changes; it offers no rejection case and no drawing. <code class="docutils literal notranslate"><span class="pre">app/e2e/README.md</span></code> states what each spec proves and the exact values it expects.</p>
+<p>Each package and the server has a <code class="docutils literal notranslate"><span class="pre">tests/README.md</span></code>. Update the appropriate readme first with the validation logic and exact expected values, then write the test.</p>
+</section>
+</section>
+<section id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Link to this heading">#</a></h2>
+<p>Add an ADR in <a class="reference internal" href="decisions.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">decisions/</span></code></span></a> before adding a dependency. The record must use the repository’s MADR structure, compare writing it ourselves, identify the audited version, and set a review date.</p>
+<p>Package manifests declare compatible ranges for runtime and peer dependencies, such as <code class="docutils literal notranslate"><span class="pre">fastapi&gt;=0.141,&lt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">uvicorn[standard]&gt;=0.53,&lt;1</span></code> in the server and <code class="docutils literal notranslate"><span class="pre">svelte</span></code> <code class="docutils literal notranslate"><span class="pre">^5.57.1</span></code> in <code class="docutils literal notranslate"><span class="pre">app/packages/editor</span></code>; development dependencies, the npm <code class="docutils literal notranslate"><span class="pre">devDependencies</span></code> and the server’s <code class="docutils literal notranslate"><span class="pre">dev</span></code> group, are pinned exactly. The lockfiles, <code class="docutils literal notranslate"><span class="pre">server/uv.lock</span></code> and <code class="docutils literal notranslate"><span class="pre">app/pnpm-lock.yaml</span></code>, pin every resolved version. Enter only versions released at least 14 days before they enter a lockfile, and name the audited version in its ADR; the one exception to that window is this project’s own schema package, <code class="docutils literal notranslate"><span class="pre">&#64;timetoalign/timetoshare</span></code> (<code class="docutils literal notranslate"><span class="pre">minimumReleaseAgeExclude</span></code> in <code class="docutils literal notranslate"><span class="pre">app/pnpm-workspace.yaml</span></code>), which is also one of the two exceptions to compatible ranges: while it is consumed at an unreleased schema version it is declared as a committed <code class="docutils literal notranslate"><span class="pre">link:</span></code>; the other is <code class="docutils literal notranslate"><span class="pre">timetoalign</span></code>, which, while the server needs an unreleased version of it, is installed from the sibling checkout through a uv source in <code class="docutils literal notranslate"><span class="pre">server/pyproject.toml</span></code>, its range unchanged; and while timetoalign reads an unreleased schema version, the lockfile takes its <code class="docutils literal notranslate"><span class="pre">timetoshare</span></code> from the TimeToShare checkout through an override and a uv source, which the server’s own requirements do not name (see <a class="reference internal" href="#setup">Setup</a>). This is the dependency policy; do not treat a compatible manifest range as an error by itself.</p>
+</section>
+<section id="packages">
+<h2>Packages<a class="headerlink" href="#packages" title="Link to this heading">#</a></h2>
+<p>The ladder is enforced by <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/main/app/.dependency-cruiser.cjs"><code class="docutils literal notranslate"><span class="pre">app/.dependency-cruiser.cjs</span></code></a>: core has no workspace dependency; layout and client may depend on core; writers may depend on layout and core; arranger may depend on writers, layout and core; editor may depend on every workspace package. Only arranger and editor may import Svelte.</p>
+<p>When adding a package, first establish a present need. Add its permitted edges to the dependency-cruiser configuration and the workspace ladder tests, keep it below the packages that consume it, and write its test readme before behavior tests. Do not put UI, DOM, or transport code into core.</p>
+</section>
+<section id="known-limitations">
+<h2>Known Limitations<a class="headerlink" href="#known-limitations" title="Link to this heading">#</a></h2>
+<p>The editor’s component tests mount the page and check its headings, the focus on the canvas, the health request with the offline mark, and the inspector drawer with its remembered state. They cover the token taken from the URL fragment and cleared from the address bar, and the absent token (no fragment, so an empty bearer header is sent). They do not verify CSS layout (the drawer’s and the tab’s positions are checked end to end), mobile rendering, or a fragment that carries an empty token (<code class="docutils literal notranslate"><span class="pre">#token=</span></code>). The File System Access path is tested against stubbed pickers only; the end-to-end tests remove the pickers and take the file-input and download path in every engine. The server static-file tests do not exercise traversal behavior. Treat these gaps as test coverage to improve when their behavior is changed.</p>
+</section>
+<section id="release">
+<h2>Release<a class="headerlink" href="#release" title="Link to this heading">#</a></h2>
+<p>Releases are made by <a class="reference external" href="https://github.com/googleapis/release-please">release-please</a> and <code class="docutils literal notranslate"><span class="pre">.github/workflows/release.yml</span></code>. Write commit messages in the <a class="reference external" href="https://www.conventionalcommits.org/">Conventional Commits</a> form; release-please derives the next version and the <code class="docutils literal notranslate"><span class="pre">CHANGELOG.md</span></code> entry from them. Before 1.0, a <code class="docutils literal notranslate"><span class="pre">feat</span></code> bumps the patch version and a breaking change the minor version; a commit footer <code class="docutils literal notranslate"><span class="pre">Release-As:</span> <span class="pre">X.Y.Z</span></code> sets a version explicitly.</p>
+<p>On every push to <code class="docutils literal notranslate"><span class="pre">main</span></code>, release-please opens or updates a release pull request that sets the version in <code class="docutils literal notranslate"><span class="pre">server/pyproject.toml</span></code>, <code class="docutils literal notranslate"><span class="pre">app/package.json</span></code> and the <code class="docutils literal notranslate"><span class="pre">tilie-server</span></code> entry of <code class="docutils literal notranslate"><span class="pre">server/uv.lock</span></code>, and adds the changelog entry. Merging it tags <code class="docutils literal notranslate"><span class="pre">vX.Y.Z</span></code> and creates the GitHub release. The workflow then checks out timetoalign beside the repository, checks the tag with <code class="docutils literal notranslate"><span class="pre">scripts/check_versions.py</span></code>, checks out and builds TimeToShare and installs the locked app dependencies as CI does, lints, type-checks, tests and builds the app, installs the locked server dependencies, tests, builds the distributions, verifies that the wheel contains <code class="docutils literal notranslate"><span class="pre">index.html</span></code>, and publishes them through PyPI OpenID Connect. Do not push version tags by hand.</p>
+<p>The workflow needs GitHub Actions to be allowed to create pull requests in this repository, and this PyPI trusted publisher:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Project name</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tilie-server</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Owner</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TimeToAlign</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Repository</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TimeLineEditor</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Workflow file name</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">release.yml</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Environment name</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pypi</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The repository does not use a stored PyPI publishing token.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="README.html">Building these docs</a></li>
+</ul>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="changelog.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Changelog</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="README.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Building these docs</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#setup">Setup</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#run-test-and-build">Run, Test, and Build</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#end-to-end-tests">End-to-end tests</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dependencies">Dependencies</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#packages">Packages</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#known-limitations">Known Limitations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#release">Release</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

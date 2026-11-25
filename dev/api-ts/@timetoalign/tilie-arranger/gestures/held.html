@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>gestures/held &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api-ts/@timetoalign/tilie-arranger/gestures/held';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="gestures/host" href="host.html" />
+    <link rel="prev" title="gestures/gap" href="gap.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-core/index.html">@timetoalign/tilie-core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-layout/index.html">@timetoalign/tilie-layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-writers/index.html">@timetoalign/tilie-writers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-client/index.html">@timetoalign/tilie-client</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../index.html">@timetoalign/tilie-arranger</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../affected.html">affected</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animation/cardMotions.svelte.html">animation/cardMotions.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animation/elide.html">animation/elide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animation/progress.svelte.html">animation/progress.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animation/raise.html">animation/raise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animation/unfold.html">animation/unfold</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animation/unfolding.svelte.html">animation/unfolding.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../arrangeMenu.html">arrangeMenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bands.html">bands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../blockDrag.html">blockDrag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxes.html">boxes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cardAxis.html">cardAxis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../commands.html">commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../containers.html">containers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coordinates.html">coordinates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../editing.html">editing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../editorFocus.svelte.html">editorFocus.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../focus.html">focus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gaps.html">gaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gesture.html">gesture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arranged.html">gestures/arranged</a></li>
+<li class="toctree-l2"><a class="reference internal" href="band.html">gestures/band</a></li>
+<li class="toctree-l2"><a class="reference internal" href="canvas.html">gestures/canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gap.html">gestures/gap</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">gestures/held</a></li>
+<li class="toctree-l2"><a class="reference internal" href="host.html">gestures/host</a></li>
+<li class="toctree-l2"><a class="reference internal" href="item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wheel.html">gestures/wheel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index-1.html">index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../items.html">items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../keys.html">keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../liveStore.svelte.html">liveStore.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../marquee.html">marquee</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../matches.html">matches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../motion.html">motion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../node.html">node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../nodeActions.html">nodeActions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../nodes.svelte.html">nodes.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../numbers.html">numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onScreen.html">onScreen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../pane.html">pane</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../picking.html">picking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../project.html">project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reorder.html">reorder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resize.html">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../roving.html">roving</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../selection.html">selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../selectionRules.html">selectionRules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../snap.html">snap</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-editor/index.html">@timetoalign/tilie-editor</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../../typescript.html" class="nav-link">TypeScript API</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">&#64;timetoalign/tilie-arranger</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">gestures/held</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="gestures-held">
+<h1>gestures/held<a class="headerlink" href="#gestures-held" title="Link to this heading">#</a></h1>
+<section id="interfaces">
+<h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
+<section id="dropped">
+<h3>Dropped<a class="headerlink" href="#dropped" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L132">arranger/src/gestures/held.ts:132</a></p>
+<p>What a reorder’s copy needs once its gesture has ended.</p>
+<section id="properties">
+<h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
+<section id="drawing">
+<h5>drawing<a class="headerlink" href="#drawing" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>drawing</strong>: <a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L136">arranger/src/gestures/held.ts:136</a></p>
+<p>The drawing at the press.</p>
+</section>
+<section id="ghost">
+<h5>ghost<a class="headerlink" href="#ghost" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>ghost</strong>: readonly <a class="reference internal" href="../../tilie-writers/descriptors.html#descriptor"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Descriptor</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L138">arranger/src/gestures/held.ts:138</a></p>
+<p>The copy’s descriptors.</p>
+</section>
+<section id="offset">
+<h5>offset<a class="headerlink" href="#offset" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>offset</strong>: <a class="reference internal" href="../gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L140">arranger/src/gestures/held.ts:140</a></p>
+<p>The copy’s travel at the drop; <code class="docutils literal notranslate"><span class="pre">null</span></code> where it never moved.</p>
+</section>
+<section id="view">
+<h5>view<a class="headerlink" href="#view" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>view</strong>: <a class="reference internal" href="../../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L134">arranger/src/gestures/held.ts:134</a></p>
+<p>The view as stored at the press.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="heldpress">
+<h3>HeldPress<a class="headerlink" href="#heldpress" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L20">arranger/src/gestures/held.ts:20</a></p>
+<p>What a press on a held card holds.</p>
+<section id="id1">
+<h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
+<section id="at">
+<h5>at<a class="headerlink" href="#at" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>at</strong>: <a class="reference internal" href="../gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L28">arranger/src/gestures/held.ts:28</a></p>
+<p>The pointer’s drawing point at the press.</p>
+</section>
+<section id="id2">
+<h5>drawing<a class="headerlink" href="#id2" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>drawing</strong>: <a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L24">arranger/src/gestures/held.ts:24</a></p>
+<p>The drawing at the press, which every drop is read against, never a preview’s.</p>
+</section>
+<section id="id3">
+<h5>ghost<a class="headerlink" href="#id3" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>ghost</strong>: readonly <a class="reference internal" href="../../tilie-writers/descriptors.html#descriptor"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Descriptor</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L26">arranger/src/gestures/held.ts:26</a></p>
+<p>The card’s drawing, which the ghost copies.</p>
+</section>
+<section id="id4">
+<h5>offset<a class="headerlink" href="#id4" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>offset</strong>: <a class="reference internal" href="../gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L32">arranger/src/gestures/held.ts:32</a></p>
+<p>The pointer’s travel last shown, where the copy of the card lies; <code class="docutils literal notranslate"><span class="pre">null</span></code> before the first.</p>
+</section>
+<section id="shown">
+<h5>shown<a class="headerlink" href="#shown" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>shown</strong>: readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[] | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L30">arranger/src/gestures/held.ts:30</a></p>
+<p>The order last previewed; <code class="docutils literal notranslate"><span class="pre">null</span></code> before the first.</p>
+</section>
+<section id="id5">
+<h5>view<a class="headerlink" href="#id5" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>view</strong>: <a class="reference internal" href="../../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L22">arranger/src/gestures/held.ts:22</a></p>
+<p>The view as stored at the press, which the command is built on.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="heldvalue">
+<h3>HeldValue<a class="headerlink" href="#heldvalue" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L40">arranger/src/gestures/held.ts:40</a></p>
+<p>Where a held card drops (the display order of its group), how far the
+pointer has travelled, and why the drop is refused (<code class="docutils literal notranslate"><span class="pre">heldRefusal</span></code>), else
+<code class="docutils literal notranslate"><span class="pre">null</span></code>.</p>
+<section id="id6">
+<h4>Properties<a class="headerlink" href="#id6" title="Link to this heading">#</a></h4>
+<section id="id7">
+<h5>offset<a class="headerlink" href="#id7" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>offset</strong>: <a class="reference internal" href="../gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L42">arranger/src/gestures/held.ts:42</a></p>
+</section>
+<section id="order">
+<h5>order<a class="headerlink" href="#order" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>order</strong>: readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L41">arranger/src/gestures/held.ts:41</a></p>
+</section>
+<section id="refused">
+<h5>refused<a class="headerlink" href="#refused" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>refused</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L43">arranger/src/gestures/held.ts:43</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="releasemotion">
+<h3>ReleaseMotion<a class="headerlink" href="#releasemotion" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L103">arranger/src/gestures/held.ts:103</a></p>
+<p>The motion of a released card’s copy, in the drawing’s units: from its travel at the drop to its card’s place.</p>
+<section id="id8">
+<h4>Properties<a class="headerlink" href="#id8" title="Link to this heading">#</a></h4>
+<section id="from">
+<h5>from<a class="headerlink" href="#from" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>from</strong>: <a class="reference internal" href="../gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L105">arranger/src/gestures/held.ts:105</a></p>
+<p>Where the copy lies when the gesture ends: the pointer’s travel since the press.</p>
+</section>
+<section id="to">
+<h5>to<a class="headerlink" href="#to" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>to</strong>: <a class="reference internal" href="../gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L107">arranger/src/gestures/held.ts:107</a></p>
+<p>Where its card is drawn once the gesture has ended, as a travel from the card’s place at the press.</p>
+</section>
+</section>
+</section>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<section id="carddrawing">
+<h3>cardDrawing()<a class="headerlink" href="#carddrawing" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>cardDrawing</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">descriptors</span></code>, <code class="docutils literal notranslate"><span class="pre">card</span></code>): readonly <a class="reference internal" href="../../tilie-writers/descriptors.html#descriptor"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Descriptor</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L91">arranger/src/gestures/held.ts:91</a></p>
+<p>The descriptors drawing a card and everything drawn on it: those whose
+source element lies in the card’s range of the drawing, its shadow (a
+second descriptor of the card’s own rectangle) included.</p>
+<section id="parameters">
+<h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
+<section id="id9">
+<h5>drawing<a class="headerlink" href="#id9" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="descriptors">
+<h5>descriptors<a class="headerlink" href="#descriptors" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="../../tilie-writers/descriptors.html#descriptor"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Descriptor</span></code></span></a>[]</p>
+</section>
+<section id="card">
+<h5>card<a class="headerlink" href="#card" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/containers.html#placekey"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PlaceKey</span></code></span></a></p>
+</section>
+</section>
+<section id="returns">
+<h4>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h4>
+<p>readonly <a class="reference internal" href="../../tilie-writers/descriptors.html#descriptor"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Descriptor</span></code></span></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="endreorder">
+<h3>endReorder()<a class="headerlink" href="#endreorder" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>endReorder</strong>(<code class="docutils literal notranslate"><span class="pre">host</span></code>, <code class="docutils literal notranslate"><span class="pre">key</span></code>, <code class="docutils literal notranslate"><span class="pre">dropped</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L149">arranger/src/gestures/held.ts:149</a></p>
+<p>The end of a reorder of the content <code class="docutils literal notranslate"><span class="pre">key</span></code> (a held card, an arranged item)
+of the node <code class="docutils literal notranslate"><span class="pre">host</span></code>: the preview withdrawn, and the copy moving from where
+it was dropped to where the drawing stored after the gesture draws its
+content (<code class="docutils literal notranslate"><span class="pre">releaseMotion</span></code>), at once under reduced motion; the slide ends.</p>
+<section id="id10">
+<h4>Parameters<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
+<section id="host">
+<h5>host<a class="headerlink" href="#host" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="host.html#nodehost"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">NodeHost</span></code></span></a></p>
+</section>
+<section id="key">
+<h5>key<a class="headerlink" href="#key" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/containers.html#placekey"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PlaceKey</span></code></span></a></p>
+</section>
+<section id="id11">
+<h5>dropped<a class="headerlink" href="#id11" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#dropped"><code class="docutils literal notranslate"><span class="pre">Dropped</span></code></a></p>
+</section>
+</section>
+<section id="id12">
+<h4>Returns<a class="headerlink" href="#id12" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">void</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="heldgesture">
+<h3>heldGesture()<a class="headerlink" href="#heldgesture" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>heldGesture</strong>(<code class="docutils literal notranslate"><span class="pre">host</span></code>, <code class="docutils literal notranslate"><span class="pre">group</span></code>, <code class="docutils literal notranslate"><span class="pre">member</span></code>): <a class="reference internal" href="../gesture.html#gesturestrategy"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">GestureStrategy</span></code></span></a>&lt;<a class="reference internal" href="#heldpress"><code class="docutils literal notranslate"><span class="pre">HeldPress</span></code></a>, <a class="reference internal" href="#heldvalue"><code class="docutils literal notranslate"><span class="pre">HeldValue</span></code></a>&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L187">arranger/src/gestures/held.ts:187</a></p>
+<p>The drag of the card of <code class="docutils literal notranslate"><span class="pre">member</span></code> held by the frame of <code class="docutils literal notranslate"><span class="pre">group</span></code>. A press is
+taken while the canvas reorders cards (<code class="docutils literal notranslate"><span class="pre">rulesOf(...).reorder</span></code>), except on
+a pinned card (<code class="docutils literal notranslate"><span class="pre">isPinned</span></code>); the press that becomes a drag selects the
+card. A drop the arrangement refuses (<code class="docutils literal notranslate"><span class="pre">heldRefusal</span></code>) previews the stored
+order, stores nothing and shows its reason (<code class="docutils literal notranslate"><span class="pre">NodeActions.refuse</span></code>). The order follows the pointer’s
+drawing point through the drawing as stored at the press
+(<code class="docutils literal notranslate"><span class="pre">memberOrderAt</span></code>); the other cards slide apart in the preview while a copy
+of the dragged card’s drawing follows the pointer, the card itself left
+hidden where it would drop. The release stores the order in one <code class="docutils literal notranslate"><span class="pre">set</span></code>
+(<code class="docutils literal notranslate"><span class="pre">reorderCommand</span></code>), nothing for a release in place. However the gesture
+ends, the copy then moves from where it was dropped to where its card is
+drawn (<code class="docutils literal notranslate"><span class="pre">releaseMotion</span></code>), the card hidden until it arrives; at once under
+reduced motion.</p>
+<section id="id13">
+<h4>Parameters<a class="headerlink" href="#id13" title="Link to this heading">#</a></h4>
+<section id="id14">
+<h5>host<a class="headerlink" href="#id14" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="host.html#nodehost"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">NodeHost</span></code></span></a></p>
+</section>
+<section id="group">
+<h5>group<a class="headerlink" href="#group" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="member">
+<h5>member<a class="headerlink" href="#member" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<section id="id15">
+<h4>Returns<a class="headerlink" href="#id15" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../gesture.html#gesturestrategy"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">GestureStrategy</span></code></span></a>&lt;<a class="reference internal" href="#heldpress"><code class="docutils literal notranslate"><span class="pre">HeldPress</span></code></a>, <a class="reference internal" href="#heldvalue"><code class="docutils literal notranslate"><span class="pre">HeldValue</span></code></a>&gt;</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="heldrefusal">
+<h3>heldRefusal()<a class="headerlink" href="#heldrefusal" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>heldRefusal</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">group</span></code>, <code class="docutils literal notranslate"><span class="pre">order</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L77">arranger/src/gestures/held.ts:77</a></p>
+<p>Why <code class="docutils literal notranslate"><span class="pre">group</span></code> may not take the display order <code class="docutils literal notranslate"><span class="pre">order</span></code> where <code class="docutils literal notranslate"><span class="pre">drawing</span></code> draws
+the block’s items side by side: the order would change one of its anchors
+(core’s <code class="docutils literal notranslate"><span class="pre">anchorChange</span></code>); <code class="docutils literal notranslate"><span class="pre">null</span></code> where it may, and wherever the items are
+not side by side.</p>
+<section id="id16">
+<h4>Parameters<a class="headerlink" href="#id16" title="Link to this heading">#</a></h4>
+<section id="manifest">
+<h5>manifest<a class="headerlink" href="#manifest" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="id17">
+<h5>drawing<a class="headerlink" href="#id17" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id18">
+<h5>group<a class="headerlink" href="#id18" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id19">
+<h5>order<a class="headerlink" href="#id19" title="Link to this heading">#</a></h5>
+<p>readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</section>
+</section>
+<section id="id20">
+<h4>Returns<a class="headerlink" href="#id20" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="ispinned">
+<h3>isPinned()<a class="headerlink" href="#ispinned" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>isPinned</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">group</span></code>, <code class="docutils literal notranslate"><span class="pre">member</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L59">arranger/src/gestures/held.ts:59</a></p>
+<p>Whether the card of <code class="docutils literal notranslate"><span class="pre">member</span></code> in <code class="docutils literal notranslate"><span class="pre">group</span></code>’s frame is pinned where <code class="docutils literal notranslate"><span class="pre">drawing</span></code>
+draws the block’s items side by side: the member anchors its group on a
+root drawn once behind the row (core’s <code class="docutils literal notranslate"><span class="pre">anchorsOf</span></code>), so the roots’ order
+stays the groups’ (the drawing specification’s “Drawn once”). A press on
+it is not taken.</p>
+<section id="id21">
+<h4>Parameters<a class="headerlink" href="#id21" title="Link to this heading">#</a></h4>
+<section id="id22">
+<h5>manifest<a class="headerlink" href="#id22" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="id23">
+<h5>drawing<a class="headerlink" href="#id23" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id24">
+<h5>group<a class="headerlink" href="#id24" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id25">
+<h5>member<a class="headerlink" href="#id25" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<section id="id26">
+<h4>Returns<a class="headerlink" href="#id26" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="id27">
+<h3>releaseMotion()<a class="headerlink" href="#id27" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>releaseMotion</strong>(<code class="docutils literal notranslate"><span class="pre">pressed</span></code>, <code class="docutils literal notranslate"><span class="pre">shown</span></code>, <code class="docutils literal notranslate"><span class="pre">card</span></code>, <code class="docutils literal notranslate"><span class="pre">offset</span></code>): <a class="reference internal" href="#releasemotion"><code class="docutils literal notranslate"><span class="pre">ReleaseMotion</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/gestures/held.ts#L118">arranger/src/gestures/held.ts:118</a></p>
+<p>How the copy of <code class="docutils literal notranslate"><span class="pre">card</span></code>, dragged by <code class="docutils literal notranslate"><span class="pre">offset</span></code> from where <code class="docutils literal notranslate"><span class="pre">pressed</span></code> (the
+drawing at the press) draws it, moves once the gesture ends: from that
+travel to the card’s place in <code class="docutils literal notranslate"><span class="pre">shown</span></code>, the drawing shown after it (its
+new place after a reorder stored, its old one after Escape, a release in
+place or a refusal). <code class="docutils literal notranslate"><span class="pre">null</span></code> where <code class="docutils literal notranslate"><span class="pre">shown</span></code> draws no such card, or the copy
+already lies there.</p>
+<section id="id28">
+<h4>Parameters<a class="headerlink" href="#id28" title="Link to this heading">#</a></h4>
+<section id="pressed">
+<h5>pressed<a class="headerlink" href="#pressed" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id29">
+<h5>shown<a class="headerlink" href="#id29" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id30">
+<h5>card<a class="headerlink" href="#id30" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/containers.html#placekey"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PlaceKey</span></code></span></a></p>
+</section>
+<section id="id31">
+<h5>offset<a class="headerlink" href="#id31" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a></p>
+</section>
+</section>
+<section id="id32">
+<h4>Returns<a class="headerlink" href="#id32" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#releasemotion"><code class="docutils literal notranslate"><span class="pre">ReleaseMotion</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="gap.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">gestures/gap</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="host.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">gestures/host</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dropped">Dropped</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#drawing">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#ghost">ghost</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#offset">offset</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#view">view</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#heldpress">HeldPress</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#at">at</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">ghost</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">offset</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#shown">shown</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">view</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#heldvalue">HeldValue</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">offset</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#order">order</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#refused">refused</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#releasemotion">ReleaseMotion</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#from">from</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#to">to</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#carddrawing">cardDrawing()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#descriptors">descriptors</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#card">card</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#endreorder">endReorder()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#host">host</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#key">key</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">dropped</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#heldgesture">heldGesture()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">host</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#group">group</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#member">member</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#heldrefusal">heldRefusal()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#manifest">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">group</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">order</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ispinned">isPinned()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">group</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">member</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id26">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id27">releaseMotion()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pressed">pressed</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id29">shown</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id30">card</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id31">offset</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

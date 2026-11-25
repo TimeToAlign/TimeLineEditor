@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tilie_server.cli &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tilie_server/cli';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tilie_server.cli</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tilie_server.cli</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""The ``tilie`` command: start the server and open the editor, or serve it publicly."""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">secrets</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">signal</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">socket</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">urllib.error</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">urllib.request</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">webbrowser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">queue</span><span class="w"> </span><span class="kn">import</span> <span class="n">Empty</span><span class="p">,</span> <span class="n">Queue</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">uvicorn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastAPI</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tilie_server.app</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_app</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tilie_server.settings</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PUBLIC_BODY_LIMIT</span><span class="p">,</span>
+    <span class="n">PUBLIC_COMPUTATIONS</span><span class="p">,</span>
+    <span class="n">PUBLIC_CONNECTIONS</span><span class="p">,</span>
+    <span class="n">PUBLIC_TABLE_BYTES</span><span class="p">,</span>
+    <span class="n">PUBLIC_TABLE_ROWS</span><span class="p">,</span>
+    <span class="n">ServerSettings</span><span class="p">,</span>
+    <span class="n">size_named</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">HOST</span> <span class="o">=</span> <span class="s2">"127.0.0.1"</span>
+<span class="n">PUBLIC_BIND</span> <span class="o">=</span> <span class="s2">"0.0.0.0"</span>
+<span class="sd">"""The address a public run binds: every interface, so that a proxy or a</span>
+<span class="sd">container's port mapping reaches it."""</span>
+<span class="n">HEALTH_KEYS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"name"</span><span class="p">,</span> <span class="s2">"version"</span><span class="p">,</span> <span class="s2">"timetoalign"</span><span class="p">,</span> <span class="s2">"timetoshare"</span><span class="p">,</span> <span class="s2">"files"</span><span class="p">})</span>
+<span class="n">STARTUP_TIMEOUT</span> <span class="o">=</span> <span class="mf">15.0</span>
+<span class="c1"># The port `tilie` listens on unless told otherwise. A browser keeps what a</span>
+<span class="c1"># page stores (the identity that asserts the viewer's links, for one) for its</span>
+<span class="c1"># address, port included, so a stable port keeps it from run to run.</span>
+<span class="n">DEFAULT_PORT</span> <span class="o">=</span> <span class="mi">8000</span>
+
+
+<div class="viewcode-block" id="free_port">
+<a class="viewcode-back" href="../../api-py/tilie_server.cli.html#tilie_server.cli.free_port">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">free_port</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""A port that was free on the loopback interface a moment ago."""</span>
+    <span class="k">with</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span> <span class="k">as</span> <span class="n">sock</span><span class="p">:</span>
+        <span class="n">sock</span><span class="o">.</span><span class="n">bind</span><span class="p">((</span><span class="n">HOST</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">sock</span><span class="o">.</span><span class="n">getsockname</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="port_is_free">
+<a class="viewcode-back" href="../../api-py/tilie_server.cli.html#tilie_server.cli.port_is_free">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">port_is_free</span><span class="p">(</span><span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether ``port`` could be bound on the loopback interface a moment ago.</span>
+
+<span class="sd">    The port is bound as the server binds it: with ``SO_REUSEADDR`` outside</span>
+<span class="sd">    Windows, so that the connections of a run just stopped do not hold it.</span>
+<span class="sd">    On Windows the option would let a second socket share a port in use.</span>
+<span class="sd">    """</span>
+    <span class="k">with</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span> <span class="k">as</span> <span class="n">sock</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">!=</span> <span class="s2">"win32"</span><span class="p">:</span>
+            <span class="n">sock</span><span class="o">.</span><span class="n">setsockopt</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">SOL_SOCKET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SO_REUSEADDR</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sock</span><span class="o">.</span><span class="n">bind</span><span class="p">((</span><span class="n">HOST</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+
+<div class="viewcode-block" id="choose_port">
+<a class="viewcode-back" href="../../api-py/tilie_server.cli.html#tilie_server.cli.choose_port">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">choose_port</span><span class="p">(</span>
+    <span class="n">requested</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_PORT</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The port to listen on, and the notice to print about it, if any.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        requested: The port given with ``--port``, taken as it is; ``None``</span>
+<span class="sd">            for none.</span>
+<span class="sd">        default: The port taken without one, while it is free.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The port and ``None``; or, when no port is requested and ``default``</span>
+<span class="sd">        is in use, a free port and the notice saying so.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">requested</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">requested</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">port_is_free</span><span class="p">(</span><span class="n">default</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">default</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="n">port</span> <span class="o">=</span> <span class="n">free_port</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">port</span><span class="p">,</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"tilie: port </span><span class="si">{</span><span class="n">default</span><span class="si">}</span><span class="s2"> is in use, so the server runs on port </span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">; "</span>
+        <span class="s2">"the browser remembers the editor's settings, your identity among them, "</span>
+        <span class="s2">"for each port apart"</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="existing_folder">
+<a class="viewcode-back" href="../../api-py/tilie_server.cli.html#tilie_server.cli.existing_folder">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">existing_folder</span><span class="p">(</span><span class="n">given</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The folder ``--root`` names; refused unless it exists."""</span>
+    <span class="n">folder</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">given</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">folder</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">given</span><span class="si">!r}</span><span class="s2"> is no existing folder"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">folder</span></div>
+
+
+
+<div class="viewcode-block" id="public_host">
+<a class="viewcode-back" href="../../api-py/tilie_server.cli.html#tilie_server.cli.public_host">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">public_host</span><span class="p">(</span><span class="n">given</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""A host name ``--public-host`` gives; refused when empty, since an empty</span>
+<span class="sd">    name would admit a request with an empty ``Host`` header."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">given</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s2">"a host name is not empty"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">given</span></div>
+
+
+
+<span class="n">EXCLUDED_BY_PUBLIC_HOST</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"check"</span><span class="p">,</span> <span class="s2">"root"</span><span class="p">,</span> <span class="s2">"no_browser"</span><span class="p">)</span>
+<span class="sd">"""The options a public run refuses: it checks nothing, serves no files and</span>
+<span class="sd">opens no browser."""</span>
+
+
+<div class="viewcode-block" id="parse_args">
+<a class="viewcode-back" href="../../api-py/tilie_server.cli.html#tilie_server.cli.parse_args">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_args</span><span class="p">(</span><span class="n">argv</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Parse the command line of ``tilie``; ``None`` reads ``sys.argv``.</span>
+
+<span class="sd">    An option a public run excludes is an error next to ``--public-host``;</span>
+<span class="sd">    ``--root`` defaults to the home folder only after that check.</span>
+<span class="sd">    """</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">prog</span><span class="o">=</span><span class="s2">"tilie"</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">"Start the TimeLineEditor server on 127.0.0.1 and open the "</span>
+        <span class="s2">"editor, or serve the editor publicly with --public-host."</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">"--port"</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">"port to listen on (default: </span><span class="si">{</span><span class="n">DEFAULT_PORT</span><span class="si">}</span><span class="s2">, or a free port while "</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">DEFAULT_PORT</span><span class="si">}</span><span class="s2"> is in use)"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">"--no-browser"</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"print the URL instead of opening a browser"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">"--check"</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"verify health and the editor, then stop; exit 1 on failure"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">"--static-dir"</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">Path</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"serve this directory instead of the bundled app (development)"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">"--root"</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">existing_folder</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"the folder whose files the editor may open and save (default: your "</span>
+        <span class="s2">"home folder)"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">"--public-host"</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">public_host</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">"append"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">metavar</span><span class="o">=</span><span class="s2">"HOST"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"serve the editor publicly as HOST, the Host header exactly as "</span>
+        <span class="s2">"browsers send it (repeatable): bind 0.0.0.0, check no token, serve no "</span>
+        <span class="sa">f</span><span class="s2">"files, refuse request bodies over </span><span class="si">{</span><span class="n">size_named</span><span class="p">(</span><span class="n">PUBLIC_BODY_LIMIT</span><span class="p">)</span><span class="si">}</span><span class="s2"> and "</span>
+        <span class="sa">f</span><span class="s2">"tables of more than </span><span class="si">{</span><span class="n">PUBLIC_TABLE_ROWS</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> rows or "</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">size_named</span><span class="p">(</span><span class="n">PUBLIC_TABLE_BYTES</span><span class="p">)</span><span class="si">}</span><span class="s2"> uncompressed; excludes --check, --root "</span>
+        <span class="s2">"and --no-browser"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">public_host</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">EXCLUDED_BY_PUBLIC_HOST</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="n">option</span> <span class="o">=</span> <span class="s2">"--"</span> <span class="o">+</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"_"</span><span class="p">,</span> <span class="s2">"-"</span><span class="p">)</span>
+                <span class="n">parser</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"argument </span><span class="si">{</span><span class="n">option</span><span class="si">}</span><span class="s2">: not allowed with argument --public-host"</span>
+                <span class="p">)</span>
+    <span class="c1"># Defaulted only now, so that the check above sees whether it was given.</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">root</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">args</span></div>
+
+
+
+<div class="viewcode-block" id="settings_for">
+<a class="viewcode-back" href="../../api-py/tilie_server.cli.html#tilie_server.cli.settings_for">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">settings_for</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ServerSettings</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The settings of the run ``args`` asks for, on ``port``.</span>
+
+<span class="sd">    A public run binds every interface, answers as the given hosts, checks</span>
+<span class="sd">    no token, serves no files, bounds request bodies and posted tables, and</span>
+<span class="sd">    limits its computations and connections; a local run binds</span>
+<span class="sd">    the loopback interface with a new token and serves the files below its</span>
+<span class="sd">    root.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">public_host</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ServerSettings</span><span class="p">(</span>
+            <span class="n">host</span><span class="o">=</span><span class="n">PUBLIC_BIND</span><span class="p">,</span>
+            <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
+            <span class="n">token</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">static_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">static_dir</span><span class="p">,</span>
+            <span class="n">public_hosts</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">public_host</span><span class="p">),</span>
+            <span class="n">files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">body_limit</span><span class="o">=</span><span class="n">PUBLIC_BODY_LIMIT</span><span class="p">,</span>
+            <span class="n">table_rows</span><span class="o">=</span><span class="n">PUBLIC_TABLE_ROWS</span><span class="p">,</span>
+            <span class="n">table_bytes</span><span class="o">=</span><span class="n">PUBLIC_TABLE_BYTES</span><span class="p">,</span>
+            <span class="n">computations</span><span class="o">=</span><span class="n">PUBLIC_COMPUTATIONS</span><span class="p">,</span>
+            <span class="n">connections</span><span class="o">=</span><span class="n">PUBLIC_CONNECTIONS</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">ServerSettings</span><span class="p">(</span>
+        <span class="n">host</span><span class="o">=</span><span class="n">HOST</span><span class="p">,</span>
+        <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
+        <span class="n">token</span><span class="o">=</span><span class="n">secrets</span><span class="o">.</span><span class="n">token_urlsafe</span><span class="p">(</span><span class="mi">32</span><span class="p">),</span>
+        <span class="n">static_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">static_dir</span><span class="p">,</span>
+        <span class="n">root</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">root</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="uvicorn_config">
+<a class="viewcode-back" href="../../api-py/tilie_server.cli.html#tilie_server.cli.uvicorn_config">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">uvicorn_config</span><span class="p">(</span>
+    <span class="n">app</span><span class="p">:</span> <span class="n">FastAPI</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">ServerSettings</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">check</span><span class="p">:</span> <span class="nb">bool</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">uvicorn</span><span class="o">.</span><span class="n">Config</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The uvicorn configuration of a run of ``app`` with ``settings``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        app: The application.</span>
+<span class="sd">        settings: The run's settings, whose ``connections`` uvicorn keeps.</span>
+<span class="sd">        check: Whether the run is a ``--check``, which logs only errors and</span>
+<span class="sd">            no access lines.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">uvicorn</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span>
+        <span class="n">app</span><span class="p">,</span>
+        <span class="n">host</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">host</span><span class="p">,</span>
+        <span class="n">port</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
+        <span class="n">log_level</span><span class="o">=</span><span class="s2">"error"</span> <span class="k">if</span> <span class="n">check</span> <span class="k">else</span> <span class="s2">"info"</span><span class="p">,</span>
+        <span class="n">access_log</span><span class="o">=</span><span class="ow">not</span> <span class="n">check</span><span class="p">,</span>
+        <span class="n">limit_concurrency</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">connections</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="public_notice">
+<a class="viewcode-back" href="../../api-py/tilie_server.cli.html#tilie_server.cli.public_notice">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">public_notice</span><span class="p">(</span><span class="n">settings</span><span class="p">:</span> <span class="n">ServerSettings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The line a public run prints once it listens."""</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"tilie: public mode on port </span><span class="si">{</span><span class="n">settings</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">, answering as "</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">public_hosts</span><span class="p">)</span><span class="si">}</span><span class="s2">; no token, no file access"</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="wait_until_started">
+<a class="viewcode-back" href="../../api-py/tilie_server.cli.html#tilie_server.cli.wait_until_started">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">wait_until_started</span><span class="p">(</span><span class="n">server</span><span class="p">:</span> <span class="n">uvicorn</span><span class="o">.</span><span class="n">Server</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Wait until ``server`` listens, requesting shutdown on a timeout."""</span>
+    <span class="n">deadline</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">+</span> <span class="n">STARTUP_TIMEOUT</span>
+    <span class="k">while</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">deadline</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">server</span><span class="o">.</span><span class="n">started</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">server</span><span class="o">.</span><span class="n">should_exit</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.02</span><span class="p">)</span>
+    <span class="n">server</span><span class="o">.</span><span class="n">should_exit</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="run_server">
+<a class="viewcode-back" href="../../api-py/tilie_server.cli.html#tilie_server.cli.run_server">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_server</span><span class="p">(</span><span class="n">server</span><span class="p">:</span> <span class="n">uvicorn</span><span class="o">.</span><span class="n">Server</span><span class="p">,</span> <span class="n">on_started</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Run uvicorn in the main thread and perform ``on_started`` alongside it.</span>
+
+<span class="sd">    Uvicorn can install its SIGINT and SIGTERM handlers only in the main</span>
+<span class="sd">    thread. The short-lived observer does no server work; it waits for startup</span>
+<span class="sd">    and then prints or verifies the URL.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">observe_startup</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Perform ``on_started`` once the server listens."""</span>
+        <span class="k">if</span> <span class="n">wait_until_started</span><span class="p">(</span><span class="n">server</span><span class="p">):</span>
+            <span class="n">on_started</span><span class="p">()</span>
+
+    <span class="n">observer</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span>
+        <span class="n">target</span><span class="o">=</span><span class="n">observe_startup</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"tilie-startup"</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+    <span class="n">observer</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="n">previous_sigterm</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">default_int_handler</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyboardInterrupt</span><span class="p">,</span> <span class="ne">SystemExit</span><span class="p">):</span>
+            <span class="c1"># Uvicorn gracefully handles the signal before restoring and</span>
+            <span class="c1"># replaying it. Both intentional shutdown signals are successful.</span>
+            <span class="k">pass</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">previous_sigterm</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">server</span><span class="o">.</span><span class="n">started</span></div>
+
+
+
+<div class="viewcode-block" id="fetch">
+<a class="viewcode-back" href="../../api-py/tilie_server.cli.html#tilie_server.cli.fetch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fetch</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""GET ``url`` with the bearer token and return status and body."""</span>
+    <span class="n">request</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">"Authorization"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"Bearer </span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s2">"</span><span class="p">})</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">STARTUP_TIMEOUT</span><span class="p">)</span> <span class="k">as</span> <span class="n">response</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">response</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">except</span> <span class="n">urllib</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">error</span><span class="o">.</span><span class="n">code</span><span class="p">,</span> <span class="n">error</span><span class="o">.</span><span class="n">read</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="CheckFailed">
+<a class="viewcode-back" href="../../api-py/tilie_server.cli.html#tilie_server.cli.CheckFailed">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CheckFailed</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A ``--check`` verification step did not pass."""</span></div>
+
+
+
+<div class="viewcode-block" id="verify">
+<a class="viewcode-back" href="../../api-py/tilie_server.cli.html#tilie_server.cli.verify">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">verify</span><span class="p">(</span><span class="n">base_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Verify the health endpoint and the editor; return the health document."""</span>
+    <span class="n">status</span><span class="p">,</span> <span class="n">body</span> <span class="o">=</span> <span class="n">fetch</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/api/health"</span><span class="p">,</span> <span class="n">token</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">200</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">CheckFailed</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"GET /api/health answered </span><span class="si">{</span><span class="n">status</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">body</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s1">'replace'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">health</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">health</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">set</span><span class="p">(</span><span class="n">health</span><span class="p">)</span> <span class="o">!=</span> <span class="n">HEALTH_KEYS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">CheckFailed</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"GET /api/health must contain exactly </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">HEALTH_KEYS</span><span class="p">)</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">health</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">status</span><span class="p">,</span> <span class="n">body</span> <span class="o">=</span> <span class="n">fetch</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/"</span><span class="p">,</span> <span class="n">token</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">200</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">CheckFailed</span><span class="p">(</span><span class="sa">f</span><span class="s2">"GET / answered </span><span class="si">{</span><span class="n">status</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">body</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s1">'replace'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">health</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../api-py/tilie_server.cli.html#tilie_server.cli.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Run the ``tilie`` command and return its exit status.</span>
+
+<span class="sd">    A public run prints what it serves; a ``--check`` run prints the health</span>
+<span class="sd">    document once the checks pass, then stops; a local run prints the</span>
+<span class="sd">    editor's URL, the token in its fragment, and opens a browser unless</span>
+<span class="sd">    ``--no-browser`` is given.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        0 on success, 1 if the server did not start or a check failed.</span>
+<span class="sd">    """</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parse_args</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+    <span class="n">port</span><span class="p">,</span> <span class="n">notice</span> <span class="o">=</span> <span class="n">choose_port</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">notice</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">notice</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">settings</span> <span class="o">=</span> <span class="n">settings_for</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">create_app</span><span class="p">(</span><span class="n">settings</span><span class="p">)</span>
+    <span class="n">server</span> <span class="o">=</span> <span class="n">uvicorn</span><span class="o">.</span><span class="n">Server</span><span class="p">(</span><span class="n">uvicorn_config</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">check</span><span class="p">))</span>
+    <span class="n">not_started</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"tilie: could not start the server on </span><span class="si">{</span><span class="n">settings</span><span class="o">.</span><span class="n">host</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">"</span>
+
+    <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">token</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># A public run: no token to hand to a page, no browser to open and no</span>
+        <span class="c1"># check (the options are refused), only the line saying what it serves.</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">announce_public_server</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">"""Print the line saying what the public run serves."""</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">public_notice</span><span class="p">(</span><span class="n">settings</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">run_server</span><span class="p">(</span><span class="n">server</span><span class="p">,</span> <span class="n">announce_public_server</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">not_started</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="mi">0</span>
+
+    <span class="n">token</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">token</span>
+    <span class="n">base_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"http://</span><span class="si">{</span><span class="n">HOST</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">"</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">check</span><span class="p">:</span>
+        <span class="n">result</span><span class="p">:</span> <span class="n">Queue</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="ne">Exception</span><span class="p">]</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">check_started_server</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">"""Verify the running server, keep the outcome, then stop it."""</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">verify</span><span class="p">(</span><span class="n">base_url</span><span class="p">,</span> <span class="n">token</span><span class="p">))</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">CheckFailed</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="n">server</span><span class="o">.</span><span class="n">should_exit</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">started</span> <span class="o">=</span> <span class="n">run_server</span><span class="p">(</span><span class="n">server</span><span class="p">,</span> <span class="n">check_started_server</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">started</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">not_started</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="c1"># The observer runs once the server has started; should it be passed over</span>
+        <span class="c1"># at the startup deadline, nothing is put, so the wait is bounded too.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">outcome</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="n">STARTUP_TIMEOUT</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">Empty</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">"tilie --check failed: the server started but was not checked"</span><span class="p">,</span>
+                <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">outcome</span><span class="p">,</span> <span class="ne">Exception</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"tilie --check failed: </span><span class="si">{</span><span class="n">outcome</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">outcome</span><span class="p">))</span>
+        <span class="k">return</span> <span class="mi">0</span>
+
+    <span class="c1"># The token rides in the fragment, which the browser never sends to the</span>
+    <span class="c1"># server, so it stays out of the access log; the editor reads it from</span>
+    <span class="c1"># there and removes it from the address bar and the history entry.</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/#token=</span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s2">"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">announce_started_server</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Print the editor's URL and open it unless ``--no-browser`` is given."""</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">no_browser</span><span class="p">:</span>
+            <span class="n">webbrowser</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">run_server</span><span class="p">(</span><span class="n">server</span><span class="p">,</span> <span class="n">announce_started_server</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">not_started</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="mi">0</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>tilie_server.routers.lookup &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api-py/tilie_server.routers.lookup';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tilie_server.routers.match_claims" href="tilie_server.routers.match_claims.html" />
+    <link rel="prev" title="tilie_server.routers.health" href="tilie_server.routers.health.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="tilie_server.html">tilie_server</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tilie_server.app.html">tilie_server.app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tilie_server.claim_columns.html">tilie_server.claim_columns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tilie_server.cli.html">tilie_server.cli</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tilie_server.manifests.html">tilie_server.manifests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tilie_server.musicbrainz.html">tilie_server.musicbrainz</a></li>
+<li class="toctree-l2 current active"><a class="reference internal" href="tilie_server.routers.html">tilie_server.routers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tilie_server.security.html">tilie_server.security</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tilie_server.settings.html">tilie_server.settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tilie_server.static.html">tilie_server.static</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../python.html" class="nav-link">Python API</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="tilie_server.html" class="nav-link">tilie_server</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="tilie_server.routers.html" class="nav-link">tilie_server.routers</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tilie_server.routers.lookup</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-tilie_server.routers.lookup">
+<span id="tilie-server-routers-lookup"></span><h1>tilie_server.routers.lookup<a class="headerlink" href="#module-tilie_server.routers.lookup" title="Link to this heading">#</a></h1>
+<p>MusicBrainz through a Reconciliation Service API 0.2 endpoint.</p>
+<p>The editor looks values up in MusicBrainz through this server, which keeps
+MusicBrainz’s rules of use for all its requests (see
+<a class="reference internal" href="tilie_server.musicbrainz.html#module-tilie_server.musicbrainz" title="tilie_server.musicbrainz"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tilie_server.musicbrainz</span></code></a>). The endpoint speaks the W3C Entity
+Reconciliation Community Group’s Reconciliation Service API, version 0.2,
+so the editor reaches it with the same generic client as any conforming
+service:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/reconcile/musicbrainz</span></code>, the service manifest;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">queries=&lt;JSON&gt;</span></code> (<code class="docutils literal notranslate"><span class="pre">GET</span></code> or a <code class="docutils literal notranslate"><span class="pre">POST</span></code> form), reconciliation queries;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">extend=&lt;JSON&gt;</span></code> (<code class="docutils literal notranslate"><span class="pre">POST</span></code> form, or <code class="docutils literal notranslate"><span class="pre">GET</span></code>), data extension with the
+properties <code class="docutils literal notranslate"><span class="pre">name</span></code> and <code class="docutils literal notranslate"><span class="pre">sameAs</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">…/suggest/entity</span></code>, entity suggestions;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">…/properties</span></code>, the properties a type can be extended with.</p></li>
+</ul>
+<p>An identifier is <code class="docutils literal notranslate"><span class="pre">&lt;type&gt;/&lt;mbid&gt;</span></code>, so the identifier space
+<code class="docutils literal notranslate"><span class="pre">http://musicbrainz.org/</span></code> followed by it is the entity’s IRI
+(<code class="docutils literal notranslate"><span class="pre">http://musicbrainz.org/work/&lt;mbid&gt;</span></code>). <code class="docutils literal notranslate"><span class="pre">sameAs</span></code> lists the IRIs that
+timetoshare’s catalogue recognises in an entity’s URL relationships; the
+catalogue is imported when a request needs it, so a server whose
+timetoshare lacks it answers every other request.</p>
+<p>Form bodies are read with the standard library, and refusals are answered
+422 with <code class="docutils literal notranslate"><span class="pre">{&quot;detail&quot;:</span> <span class="pre">&lt;message&gt;}</span></code>; a failure of MusicBrainz itself 502.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.ENDPOINT">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">ENDPOINT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/api/reconcile/musicbrainz'</span></span><a class="headerlink" href="#tilie_server.routers.lookup.ENDPOINT" title="Link to this definition">#</a></dt>
+<dd><p>The service’s endpoint, root-relative.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.TYPE_NAMES">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">TYPE_NAMES</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.15)"><span class="pre">Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'artist':</span> <span class="pre">'artist',</span> <span class="pre">'recording':</span> <span class="pre">'recording',</span> <span class="pre">'release-group':</span> <span class="pre">'release</span> <span class="pre">group',</span> <span class="pre">'work':</span> <span class="pre">'work'}</span></span><a class="headerlink" href="#tilie_server.routers.lookup.TYPE_NAMES" title="Link to this definition">#</a></dt>
+<dd><p>The service’s types, in the manifest’s order, with their names.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.DEFAULT_TYPE">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">DEFAULT_TYPE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'work'</span></span><a class="headerlink" href="#tilie_server.routers.lookup.DEFAULT_TYPE" title="Link to this definition">#</a></dt>
+<dd><p>The type of a query, a suggestion or a property proposal naming none.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.PROPERTIES">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">PROPERTIES</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.15)"><span class="pre">Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'name':</span> <span class="pre">'name',</span> <span class="pre">'sameAs':</span> <span class="pre">'same</span> <span class="pre">as'}</span></span><a class="headerlink" href="#tilie_server.routers.lookup.PROPERTIES" title="Link to this definition">#</a></dt>
+<dd><p>The properties of data extension, with their names.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.QUERY_LIMIT">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">QUERY_LIMIT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></span><a class="headerlink" href="#tilie_server.routers.lookup.QUERY_LIMIT" title="Link to this definition">#</a></dt>
+<dd><p>Candidates per query when it names no <code class="docutils literal notranslate"><span class="pre">limit</span></code>.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.MAX_LIMIT">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">MAX_LIMIT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">25</span></span><a class="headerlink" href="#tilie_server.routers.lookup.MAX_LIMIT" title="Link to this definition">#</a></dt>
+<dd><p>The largest <code class="docutils literal notranslate"><span class="pre">limit</span></code> of a query.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.SUGGEST_LIMIT">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">SUGGEST_LIMIT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10</span></span><a class="headerlink" href="#tilie_server.routers.lookup.SUGGEST_LIMIT" title="Link to this definition">#</a></dt>
+<dd><p>Suggestions per request.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.SEPARATOR">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">SEPARATOR</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'</span> <span class="pre">·</span> <span class="pre">'</span></span><a class="headerlink" href="#tilie_server.routers.lookup.SEPARATOR" title="Link to this definition">#</a></dt>
+<dd><p>Joins the parts of a candidate’s description.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.MBID">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">MBID</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">re.compile('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')</span></span><a class="headerlink" href="#tilie_server.routers.lookup.MBID" title="Link to this definition">#</a></dt>
+<dd><p>A MusicBrainz identifier as MusicBrainz writes it.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.MANIFEST">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">MANIFEST</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'defaultTypes':</span> <span class="pre">[{'id':</span> <span class="pre">'work',</span> <span class="pre">'name':</span> <span class="pre">'work'},</span> <span class="pre">{'id':</span> <span class="pre">'artist',</span> <span class="pre">'name':</span> <span class="pre">'artist'},</span> <span class="pre">{'id':</span> <span class="pre">'recording',</span> <span class="pre">'name':</span> <span class="pre">'recording'},</span> <span class="pre">{'id':</span> <span class="pre">'release-group',</span> <span class="pre">'name':</span> <span class="pre">'release</span> <span class="pre">group'}],</span> <span class="pre">'extend':</span> <span class="pre">{'property_settings':</span> <span class="pre">[],</span> <span class="pre">'propose_properties':</span> <span class="pre">{'service_path':</span> <span class="pre">'/properties',</span> <span class="pre">'service_url':</span> <span class="pre">'/api/reconcile/musicbrainz'}},</span> <span class="pre">'identifierSpace':</span> <span class="pre">'http://musicbrainz.org/',</span> <span class="pre">'name':</span> <span class="pre">'MusicBrainz</span> <span class="pre">through</span> <span class="pre">tilie-server',</span> <span class="pre">'schemaSpace':</span> <span class="pre">'http://schema.org/',</span> <span class="pre">'suggest':</span> <span class="pre">{'entity':</span> <span class="pre">{'service_path':</span> <span class="pre">'/suggest/entity',</span> <span class="pre">'service_url':</span> <span class="pre">'/api/reconcile/musicbrainz'}},</span> <span class="pre">'versions':</span> <span class="pre">['0.2'],</span> <span class="pre">'view':</span> <span class="pre">{'url':</span> <span class="pre">'https://musicbrainz.org/{{id}}'}}</span></span><a class="headerlink" href="#tilie_server.routers.lookup.MANIFEST" title="Link to this definition">#</a></dt>
+<dd><p>The service manifest.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.Refusal">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">Refusal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status_code</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">422</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#Refusal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.Refusal" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#Exception" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+<p>A request the service cannot answer, with the status and the detail.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p></li>
+<li><p><strong>status_code</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.parameters">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.parameters" title="Link to this definition">#</a></dt>
+<dd><p>The request’s parameters: its query string, then a form body’s.</p>
+<p>A parameter given twice takes its first value; one in the body takes
+the place of the same parameter in the query string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>request</strong> (<em>Request</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)">dict</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.json_text">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">json_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#json_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.json_text" title="Link to this definition">#</a></dt>
+<dd><p>A value as the JSON text a refusal quotes it with, a string bare.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><em>Any</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.entity_type">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">entity_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#entity_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.entity_type" title="Link to this definition">#</a></dt>
+<dd><p>Read a type of this service.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#tilie_server.routers.lookup.Refusal" title="tilie_server.routers.lookup.Refusal"><strong>Refusal</strong></a> – If <code class="docutils literal notranslate"><span class="pre">value</span></code> is none of the service’s types.</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><em>Any</em></a>)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.read_queries">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">read_queries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#read_queries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.read_queries" title="Link to this definition">#</a></dt>
+<dd><p>Read <code class="docutils literal notranslate"><span class="pre">queries</span></code> into <code class="docutils literal notranslate"><span class="pre">(type,</span> <span class="pre">text,</span> <span class="pre">limit)</span></code> per key, all or none.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#tilie_server.routers.lookup.Refusal" title="tilie_server.routers.lookup.Refusal"><strong>Refusal</strong></a> – At the first query the service cannot answer.</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>text</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)">dict</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)">int</a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.read_extend">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">read_extend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#read_extend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.read_extend" title="Link to this definition">#</a></dt>
+<dd><p>Read <code class="docutils literal notranslate"><span class="pre">extend</span></code> into its identifiers and properties.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#tilie_server.routers.lookup.Refusal" title="tilie_server.routers.lookup.Refusal"><strong>Refusal</strong></a> – If it is no object with a list of identifier strings and a
+    list of property objects, or names an unknown property or an
+    identifier outside the service.</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>text</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)">list</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>], <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)">list</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.split_identifier">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">split_identifier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">identifier</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#split_identifier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.split_identifier" title="Link to this definition">#</a></dt>
+<dd><p>Split <code class="docutils literal notranslate"><span class="pre">&lt;type&gt;/&lt;mbid&gt;</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#tilie_server.routers.lookup.Refusal" title="tilie_server.routers.lookup.Refusal"><strong>Refusal</strong></a> – If <code class="docutils literal notranslate"><span class="pre">identifier</span></code> is not of that form.</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>identifier</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.cursor_of">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">cursor_of</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#cursor_of"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.cursor_of" title="Link to this definition">#</a></dt>
+<dd><p>Read a suggestion’s <code class="docutils literal notranslate"><span class="pre">cursor</span></code>, 0 when absent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#tilie_server.routers.lookup.Refusal" title="tilie_server.routers.lookup.Refusal"><strong>Refusal</strong></a> – If it is not written as an integer of 0 or more.</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><em>None</em>)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.credited">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">credited</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entity</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#credited"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.credited" title="Link to this definition">#</a></dt>
+<dd><p>The artist credit of a recording or a release group, as displayed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>entity</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.15)"><em>Mapping</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><em>Any</em></a><em>]</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.DESCRIPTIONS">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">DESCRIPTIONS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.15)"><span class="pre">Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.15)"><span class="pre">Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'artist':</span> <span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;,</span> <span class="pre">'recording':</span> <span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;,</span> <span class="pre">'release-group':</span> <span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;,</span> <span class="pre">'work':</span> <span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;}</span></span><a class="headerlink" href="#tilie_server.routers.lookup.DESCRIPTIONS" title="Link to this definition">#</a></dt>
+<dd><p>The parts of a candidate’s description, per type, before the empty go.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.named">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">named</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kind</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entity</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#named"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.named" title="Link to this definition">#</a></dt>
+<dd><p>An entity’s identifier, name and, where it has one, description.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kind</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p></li>
+<li><p><strong>entity</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.15)"><em>Mapping</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><em>Any</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)">dict</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><em>Any</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.candidates">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">candidates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kind</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">answer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#candidates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.candidates" title="Link to this definition">#</a></dt>
+<dd><p>The reconciliation candidates of one MusicBrainz search.</p>
+<p>A candidate is a match when it scores 100 and no other candidate does:
+MusicBrainz lists them by score, so it is the first, and the next one
+scores below 100.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kind</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p></li>
+<li><p><strong>answer</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.15)"><em>Mapping</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><em>Any</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)">list</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)">dict</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><em>Any</em></a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.catalogue_recognizer">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">catalogue_recognizer</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#catalogue_recognizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.catalogue_recognizer" title="Link to this definition">#</a></dt>
+<dd><p>Answer the IRI timetoshare’s catalogue recognises in a URL, if any.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#tilie_server.routers.lookup.Refusal" title="tilie_server.routers.lookup.Refusal"><strong>Refusal</strong></a> – 501, if the installed timetoshare has no catalogue.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><em>Callable</em></a>[[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>], <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a> | None]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.same_as">
+<span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">same_as</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recognized</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#same_as"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.same_as" title="Link to this definition">#</a></dt>
+<dd><p>The IRIs recognised in an entity’s URL relationships, in order, once.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>entity</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.15)"><em>Mapping</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><em>Any</em></a><em>]</em>)</p></li>
+<li><p><strong>recognized</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><em>Callable</em></a><em>[</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><em>None</em><em>]</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)">list</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)">dict</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.reconciled">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">reconciled</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">musicbrainz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#reconciled"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.reconciled" title="Link to this definition">#</a></dt>
+<dd><p>Answer reconciliation queries, one search per query.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>musicbrainz</strong> (<a class="reference internal" href="tilie_server.musicbrainz.html#tilie_server.musicbrainz.MusicBrainz" title="tilie_server.musicbrainz.MusicBrainz"><em>MusicBrainz</em></a>)</p></li>
+<li><p><strong>text</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)">dict</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><em>Any</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.extended">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">extended</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">musicbrainz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#extended"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.extended" title="Link to this definition">#</a></dt>
+<dd><p>Answer a data extension request, one lookup per identifier.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>musicbrainz</strong> (<a class="reference internal" href="tilie_server.musicbrainz.html#tilie_server.musicbrainz.MusicBrainz" title="tilie_server.musicbrainz.MusicBrainz"><em>MusicBrainz</em></a>)</p></li>
+<li><p><strong>text</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)">dict</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><em>Any</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.answered">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">answered</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">answer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#answered"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.answered" title="Link to this definition">#</a></dt>
+<dd><p>Run <code class="docutils literal notranslate"><span class="pre">answer</span></code> and turn a refusal or an upstream failure into JSON.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>request</strong> (<em>Request</em>)</p></li>
+<li><p><strong>answer</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><em>Callable</em></a><em>[</em><em>[</em><a class="reference internal" href="tilie_server.musicbrainz.html#tilie_server.musicbrainz.MusicBrainz" title="tilie_server.musicbrainz.MusicBrainz"><em>MusicBrainz</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>]</em><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><em>Any</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>JSONResponse</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.service">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">service</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">musicbrainz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">given</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#service"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.service" title="Link to this definition">#</a></dt>
+<dd><p>Answer <code class="docutils literal notranslate"><span class="pre">queries</span></code>, else <code class="docutils literal notranslate"><span class="pre">extend</span></code>, else return the service manifest.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>musicbrainz</strong> (<a class="reference internal" href="tilie_server.musicbrainz.html#tilie_server.musicbrainz.MusicBrainz" title="tilie_server.musicbrainz.MusicBrainz"><em>MusicBrainz</em></a>)</p></li>
+<li><p><strong>given</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><em>Any</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.suggestions">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">suggestions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">musicbrainz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">given</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#suggestions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.suggestions" title="Link to this definition">#</a></dt>
+<dd><p>Suggest the entities of a type whose name <code class="docutils literal notranslate"><span class="pre">prefix</span></code> finds, ten from <code class="docutils literal notranslate"><span class="pre">cursor</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#tilie_server.routers.lookup.Refusal" title="tilie_server.routers.lookup.Refusal"><strong>Refusal</strong></a> – If <code class="docutils literal notranslate"><span class="pre">prefix</span></code> is blank, <code class="docutils literal notranslate"><span class="pre">type</span></code> is none of the service’s
+    types, or <code class="docutils literal notranslate"><span class="pre">cursor</span></code> is no integer of 0 or more.</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>musicbrainz</strong> (<a class="reference internal" href="tilie_server.musicbrainz.html#tilie_server.musicbrainz.MusicBrainz" title="tilie_server.musicbrainz.MusicBrainz"><em>MusicBrainz</em></a>)</p></li>
+<li><p><strong>given</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><em>Any</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.proposed">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">proposed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">musicbrainz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">given</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#proposed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.proposed" title="Link to this definition">#</a></dt>
+<dd><p>Propose the properties of data extension for a type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#tilie_server.routers.lookup.Refusal" title="tilie_server.routers.lookup.Refusal"><strong>Refusal</strong></a> – If <code class="docutils literal notranslate"><span class="pre">type</span></code> is none of the service’s types.</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>musicbrainz</strong> (<a class="reference internal" href="tilie_server.musicbrainz.html#tilie_server.musicbrainz.MusicBrainz" title="tilie_server.musicbrainz.MusicBrainz"><em>MusicBrainz</em></a>)</p></li>
+<li><p><strong>given</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><em>Any</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.service_get">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">service_get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#service_get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.service_get" title="Link to this definition">#</a></dt>
+<dd><p>The manifest, or the answer to <code class="docutils literal notranslate"><span class="pre">queries</span></code> or <code class="docutils literal notranslate"><span class="pre">extend</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>request</strong> (<em>Request</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>JSONResponse</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.service_post">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">service_post</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#service_post"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.service_post" title="Link to this definition">#</a></dt>
+<dd><p>The answer to a form’s <code class="docutils literal notranslate"><span class="pre">queries</span></code> or <code class="docutils literal notranslate"><span class="pre">extend</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>request</strong> (<em>Request</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>JSONResponse</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.suggest">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">suggest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#suggest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.suggest" title="Link to this definition">#</a></dt>
+<dd><p>Entities whose name the prefix finds, ten from <code class="docutils literal notranslate"><span class="pre">cursor</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>request</strong> (<em>Request</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>JSONResponse</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tilie_server.routers.lookup.properties">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tilie_server.routers.lookup.</span></span><span class="sig-name descname"><span class="pre">properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tilie_server/routers/lookup.html#properties"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tilie_server.routers.lookup.properties" title="Link to this definition">#</a></dt>
+<dd><p>The properties of data extension for a type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>request</strong> (<em>Request</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>JSONResponse</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="tilie_server.routers.health.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">tilie_server.routers.health</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="tilie_server.routers.match_claims.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">tilie_server.routers.match_claims</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.ENDPOINT"><code class="docutils literal notranslate"><span class="pre">ENDPOINT</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.TYPE_NAMES"><code class="docutils literal notranslate"><span class="pre">TYPE_NAMES</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.DEFAULT_TYPE"><code class="docutils literal notranslate"><span class="pre">DEFAULT_TYPE</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.PROPERTIES"><code class="docutils literal notranslate"><span class="pre">PROPERTIES</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.QUERY_LIMIT"><code class="docutils literal notranslate"><span class="pre">QUERY_LIMIT</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.MAX_LIMIT"><code class="docutils literal notranslate"><span class="pre">MAX_LIMIT</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.SUGGEST_LIMIT"><code class="docutils literal notranslate"><span class="pre">SUGGEST_LIMIT</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.SEPARATOR"><code class="docutils literal notranslate"><span class="pre">SEPARATOR</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.MBID"><code class="docutils literal notranslate"><span class="pre">MBID</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.MANIFEST"><code class="docutils literal notranslate"><span class="pre">MANIFEST</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.Refusal"><code class="docutils literal notranslate"><span class="pre">Refusal</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.parameters"><code class="docutils literal notranslate"><span class="pre">parameters()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.json_text"><code class="docutils literal notranslate"><span class="pre">json_text()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.entity_type"><code class="docutils literal notranslate"><span class="pre">entity_type()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.read_queries"><code class="docutils literal notranslate"><span class="pre">read_queries()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.read_extend"><code class="docutils literal notranslate"><span class="pre">read_extend()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.split_identifier"><code class="docutils literal notranslate"><span class="pre">split_identifier()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.cursor_of"><code class="docutils literal notranslate"><span class="pre">cursor_of()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.credited"><code class="docutils literal notranslate"><span class="pre">credited()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.DESCRIPTIONS"><code class="docutils literal notranslate"><span class="pre">DESCRIPTIONS</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.named"><code class="docutils literal notranslate"><span class="pre">named()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.candidates"><code class="docutils literal notranslate"><span class="pre">candidates()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.catalogue_recognizer"><code class="docutils literal notranslate"><span class="pre">catalogue_recognizer()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.same_as"><code class="docutils literal notranslate"><span class="pre">same_as()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.reconciled"><code class="docutils literal notranslate"><span class="pre">reconciled()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.extended"><code class="docutils literal notranslate"><span class="pre">extended()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.answered"><code class="docutils literal notranslate"><span class="pre">answered()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.service"><code class="docutils literal notranslate"><span class="pre">service()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.suggestions"><code class="docutils literal notranslate"><span class="pre">suggestions()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.proposed"><code class="docutils literal notranslate"><span class="pre">proposed()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.service_get"><code class="docutils literal notranslate"><span class="pre">service_get()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.service_post"><code class="docutils literal notranslate"><span class="pre">service_post()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.suggest"><code class="docutils literal notranslate"><span class="pre">suggest()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie_server.routers.lookup.properties"><code class="docutils literal notranslate"><span class="pre">properties()</span></code></a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

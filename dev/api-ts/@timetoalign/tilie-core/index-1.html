@@ -1,0 +1,2361 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>index &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api-ts/@timetoalign/tilie-core/index-1';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="json" href="json.html" />
+    <link rel="prev" title="errors" href="errors.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">@timetoalign/tilie-core</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="commands/add.html">commands/add</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands/apply.html">commands/apply</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands/elisions.html">commands/elisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands/matchstamps.html">commands/matchstamps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands/mutations.html">commands/mutations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands/parse.html">commands/parse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands/preview.html">commands/preview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands/remove.html">commands/remove</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands/set.html">commands/set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands/settle.html">commands/settle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands/style.html">commands/style</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands/targets.html">commands/targets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands/timestamps.html">commands/timestamps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands/topology.html">commands/topology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands/types.html">commands/types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="errors.html">errors</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="json.html">json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/address.html">manifest/address</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/arrangement.html">manifest/arrangement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/containers.html">manifest/containers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/contains.html">manifest/contains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/elements.html">manifest/elements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/elisions.html">manifest/elisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/files.html">manifest/files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/flow.html">manifest/flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/invariants.html">manifest/invariants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/io.html">manifest/io</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/locks.html">manifest/locks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/order.html">manifest/order</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/remove.html">manifest/remove</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/segments.html">manifest/segments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/statements.html">manifest/statements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/tree.html">manifest/tree</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/types.html">manifest/types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="maps/compile.html">maps/compile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="maps/express.html">maps/express</a></li>
+<li class="toctree-l2"><a class="reference internal" href="maps/invert.html">maps/invert</a></li>
+<li class="toctree-l2"><a class="reference internal" href="maps/timestamp.html">maps/timestamp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="maps/values.html">maps/values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="matches/anchors.html">matches/anchors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="matches/beliefs.html">matches/beliefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="matches/columns.html">matches/columns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="matches/compare.html">matches/compare</a></li>
+<li class="toctree-l2"><a class="reference internal" href="matches/sort.html">matches/sort</a></li>
+<li class="toctree-l2"><a class="reference internal" href="number/coordinate.html">number/coordinate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="number/display.html">number/display</a></li>
+<li class="toctree-l2"><a class="reference internal" href="number/grid.html">number/grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="number/parse.html">number/parse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="number/rational.html">number/rational</a></li>
+<li class="toctree-l2"><a class="reference internal" href="number/real.html">number/real</a></li>
+<li class="toctree-l2"><a class="reference internal" href="numbers.html">numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="values.html">values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workspace/address.html">workspace/address</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workspace/blocks.html">workspace/blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workspace/file.html">workspace/file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workspace/guard.html">workspace/guard</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workspace/ids.html">workspace/ids</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workspace/order.html">workspace/order</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workspace/sessions.html">workspace/sessions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workspace/store.html">workspace/store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workspace/user.html">workspace/user</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workspace/view.html">workspace/view</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-layout/index.html">@timetoalign/tilie-layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-writers/index.html">@timetoalign/tilie-writers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-client/index.html">@timetoalign/tilie-client</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-arranger/index.html">@timetoalign/tilie-arranger</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-editor/index.html">@timetoalign/tilie-editor</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../typescript.html" class="nav-link">TypeScript API</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">&#64;timetoalign/tilie-core</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">index</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="index">
+<h1>index<a class="headerlink" href="#index" title="Link to this heading">#</a></h1>
+<section id="variables">
+<h2>Variables<a class="headerlink" href="#variables" title="Link to this heading">#</a></h2>
+<section id="name">
+<h3>name<a class="headerlink" href="#name" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>name</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;&#64;timetoalign/tilie-core&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/core/src/index.ts#L16">index.ts:16</a></p>
+<p>The package’s name.</p>
+</section>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading">#</a></h2>
+<section id="actoriri">
+<h3>actorIri<a class="headerlink" href="#actoriri" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/beliefs.html#actoriri"><span class="std std-ref">actorIri</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="add-kinds">
+<h3>ADD_KINDS<a class="headerlink" href="#add-kinds" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/types.html#add-kinds"><span class="std std-ref">ADD_KINDS</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="addcommand">
+<h3>AddCommand<a class="headerlink" href="#addcommand" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/types.html#addcommand"><span class="std std-ref">AddCommand</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="addkind">
+<h3>AddKind<a class="headerlink" href="#addkind" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/types.html#addkind"><span class="std std-ref">AddKind</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="address">
+<h3>Address<a class="headerlink" href="#address" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#address"><span class="std std-ref">Address</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="addresskey">
+<h3>addressKey<a class="headerlink" href="#addresskey" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/address.html#addresskey"><span class="std std-ref">addressKey</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="addresswords">
+<h3>addressWords<a class="headerlink" href="#addresswords" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#addresswords"><span class="std std-ref">addressWords</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="alignmentanchor">
+<h3>AlignmentAnchor<a class="headerlink" href="#alignmentanchor" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#alignmentanchor"><span class="std std-ref">AlignmentAnchor</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="ancestorcardref">
+<h3>AncestorCardRef<a class="headerlink" href="#ancestorcardref" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#ancestorcardref"><span class="std std-ref">AncestorCardRef</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="ancestormembers">
+<h3>ancestorMembers<a class="headerlink" href="#ancestormembers" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#ancestormembers"><span class="std std-ref">ancestorMembers</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="anchor-beliefs">
+<h3>ANCHOR_BELIEFS<a class="headerlink" href="#anchor-beliefs" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/beliefs.html#anchor-beliefs"><span class="std std-ref">ANCHOR_BELIEFS</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="anchorbelief">
+<h3>anchorBelief<a class="headerlink" href="#anchorbelief" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/beliefs.html#id2"><span class="std std-ref">anchorBelief</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="id1">
+<h3>AnchorBelief<a class="headerlink" href="#id1" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/beliefs.html#anchorbelief"><span class="std std-ref">AnchorBelief</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="anchordisplay">
+<h3>AnchorDisplay<a class="headerlink" href="#anchordisplay" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#anchordisplay"><span class="std std-ref">AnchorDisplay</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="anchorindex">
+<h3>AnchorIndex<a class="headerlink" href="#anchorindex" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#anchorindex"><span class="std std-ref">AnchorIndex</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="anchorindexof">
+<h3>anchorIndexOf<a class="headerlink" href="#anchorindexof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#anchorindexof"><span class="std std-ref">anchorIndexOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="anchors">
+<h3>Anchors<a class="headerlink" href="#anchors" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#id1"><span class="std std-ref">Anchors</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="anchorvalue">
+<h3>AnchorValue<a class="headerlink" href="#anchorvalue" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/matchstamps.html#anchorvalue"><span class="std std-ref">AnchorValue</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="apply">
+<h3>apply<a class="headerlink" href="#apply" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/apply.html#apply"><span class="std std-ref">apply</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="assertnever">
+<h3>assertNever<a class="headerlink" href="#assertnever" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="errors.html#assertnever"><span class="std std-ref">assertNever</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="axisvalue">
+<h3>AxisValue<a class="headerlink" href="#axisvalue" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#axisvalue"><span class="std std-ref">AxisValue</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="bandaddress">
+<h3>bandAddress<a class="headerlink" href="#bandaddress" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/address.html#bandaddress"><span class="std std-ref">bandAddress</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="bandorderentry">
+<h3>BandOrderEntry<a class="headerlink" href="#bandorderentry" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/order.html#bandorderentry"><span class="std std-ref">BandOrderEntry</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="bandorderof">
+<h3>bandOrderOf<a class="headerlink" href="#bandorderof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/order.html#bandorderof"><span class="std std-ref">bandOrderOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="beliefmask">
+<h3>beliefMask<a class="headerlink" href="#beliefmask" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/beliefs.html#beliefmask"><span class="std std-ref">beliefMask</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="believedby">
+<h3>believedBy<a class="headerlink" href="#believedby" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/beliefs.html#believedby"><span class="std std-ref">believedBy</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="block">
+<h3>Block<a class="headerlink" href="#block" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/blocks.html#block"><span class="std std-ref">Block</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="blockid">
+<h3>BlockId<a class="headerlink" href="#blockid" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/blocks.html#blockid"><span class="std std-ref">BlockId</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="bundle-address">
+<h3>BUNDLE_ADDRESS<a class="headerlink" href="#bundle-address" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/address.html#bundle-address"><span class="std std-ref">BUNDLE_ADDRESS</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="bundlewords">
+<h3>bundleWords<a class="headerlink" href="#bundlewords" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#bundlewords"><span class="std std-ref">bundleWords</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="canonicaltext">
+<h3>canonicalText<a class="headerlink" href="#canonicaltext" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="json.html#canonicaltext"><span class="std std-ref">canonicalText</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="canvas-directions">
+<h3>CANVAS_DIRECTIONS<a class="headerlink" href="#canvas-directions" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#canvas-directions"><span class="std std-ref">CANVAS_DIRECTIONS</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="canvasarrangement">
+<h3>CanvasArrangement<a class="headerlink" href="#canvasarrangement" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#canvasarrangement"><span class="std std-ref">CanvasArrangement</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="canvasdirection">
+<h3>CanvasDirection<a class="headerlink" href="#canvasdirection" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#canvasdirection"><span class="std std-ref">CanvasDirection</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="card-place-members">
+<h3>CARD_PLACE_MEMBERS<a class="headerlink" href="#card-place-members" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#card-place-members"><span class="std std-ref">CARD_PLACE_MEMBERS</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="cardaddress">
+<h3>cardAddress<a class="headerlink" href="#cardaddress" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/address.html#cardaddress"><span class="std std-ref">cardAddress</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="cardplace">
+<h3>CardPlace<a class="headerlink" href="#cardplace" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#cardplace"><span class="std std-ref">CardPlace</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="change">
+<h3>Change<a class="headerlink" href="#change" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/types.html#change"><span class="std std-ref">Change</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="checkcolumns">
+<h3>checkColumns<a class="headerlink" href="#checkcolumns" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/columns.html#checkcolumns"><span class="std std-ref">checkColumns</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="checkmatchstamp">
+<h3>checkMatchStamp<a class="headerlink" href="#checkmatchstamp" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/compare.html#checkmatchstamp"><span class="std std-ref">checkMatchStamp</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="childtimeline">
+<h3>ChildTimeline<a class="headerlink" href="#childtimeline" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#childtimeline"><span class="std std-ref">ChildTimeline</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="claimbeliefs">
+<h3>ClaimBeliefs<a class="headerlink" href="#claimbeliefs" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/beliefs.html#claimbeliefs"><span class="std std-ref">ClaimBeliefs</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="claimrowof">
+<h3>claimRowOf<a class="headerlink" href="#claimrowof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/columns.html#claimrowof"><span class="std std-ref">claimRowOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="claimrowsof">
+<h3>claimRowsOf<a class="headerlink" href="#claimrowsof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#claimrowsof"><span class="std std-ref">claimRowsOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="claimside">
+<h3>ClaimSide<a class="headerlink" href="#claimside" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/columns.html#claimside"><span class="std std-ref">ClaimSide</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="claimtimeline">
+<h3>ClaimTimeline<a class="headerlink" href="#claimtimeline" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/columns.html#claimtimeline"><span class="std std-ref">ClaimTimeline</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="claimvalues">
+<h3>ClaimValues<a class="headerlink" href="#claimvalues" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/columns.html#claimvalues"><span class="std std-ref">ClaimValues</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="columnsof">
+<h3>columnsOf<a class="headerlink" href="#columnsof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#columnsof"><span class="std std-ref">columnsOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="command">
+<h3>Command<a class="headerlink" href="#command" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/types.html#command"><span class="std std-ref">Command</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="commandentry">
+<h3>CommandEntry<a class="headerlink" href="#commandentry" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/sessions.html#commandentry"><span class="std std-ref">CommandEntry</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="commanderror">
+<h3>CommandError<a class="headerlink" href="#commanderror" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="errors.html#commanderror"><span class="std std-ref">CommandError</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="comparecodepoints">
+<h3>compareCodePoints<a class="headerlink" href="#comparecodepoints" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="json.html#comparecodepoints"><span class="std std-ref">compareCodePoints</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="compilecontext">
+<h3>CompileContext<a class="headerlink" href="#compilecontext" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/compile.html#compilecontext"><span class="std std-ref">CompileContext</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="compilemap">
+<h3>compileMap<a class="headerlink" href="#compilemap" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/compile.html#compilemap"><span class="std std-ref">compileMap</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="containerdescriptor">
+<h3>ContainerDescriptor<a class="headerlink" href="#containerdescriptor" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#containerdescriptor"><span class="std std-ref">ContainerDescriptor</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="containerkind">
+<h3>ContainerKind<a class="headerlink" href="#containerkind" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#containerkind"><span class="std std-ref">ContainerKind</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="containerlevel">
+<h3>ContainerLevel<a class="headerlink" href="#containerlevel" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#containerlevel"><span class="std std-ref">ContainerLevel</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="containerref">
+<h3>ContainerRef<a class="headerlink" href="#containerref" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#containerref"><span class="std std-ref">ContainerRef</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="containers">
+<h3>Containers<a class="headerlink" href="#containers" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#containers"><span class="std std-ref">Containers</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="id2">
+<h3>CONTAINERS<a class="headerlink" href="#id2" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#id33"><span class="std std-ref">CONTAINERS</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="containersof">
+<h3>containersOf<a class="headerlink" href="#containersof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#containersof"><span class="std std-ref">containersOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="contains">
+<h3>contains<a class="headerlink" href="#contains" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/contains.html#contains"><span class="std std-ref">contains</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="conversionmap">
+<h3>ConversionMap<a class="headerlink" href="#conversionmap" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#conversionmap"><span class="std std-ref">ConversionMap</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="coordinate">
+<h3>Coordinate<a class="headerlink" href="#coordinate" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="number/coordinate.html#coordinate"><span class="std std-ref">Coordinate</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="coordinatedict">
+<h3>coordinateDict<a class="headerlink" href="#coordinatedict" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="number/display.html#id1"><span class="std std-ref">coordinateDict</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="id3">
+<h3>CoordinateDict<a class="headerlink" href="#id3" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="number/display.html#coordinatedict"><span class="std std-ref">CoordinateDict</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="coordinatenear">
+<h3>coordinateNear<a class="headerlink" href="#coordinatenear" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#coordinatenear"><span class="std std-ref">coordinateNear</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="coordinateof">
+<h3>coordinateOf<a class="headerlink" href="#coordinateof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#coordinateof"><span class="std std-ref">coordinateOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="coordinates">
+<h3>Coordinates<a class="headerlink" href="#coordinates" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#id3"><span class="std std-ref">Coordinates</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="coordinateswithin">
+<h3>coordinatesWithin<a class="headerlink" href="#coordinateswithin" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#coordinateswithin"><span class="std std-ref">coordinatesWithin</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="coordinatevalue">
+<h3>coordinateValue<a class="headerlink" href="#coordinatevalue" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#coordinatevalue"><span class="std std-ref">coordinateValue</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="copyvalue">
+<h3>copyValue<a class="headerlink" href="#copyvalue" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="number/display.html#copyvalue"><span class="std std-ref">copyValue</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="createstore">
+<h3>createStore<a class="headerlink" href="#createstore" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/store.html#createstore"><span class="std std-ref">createStore</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="createview">
+<h3>createView<a class="headerlink" href="#createview" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#createview"><span class="std std-ref">createView</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="crosssectionmember">
+<h3>CrossSectionMember<a class="headerlink" href="#crosssectionmember" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#crosssectionmember"><span class="std std-ref">CrossSectionMember</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="crosssectionspec">
+<h3>CrossSectionSpec<a class="headerlink" href="#crosssectionspec" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#crosssectionspec"><span class="std std-ref">CrossSectionSpec</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="default-band-order">
+<h3>DEFAULT_BAND_ORDER<a class="headerlink" href="#default-band-order" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/order.html#default-band-order"><span class="std std-ref">DEFAULT_BAND_ORDER</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="default-granularity">
+<h3>DEFAULT_GRANULARITY<a class="headerlink" href="#default-granularity" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#default-granularity"><span class="std std-ref">DEFAULT_GRANULARITY</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="default-match-claim-filter">
+<h3>DEFAULT_MATCH_CLAIM_FILTER<a class="headerlink" href="#default-match-claim-filter" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#default-match-claim-filter"><span class="std std-ref">DEFAULT_MATCH_CLAIM_FILTER</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="default-user">
+<h3>DEFAULT_USER<a class="headerlink" href="#default-user" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/user.html#default-user"><span class="std std-ref">DEFAULT_USER</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="displayorder">
+<h3>displayOrder<a class="headerlink" href="#displayorder" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/order.html#displayorder"><span class="std std-ref">displayOrder</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="editorkind">
+<h3>EditorKind<a class="headerlink" href="#editorkind" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/sessions.html#editorkind"><span class="std std-ref">EditorKind</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="editorkindof">
+<h3>editorKindOf<a class="headerlink" href="#editorkindof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/sessions.html#editorkindof"><span class="std std-ref">editorKindOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="elementaddress">
+<h3>ElementAddress<a class="headerlink" href="#elementaddress" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/address.html#elementaddress"><span class="std std-ref">ElementAddress</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="elementaddressof">
+<h3>elementAddressOf<a class="headerlink" href="#elementaddressof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#elementaddressof"><span class="std std-ref">elementAddressOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="elementbelief">
+<h3>ElementBelief<a class="headerlink" href="#elementbelief" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flow.html#elementbelief"><span class="std std-ref">ElementBelief</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="elementprovenance">
+<h3>ElementProvenance<a class="headerlink" href="#elementprovenance" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flow.html#elementprovenance"><span class="std std-ref">ElementProvenance</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="elision">
+<h3>Elision<a class="headerlink" href="#elision" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#elision"><span class="std std-ref">Elision</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="elisionsunder">
+<h3>elisionsUnder<a class="headerlink" href="#elisionsunder" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/elisions.html#elisionsunder"><span class="std std-ref">elisionsUnder</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="emptyworkspace">
+<h3>emptyWorkspace<a class="headerlink" href="#emptyworkspace" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/file.html#emptyworkspace"><span class="std std-ref">emptyWorkspace</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="entry">
+<h3>Entry<a class="headerlink" href="#entry" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/sessions.html#id12"><span class="std std-ref">Entry</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="entrykind">
+<h3>EntryKind<a class="headerlink" href="#entrykind" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/files.html#entrykind"><span class="std std-ref">EntryKind</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="entryword">
+<h3>entryWord<a class="headerlink" href="#entryword" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#entryword"><span class="std std-ref">entryWord</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="errorcode">
+<h3>ErrorCode<a class="headerlink" href="#errorcode" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="errors.html#id15"><span class="std std-ref">ErrorCode</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="express">
+<h3>express<a class="headerlink" href="#express" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/express.html#express"><span class="std std-ref">express</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="expressas">
+<h3>expressAs<a class="headerlink" href="#expressas" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/express.html#expressas"><span class="std std-ref">expressAs</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="expressed">
+<h3>Expressed<a class="headerlink" href="#expressed" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/express.html#expressed"><span class="std std-ref">Expressed</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="expressednumber">
+<h3>ExpressedNumber<a class="headerlink" href="#expressednumber" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/express.html#expressednumber"><span class="std std-ref">ExpressedNumber</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="expressedoutputs">
+<h3>ExpressedOutputs<a class="headerlink" href="#expressedoutputs" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/express.html#expressedoutputs"><span class="std std-ref">ExpressedOutputs</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="facets">
+<h3>FACETS<a class="headerlink" href="#facets" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/address.html#facets"><span class="std std-ref">FACETS</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="facetword">
+<h3>facetWord<a class="headerlink" href="#facetword" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#facetword"><span class="std std-ref">facetWord</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="findtimeline">
+<h3>findTimeline<a class="headerlink" href="#findtimeline" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/tree.html#findtimeline"><span class="std std-ref">findTimeline</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="flow-line-roles">
+<h3>FLOW_LINE_ROLES<a class="headerlink" href="#flow-line-roles" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flow.html#flow-line-roles"><span class="std std-ref">FLOW_LINE_ROLES</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="flowcontrolelement">
+<h3>FlowControlElement<a class="headerlink" href="#flowcontrolelement" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#flowcontrolelement"><span class="std std-ref">FlowControlElement</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="flowlinerole">
+<h3>FlowLineRole<a class="headerlink" href="#flowlinerole" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flow.html#flowlinerole"><span class="std std-ref">FlowLineRole</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="gap">
+<h3>Gap<a class="headerlink" href="#gap" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/segments.html#gap"><span class="std std-ref">Gap</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="gapoption">
+<h3>GapOption<a class="headerlink" href="#gapoption" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/segments.html#gapoption"><span class="std std-ref">GapOption</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="gaps">
+<h3>GAPS<a class="headerlink" href="#gaps" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/segments.html#gaps"><span class="std std-ref">GAPS</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="gapside">
+<h3>GapSide<a class="headerlink" href="#gapside" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/segments.html#gapside"><span class="std std-ref">GapSide</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="gapverb">
+<h3>GapVerb<a class="headerlink" href="#gapverb" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/segments.html#gapverb"><span class="std std-ref">GapVerb</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="granularity">
+<h3>Granularity<a class="headerlink" href="#granularity" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#granularity"><span class="std std-ref">Granularity</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="group">
+<h3>Group<a class="headerlink" href="#group" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#group"><span class="std std-ref">Group</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="groupelisions">
+<h3>groupElisions<a class="headerlink" href="#groupelisions" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/elisions.html#groupelisions"><span class="std std-ref">groupElisions</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="groupsholding">
+<h3>groupsHolding<a class="headerlink" href="#groupsholding" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/tree.html#groupsholding"><span class="std std-ref">groupsHolding</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="groupstampbydefault">
+<h3>groupstampByDefault<a class="headerlink" href="#groupstampbydefault" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/timestamps.html#groupstampbydefault"><span class="std std-ref">groupstampByDefault</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="holderkind">
+<h3>HolderKind<a class="headerlink" href="#holderkind" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/statements.html#holderkind"><span class="std std-ref">HolderKind</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="holding">
+<h3>Holding<a class="headerlink" href="#holding" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#holding"><span class="std std-ref">Holding</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="holdingof">
+<h3>holdingOf<a class="headerlink" href="#holdingof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#holdingof"><span class="std std-ref">holdingOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="idaddress">
+<h3>idAddress<a class="headerlink" href="#idaddress" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/address.html#idaddress"><span class="std std-ref">idAddress</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="idformpath">
+<h3>idFormPath<a class="headerlink" href="#idformpath" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/io.html#idformpath"><span class="std std-ref">idFormPath</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="importedmanifest">
+<h3>importedManifest<a class="headerlink" href="#importedmanifest" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/timestamps.html#importedmanifest"><span class="std std-ref">importedManifest</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="inblock">
+<h3>inBlock<a class="headerlink" href="#inblock" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#inblock"><span class="std std-ref">inBlock</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="indexbetween">
+<h3>indexBetween<a class="headerlink" href="#indexbetween" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/order.html#indexbetween"><span class="std std-ref">indexBetween</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="indexof">
+<h3>indexOf<a class="headerlink" href="#indexof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#indexof"><span class="std std-ref">indexOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="indicesbetween">
+<h3>indicesBetween<a class="headerlink" href="#indicesbetween" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/order.html#indicesbetween"><span class="std std-ref">indicesBetween</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="inheritedbandorder">
+<h3>inheritedBandOrder<a class="headerlink" href="#inheritedbandorder" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/order.html#inheritedbandorder"><span class="std std-ref">inheritedBandOrder</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="invalidmanifesterror">
+<h3>InvalidManifestError<a class="headerlink" href="#invalidmanifesterror" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="errors.html#invalidmanifesterror"><span class="std std-ref">InvalidManifestError</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="inversioncontext">
+<h3>InversionContext<a class="headerlink" href="#inversioncontext" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/invert.html#inversioncontext"><span class="std std-ref">InversionContext</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="invert">
+<h3>invert<a class="headerlink" href="#invert" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/invert.html#invert"><span class="std std-ref">invert</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="invertible">
+<h3>invertible<a class="headerlink" href="#invertible" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/invert.html#invertible"><span class="std std-ref">invertible</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="iscommanderror">
+<h3>isCommandError<a class="headerlink" href="#iscommanderror" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="errors.html#iscommanderror"><span class="std std-ref">isCommandError</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="iselementaddress">
+<h3>isElementAddress<a class="headerlink" href="#iselementaddress" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#iselementaddress"><span class="std std-ref">isElementAddress</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="isfacet">
+<h3>isFacet<a class="headerlink" href="#isfacet" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/address.html#isfacet"><span class="std std-ref">isFacet</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="isgroupmember">
+<h3>isGroupMember<a class="headerlink" href="#isgroupmember" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/timestamps.html#isgroupmember"><span class="std std-ref">isGroupMember</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="isindex">
+<h3>isIndex<a class="headerlink" href="#isindex" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/order.html#isindex"><span class="std std-ref">isIndex</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="isloaderror">
+<h3>isLoadError<a class="headerlink" href="#isloaderror" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="errors.html#isloaderror"><span class="std std-ref">isLoadError</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="isnamed">
+<h3>isNamed<a class="headerlink" href="#isnamed" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/files.html#isnamed"><span class="std std-ref">isNamed</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="isrejected">
+<h3>isRejected<a class="headerlink" href="#isrejected" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flow.html#isrejected"><span class="std std-ref">isRejected</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="isrelativelocation">
+<h3>isRelativeLocation<a class="headerlink" href="#isrelativelocation" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#isrelativelocation"><span class="std std-ref">isRelativeLocation</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="issessionentry">
+<h3>isSessionEntry<a class="headerlink" href="#issessionentry" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/sessions.html#issessionentry"><span class="std std-ref">isSessionEntry</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="item-directions">
+<h3>ITEM_DIRECTIONS<a class="headerlink" href="#item-directions" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/blocks.html#item-directions"><span class="std std-ref">ITEM_DIRECTIONS</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="item-place-members">
+<h3>ITEM_PLACE_MEMBERS<a class="headerlink" href="#item-place-members" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#item-place-members"><span class="std std-ref">ITEM_PLACE_MEMBERS</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="itemarrangement">
+<h3>ItemArrangement<a class="headerlink" href="#itemarrangement" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/blocks.html#itemarrangement"><span class="std std-ref">ItemArrangement</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="itemdirection">
+<h3>ItemDirection<a class="headerlink" href="#itemdirection" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/blocks.html#itemdirection"><span class="std std-ref">ItemDirection</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="itemplace">
+<h3>ItemPlace<a class="headerlink" href="#itemplace" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#itemplace"><span class="std std-ref">ItemPlace</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="journalmismatcherror">
+<h3>JournalMismatchError<a class="headerlink" href="#journalmismatcherror" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="errors.html#journalmismatcherror"><span class="std std-ref">JournalMismatchError</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="json">
+<h3>Json<a class="headerlink" href="#json" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="json.html#id1"><span class="std std-ref">Json</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="jumpdestination">
+<h3>JumpDestination<a class="headerlink" href="#jumpdestination" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#jumpdestination"><span class="std std-ref">JumpDestination</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="knots">
+<h3>Knots<a class="headerlink" href="#knots" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#id52"><span class="std std-ref">Knots</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="knotsabsence">
+<h3>KnotsAbsence<a class="headerlink" href="#knotsabsence" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#knotsabsence"><span class="std std-ref">KnotsAbsence</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="line">
+<h3>LINE<a class="headerlink" href="#line" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/order.html#line"><span class="std std-ref">LINE</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="listedelement">
+<h3>ListedElement<a class="headerlink" href="#listedelement" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/files.html#listedelement"><span class="std std-ref">ListedElement</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="listedentry">
+<h3>ListedEntry<a class="headerlink" href="#listedentry" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/sessions.html#listedentry"><span class="std std-ref">ListedEntry</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="listentries">
+<h3>listEntries<a class="headerlink" href="#listentries" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/sessions.html#listentries"><span class="std std-ref">listEntries</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="loaderror">
+<h3>LoadError<a class="headerlink" href="#loaderror" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="errors.html#loaderror"><span class="std std-ref">LoadError</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="loadmanifest">
+<h3>loadManifest<a class="headerlink" href="#loadmanifest" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/io.html#loadmanifest"><span class="std std-ref">loadManifest</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="manifest">
+<h3>Manifest<a class="headerlink" href="#manifest" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#manifest"><span class="std std-ref">Manifest</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="manifestfile">
+<h3>ManifestFile<a class="headerlink" href="#manifestfile" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#manifestfile"><span class="std std-ref">ManifestFile</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="manifestfileof">
+<h3>manifestFileOf<a class="headerlink" href="#manifestfileof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#manifestfileof"><span class="std std-ref">manifestFileOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="manifestfilevalue">
+<h3>manifestFileValue<a class="headerlink" href="#manifestfilevalue" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/io.html#manifestfilevalue"><span class="std std-ref">manifestFileValue</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="manifestgraphical">
+<h3>ManifestGraphical<a class="headerlink" href="#manifestgraphical" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#manifestgraphical"><span class="std std-ref">ManifestGraphical</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="manifestids">
+<h3>manifestIds<a class="headerlink" href="#manifestids" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#manifestids"><span class="std std-ref">manifestIds</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="manifestindex">
+<h3>ManifestIndex<a class="headerlink" href="#manifestindex" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#manifestindex"><span class="std std-ref">ManifestIndex</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="manifestwarnings">
+<h3>manifestWarnings<a class="headerlink" href="#manifestwarnings" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/io.html#manifestwarnings"><span class="std std-ref">manifestWarnings</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="mapevaluator">
+<h3>MapEvaluator<a class="headerlink" href="#mapevaluator" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/compile.html#mapevaluator"><span class="std std-ref">MapEvaluator</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="mapinput">
+<h3>MapInput<a class="headerlink" href="#mapinput" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/values.html#mapinput"><span class="std std-ref">MapInput</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="mapoutputs">
+<h3>MapOutputs<a class="headerlink" href="#mapoutputs" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/values.html#mapoutputs"><span class="std std-ref">MapOutputs</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="mapresult">
+<h3>MapResult<a class="headerlink" href="#mapresult" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/values.html#mapresult"><span class="std std-ref">MapResult</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="mapvalue">
+<h3>MapValue<a class="headerlink" href="#mapvalue" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/values.html#mapvalue"><span class="std std-ref">MapValue</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="matchclaimcolumns">
+<h3>matchClaimColumns<a class="headerlink" href="#matchclaimcolumns" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/columns.html#id19"><span class="std std-ref">matchClaimColumns</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="id4">
+<h3>MatchClaimColumns<a class="headerlink" href="#id4" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/columns.html#matchclaimcolumns"><span class="std std-ref">MatchClaimColumns</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="matchclaimfilter">
+<h3>MatchClaimFilter<a class="headerlink" href="#matchclaimfilter" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#matchclaimfilter"><span class="std std-ref">MatchClaimFilter</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="matchclaimfilterof">
+<h3>matchClaimFilterOf<a class="headerlink" href="#matchclaimfilterof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#matchclaimfilterof"><span class="std std-ref">matchClaimFilterOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="matchedspans">
+<h3>MatchedSpans<a class="headerlink" href="#matchedspans" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#matchedspans"><span class="std std-ref">MatchedSpans</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="matchstampanchors">
+<h3>matchStampAnchors<a class="headerlink" href="#matchstampanchors" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#matchstampanchors"><span class="std std-ref">matchStampAnchors</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="matchstampcheck">
+<h3>MatchStampCheck<a class="headerlink" href="#matchstampcheck" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/compare.html#matchstampcheck"><span class="std std-ref">MatchStampCheck</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="matchstampmembers">
+<h3>matchStampMembers<a class="headerlink" href="#matchstampmembers" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#matchstampmembers"><span class="std std-ref">matchStampMembers</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="matchstampspec">
+<h3>matchStampSpec<a class="headerlink" href="#matchstampspec" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/matchstamps.html#matchstampspec"><span class="std std-ref">matchStampSpec</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="matchstampupdate">
+<h3>MatchStampUpdate<a class="headerlink" href="#matchstampupdate" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/compare.html#matchstampupdate"><span class="std std-ref">MatchStampUpdate</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="measureknot">
+<h3>MeasureKnot<a class="headerlink" href="#measureknot" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/values.html#measureknot"><span class="std std-ref">MeasureKnot</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="measureknots">
+<h3>MeasureKnots<a class="headerlink" href="#measureknots" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/values.html#measureknots"><span class="std std-ref">MeasureKnots</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="measuremap">
+<h3>MeasureMap<a class="headerlink" href="#measuremap" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#measuremap"><span class="std std-ref">MeasureMap</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="measurerecord">
+<h3>MeasureRecord<a class="headerlink" href="#measurerecord" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/values.html#measurerecord"><span class="std std-ref">MeasureRecord</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="measuretext">
+<h3>measureText<a class="headerlink" href="#measuretext" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#measuretext"><span class="std std-ref">measureText</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="mintblockid">
+<h3>mintBlockId<a class="headerlink" href="#mintblockid" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/ids.html#mintblockid"><span class="std std-ref">mintBlockId</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="namedanchor">
+<h3>NamedAnchor<a class="headerlink" href="#namedanchor" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/compare.html#namedanchor"><span class="std std-ref">NamedAnchor</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="namedasgroupstamp">
+<h3>namedAsGroupstamp<a class="headerlink" href="#namedasgroupstamp" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/matchstamps.html#namedasgroupstamp"><span class="std std-ref">namedAsGroupstamp</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="namedcoordinate">
+<h3>NamedCoordinate<a class="headerlink" href="#namedcoordinate" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/compare.html#namedcoordinate"><span class="std std-ref">NamedCoordinate</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="namedmatchstamp">
+<h3>NamedMatchStamp<a class="headerlink" href="#namedmatchstamp" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#namedmatchstamp"><span class="std std-ref">NamedMatchStamp</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="namedmatchstampspec">
+<h3>NamedMatchStampSpec<a class="headerlink" href="#namedmatchstampspec" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/compare.html#namedmatchstampspec"><span class="std std-ref">NamedMatchStampSpec</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="namedtimestamp">
+<h3>NamedTimestamp<a class="headerlink" href="#namedtimestamp" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#namedtimestamp"><span class="std std-ref">NamedTimestamp</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="neighbours">
+<h3>Neighbours<a class="headerlink" href="#neighbours" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#id8"><span class="std std-ref">Neighbours</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="new-manifest-file">
+<h3>NEW_MANIFEST_FILE<a class="headerlink" href="#new-manifest-file" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/io.html#new-manifest-file"><span class="std std-ref">NEW_MANIFEST_FILE</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="nextid">
+<h3>nextId<a class="headerlink" href="#nextid" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/ids.html#nextid"><span class="std std-ref">nextId</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="normalizemanifest">
+<h3>normalizeManifest<a class="headerlink" href="#normalizemanifest" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/io.html#normalizemanifest"><span class="std std-ref">normalizeManifest</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="openeditor">
+<h3>OpenEditor<a class="headerlink" href="#openeditor" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/sessions.html#openeditor"><span class="std std-ref">OpenEditor</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="owneraddress">
+<h3>OwnerAddress<a class="headerlink" href="#owneraddress" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/address.html#owneraddress"><span class="std std-ref">OwnerAddress</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="parseaxisvalue">
+<h3>parseAxisValue<a class="headerlink" href="#parseaxisvalue" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="number/parse.html#parseaxisvalue"><span class="std std-ref">parseAxisValue</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="partaddress">
+<h3>partAddress<a class="headerlink" href="#partaddress" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/address.html#partaddress"><span class="std std-ref">partAddress</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="pathsegment">
+<h3>PathSegment<a class="headerlink" href="#pathsegment" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="json.html#pathsegment"><span class="std std-ref">PathSegment</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="pin">
+<h3>Pin<a class="headerlink" href="#pin" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#pin"><span class="std std-ref">Pin</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="pinat">
+<h3>pinAt<a class="headerlink" href="#pinat" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#pinat"><span class="std std-ref">pinAt</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="place">
+<h3>Place<a class="headerlink" href="#place" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#id11"><span class="std std-ref">Place</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="placeat">
+<h3>placeAt<a class="headerlink" href="#placeat" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#placeat"><span class="std std-ref">placeAt</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="placedcontainer">
+<h3>placedContainer<a class="headerlink" href="#placedcontainer" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#placedcontainer"><span class="std std-ref">placedContainer</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="placedelement">
+<h3>placedElement<a class="headerlink" href="#placedelement" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#placedelement"><span class="std std-ref">placedElement</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="placeentries">
+<h3>placeEntries<a class="headerlink" href="#placeentries" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#placeentries"><span class="std std-ref">placeEntries</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="placekey">
+<h3>PlaceKey<a class="headerlink" href="#placekey" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#placekey"><span class="std std-ref">PlaceKey</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="placekeytext">
+<h3>placeKeyText<a class="headerlink" href="#placekeytext" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#placekeytext"><span class="std std-ref">placeKeyText</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="placemembersof">
+<h3>placeMembersOf<a class="headerlink" href="#placemembersof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#placemembersof"><span class="std std-ref">placeMembersOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="places">
+<h3>Places<a class="headerlink" href="#places" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#places"><span class="std std-ref">Places</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="positionfor">
+<h3>positionFor<a class="headerlink" href="#positionfor" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#positionfor"><span class="std std-ref">positionFor</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="potentialmatchstamps">
+<h3>PotentialMatchStamps<a class="headerlink" href="#potentialmatchstamps" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#potentialmatchstamps"><span class="std std-ref">PotentialMatchStamps</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="prettytext">
+<h3>prettyText<a class="headerlink" href="#prettytext" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="number/display.html#prettytext"><span class="std std-ref">prettyText</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="prettyunit">
+<h3>prettyUnit<a class="headerlink" href="#prettyunit" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="number/display.html#prettyunit"><span class="std std-ref">prettyUnit</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="preview">
+<h3>preview<a class="headerlink" href="#preview" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/preview.html#preview"><span class="std std-ref">preview</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="problem">
+<h3>Problem<a class="headerlink" href="#problem" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="errors.html#problem"><span class="std std-ref">Problem</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="provenanceentry">
+<h3>ProvenanceEntry<a class="headerlink" href="#provenanceentry" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#provenanceentry"><span class="std std-ref">ProvenanceEntry</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="quarterpair">
+<h3>QuarterPair<a class="headerlink" href="#quarterpair" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/values.html#quarterpair"><span class="std std-ref">QuarterPair</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="rawtext">
+<h3>rawText<a class="headerlink" href="#rawtext" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="number/display.html#rawtext"><span class="std std-ref">rawText</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="readaddress">
+<h3>readAddress<a class="headerlink" href="#readaddress" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#readaddress"><span class="std std-ref">readAddress</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="readmanifestfile">
+<h3>readManifestFile<a class="headerlink" href="#readmanifestfile" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/io.html#id36"><span class="std std-ref">readManifestFile</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="id5">
+<h3>ReadManifestFile<a class="headerlink" href="#id5" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/io.html#readmanifestfile"><span class="std std-ref">ReadManifestFile</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="readorcid">
+<h3>readOrcid<a class="headerlink" href="#readorcid" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/user.html#readorcid"><span class="std std-ref">readOrcid</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="readworkspace">
+<h3>readWorkspace<a class="headerlink" href="#readworkspace" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/file.html#readworkspace"><span class="std std-ref">readWorkspace</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="real">
+<h3>Real<a class="headerlink" href="#real" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="number/real.html#real"><span class="std std-ref">Real</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="region">
+<h3>Region<a class="headerlink" href="#region" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#region"><span class="std std-ref">Region</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="removecommand">
+<h3>RemoveCommand<a class="headerlink" href="#removecommand" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/types.html#removecommand"><span class="std std-ref">RemoveCommand</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="removedby">
+<h3>removedBy<a class="headerlink" href="#removedby" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/remove.html#removedby"><span class="std std-ref">removedBy</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="resolveaddress">
+<h3>resolveAddress<a class="headerlink" href="#resolveaddress" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#resolveaddress"><span class="std std-ref">resolveAddress</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="resolvedaddress">
+<h3>ResolvedAddress<a class="headerlink" href="#resolvedaddress" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#resolvedaddress"><span class="std std-ref">ResolvedAddress</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="resolvedelement">
+<h3>ResolvedElement<a class="headerlink" href="#resolvedelement" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#resolvedelement"><span class="std std-ref">ResolvedElement</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="resolveelement">
+<h3>resolveElement<a class="headerlink" href="#resolveelement" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#resolveelement"><span class="std std-ref">resolveElement</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="row">
+<h3>Row<a class="headerlink" href="#row" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#row"><span class="std std-ref">Row</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="sameaddress">
+<h3>sameAddress<a class="headerlink" href="#sameaddress" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/address.html#sameaddress"><span class="std std-ref">sameAddress</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="sameplacekey">
+<h3>samePlaceKey<a class="headerlink" href="#sameplacekey" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#sameplacekey"><span class="std std-ref">samePlaceKey</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="savemanifest">
+<h3>saveManifest<a class="headerlink" href="#savemanifest" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/io.html#savemanifest"><span class="std std-ref">saveManifest</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="segments">
+<h3>Segments<a class="headerlink" href="#segments" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#segments"><span class="std std-ref">Segments</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="segmentsof">
+<h3>segmentsOf<a class="headerlink" href="#segmentsof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/anchors.html#segmentsof"><span class="std std-ref">segmentsOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="session">
+<h3>Session<a class="headerlink" href="#session" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/sessions.html#id5"><span class="std std-ref">Session</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="setcommand">
+<h3>SetCommand<a class="headerlink" href="#setcommand" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/types.html#setcommand"><span class="std std-ref">SetCommand</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="settingschange">
+<h3>SettingsChange<a class="headerlink" href="#settingschange" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/store.html#settingschange"><span class="std std-ref">SettingsChange</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="skeleton">
+<h3>Skeleton<a class="headerlink" href="#skeleton" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/statements.html#skeleton"><span class="std std-ref">Skeleton</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="skeletonof">
+<h3>skeletonOf<a class="headerlink" href="#skeletonof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/statements.html#skeletonof"><span class="std std-ref">skeletonOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="skeletonregion">
+<h3>SkeletonRegion<a class="headerlink" href="#skeletonregion" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/statements.html#skeletonregion"><span class="std std-ref">SkeletonRegion</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="skeletontimeline">
+<h3>SkeletonTimeline<a class="headerlink" href="#skeletontimeline" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/statements.html#skeletontimeline"><span class="std std-ref">SkeletonTimeline</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="snaponrow">
+<h3>snapOnRow<a class="headerlink" href="#snaponrow" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#snaponrow"><span class="std std-ref">snapOnRow</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="statedby">
+<h3>statedBy<a class="headerlink" href="#statedby" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/user.html#statedby"><span class="std std-ref">statedBy</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="statementholder">
+<h3>statementHolder<a class="headerlink" href="#statementholder" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/statements.html#id17"><span class="std std-ref">statementHolder</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="id6">
+<h3>StatementHolder<a class="headerlink" href="#id6" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/statements.html#statementholder"><span class="std std-ref">StatementHolder</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="statementholders">
+<h3>statementHolders<a class="headerlink" href="#statementholders" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/statements.html#statementholders"><span class="std std-ref">statementHolders</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="statements">
+<h3>Statements<a class="headerlink" href="#statements" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#statements"><span class="std std-ref">Statements</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="store">
+<h3>Store<a class="headerlink" href="#store" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/store.html#store"><span class="std std-ref">Store</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="storeoptions">
+<h3>StoreOptions<a class="headerlink" href="#storeoptions" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/store.html#storeoptions"><span class="std std-ref">StoreOptions</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="stylecommand">
+<h3>StyleCommand<a class="headerlink" href="#stylecommand" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/types.html#stylecommand"><span class="std std-ref">StyleCommand</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="tilie-agent">
+<h3>TILIE_AGENT<a class="headerlink" href="#tilie-agent" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/user.html#tilie-agent"><span class="std std-ref">TILIE_AGENT</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="timelineaxis">
+<h3>TimelineAxis<a class="headerlink" href="#timelineaxis" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#timelineaxis"><span class="std std-ref">TimelineAxis</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="timelineaxisof">
+<h3>timelineAxisOf<a class="headerlink" href="#timelineaxisof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#timelineaxisof"><span class="std std-ref">timelineAxisOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="timelinemanifest">
+<h3>TimelineManifest<a class="headerlink" href="#timelinemanifest" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#timelinemanifest"><span class="std std-ref">TimelineManifest</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="timestamp">
+<h3>Timestamp<a class="headerlink" href="#timestamp" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#id32"><span class="std std-ref">Timestamp</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="timestampat">
+<h3>timestampAt<a class="headerlink" href="#timestampat" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#timestampat"><span class="std std-ref">timestampAt</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="timestampdisplay">
+<h3>TimestampDisplay<a class="headerlink" href="#timestampdisplay" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#timestampdisplay"><span class="std std-ref">TimestampDisplay</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="timestampjson">
+<h3>timestampJson<a class="headerlink" href="#timestampjson" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#timestampjson"><span class="std std-ref">timestampJson</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="timestampmap">
+<h3>TimestampMap<a class="headerlink" href="#timestampmap" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#timestampmap"><span class="std std-ref">TimestampMap</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="timestamppart">
+<h3>TimestampPart<a class="headerlink" href="#timestamppart" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#timestamppart"><span class="std std-ref">TimestampPart</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="timestamprow">
+<h3>TimestampRow<a class="headerlink" href="#timestamprow" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#timestamprow"><span class="std std-ref">TimestampRow</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="timestamprows">
+<h3>timestampRows<a class="headerlink" href="#timestamprows" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#timestamprows"><span class="std std-ref">timestampRows</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="title-address">
+<h3>TITLE_ADDRESS<a class="headerlink" href="#title-address" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/address.html#title-address"><span class="std std-ref">TITLE_ADDRESS</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="unknownkeys">
+<h3>unknownKeys<a class="headerlink" href="#unknownkeys" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/io.html#unknownkeys"><span class="std std-ref">unknownKeys</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="untitled-workspace">
+<h3>UNTITLED_WORKSPACE<a class="headerlink" href="#untitled-workspace" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#untitled-workspace"><span class="std std-ref">UNTITLED_WORKSPACE</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="user">
+<h3>User<a class="headerlink" href="#user" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/user.html#user"><span class="std std-ref">User</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="user-tag">
+<h3>USER_TAG<a class="headerlink" href="#user-tag" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/user.html#user-tag"><span class="std std-ref">USER_TAG</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="valuecolumn">
+<h3>ValueColumn<a class="headerlink" href="#valuecolumn" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="matches/columns.html#valuecolumn"><span class="std std-ref">ValueColumn</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="valueless-text">
+<h3>VALUELESS_TEXT<a class="headerlink" href="#valueless-text" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="maps/timestamp.html#valueless-text"><span class="std std-ref">VALUELESS_TEXT</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="view">
+<h3>View<a class="headerlink" href="#view" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#view"><span class="std std-ref">View</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="withheldids">
+<h3>withHeldIds<a class="headerlink" href="#withheldids" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/io.html#withheldids"><span class="std std-ref">withHeldIds</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="withoutreferencesto">
+<h3>withoutReferencesTo<a class="headerlink" href="#withoutreferencesto" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/statements.html#withoutreferencesto"><span class="std std-ref">withoutReferencesTo</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="withplaceat">
+<h3>withPlaceAt<a class="headerlink" href="#withplaceat" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/containers.html#withplaceat"><span class="std std-ref">withPlaceAt</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="withstatementcontext">
+<h3>withStatementContext<a class="headerlink" href="#withstatementcontext" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/statements.html#withstatementcontext"><span class="std std-ref">withStatementContext</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="workspace">
+<h3>Workspace<a class="headerlink" href="#workspace" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/store.html#workspace"><span class="std std-ref">Workspace</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="id7">
+<h3>WORKSPACE<a class="headerlink" href="#id7" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/address.html#workspace"><span class="std std-ref">WORKSPACE</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="workspacesettings">
+<h3>WorkspaceSettings<a class="headerlink" href="#workspacesettings" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/view.html#workspacesettings"><span class="std std-ref">WorkspaceSettings</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="writeworkspace">
+<h3>writeWorkspace<a class="headerlink" href="#writeworkspace" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/file.html#writeworkspace"><span class="std std-ref">writeWorkspace</span></a></p>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="errors.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">errors</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="json.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">json</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#variables">Variables</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#name">name</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#references">References</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#actoriri">actorIri</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#add-kinds">ADD_KINDS</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#addcommand">AddCommand</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#addkind">AddKind</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#address">Address</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#addresskey">addressKey</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#addresswords">addressWords</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#alignmentanchor">AlignmentAnchor</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ancestorcardref">AncestorCardRef</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ancestormembers">ancestorMembers</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anchor-beliefs">ANCHOR_BELIEFS</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anchorbelief">anchorBelief</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">AnchorBelief</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anchordisplay">AnchorDisplay</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anchorindex">AnchorIndex</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anchorindexof">anchorIndexOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anchors">Anchors</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anchorvalue">AnchorValue</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#apply">apply</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#assertnever">assertNever</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#axisvalue">AxisValue</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#bandaddress">bandAddress</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#bandorderentry">BandOrderEntry</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#bandorderof">bandOrderOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#beliefmask">beliefMask</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#believedby">believedBy</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#block">Block</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#blockid">BlockId</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#bundle-address">BUNDLE_ADDRESS</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#bundlewords">bundleWords</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#canonicaltext">canonicalText</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#canvas-directions">CANVAS_DIRECTIONS</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#canvasarrangement">CanvasArrangement</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#canvasdirection">CanvasDirection</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#card-place-members">CARD_PLACE_MEMBERS</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cardaddress">cardAddress</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cardplace">CardPlace</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#change">Change</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#checkcolumns">checkColumns</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#checkmatchstamp">checkMatchStamp</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#childtimeline">ChildTimeline</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#claimbeliefs">ClaimBeliefs</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#claimrowof">claimRowOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#claimrowsof">claimRowsOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#claimside">ClaimSide</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#claimtimeline">ClaimTimeline</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#claimvalues">ClaimValues</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#columnsof">columnsOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#command">Command</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#commandentry">CommandEntry</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#commanderror">CommandError</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#comparecodepoints">compareCodePoints</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#compilecontext">CompileContext</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#compilemap">compileMap</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#containerdescriptor">ContainerDescriptor</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#containerkind">ContainerKind</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#containerlevel">ContainerLevel</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#containerref">ContainerRef</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#containers">Containers</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">CONTAINERS</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#containersof">containersOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#contains">contains</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#conversionmap">ConversionMap</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#coordinate">Coordinate</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#coordinatedict">coordinateDict</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">CoordinateDict</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#coordinatenear">coordinateNear</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#coordinateof">coordinateOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#coordinates">Coordinates</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#coordinateswithin">coordinatesWithin</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#coordinatevalue">coordinateValue</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#copyvalue">copyValue</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#createstore">createStore</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#createview">createView</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#crosssectionmember">CrossSectionMember</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#crosssectionspec">CrossSectionSpec</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#default-band-order">DEFAULT_BAND_ORDER</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#default-granularity">DEFAULT_GRANULARITY</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#default-match-claim-filter">DEFAULT_MATCH_CLAIM_FILTER</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#default-user">DEFAULT_USER</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#displayorder">displayOrder</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editorkind">EditorKind</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editorkindof">editorKindOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#elementaddress">ElementAddress</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#elementaddressof">elementAddressOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#elementbelief">ElementBelief</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#elementprovenance">ElementProvenance</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#elision">Elision</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#elisionsunder">elisionsUnder</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#emptyworkspace">emptyWorkspace</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#entry">Entry</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#entrykind">EntryKind</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#entryword">entryWord</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#errorcode">ErrorCode</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#express">express</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#expressas">expressAs</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#expressed">Expressed</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#expressednumber">ExpressedNumber</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#expressedoutputs">ExpressedOutputs</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#facets">FACETS</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#facetword">facetWord</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#findtimeline">findTimeline</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flow-line-roles">FLOW_LINE_ROLES</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowcontrolelement">FlowControlElement</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowlinerole">FlowLineRole</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gap">Gap</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gapoption">GapOption</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gaps">GAPS</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gapside">GapSide</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gapverb">GapVerb</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#granularity">Granularity</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#group">Group</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#groupelisions">groupElisions</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#groupsholding">groupsHolding</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#groupstampbydefault">groupstampByDefault</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#holderkind">HolderKind</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#holding">Holding</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#holdingof">holdingOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#idaddress">idAddress</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#idformpath">idFormPath</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#importedmanifest">importedManifest</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#inblock">inBlock</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#indexbetween">indexBetween</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#indexof">indexOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#indicesbetween">indicesBetween</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#inheritedbandorder">inheritedBandOrder</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#invalidmanifesterror">InvalidManifestError</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#inversioncontext">InversionContext</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#invert">invert</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#invertible">invertible</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#iscommanderror">isCommandError</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#iselementaddress">isElementAddress</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isfacet">isFacet</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isgroupmember">isGroupMember</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isindex">isIndex</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isloaderror">isLoadError</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isnamed">isNamed</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isrejected">isRejected</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isrelativelocation">isRelativeLocation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#issessionentry">isSessionEntry</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#item-directions">ITEM_DIRECTIONS</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#item-place-members">ITEM_PLACE_MEMBERS</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#itemarrangement">ItemArrangement</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#itemdirection">ItemDirection</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#itemplace">ItemPlace</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#journalmismatcherror">JournalMismatchError</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#json">Json</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#jumpdestination">JumpDestination</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#knots">Knots</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#knotsabsence">KnotsAbsence</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#line">LINE</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#listedelement">ListedElement</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#listedentry">ListedEntry</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#listentries">listEntries</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#loaderror">LoadError</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#loadmanifest">loadManifest</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#manifest">Manifest</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#manifestfile">ManifestFile</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#manifestfileof">manifestFileOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#manifestfilevalue">manifestFileValue</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#manifestgraphical">ManifestGraphical</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#manifestids">manifestIds</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#manifestindex">ManifestIndex</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#manifestwarnings">manifestWarnings</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mapevaluator">MapEvaluator</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mapinput">MapInput</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mapoutputs">MapOutputs</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mapresult">MapResult</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mapvalue">MapValue</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchclaimcolumns">matchClaimColumns</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">MatchClaimColumns</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchclaimfilter">MatchClaimFilter</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchclaimfilterof">matchClaimFilterOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchedspans">MatchedSpans</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchstampanchors">matchStampAnchors</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchstampcheck">MatchStampCheck</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchstampmembers">matchStampMembers</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchstampspec">matchStampSpec</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchstampupdate">MatchStampUpdate</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#measureknot">MeasureKnot</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#measureknots">MeasureKnots</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#measuremap">MeasureMap</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#measurerecord">MeasureRecord</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#measuretext">measureText</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mintblockid">mintBlockId</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#namedanchor">NamedAnchor</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#namedasgroupstamp">namedAsGroupstamp</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#namedcoordinate">NamedCoordinate</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#namedmatchstamp">NamedMatchStamp</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#namedmatchstampspec">NamedMatchStampSpec</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#namedtimestamp">NamedTimestamp</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#neighbours">Neighbours</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#new-manifest-file">NEW_MANIFEST_FILE</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nextid">nextId</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#normalizemanifest">normalizeManifest</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#openeditor">OpenEditor</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#owneraddress">OwnerAddress</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#parseaxisvalue">parseAxisValue</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#partaddress">partAddress</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pathsegment">PathSegment</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pin">Pin</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pinat">pinAt</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#place">Place</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placeat">placeAt</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placedcontainer">placedContainer</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placedelement">placedElement</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placeentries">placeEntries</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placekey">PlaceKey</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placekeytext">placeKeyText</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placemembersof">placeMembersOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#places">Places</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#positionfor">positionFor</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#potentialmatchstamps">PotentialMatchStamps</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#prettytext">prettyText</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#prettyunit">prettyUnit</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#preview">preview</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#problem">Problem</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#provenanceentry">ProvenanceEntry</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#quarterpair">QuarterPair</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#rawtext">rawText</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#readaddress">readAddress</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#readmanifestfile">readManifestFile</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">ReadManifestFile</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#readorcid">readOrcid</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#readworkspace">readWorkspace</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#real">Real</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#region">Region</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#removecommand">RemoveCommand</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#removedby">removedBy</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#resolveaddress">resolveAddress</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#resolvedaddress">ResolvedAddress</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#resolvedelement">ResolvedElement</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#resolveelement">resolveElement</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#row">Row</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sameaddress">sameAddress</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sameplacekey">samePlaceKey</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#savemanifest">saveManifest</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#segments">Segments</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#segmentsof">segmentsOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#session">Session</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#setcommand">SetCommand</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#settingschange">SettingsChange</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#skeleton">Skeleton</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#skeletonof">skeletonOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#skeletonregion">SkeletonRegion</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#skeletontimeline">SkeletonTimeline</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#snaponrow">snapOnRow</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#statedby">statedBy</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#statementholder">statementHolder</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">StatementHolder</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#statementholders">statementHolders</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#statements">Statements</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#store">Store</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#storeoptions">StoreOptions</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stylecommand">StyleCommand</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie-agent">TILIE_AGENT</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timelineaxis">TimelineAxis</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timelineaxisof">timelineAxisOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timelinemanifest">TimelineManifest</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timestamp">Timestamp</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timestampat">timestampAt</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timestampdisplay">TimestampDisplay</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timestampjson">timestampJson</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timestampmap">TimestampMap</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timestamppart">TimestampPart</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timestamprow">TimestampRow</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timestamprows">timestampRows</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#title-address">TITLE_ADDRESS</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#unknownkeys">unknownKeys</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#untitled-workspace">UNTITLED_WORKSPACE</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#user">User</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#user-tag">USER_TAG</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#valuecolumn">ValueColumn</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#valueless-text">VALUELESS_TEXT</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#view">View</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#withheldids">withHeldIds</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#withoutreferencesto">withoutReferencesTo</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#withplaceat">withPlaceAt</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#withstatementcontext">withStatementContext</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#workspace">Workspace</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">WORKSPACE</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#workspacesettings">WorkspaceSettings</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#writeworkspace">writeWorkspace</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

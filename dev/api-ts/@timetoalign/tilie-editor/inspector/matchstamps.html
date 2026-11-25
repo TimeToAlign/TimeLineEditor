@@ -1,0 +1,1966 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>inspector/matchstamps &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api-ts/@timetoalign/tilie-editor/inspector/matchstamps';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="inspector/metadata/catalogue" href="metadata/catalogue.html" />
+    <link rel="prev" title="inspector/matchstampLines" href="matchstampLines.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-core/index.html">@timetoalign/tilie-core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-layout/index.html">@timetoalign/tilie-layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-writers/index.html">@timetoalign/tilie-writers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-client/index.html">@timetoalign/tilie-client</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tilie-arranger/index.html">@timetoalign/tilie-arranger</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../index.html">@timetoalign/tilie-editor</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../attributions.html">attributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../autosave.html">autosave</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../autosaving.html">autosaving</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../combobox/keys.html">combobox/keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../embed.html">embed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html">examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../files.html">files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fixtureWorkspace.html">fixtureWorkspace</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fixtures.html">fixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="claimProvenance.html">inspector/claimProvenance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="codec.html">inspector/codec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="elisions.html">inspector/elisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flow.html">inspector/flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="formats.svelte.html">inspector/formats.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="groups.html">inspector/groups</a></li>
+<li class="toctree-l2"><a class="reference internal" href="journal.html">inspector/journal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lossless.html">inspector/lossless</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifestText.html">inspector/manifestText</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifestText.svelte.html">inspector/manifestText.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="matchstampLines.html">inspector/matchstampLines</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">inspector/matchstamps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="metadata/catalogue.html">inspector/metadata/catalogue</a></li>
+<li class="toctree-l2"><a class="reference internal" href="metadata/composer.svelte.html">inspector/metadata/composer.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="metadata/edits.html">inspector/metadata/edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="metadata/frame.html">inspector/metadata/frame</a></li>
+<li class="toctree-l2"><a class="reference internal" href="metadata/proposals.html">inspector/metadata/proposals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="metadata/search.svelte.html">inspector/metadata/search.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="metadata/thumbnails.svelte.html">inspector/metadata/thumbnails.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nulls.html">inspector/nulls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="problems.html">inspector/problems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="properties.html">inspector/properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="propertyDrafts.svelte.html">inspector/propertyDrafts.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="provenance.html">inspector/provenance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="selection.html">inspector/selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stamps/commands.html">inspector/stamps/commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stamps/drafts.svelte.html">inspector/stamps/drafts.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stamps/settlements.svelte.html">inspector/stamps/settlements.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tabs.html">inspector/tabs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="timestamp.html">inspector/timestamp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="toml.html">inspector/toml</a></li>
+<li class="toctree-l2"><a class="reference internal" href="words.html">inspector/words</a></li>
+<li class="toctree-l2"><a class="reference internal" href="yaml.html">inspector/yaml</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../iris.html">iris</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup.html">lookup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup/gnd.html">lookup/gnd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup/kinds.html">lookup/kinds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup/musicbrainz.html">lookup/musicbrainz</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup/reconciliation.html">lookup/reconciliation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup/services.html">lookup/services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup/wikidata.html">lookup/wikidata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lookup/youtube.html">lookup/youtube</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../main.html">main</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../matchClaims.svelte.html">matchClaims.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../measureMaps.html">measureMaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../messages.svelte.html">messages.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../options.html">options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../page.html">page</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../pane.html">pane</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../pick.svelte.html">pick.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../profiles/profiles.html">profiles/profiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../profiles/profiles.svelte.html">profiles/profiles.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../testHook.html">testHook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../transient.html">transient</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user.svelte.html">user.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workspaceSession.svelte.html">workspaceSession.svelte</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../../typescript.html" class="nav-link">TypeScript API</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">&#64;timetoalign/tilie-editor</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">inspector/matchstamps</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="inspector-matchstamps">
+<h1>inspector/matchstamps<a class="headerlink" href="#inspector-matchstamps" title="Link to this heading">#</a></h1>
+<section id="interfaces">
+<h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
+<section id="claimdetails">
+<h3>ClaimDetails<a class="headerlink" href="#claimdetails" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L590">editor/src/inspector/matchstamps.ts:590</a></p>
+<p>What the tab shows of a MatchClaim expanded: its two sides and its certainty.</p>
+<section id="properties">
+<h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
+<section id="certainty">
+<h5>certainty<a class="headerlink" href="#certainty" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>certainty</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L593">editor/src/inspector/matchstamps.ts:593</a></p>
+<p>The certainty the table states; <code class="docutils literal notranslate"><span class="pre">null</span></code> for none.</p>
+</section>
+<section id="sides">
+<h5>sides<a class="headerlink" href="#sides" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>sides</strong>: readonly [<a class="reference internal" href="#sideline"><code class="docutils literal notranslate"><span class="pre">SideLine</span></code></a>, <a class="reference internal" href="#sideline"><code class="docutils literal notranslate"><span class="pre">SideLine</span></code></a>]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L591">editor/src/inspector/matchstamps.ts:591</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="claimline">
+<h3>ClaimLine<a class="headerlink" href="#claimline" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L526">editor/src/inspector/matchstamps.ts:526</a></p>
+<p>A MatchClaim behind a MatchStamp as the tab lists it.</p>
+<section id="id1">
+<h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
+<section id="beliefs">
+<h5>beliefs<a class="headerlink" href="#beliefs" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>beliefs</strong>: readonly <a class="reference internal" href="provenance.html#beliefline"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">BeliefLine</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L536">editor/src/inspector/matchstamps.ts:536</a></p>
+<p>Every actor’s belief in it, as the table states them, each actor’s IRI
+under the manifest’s context and its words (<code class="docutils literal notranslate"><span class="pre">whoOf</span></code>: the user’s name,
+else a slug of the IRI, <code class="docutils literal notranslate"><span class="pre">iris.ts</span></code>); date and note
+<code class="docutils literal notranslate"><span class="pre">null</span></code>, which only the provenance entry gives.</p>
+</section>
+<section id="held">
+<h5>held<a class="headerlink" href="#held" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>held</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L529">editor/src/inspector/matchstamps.ts:529</a></p>
+<p>Whether the table holds it; <code class="docutils literal notranslate"><span class="pre">false</span></code> without a table.</p>
+</section>
+<section id="id">
+<h5>id<a class="headerlink" href="#id" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>id</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L527">editor/src/inspector/matchstamps.ts:527</a></p>
+</section>
+<section id="mine">
+<h5>mine<a class="headerlink" href="#mine" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>mine</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;true&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;false&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;unlikely&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L538">editor/src/inspector/matchstamps.ts:538</a></p>
+<p>The belief of <code class="docutils literal notranslate"><span class="pre">user</span></code>; <code class="docutils literal notranslate"><span class="pre">null</span></code> while they state none.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="difference">
+<h3>Difference<a class="headerlink" href="#difference" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L631">editor/src/inspector/matchstamps.ts:631</a></p>
+<p>One kind of difference between a named MatchStamp and the current table, with what differs.</p>
+<section id="id2">
+<h4>Properties<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
+<section id="items">
+<h5>items<a class="headerlink" href="#items" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>items</strong>: readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L633">editor/src/inspector/matchstamps.ts:633</a></p>
+</section>
+<section id="label">
+<h5>label<a class="headerlink" href="#label" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>label</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L632">editor/src/inspector/matchstamps.ts:632</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchindexes">
+<h3>MatchIndexes<a class="headerlink" href="#matchindexes" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L79">editor/src/inspector/matchstamps.ts:79</a></p>
+<p>The two anchor indexes of a table: <code class="docutils literal notranslate"><span class="pre">compared</span></code> under the belief filter
+alone, which named MatchStamps are compared with (an anchor is stated when
+a MatchClaim the belief filter passes gives it); <code class="docutils literal notranslate"><span class="pre">shown</span></code> under the belief
+filter and the timelines filter, which the overlay draws and a potential
+MatchStamp is read from. Without a timelines filter both are one index.</p>
+<section id="id3">
+<h4>Properties<a class="headerlink" href="#id3" title="Link to this heading">#</a></h4>
+<section id="id4">
+<h5>beliefs<a class="headerlink" href="#id4" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>beliefs</strong>: <code class="docutils literal notranslate"><span class="pre">Uint8Array</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L87">editor/src/inspector/matchstamps.ts:87</a></p>
+<p>The believer’s belief in every MatchClaim of the table, per row
+(core’s <code class="docutils literal notranslate"><span class="pre">believedBy</span></code>), which the canvas colours the anchors of a shown
+MatchStamp by.</p>
+</section>
+<section id="compared">
+<h5>compared<a class="headerlink" href="#compared" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>compared</strong>: <a class="reference internal" href="../../tilie-core/matches/anchors.html#anchorindex"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorIndex</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L80">editor/src/inspector/matchstamps.ts:80</a></p>
+</section>
+<section id="shown">
+<h5>shown<a class="headerlink" href="#shown" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>shown</strong>: <a class="reference internal" href="../../tilie-core/matches/anchors.html#anchorindex"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorIndex</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L81">editor/src/inspector/matchstamps.ts:81</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="shownstamp">
+<h3>ShownStamp<a class="headerlink" href="#shownstamp" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L308">editor/src/inspector/matchstamps.ts:308</a></p>
+<p>A potential or named MatchStamp as the tab shows it.</p>
+<section id="id5">
+<h4>Properties<a class="headerlink" href="#id5" title="Link to this heading">#</a></h4>
+<section id="anchors">
+<h5>anchors<a class="headerlink" href="#anchors" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>anchors</strong>: readonly <a class="reference internal" href="#stampanchor"><code class="docutils literal notranslate"><span class="pre">StampAnchor</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L315">editor/src/inspector/matchstamps.ts:315</a></p>
+</section>
+<section id="block">
+<h5>block<a class="headerlink" href="#block" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>block</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L309">editor/src/inspector/matchstamps.ts:309</a></p>
+</section>
+<section id="claims">
+<h5>claims<a class="headerlink" href="#claims" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>claims</strong>: readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L317">editor/src/inspector/matchstamps.ts:317</a></p>
+<p>The IDs of the MatchClaims behind it: the table’s for a potential one, those recorded for a named one.</p>
+</section>
+<section id="coordinates">
+<h5>coordinates<a class="headerlink" href="#coordinates" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>coordinates</strong>: readonly <a class="reference internal" href="#stampcoordinate"><code class="docutils literal notranslate"><span class="pre">StampCoordinate</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L314">editor/src/inspector/matchstamps.ts:314</a></p>
+<p>Its timestamps, one per coordinate, in screen order.</p>
+</section>
+<section id="id6">
+<h5>id<a class="headerlink" href="#id6" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>id</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L311">editor/src/inspector/matchstamps.ts:311</a></p>
+<p>A named MatchStamp’s ID and name; both <code class="docutils literal notranslate"><span class="pre">null</span></code> for a potential one.</p>
+</section>
+<section id="name">
+<h5>name<a class="headerlink" href="#name" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>name</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L312">editor/src/inspector/matchstamps.ts:312</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="sideline">
+<h3>SideLine<a class="headerlink" href="#sideline" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L579">editor/src/inspector/matchstamps.ts:579</a></p>
+<p>One side of a MatchClaim as the tab shows it expanded.</p>
+<section id="id7">
+<h4>Properties<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>
+<section id="event">
+<h5>event<a class="headerlink" href="#event" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>event</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L584">editor/src/inspector/matchstamps.ts:584</a></p>
+<p>The side’s event ID; <code class="docutils literal notranslate"><span class="pre">null</span></code> where the side has no event (the sentinel).</p>
+</section>
+<section id="id8">
+<h5>name<a class="headerlink" href="#id8" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>name</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L586">editor/src/inspector/matchstamps.ts:586</a></p>
+<p>The event’s name; <code class="docutils literal notranslate"><span class="pre">null</span></code> for none.</p>
+</section>
+<section id="timeline">
+<h5>timeline<a class="headerlink" href="#timeline" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>timeline</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L581">editor/src/inspector/matchstamps.ts:581</a></p>
+<p>The side’s timeline, its ID and its name (else the ID).</p>
+</section>
+<section id="timelinename">
+<h5>timelineName<a class="headerlink" href="#timelinename" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>timelineName</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L582">editor/src/inspector/matchstamps.ts:582</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="stampanchor">
+<h3>StampAnchor<a class="headerlink" href="#stampanchor" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L295">editor/src/inspector/matchstamps.ts:295</a></p>
+<p>An alignment anchor as the tab shows it.</p>
+<section id="id9">
+<h4>Properties<a class="headerlink" href="#id9" title="Link to this heading">#</a></h4>
+<section id="id10">
+<h5>coordinates<a class="headerlink" href="#id10" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>coordinates</strong>: <code class="docutils literal notranslate"><span class="pre">Pair</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L300">editor/src/inspector/matchstamps.ts:300</a></p>
+</section>
+<section id="display">
+<h5>display<a class="headerlink" href="#display" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>display</strong>: readonly (<code class="docutils literal notranslate"><span class="pre">&quot;name&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;line&quot;</span></code>)[] | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L302">editor/src/inspector/matchstamps.ts:302</a></p>
+<p>A named anchor’s <code class="docutils literal notranslate"><span class="pre">display</span></code>; <code class="docutils literal notranslate"><span class="pre">null</span></code> for a potential one.</p>
+</section>
+<section id="id11">
+<h5>id<a class="headerlink" href="#id11" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>id</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L299">editor/src/inspector/matchstamps.ts:299</a></p>
+<p>A named MatchStamp’s anchor ID; <code class="docutils literal notranslate"><span class="pre">null</span></code> for a potential one.</p>
+</section>
+<section id="key">
+<h5>key<a class="headerlink" href="#key" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L297">editor/src/inspector/matchstamps.ts:297</a></p>
+<p>Unique among the anchors of one MatchStamp: its ID, else its two coordinates.</p>
+</section>
+<section id="stated">
+<h5>stated<a class="headerlink" href="#stated" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>stated</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L304">editor/src/inspector/matchstamps.ts:304</a></p>
+<p>Whether the current table states it: <code class="docutils literal notranslate"><span class="pre">null</span></code> without a table or for a potential one.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="stampcoordinate">
+<h3>StampCoordinate<a class="headerlink" href="#stampcoordinate" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L239">editor/src/inspector/matchstamps.ts:239</a></p>
+<p>A coordinate of a MatchStamp: a timeline’s ID and a value on its own axis.</p>
+<section id="id12">
+<h4>Properties<a class="headerlink" href="#id12" title="Link to this heading">#</a></h4>
+<section id="id13">
+<h5>timeline<a class="headerlink" href="#id13" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>timeline</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L240">editor/src/inspector/matchstamps.ts:240</a></p>
+</section>
+<section id="value">
+<h5>value<a class="headerlink" href="#value" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>value</strong>: <a class="reference internal" href="../../tilie-core/number/coordinate.html#coordinatevalue"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">CoordinateValue</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L241">editor/src/inspector/matchstamps.ts:241</a></p>
+</section>
+</section>
+</section>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<section id="addedmatchstamp">
+<h3>addedMatchStamp()<a class="headerlink" href="#addedmatchstamp" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>addedMatchStamp</strong>(<code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">after</span></code>): { } | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L754">editor/src/inspector/matchstamps.ts:754</a></p>
+<p>The named MatchStamp of block <code class="docutils literal notranslate"><span class="pre">block</span></code> that <code class="docutils literal notranslate"><span class="pre">after</span></code> holds and <code class="docutils literal notranslate"><span class="pre">before</span></code> does not; <code class="docutils literal notranslate"><span class="pre">null</span></code> for none.</p>
+<section id="parameters">
+<h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
+<section id="before">
+<h5>before<a class="headerlink" href="#before" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</section>
+<section id="after">
+<h5>after<a class="headerlink" href="#after" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</section>
+</section>
+<section id="returns">
+<h4>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h4>
+<p>{ } | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="anchordisplaycommand">
+<h3>anchorDisplayCommand()<a class="headerlink" href="#anchordisplaycommand" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>anchorDisplayCommand</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">anchor</span></code>, <code class="docutils literal notranslate"><span class="pre">display</span></code>, <code class="docutils literal notranslate"><span class="pre">word</span></code>): <a class="reference internal" href="../../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L710">editor/src/inspector/matchstamps.ts:710</a></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">set</span></code> of the anchor <code class="docutils literal notranslate"><span class="pre">anchor</span></code>’s <code class="docutils literal notranslate"><span class="pre">display</span></code> with <code class="docutils literal notranslate"><span class="pre">word</span></code> toggled, in the schema’s order.</p>
+<section id="id14">
+<h4>Parameters<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
+<section id="id15">
+<h5>block<a class="headerlink" href="#id15" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="anchor">
+<h5>anchor<a class="headerlink" href="#anchor" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id16">
+<h5>display<a class="headerlink" href="#id16" title="Link to this heading">#</a></h5>
+<p>readonly (<code class="docutils literal notranslate"><span class="pre">&quot;name&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;line&quot;</span></code>)[]</p>
+</section>
+<section id="word">
+<h5>word<a class="headerlink" href="#word" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">&quot;name&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;line&quot;</span></code></p>
+</section>
+</section>
+<section id="id17">
+<h4>Returns<a class="headerlink" href="#id17" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="blockindexes">
+<h3>blockIndexes()<a class="headerlink" href="#blockindexes" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>blockIndexes</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">table</span></code>, <code class="docutils literal notranslate"><span class="pre">believer</span></code>): <a class="reference internal" href="#matchindexes"><code class="docutils literal notranslate"><span class="pre">MatchIndexes</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L158">editor/src/inspector/matchstamps.ts:158</a></p>
+<p>The indexes of block <code class="docutils literal notranslate"><span class="pre">block</span></code> of <code class="docutils literal notranslate"><span class="pre">view</span></code> holding the table <code class="docutils literal notranslate"><span class="pre">table</span></code> (<code class="docutils literal notranslate"><span class="pre">null</span></code>
+for none) under the block’s MatchClaim filter, for the believer
+<code class="docutils literal notranslate"><span class="pre">believer</span></code> and under the block’s manifest’s <code class="docutils literal notranslate"><span class="pre">&#64;context</span></code> (<code class="docutils literal notranslate"><span class="pre">matchIndexes</span></code>):
+what the editor gives the canvas, the drawer and the Matchstamp tab, one
+function for all three; <code class="docutils literal notranslate"><span class="pre">null</span></code> without a table or without the block.</p>
+<section id="id18">
+<h4>Parameters<a class="headerlink" href="#id18" title="Link to this heading">#</a></h4>
+<section id="view">
+<h5>view<a class="headerlink" href="#view" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</section>
+<section id="id19">
+<h5>block<a class="headerlink" href="#id19" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="table">
+<h5>table<a class="headerlink" href="#table" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-client/matchClaims.html#matchclaimtable"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MatchClaimTable</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+<section id="believer">
+<h5>believer<a class="headerlink" href="#believer" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<section id="id20">
+<h4>Returns<a class="headerlink" href="#id20" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#matchindexes"><code class="docutils literal notranslate"><span class="pre">MatchIndexes</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="id21">
+<h3>claimDetails()<a class="headerlink" href="#id21" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>claimDetails</strong>(<code class="docutils literal notranslate"><span class="pre">read</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">manifest</span></code>): <a class="reference internal" href="#claimdetails"><code class="docutils literal notranslate"><span class="pre">ClaimDetails</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L606">editor/src/inspector/matchstamps.ts:606</a></p>
+<p>The details of the MatchClaim <code class="docutils literal notranslate"><span class="pre">id</span></code> among the events the server read
+(<code class="docutils literal notranslate"><span class="pre">read</span></code>), its timelines named from <code class="docutils literal notranslate"><span class="pre">manifest</span></code>; <code class="docutils literal notranslate"><span class="pre">null</span></code> where <code class="docutils literal notranslate"><span class="pre">read</span></code> does
+not hold it.</p>
+<section id="id22">
+<h4>Parameters<a class="headerlink" href="#id22" title="Link to this heading">#</a></h4>
+<section id="read">
+<h5>read<a class="headerlink" href="#read" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="../../tilie-client/claimEvents.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ClaimEvents</span></code></span></a>[]</p>
+</section>
+<section id="id23">
+<h5>id<a class="headerlink" href="#id23" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="manifest">
+<h5>manifest<a class="headerlink" href="#manifest" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+</section>
+<section id="id24">
+<h4>Returns<a class="headerlink" href="#id24" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#claimdetails"><code class="docutils literal notranslate"><span class="pre">ClaimDetails</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="claimlines">
+<h3>claimLines()<a class="headerlink" href="#claimlines" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>claimLines</strong>(<code class="docutils literal notranslate"><span class="pre">table</span></code>, <code class="docutils literal notranslate"><span class="pre">ids</span></code>, <code class="docutils literal notranslate"><span class="pre">user</span></code>, <code class="docutils literal notranslate"><span class="pre">context</span></code>): <a class="reference internal" href="#claimline"><code class="docutils literal notranslate"><span class="pre">ClaimLine</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L546">editor/src/inspector/matchstamps.ts:546</a></p>
+<p>The MatchClaims <code class="docutils literal notranslate"><span class="pre">ids</span></code> with their beliefs in <code class="docutils literal notranslate"><span class="pre">table</span></code> (none without one),
+<code class="docutils literal notranslate"><span class="pre">user</span></code> the editor’s user, actors compared as their IRIs under <code class="docutils literal notranslate"><span class="pre">context</span></code>
+(the manifest’s <code class="docutils literal notranslate"><span class="pre">&#64;context</span></code>, <code class="docutils literal notranslate"><span class="pre">actorIri</span></code>), as the belief filter compares them.</p>
+<section id="id25">
+<h4>Parameters<a class="headerlink" href="#id25" title="Link to this heading">#</a></h4>
+<section id="id26">
+<h5>table<a class="headerlink" href="#id26" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-client/matchClaims.html#matchclaimtable"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MatchClaimTable</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+<section id="ids">
+<h5>ids<a class="headerlink" href="#ids" title="Link to this heading">#</a></h5>
+<p>readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</section>
+<section id="user">
+<h5>user<a class="headerlink" href="#user" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/workspace/user.html#user"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">User</span></code></span></a></p>
+</section>
+<section id="context">
+<h5>context<a class="headerlink" href="#context" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">unknown</span></code></p>
+</section>
+</section>
+<section id="id27">
+<h4>Returns<a class="headerlink" href="#id27" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#claimline"><code class="docutils literal notranslate"><span class="pre">ClaimLine</span></code></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="differencesof">
+<h3>differencesOf()<a class="headerlink" href="#differencesof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>differencesOf</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">matchstamp</span></code>, <code class="docutils literal notranslate"><span class="pre">comparison</span></code>, <code class="docutils literal notranslate"><span class="pre">index</span></code>): <a class="reference internal" href="#difference"><code class="docutils literal notranslate"><span class="pre">Difference</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L653">editor/src/inspector/matchstamps.ts:653</a></p>
+<p>What differs between the named MatchStamp <code class="docutils literal notranslate"><span class="pre">matchstamp</span></code> and the current
+table (<code class="docutils literal notranslate"><span class="pre">comparison</span></code>, against <code class="docutils literal notranslate"><span class="pre">index</span></code>), each kind with what differs, only
+the kinds that do, in the order: MatchClaims missing from the table,
+MatchClaims the belief filter leaves out (their state for the user is
+one the filter does not keep), anchors gone, anchors new,
+MatchClaims stating other anchors, MatchClaims new.</p>
+<section id="id28">
+<h4>Parameters<a class="headerlink" href="#id28" title="Link to this heading">#</a></h4>
+<section id="id29">
+<h5>manifest<a class="headerlink" href="#id29" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="matchstamp">
+<h5>matchstamp<a class="headerlink" href="#matchstamp" title="Link to this heading">#</a></h5>
+<p>{ }</p>
+</section>
+<section id="comparison">
+<h5>comparison<a class="headerlink" href="#comparison" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/matches/compare.html#matchstampcheck"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MatchStampCheck</span></code></span></a></p>
+</section>
+<section id="index">
+<h5>index<a class="headerlink" href="#index" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/matches/anchors.html#anchorindex"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorIndex</span></code></span></a></p>
+</section>
+</section>
+<section id="id30">
+<h4>Returns<a class="headerlink" href="#id30" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#difference"><code class="docutils literal notranslate"><span class="pre">Difference</span></code></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="hiddenanchorsnote">
+<h3>hiddenAnchorsNote()<a class="headerlink" href="#hiddenanchorsnote" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>hiddenAnchorsNote</strong>(<code class="docutils literal notranslate"><span class="pre">stamp</span></code>, <code class="docutils literal notranslate"><span class="pre">named</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L445">editor/src/inspector/matchstamps.ts:445</a></p>
+<p>What the tab says before <code class="docutils literal notranslate"><span class="pre">stamp</span></code> (as shown) is named as <code class="docutils literal notranslate"><span class="pre">named</span></code>
+(<code class="docutils literal notranslate"><span class="pre">stampToName</span></code>): how many of the anchors naming stores lie on timelines
+the MatchClaim filter hides; <code class="docutils literal notranslate"><span class="pre">null</span></code> when it stores what is shown.</p>
+<section id="id31">
+<h4>Parameters<a class="headerlink" href="#id31" title="Link to this heading">#</a></h4>
+<section id="stamp">
+<h5>stamp<a class="headerlink" href="#stamp" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#shownstamp"><code class="docutils literal notranslate"><span class="pre">ShownStamp</span></code></a></p>
+</section>
+<section id="named">
+<h5>named<a class="headerlink" href="#named" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#shownstamp"><code class="docutils literal notranslate"><span class="pre">ShownStamp</span></code></a></p>
+</section>
+</section>
+<section id="id32">
+<h4>Returns<a class="headerlink" href="#id32" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="id33">
+<h3>matchIndexes()<a class="headerlink" href="#id33" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>matchIndexes</strong>(<code class="docutils literal notranslate"><span class="pre">table</span></code>, <code class="docutils literal notranslate"><span class="pre">filter</span></code>, <code class="docutils literal notranslate"><span class="pre">believer</span></code>, <code class="docutils literal notranslate"><span class="pre">context</span></code>): <a class="reference internal" href="#matchindexes"><code class="docutils literal notranslate"><span class="pre">MatchIndexes</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L130">editor/src/inspector/matchstamps.ts:130</a></p>
+<p>The indexes of <code class="docutils literal notranslate"><span class="pre">table</span></code> under <code class="docutils literal notranslate"><span class="pre">filter</span></code> for the believer <code class="docutils literal notranslate"><span class="pre">believer</span></code> (the
+editor’s one user), the actors compared as their IRIs under <code class="docutils literal notranslate"><span class="pre">context</span></code>
+(the block’s manifest’s <code class="docutils literal notranslate"><span class="pre">&#64;context</span></code>, <code class="docutils literal notranslate"><span class="pre">undefined</span></code> for none: <code class="docutils literal notranslate"><span class="pre">actorIri</span></code>),
+each built once per table, filter and context.</p>
+<section id="id34">
+<h4>Parameters<a class="headerlink" href="#id34" title="Link to this heading">#</a></h4>
+<section id="id35">
+<h5>table<a class="headerlink" href="#id35" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-client/matchClaims.html#matchclaimtable"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MatchClaimTable</span></code></span></a></p>
+</section>
+<section id="filter">
+<h5>filter<a class="headerlink" href="#filter" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/workspace/view.html#matchclaimfilter"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MatchClaimFilter</span></code></span></a></p>
+</section>
+<section id="id36">
+<h5>believer<a class="headerlink" href="#id36" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id37">
+<h5>context<a class="headerlink" href="#id37" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">unknown</span></code></p>
+</section>
+</section>
+<section id="id38">
+<h4>Returns<a class="headerlink" href="#id38" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#matchindexes"><code class="docutils literal notranslate"><span class="pre">MatchIndexes</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchinputs">
+<h3>matchInputs()<a class="headerlink" href="#matchinputs" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>matchInputs</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">blocks</span></code>, <code class="docutils literal notranslate"><span class="pre">indexesOf</span></code>): readonly <a class="reference internal" href="../../tilie-arranger/matches.html#matchoverlayinput"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MatchOverlayInput</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L207">editor/src/inspector/matchstamps.ts:207</a></p>
+<p>The canvas’s <code class="docutils literal notranslate"><span class="pre">matches</span></code>: for every block of <code class="docutils literal notranslate"><span class="pre">blocks</span></code> (those holding a
+table) that <code class="docutils literal notranslate"><span class="pre">view</span></code> still holds and whose table <code class="docutils literal notranslate"><span class="pre">indexesOf</span></code> gives, the
+anchor index of its potential MatchStamps (the shown index) and its named
+MatchStamps compared with its table (against the compared index, so an
+anchor of a named MatchStamp on a timeline the filter leaves out still
+counts as stated); in the order of <code class="docutils literal notranslate"><span class="pre">blocks</span></code>.</p>
+<section id="id39">
+<h4>Parameters<a class="headerlink" href="#id39" title="Link to this heading">#</a></h4>
+<section id="id40">
+<h5>view<a class="headerlink" href="#id40" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</section>
+<section id="blocks">
+<h5>blocks<a class="headerlink" href="#blocks" title="Link to this heading">#</a></h5>
+<p>readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</section>
+<section id="indexesof">
+<h5>indexesOf<a class="headerlink" href="#indexesof" title="Link to this heading">#</a></h5>
+<p>(<code class="docutils literal notranslate"><span class="pre">block</span></code>) =&gt; <a class="reference internal" href="#matchindexes"><code class="docutils literal notranslate"><span class="pre">MatchIndexes</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id41">
+<h4>Returns<a class="headerlink" href="#id41" title="Link to this heading">#</a></h4>
+<p>readonly <a class="reference internal" href="../../tilie-arranger/matches.html#matchoverlayinput"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MatchOverlayInput</span></code></span></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matchstampsof">
+<h3>matchStampsOf()<a class="headerlink" href="#matchstampsof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>matchStampsOf</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>): readonly <code class="docutils literal notranslate"><span class="pre">object</span></code>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L453">editor/src/inspector/matchstamps.ts:453</a></p>
+<p>The named MatchStamps of <code class="docutils literal notranslate"><span class="pre">manifest</span></code> an anchor of which names the match timestamp <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>.</p>
+<section id="id42">
+<h4>Parameters<a class="headerlink" href="#id42" title="Link to this heading">#</a></h4>
+<section id="id43">
+<h5>manifest<a class="headerlink" href="#id43" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="timestamp">
+<h5>timestamp<a class="headerlink" href="#timestamp" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<section id="id44">
+<h4>Returns<a class="headerlink" href="#id44" title="Link to this heading">#</a></h4>
+<p>readonly <code class="docutils literal notranslate"><span class="pre">object</span></code>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="namecommand">
+<h3>nameCommand()<a class="headerlink" href="#namecommand" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>nameCommand</strong>(<code class="docutils literal notranslate"><span class="pre">stamp</span></code>, <code class="docutils literal notranslate"><span class="pre">name</span></code>): <a class="reference internal" href="../../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L692">editor/src/inspector/matchstamps.ts:692</a></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">add</span></code> naming the potential MatchStamp <code class="docutils literal notranslate"><span class="pre">stamp</span></code> <code class="docutils literal notranslate"><span class="pre">name</span></code>: its anchors in
+screen order, as <code class="docutils literal notranslate"><span class="pre">stamp</span></code> holds them, and the MatchClaims behind it. The
+tab names <code class="docutils literal notranslate"><span class="pre">stampToName</span></code> of the MatchStamp it shows, read with nothing
+raised, so what is stored does not depend on the open editor.</p>
+<section id="id45">
+<h4>Parameters<a class="headerlink" href="#id45" title="Link to this heading">#</a></h4>
+<section id="id46">
+<h5>stamp<a class="headerlink" href="#id46" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#shownstamp"><code class="docutils literal notranslate"><span class="pre">ShownStamp</span></code></a></p>
+</section>
+<section id="id47">
+<h5>name<a class="headerlink" href="#id47" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<section id="id48">
+<h4>Returns<a class="headerlink" href="#id48" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="namedcomparisons">
+<h3>namedComparisons()<a class="headerlink" href="#namedcomparisons" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>namedComparisons</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">index</span></code>): readonly <a class="reference internal" href="../../tilie-arranger/matches.html#namedcomparison"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">NamedComparison</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L178">editor/src/inspector/matchstamps.ts:178</a></p>
+<p>Every named MatchStamp of <code class="docutils literal notranslate"><span class="pre">manifest</span></code> compared with <code class="docutils literal notranslate"><span class="pre">index</span></code>
+(<code class="docutils literal notranslate"><span class="pre">checkMatchStamp</span></code>), in the manifest’s order; each comparison’s <code class="docutils literal notranslate"><span class="pre">stated</span></code>
+follows its MatchStamp’s <code class="docutils literal notranslate"><span class="pre">alignment_anchors</span></code> (<code class="docutils literal notranslate"><span class="pre">matchStampSpec</span></code> lists them
+in that order), which is how the canvas finds the anchors to draw red.</p>
+<section id="id49">
+<h4>Parameters<a class="headerlink" href="#id49" title="Link to this heading">#</a></h4>
+<section id="id50">
+<h5>manifest<a class="headerlink" href="#id50" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="id51">
+<h5>index<a class="headerlink" href="#id51" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/matches/anchors.html#anchorindex"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorIndex</span></code></span></a></p>
+</section>
+</section>
+<section id="id52">
+<h4>Returns<a class="headerlink" href="#id52" title="Link to this heading">#</a></h4>
+<p>readonly <a class="reference internal" href="../../tilie-arranger/matches.html#namedcomparison"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">NamedComparison</span></code></span></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="namedstamp">
+<h3>namedStamp()<a class="headerlink" href="#namedstamp" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>namedStamp</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">matchstamp</span></code>, <code class="docutils literal notranslate"><span class="pre">comparison</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">raised?</span></code>): <a class="reference internal" href="#shownstamp"><code class="docutils literal notranslate"><span class="pre">ShownStamp</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L378">editor/src/inspector/matchstamps.ts:378</a></p>
+<p>The named MatchStamp <code class="docutils literal notranslate"><span class="pre">matchstamp</span></code> of <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, in block <code class="docutils literal notranslate"><span class="pre">block</span></code> drawn
+as <code class="docutils literal notranslate"><span class="pre">drawing</span></code> (in screen order under <code class="docutils literal notranslate"><span class="pre">raised</span></code>, as <code class="docutils literal notranslate"><span class="pre">potentialStamp</span></code>), its
+anchors in the manifest’s order, each stated or not as <code class="docutils literal notranslate"><span class="pre">comparison</span></code> (the
+current table’s) says; <code class="docutils literal notranslate"><span class="pre">null</span></code> without a table.</p>
+<section id="id53">
+<h4>Parameters<a class="headerlink" href="#id53" title="Link to this heading">#</a></h4>
+<section id="id54">
+<h5>block<a class="headerlink" href="#id54" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id55">
+<h5>manifest<a class="headerlink" href="#id55" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="id56">
+<h5>matchstamp<a class="headerlink" href="#id56" title="Link to this heading">#</a></h5>
+<p>{ }</p>
+</section>
+<section id="id57">
+<h5>comparison<a class="headerlink" href="#id57" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/matches/compare.html#matchstampcheck"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MatchStampCheck</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+<section id="drawing">
+<h5>drawing<a class="headerlink" href="#drawing" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="raised">
+<h5>raised?<a class="headerlink" href="#raised" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code> = <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id58">
+<h4>Returns<a class="headerlink" href="#id58" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#shownstamp"><code class="docutils literal notranslate"><span class="pre">ShownStamp</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="pinnedmatchstampof">
+<h3>pinnedMatchStampOf()<a class="headerlink" href="#pinnedmatchstampof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>pinnedMatchStampOf</strong>(<code class="docutils literal notranslate"><span class="pre">shown</span></code>, <code class="docutils literal notranslate"><span class="pre">indexesOf</span></code>): <a class="reference internal" href="../../tilie-arranger/matches.html#matchstamppin"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MatchStampPin</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L226">editor/src/inspector/matchstamps.ts:226</a></p>
+<p>The canvas’s <code class="docutils literal notranslate"><span class="pre">pinnedMatchStamp</span></code>: the potential MatchStamp the Matchstamp
+tab shows (<code class="docutils literal notranslate"><span class="pre">shown</span></code>), with its block, where it was read from that block’s
+shown index as it is now (<code class="docutils literal notranslate"><span class="pre">indexesOf</span></code>); <code class="docutils literal notranslate"><span class="pre">null</span></code> for anything else.</p>
+<section id="id59">
+<h4>Parameters<a class="headerlink" href="#id59" title="Link to this heading">#</a></h4>
+<section id="id60">
+<h5>shown<a class="headerlink" href="#id60" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="tabs.html#heldmatch"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">HeldMatch</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+<section id="id61">
+<h5>indexesOf<a class="headerlink" href="#id61" title="Link to this heading">#</a></h5>
+<p>(<code class="docutils literal notranslate"><span class="pre">block</span></code>) =&gt; <a class="reference internal" href="#matchindexes"><code class="docutils literal notranslate"><span class="pre">MatchIndexes</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id62">
+<h4>Returns<a class="headerlink" href="#id62" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../../tilie-arranger/matches.html#matchstamppin"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MatchStampPin</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="potentialstamp">
+<h3>potentialStamp()<a class="headerlink" href="#potentialstamp" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>potentialStamp</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">index</span></code>, <code class="docutils literal notranslate"><span class="pre">matchStamp</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">raised?</span></code>): <a class="reference internal" href="#shownstamp"><code class="docutils literal notranslate"><span class="pre">ShownStamp</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L345">editor/src/inspector/matchstamps.ts:345</a></p>
+<p>The potential MatchStamp <code class="docutils literal notranslate"><span class="pre">matchStamp</span></code> of <code class="docutils literal notranslate"><span class="pre">index</span></code>, in block <code class="docutils literal notranslate"><span class="pre">block</span></code> drawn
+as <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, in screen order there, <code class="docutils literal notranslate"><span class="pre">raised</span></code> naming the root whose
+ancestor cards the open editor raises (the arranger’s <code class="docutils literal notranslate"><span class="pre">raisedRoot</span></code>), else
+<code class="docutils literal notranslate"><span class="pre">null</span></code>.</p>
+<section id="id63">
+<h4>Parameters<a class="headerlink" href="#id63" title="Link to this heading">#</a></h4>
+<section id="id64">
+<h5>block<a class="headerlink" href="#id64" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id65">
+<h5>index<a class="headerlink" href="#id65" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/matches/anchors.html#anchorindex"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorIndex</span></code></span></a></p>
+</section>
+<section id="id66">
+<h5>matchStamp<a class="headerlink" href="#id66" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id67">
+<h5>drawing<a class="headerlink" href="#id67" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id68">
+<h5>raised?<a class="headerlink" href="#id68" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code> = <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id69">
+<h4>Returns<a class="headerlink" href="#id69" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#shownstamp"><code class="docutils literal notranslate"><span class="pre">ShownStamp</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="removecommand">
+<h3>removeCommand()<a class="headerlink" href="#removecommand" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>removeCommand</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>): <a class="reference internal" href="../../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L749">editor/src/inspector/matchstamps.ts:749</a></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">remove</span></code> deleting the named MatchStamp <code class="docutils literal notranslate"><span class="pre">id</span></code> of block <code class="docutils literal notranslate"><span class="pre">block</span></code>, and the match timestamps only it used.</p>
+<section id="id70">
+<h4>Parameters<a class="headerlink" href="#id70" title="Link to this heading">#</a></h4>
+<section id="id71">
+<h5>block<a class="headerlink" href="#id71" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id72">
+<h5>id<a class="headerlink" href="#id72" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<section id="id73">
+<h4>Returns<a class="headerlink" href="#id73" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="renamecommand">
+<h3>renameCommand()<a class="headerlink" href="#renamecommand" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>renameCommand</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">name</span></code>): <a class="reference internal" href="../../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L705">editor/src/inspector/matchstamps.ts:705</a></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">set</span></code> renaming the named MatchStamp <code class="docutils literal notranslate"><span class="pre">id</span></code> of block <code class="docutils literal notranslate"><span class="pre">block</span></code> <code class="docutils literal notranslate"><span class="pre">name</span></code>.</p>
+<section id="id74">
+<h4>Parameters<a class="headerlink" href="#id74" title="Link to this heading">#</a></h4>
+<section id="id75">
+<h5>block<a class="headerlink" href="#id75" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id76">
+<h5>id<a class="headerlink" href="#id76" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id77">
+<h5>name<a class="headerlink" href="#id77" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<section id="id78">
+<h4>Returns<a class="headerlink" href="#id78" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="stampjson">
+<h3>stampJson()<a class="headerlink" href="#stampjson" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>stampJson</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">stamp</span></code>): <a class="reference internal" href="../../tilie-core/json.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Json</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L496">editor/src/inspector/matchstamps.ts:496</a></p>
+<p><code class="docutils literal notranslate"><span class="pre">stamp</span></code> as JSON: its ID and name where it is named, its timestamps (each
+<code class="docutils literal notranslate"><span class="pre">{timeline,</span> <span class="pre">coordinate}</span></code>, the coordinate a coordinate dict) in screen
+order, its anchors as pairs of timestamp positions, and its MatchClaims.</p>
+<section id="id79">
+<h4>Parameters<a class="headerlink" href="#id79" title="Link to this heading">#</a></h4>
+<section id="id80">
+<h5>manifest<a class="headerlink" href="#id80" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="id81">
+<h5>stamp<a class="headerlink" href="#id81" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#shownstamp"><code class="docutils literal notranslate"><span class="pre">ShownStamp</span></code></a></p>
+</section>
+</section>
+<section id="id82">
+<h4>Returns<a class="headerlink" href="#id82" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../../tilie-core/json.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Json</span></code></span></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="stamprows">
+<h3>stampRows()<a class="headerlink" href="#stamprows" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>stampRows</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">coordinates</span></code>): <a class="reference internal" href="timestamp.html#timelinerows"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">TimelineRows</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L468">editor/src/inspector/matchstamps.ts:468</a></p>
+<p>The groups of <code class="docutils literal notranslate"><span class="pre">coordinates</span></code> of a MatchStamp of <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, in the order
+given, as the Timestamp tab’s Coordinates show a timestamp’s
+(<code class="docutils literal notranslate"><span class="pre">coordinateGroup</span></code>): each its timeline’s name, else its ID, and one row
+“coordinate”, the exact value in the timeline’s unit and number type (its
+text alone where the timeline is no longer in the manifest).</p>
+<section id="id83">
+<h4>Parameters<a class="headerlink" href="#id83" title="Link to this heading">#</a></h4>
+<section id="id84">
+<h5>manifest<a class="headerlink" href="#id84" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="id85">
+<h5>coordinates<a class="headerlink" href="#id85" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="#stampcoordinate"><code class="docutils literal notranslate"><span class="pre">StampCoordinate</span></code></a>[]</p>
+</section>
+</section>
+<section id="id86">
+<h4>Returns<a class="headerlink" href="#id86" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="timestamp.html#timelinerows"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">TimelineRows</span></code></span></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="stamptext">
+<h3>stampText()<a class="headerlink" href="#stamptext" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>stampText</strong>(<code class="docutils literal notranslate"><span class="pre">format</span></code>, <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">stamp</span></code>): <a class="reference internal" href="problems.html#result"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Result</span></code></span></a>&lt;<a class="reference internal" href="codec.html#id11"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Text</span></code></span></a>&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L519">editor/src/inspector/matchstamps.ts:519</a></p>
+<p><code class="docutils literal notranslate"><span class="pre">stamp</span></code> as text in <code class="docutils literal notranslate"><span class="pre">format</span></code> (<code class="docutils literal notranslate"><span class="pre">stampJson</span></code>).</p>
+<section id="id87">
+<h4>Parameters<a class="headerlink" href="#id87" title="Link to this heading">#</a></h4>
+<section id="format">
+<h5>format<a class="headerlink" href="#format" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">&quot;yaml&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;json&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;toml&quot;</span></code></p>
+</section>
+<section id="id88">
+<h5>manifest<a class="headerlink" href="#id88" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="id89">
+<h5>stamp<a class="headerlink" href="#id89" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#shownstamp"><code class="docutils literal notranslate"><span class="pre">ShownStamp</span></code></a></p>
+</section>
+</section>
+<section id="id90">
+<h4>Returns<a class="headerlink" href="#id90" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="problems.html#result"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Result</span></code></span></a>&lt;<a class="reference internal" href="codec.html#id11"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Text</span></code></span></a>&gt;</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="stamptoname">
+<h3>stampToName()<a class="headerlink" href="#stamptoname" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>stampToName</strong>(<code class="docutils literal notranslate"><span class="pre">stamp</span></code>, <code class="docutils literal notranslate"><span class="pre">indexes</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>): <a class="reference internal" href="#shownstamp"><code class="docutils literal notranslate"><span class="pre">ShownStamp</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L425">editor/src/inspector/matchstamps.ts:425</a></p>
+<p>The potential MatchStamp that naming <code class="docutils literal notranslate"><span class="pre">stamp</span></code> stores: the MatchStamp of
+the compared index (the belief filter alone) holding <code class="docutils literal notranslate"><span class="pre">stamp</span></code>’s first
+coordinate, so that a MatchStamp named under a timelines filter is the
+whole MatchStamp the table states and is not out of date the moment it
+is named (the timelines filter limits what is shown, never what is
+stated). <code class="docutils literal notranslate"><span class="pre">stamp</span></code> itself where both indexes are one, or where the compared
+index does not hold its coordinate. What is stored never depends on the
+open editor: <code class="docutils literal notranslate"><span class="pre">stamp</span></code> is read with nothing raised, and so is the
+MatchStamp returned (<code class="docutils literal notranslate"><span class="pre">potentialStamp</span></code> with <code class="docutils literal notranslate"><span class="pre">raised</span></code> <code class="docutils literal notranslate"><span class="pre">null</span></code>).</p>
+<section id="id91">
+<h4>Parameters<a class="headerlink" href="#id91" title="Link to this heading">#</a></h4>
+<section id="id92">
+<h5>stamp<a class="headerlink" href="#id92" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#shownstamp"><code class="docutils literal notranslate"><span class="pre">ShownStamp</span></code></a></p>
+</section>
+<section id="indexes">
+<h5>indexes<a class="headerlink" href="#indexes" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#matchindexes"><code class="docutils literal notranslate"><span class="pre">MatchIndexes</span></code></a></p>
+</section>
+<section id="id93">
+<h5>drawing<a class="headerlink" href="#id93" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+</section>
+<section id="id94">
+<h4>Returns<a class="headerlink" href="#id94" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#shownstamp"><code class="docutils literal notranslate"><span class="pre">ShownStamp</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="timelinemask">
+<h3>timelineMask()<a class="headerlink" href="#timelinemask" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>timelineMask</strong>(<code class="docutils literal notranslate"><span class="pre">table</span></code>, <code class="docutils literal notranslate"><span class="pre">timelines</span></code>, <code class="docutils literal notranslate"><span class="pre">mask</span></code>): <code class="docutils literal notranslate"><span class="pre">Uint8Array</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L91">editor/src/inspector/matchstamps.ts:91</a></p>
+<p>The rows of <code class="docutils literal notranslate"><span class="pre">mask</span></code> (every row for <code class="docutils literal notranslate"><span class="pre">null</span></code>) whose two timelines are among <code class="docutils literal notranslate"><span class="pre">timelines</span></code>.</p>
+<section id="id95">
+<h4>Parameters<a class="headerlink" href="#id95" title="Link to this heading">#</a></h4>
+<section id="id96">
+<h5>table<a class="headerlink" href="#id96" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-client/matchClaims.html#matchclaimtable"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MatchClaimTable</span></code></span></a></p>
+</section>
+<section id="timelines">
+<h5>timelines<a class="headerlink" href="#timelines" title="Link to this heading">#</a></h5>
+<p>readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</section>
+<section id="mask">
+<h5>mask<a class="headerlink" href="#mask" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">Uint8Array</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">ArrayBufferLike</span></code>&gt; | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id97">
+<h4>Returns<a class="headerlink" href="#id97" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">Uint8Array</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="updatecommand">
+<h3>updateCommand()<a class="headerlink" href="#updatecommand" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>updateCommand</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">update</span></code>, <code class="docutils literal notranslate"><span class="pre">index</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>): <a class="reference internal" href="../../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/matchstamps.ts#L726">editor/src/inspector/matchstamps.ts:726</a></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">set</span></code> updating the named MatchStamp <code class="docutils literal notranslate"><span class="pre">id</span></code> of block <code class="docutils literal notranslate"><span class="pre">block</span></code> from the
+current potential MatchStamp <code class="docutils literal notranslate"><span class="pre">update</span></code> of <code class="docutils literal notranslate"><span class="pre">index</span></code> (core’s comparison): its
+anchors in screen order with nothing raised, as naming stores them
+(<code class="docutils literal notranslate"><span class="pre">stampToName</span></code>), whichever editor is open, and the MatchClaims behind
+them, in one entry.</p>
+<section id="id98">
+<h4>Parameters<a class="headerlink" href="#id98" title="Link to this heading">#</a></h4>
+<section id="id99">
+<h5>block<a class="headerlink" href="#id99" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id100">
+<h5>id<a class="headerlink" href="#id100" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="update">
+<h5>update<a class="headerlink" href="#update" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/matches/compare.html#matchstampupdate"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MatchStampUpdate</span></code></span></a></p>
+</section>
+<section id="id101">
+<h5>index<a class="headerlink" href="#id101" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/matches/anchors.html#anchorindex"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorIndex</span></code></span></a></p>
+</section>
+<section id="id102">
+<h5>drawing<a class="headerlink" href="#id102" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+</section>
+<section id="id103">
+<h4>Returns<a class="headerlink" href="#id103" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
+</section>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="matchstampLines.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">inspector/matchstampLines</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="metadata/catalogue.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">inspector/metadata/catalogue</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#claimdetails">ClaimDetails</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#certainty">certainty</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#sides">sides</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#claimline">ClaimLine</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#beliefs">beliefs</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#held">held</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id">id</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mine">mine</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#difference">Difference</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#items">items</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#label">label</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchindexes">MatchIndexes</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">beliefs</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#compared">compared</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#shown">shown</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#shownstamp">ShownStamp</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#anchors">anchors</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#block">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#claims">claims</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#coordinates">coordinates</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">id</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#name">name</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sideline">SideLine</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#event">event</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">name</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#timeline">timeline</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#timelinename">timelineName</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stampanchor">StampAnchor</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">coordinates</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#display">display</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">id</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#key">key</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#stated">stated</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stampcoordinate">StampCoordinate</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">timeline</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#value">value</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#addedmatchstamp">addedMatchStamp()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#before">before</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#after">after</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anchordisplaycommand">anchorDisplayCommand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#anchor">anchor</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">display</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#word">word</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#blockindexes">blockIndexes()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#view">view</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#table">table</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#believer">believer</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">claimDetails()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#read">read</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">id</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#manifest">manifest</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#claimlines">claimLines()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id26">table</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#ids">ids</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#user">user</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#context">context</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id27">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#differencesof">differencesOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id29">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#matchstamp">matchstamp</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#comparison">comparison</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#index">index</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id30">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hiddenanchorsnote">hiddenAnchorsNote()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id31">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#stamp">stamp</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#named">named</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id33">matchIndexes()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id34">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id35">table</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#filter">filter</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id36">believer</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id37">context</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id38">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchinputs">matchInputs()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id39">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id40">view</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#blocks">blocks</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#indexesof">indexesOf</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id41">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchstampsof">matchStampsOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id42">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id43">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#timestamp">timestamp</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id44">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#namecommand">nameCommand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id45">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id46">stamp</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id47">name</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id48">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#namedcomparisons">namedComparisons()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id49">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id50">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id51">index</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id52">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#namedstamp">namedStamp()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id53">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id54">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id55">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id56">matchstamp</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id57">comparison</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#drawing">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#raised">raised?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id58">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pinnedmatchstampof">pinnedMatchStampOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id59">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id60">shown</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id61">indexesOf</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id62">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#potentialstamp">potentialStamp()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id63">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id64">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id65">index</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id66">matchStamp</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id67">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id68">raised?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id69">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#removecommand">removeCommand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id70">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id71">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id72">id</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id73">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#renamecommand">renameCommand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id74">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id75">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id76">id</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id77">name</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id78">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stampjson">stampJson()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id79">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id80">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id81">stamp</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id82">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stamprows">stampRows()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id83">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id84">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id85">coordinates</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id86">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stamptext">stampText()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id87">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#format">format</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id88">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id89">stamp</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id90">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stamptoname">stampToName()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id91">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id92">stamp</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#indexes">indexes</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id93">drawing</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id94">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timelinemask">timelineMask()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id95">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id96">table</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#timelines">timelines</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mask">mask</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id97">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#updatecommand">updateCommand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id98">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id99">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id100">id</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#update">update</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id101">index</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id102">drawing</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id103">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

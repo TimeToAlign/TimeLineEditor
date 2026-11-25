@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Read a MatchClaim’s events on demand from the MatchClaim table &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'decisions/0032-match-claim-events';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="The server reads and writes the user’s files by path below a root folder" href="0033-server-file-access.html" />
+    <link rel="prev" title="Read a MatchClaim’s provenance on demand and answer a belief with the new table" href="0031-match-claim-provenance.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="0001-record-architecture-decisions.html">Record architecture decisions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0002-typescript.html">Use strict TypeScript</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0003-svelte-5-with-vite.html">Build the editor with Svelte 5 and Vite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0004-pnpm-workspaces.html">Use pnpm workspaces</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0005-biome.html">Lint and format with Biome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0006-vitest.html">Test with Vitest and Svelte mounting utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0007-dependency-cruiser.html">Enforce the package ladder with dependency-cruiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0008-fastapi-and-uvicorn.html">Serve the app with FastAPI and uvicorn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0009-uv-hatchling-ruff.html">Manage Python with uv, hatchling and Ruff</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0010-wheel-bundles-the-built-app.html">Bundle the built editor inside the wheel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0011-exact-rationals-written-in-core.html">Write the exact rationals of <code class="docutils literal notranslate"><span class="pre">core</span></code> ourselves</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0012-timetoshare-package.html">Depend on <code class="docutils literal notranslate"><span class="pre">@timetoalign/timetoshare</span></code> for the schema and fixtures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0014-fast-check.html">Test properties with fast-check</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0015-tex-live-for-tikz-checks.html">Compile the TikZ figures with TeX Live from the Ubuntu archive in CI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0016-fractional-indexing.html">Write fractional indices in <code class="docutils literal notranslate"><span class="pre">core</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="0017-rsvg-convert-for-review-renders.html">Rasterize review renders with rsvg-convert</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0018-indexeddb-autosave.html">Autosave to IndexedDB written in <code class="docutils literal notranslate"><span class="pre">editor</span></code>, tested with fake-indexeddb</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0019-workspace-store-and-journal.html">The workspace store and its command journal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0020-svelte-flow.html">Arrange blocks with Svelte Flow, one node per block</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0021-playwright.html">Test the editor end to end with Playwright, inside its image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0022-axe-core.html">Check accessibility of the running editor with axe-core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0023-file-access-written-in-editor.html">Opening and saving files written in <code class="docutils literal notranslate"><span class="pre">editor</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="0024-yaml-library.html">Read and write the inspector’s YAML with <code class="docutils literal notranslate"><span class="pre">yaml</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="0025-toml-library.html">Read and write the inspector’s TOML with <code class="docutils literal notranslate"><span class="pre">@decimalturn/toml-patch</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="0026-title-font.html">Set the inspector’s title line in IBM Plex Mono, bundled with the editor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0027-own-combobox.html">Write the editor’s combobox ourselves, after the WAI-ARIA pattern</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0028-lookup-services.html">Look values up in Wikidata, the GND and YouTube from the browser, and in MusicBrainz through the server</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0029-match-claim-columns.html">Hold the MatchClaim table as typed columns of exact values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0030-match-claims-answer.html">Send the MatchClaim table to the server as bytes and answer it as aligned arrays behind a JSON header</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0031-match-claim-provenance.html">Read a MatchClaim’s provenance on demand and answer a belief with the new table</a></li>
+<li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Read a MatchClaim’s events on demand from the MatchClaim table</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0033-server-file-access.html">The server reads and writes the user’s files by path below a root folder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0034-unfolding-a-raised-card.html">Unfold a raised ancestor card from its member card by one tweened progress</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0035-elision-modes-are-style-properties.html">Elision modes are style properties; group elisions belong to the frame</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0036-arrangements-are-placement.html">Arrangements are placement; a root drawn once along the row</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0037-one-message-system.html">One message system with three levels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0038-public-mode.html">A public mode serves the editor without a token and without files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0039-sphinx-documentation-site.html">Build the documentation site with Sphinx, MyST and TypeDoc</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../decisions.html" class="nav-link">Design decisions</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Read a MatchClaim’s events on demand from the MatchClaim table</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="read-a-matchclaim-s-events-on-demand-from-the-matchclaim-table">
+<h1>Read a MatchClaim’s events on demand from the MatchClaim table<a class="headerlink" href="#read-a-matchclaim-s-events-on-demand-from-the-matchclaim-table" title="Link to this heading">#</a></h1>
+<p><em>Status: accepted · Date: 2026-11-21</em></p>
+<section id="context">
+<h2>Context<a class="headerlink" href="#context" title="Link to this heading">#</a></h2>
+<p>The Matchstamp tab shows, for each MatchClaim of the MatchStamp it shows,
+the events on its two sides: each side’s timeline, the event’s ID and
+name. The MatchClaim table states the timelines, event IDs and names, the
+certainty and whether the MatchClaim states synchrony. The answer of
+decision 0030 holds none of the names, and the editor has no Parquet
+reader.</p>
+<p>A manifest names its tables in its <code class="docutils literal notranslate"><span class="pre">resources</span></code>, by locations relative to
+the manifest: the MatchClaim table (type <code class="docutils literal notranslate"><span class="pre">MatchClaim</span></code>) and, in a package
+that has one, the Projections table (type <code class="docutils literal notranslate"><span class="pre">Projection</span></code>), which states for
+each Projection (an event standing on a timeline for an event not held
+there) the event it stands for. The editor implements no event resource:
+it draws no event and reads no event table. What the match display needs
+(the anchors, the MatchStamps, the beliefs, the provenance and the events’
+IDs and names) the MatchClaim table alone carries.</p>
+<p>The requirements:</p>
+<ol class="arabic simple">
+<li><p><strong>Only what is shown travels</strong>, as for provenance (decision 0031): the
+events of one MatchStamp’s MatchClaims at a time, never every row’s.</p></li>
+<li><p><strong>The format’s own readers</strong>: the table is checked by TimeToShare’s
+table checks against the manifest and read by timetoalign, as the other
+routes read it.</p></li>
+<li><p><strong>No new dependency</strong> and <strong>a stateless server</strong>, as for decisions 0030
+and 0031: the editor holds the table for its session only.</p></li>
+</ol>
+</section>
+<section id="considered-options">
+<h2>Considered options<a class="headerlink" href="#considered-options" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><strong>Names in the answer of decision 0030</strong>: every row’s strings, sent
+whether shown or not (requirement 1).</p></li>
+<li><p><strong>The provenance route answering the events too</strong>: one request for two
+things the tab shows at different times (the events when a MatchClaim is
+expanded, the provenance when the user asks for it).</p></li>
+<li><p><strong>A route of its own</strong> taking the request of decision 0031.</p></li>
+</ul>
+</section>
+<section id="decision">
+<h2>Decision<a class="headerlink" href="#decision" title="Link to this heading">#</a></h2>
+<p>The last option. <strong><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/match-claims/events</span></code></strong> takes:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Bytes</p></th>
+<th class="head"><p>Holds</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0 to 3</p></td>
+<td><p>the parameters’ length <code class="docutils literal notranslate"><span class="pre">P</span></code> in bytes, an unsigned little-endian 32-bit integer</p></td>
+</tr>
+<tr class="row-odd"><td><p>4 to 4 + <code class="docutils literal notranslate"><span class="pre">P</span></code></p></td>
+<td><p>the parameters <code class="docutils literal notranslate"><span class="pre">{&quot;claims&quot;:</span> <span class="pre">[&lt;MatchClaim</span> <span class="pre">ID&gt;,</span> <span class="pre">…]}</span></code>, a JSON object in UTF-8</p></td>
+</tr>
+<tr class="row-even"><td><p>the rest</p></td>
+<td><p>the body of <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/match-claims</span></code> unchanged: the manifest’s length, the manifest file, the MatchClaim table’s Parquet file</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The table is checked against the manifest by TimeToShare’s table checks
+(<code class="docutils literal notranslate"><span class="pre">match_claim_problems</span></code>); timetoalign reads it in the package form
+(<code class="docutils literal notranslate"><span class="pre">MatchClaimField.from_package_table</span></code>).</p>
+<p>The answer is JSON <code class="docutils literal notranslate"><span class="pre">{&quot;claims&quot;:</span> <span class="pre">[...]}</span></code>, one entry per MatchClaim asked,
+in the order asked: <code class="docutils literal notranslate"><span class="pre">{&quot;id&quot;,</span> <span class="pre">&quot;timeline_a_id&quot;,</span> <span class="pre">&quot;event_a_id&quot;,</span> <span class="pre">&quot;event_a_name&quot;,</span> <span class="pre">&quot;timeline_b_id&quot;,</span> <span class="pre">&quot;event_b_id&quot;,</span> <span class="pre">&quot;event_b_name&quot;,</span> <span class="pre">&quot;certainty&quot;,</span> <span class="pre">&quot;is_synchronous&quot;}</span></code>, a null cell <code class="docutils literal notranslate"><span class="pre">null</span></code> (a side without an event, an event
+without a name).</p>
+<p><strong>Refusals</strong> answer as decisions 0030 and 0031: 422 <code class="docutils literal notranslate"><span class="pre">{&quot;detail&quot;:</span> <span class="pre">{&quot;path&quot;,</span> <span class="pre">&quot;message&quot;,</span> <span class="pre">&quot;problems&quot;?}}</span></code>, a parameter’s at its name (<code class="docutils literal notranslate"><span class="pre">[&quot;claims&quot;,</span> <span class="pre">1]</span></code>, a
+MatchClaim the table lacks), a table the checks refuse with every problem;
+501 as the table route answers it.</p>
+<p>The client (<code class="docutils literal notranslate"><span class="pre">&#64;timetoalign/tilie-client</span></code>’s <code class="docutils literal notranslate"><span class="pre">matchClaimEvents(manifest,</span> <span class="pre">table,</span> <span class="pre">claims)</span></code>) refuses an answer for other MatchClaims, in another
+order, or with a member missing, unknown or of another type. The editor
+(<code class="docutils literal notranslate"><span class="pre">MatchClaimTables.events(block,</span> <span class="pre">manifest,</span> <span class="pre">claims)</span></code>) asks for the
+MatchClaims it shows with the manifest as its file writes it and the
+MatchClaim table it holds, once per table and list of MatchClaims.</p>
+<p><strong>Where the editor takes the table from.</strong> A table the manifest names by
+an absolute <code class="docutils literal notranslate"><span class="pre">http</span></code> or <code class="docutils literal notranslate"><span class="pre">https</span></code> URL is fetched from there. One named by a
+location relative to the manifest is read beside the manifest’s file:
+the workspace keeps where each block’s manifest lies (its location
+relative to the workspace file), and the editor reads the table through
+the server’s file route (decision 0033); an example’s manifest is read
+beside the files served with it. Where the table cannot be found so (no
+server, a manifest whose file the workspace does not locate, a table
+missing beside it, a URL that cannot be fetched), the editor asks the
+user, in one dialog per manifest, for the manifest’s file, the table’s
+file or its URL; a manifest’s file located in the dialog is kept in the
+workspace. A URL is fetched by the browser as any page would; one the
+browser may not read (no CORS permission) is reported as not loaded.</p>
+<p>Amended 2026-11-21: the route took, between the parameters and the table
+route’s body, the Projections table behind its length (0 for none), and
+answered for each side <code class="docutils literal notranslate"><span class="pre">event_*_projection</span></code>, the event a side’s Projection
+stands for. The editor no longer loads the Projections table: it
+implements no event resource, and the MatchClaim table alone carries what
+the match display needs. The request lost that part and the answer those
+two members; the editor’s dialog asks for the MatchClaim table alone. A
+manifest naming a Projections table keeps its <code class="docutils literal notranslate"><span class="pre">resources</span></code> entry unchanged:
+the editor neither reads nor drops it.</p>
+<p>Amended again 2026-11-21: the editor took the table only from where a
+block’s manifest came from in the session, never remembered, or else from
+the dialog. Since the server opens the user’s files by path (decision
+0033), the workspace keeps where each manifest lies and the table is read
+beside it through the server in every session; a table named by an
+absolute URL is fetched without a question.</p>
+</section>
+<section id="maintenance-and-dependencies">
+<h2>Maintenance and dependencies<a class="headerlink" href="#maintenance-and-dependencies" title="Link to this heading">#</a></h2>
+<p>No dependency enters: <code class="docutils literal notranslate"><span class="pre">struct</span></code>, <code class="docutils literal notranslate"><span class="pre">json</span></code>, pyarrow (which timetoalign
+requires) on the server; <code class="docutils literal notranslate"><span class="pre">Blob</span></code>, <code class="docutils literal notranslate"><span class="pre">TextEncoder</span></code> and <code class="docutils literal notranslate"><span class="pre">fetch</span></code> in the browser.
+The server’s tests write out the fixture’s MatchClaims by hand and compare
+the answer whole; the client’s tests compare the request byte for byte and
+the answer’s reader against a written answer.</p>
+<p>Primary sources: <a class="reference external" href="https://parquet.apache.org/docs/file-format/">https://parquet.apache.org/docs/file-format/</a>,
+<a class="reference external" href="https://www.rfc-editor.org/rfc/rfc8259">https://www.rfc-editor.org/rfc/rfc8259</a> (JSON),
+<a class="reference external" href="https://fetch.spec.whatwg.org/#http-cors-protocol">https://fetch.spec.whatwg.org/#http-cors-protocol</a> (what a browser may
+read from another origin).</p>
+</section>
+<section id="consequences">
+<h2>Consequences<a class="headerlink" href="#consequences" title="Link to this heading">#</a></h2>
+<p>Each request sends the MatchClaim table again (on the loopback interface),
+and the server checks it each time. No Projection is shown: a side whose
+event is a Projection shows its ID and name as the MatchClaim table states
+them. A Projections table a package holds is checked only by the tools
+that read it (TimeToShare, timetoalign), never by the editor. The exit
+cost is local: the route, the client’s call and the editor’s accessor.</p>
+</section>
+<section id="review-date">
+<h2>Review date<a class="headerlink" href="#review-date" title="Link to this heading">#</a></h2>
+<p>2027-05-21, or when the editor saves MatchClaim tables through the server.
+Reviewed 2026-11-21, when packages came to open as folders through the
+server (decision 0033), the condition this date first named: the route
+stands, since the editor still sends the table it holds, which after a
+belief differs from the file until the user saves it.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="0031-match-claim-provenance.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Read a MatchClaim’s provenance on demand and answer a belief with the new table</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="0033-server-file-access.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">The server reads and writes the user’s files by path below a root folder</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#context">Context</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#considered-options">Considered options</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#decision">Decision</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#maintenance-and-dependencies">Maintenance and dependencies</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#consequences">Consequences</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#review-date">Review date</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

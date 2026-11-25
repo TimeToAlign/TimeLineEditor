@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Set the inspector’s title line in IBM Plex Mono, bundled with the editor &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'decisions/0026-title-font';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Write the editor’s combobox ourselves, after the WAI-ARIA pattern" href="0027-own-combobox.html" />
+    <link rel="prev" title="Read and write the inspector’s TOML with @decimalturn/toml-patch" href="0025-toml-library.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="0001-record-architecture-decisions.html">Record architecture decisions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0002-typescript.html">Use strict TypeScript</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0003-svelte-5-with-vite.html">Build the editor with Svelte 5 and Vite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0004-pnpm-workspaces.html">Use pnpm workspaces</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0005-biome.html">Lint and format with Biome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0006-vitest.html">Test with Vitest and Svelte mounting utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0007-dependency-cruiser.html">Enforce the package ladder with dependency-cruiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0008-fastapi-and-uvicorn.html">Serve the app with FastAPI and uvicorn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0009-uv-hatchling-ruff.html">Manage Python with uv, hatchling and Ruff</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0010-wheel-bundles-the-built-app.html">Bundle the built editor inside the wheel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0011-exact-rationals-written-in-core.html">Write the exact rationals of <code class="docutils literal notranslate"><span class="pre">core</span></code> ourselves</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0012-timetoshare-package.html">Depend on <code class="docutils literal notranslate"><span class="pre">@timetoalign/timetoshare</span></code> for the schema and fixtures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0014-fast-check.html">Test properties with fast-check</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0015-tex-live-for-tikz-checks.html">Compile the TikZ figures with TeX Live from the Ubuntu archive in CI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0016-fractional-indexing.html">Write fractional indices in <code class="docutils literal notranslate"><span class="pre">core</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="0017-rsvg-convert-for-review-renders.html">Rasterize review renders with rsvg-convert</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0018-indexeddb-autosave.html">Autosave to IndexedDB written in <code class="docutils literal notranslate"><span class="pre">editor</span></code>, tested with fake-indexeddb</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0019-workspace-store-and-journal.html">The workspace store and its command journal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0020-svelte-flow.html">Arrange blocks with Svelte Flow, one node per block</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0021-playwright.html">Test the editor end to end with Playwright, inside its image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0022-axe-core.html">Check accessibility of the running editor with axe-core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0023-file-access-written-in-editor.html">Opening and saving files written in <code class="docutils literal notranslate"><span class="pre">editor</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="0024-yaml-library.html">Read and write the inspector’s YAML with <code class="docutils literal notranslate"><span class="pre">yaml</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="0025-toml-library.html">Read and write the inspector’s TOML with <code class="docutils literal notranslate"><span class="pre">@decimalturn/toml-patch</span></code></a></li>
+<li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Set the inspector’s title line in IBM Plex Mono, bundled with the editor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0027-own-combobox.html">Write the editor’s combobox ourselves, after the WAI-ARIA pattern</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0028-lookup-services.html">Look values up in Wikidata, the GND and YouTube from the browser, and in MusicBrainz through the server</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0029-match-claim-columns.html">Hold the MatchClaim table as typed columns of exact values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0030-match-claims-answer.html">Send the MatchClaim table to the server as bytes and answer it as aligned arrays behind a JSON header</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0031-match-claim-provenance.html">Read a MatchClaim’s provenance on demand and answer a belief with the new table</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0032-match-claim-events.html">Read a MatchClaim’s events on demand from the MatchClaim table</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0033-server-file-access.html">The server reads and writes the user’s files by path below a root folder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0034-unfolding-a-raised-card.html">Unfold a raised ancestor card from its member card by one tweened progress</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0035-elision-modes-are-style-properties.html">Elision modes are style properties; group elisions belong to the frame</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0036-arrangements-are-placement.html">Arrangements are placement; a root drawn once along the row</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0037-one-message-system.html">One message system with three levels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0038-public-mode.html">A public mode serves the editor without a token and without files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="0039-sphinx-documentation-site.html">Build the documentation site with Sphinx, MyST and TypeDoc</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../decisions.html" class="nav-link">Design decisions</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Set the inspector’s title line in IBM Plex Mono, bundled with the editor</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="set-the-inspector-s-title-line-in-ibm-plex-mono-bundled-with-the-editor">
+<h1>Set the inspector’s title line in IBM Plex Mono, bundled with the editor<a class="headerlink" href="#set-the-inspector-s-title-line-in-ibm-plex-mono-bundled-with-the-editor" title="Link to this heading">#</a></h1>
+<p><em>Status: accepted · Date: 2026-10-19</em></p>
+<section id="context">
+<h2>Context<a class="headerlink" href="#context" title="Link to this heading">#</a></h2>
+<p>The inspector’s first tab is named by the level the canvas is at
+(Arranger, Bundle, Group or Timeline), and its panel opens with one title
+line, “<level> <name>”: the level’s word in one style and the name of the
+workspace or of the edited element in another, set as a console field in a
+typewriter face. The line should look the same on every platform, so the
+face is bundled rather than taken from the system. The editor already
+bundles one face, DejaVu Sans 2.37 from the schema package, for the
+drawing; it carries no monospaced face, and the text areas and codes of the
+inspector name the platform’s monospaced stack (<code class="docutils literal notranslate"><span class="pre">ui-monospace,</span> <span class="pre">&quot;DejaVu</span> <span class="pre">Sans</span> <span class="pre">Mono&quot;,</span> <span class="pre">Menlo,</span> <span class="pre">Consolas,</span> <span class="pre">monospace</span></code>).</p>
+<p>The requirements:</p>
+<ol class="arabic simple">
+<li><p><strong>A typewriter look</strong>: monospaced, with slab serifs, readable at 11 to
+15 CSS pixels.</p></li>
+<li><p><strong>One file</strong>: the two styles of the line come from size, case, letter
+spacing and colour, so one upright regular weight serves.</p></li>
+<li><p><strong>Coverage</strong>: Latin-1 and Latin Extended-A complete, since names are
+mostly European; a character the face lacks (Greek, the accidentals ♭ and
+♯) falls back glyph by glyph to the platform’s monospaced face.</p></li>
+<li><p><strong>Small</strong>: a WOFF2 file published upstream, so the bytes are the
+upstream release’s, unconverted.</p></li>
+<li><p><strong>A licence</strong> that permits bundling in an MIT application with the
+licence text in the notices file.</p></li>
+<li><p><strong>No package</strong>: a static file vendored beside the editor’s sources; no
+npm package is installed for it.</p></li>
+</ol>
+</section>
+<section id="considered-options">
+<h2>Considered options<a class="headerlink" href="#considered-options" title="Link to this heading">#</a></h2>
+<p>Each candidate was taken from its upstream release on 2026-10-19 and
+measured with fontTools (character map coverage of Latin-1 U+00A0–U+00FF,
+Latin Extended-A U+0100–U+017F, Greek U+0391–U+03C9, Cyrillic
+U+0410–U+044F, and U+266D–U+266F).</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Face</p></th>
+<th class="head"><p>Release</p></th>
+<th class="head"><p>File</p></th>
+<th class="head text-right"><p>Bytes</p></th>
+<th class="head"><p>SHA-256</p></th>
+<th class="head"><p>Licence</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>DejaVu Sans Mono 2.37</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">version_2_37</span></code>, 2016-07-30</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ttf/DejaVuSansMono.ttf</span></code></p></td>
+<td class="text-right"><p>340,712</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">b4a6c3e4faab8773f4ff761d56451646409f29abedd68f05d38c2df667d3c582</span></code></p></td>
+<td><p>Bitstream Vera and Arev licences, DejaVu changes in the public domain</p></td>
+</tr>
+<tr class="row-odd"><td><p>IBM Plex Mono 2.5.0</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;ibm/plex-mono&#64;2.5.0</span></code>, 2026-06-11</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fonts/complete/woff2/IBMPlexMono-Regular.woff2</span></code></p></td>
+<td class="text-right"><p>49,248</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ba204497f16b6d334cee9d1e963a831b73e3a56e1d6300a8489d18df7214b350</span></code></p></td>
+<td><p>OFL-1.1, Reserved Font Name “Plex”</p></td>
+</tr>
+<tr class="row-even"><td><p>Courier Prime 3.018</p></td>
+<td><p>no release; repository head <code class="docutils literal notranslate"><span class="pre">7fd585a</span></code>, 2019-12-05</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fonts/ttf/CourierPrime-Regular.ttf</span></code></p></td>
+<td class="text-right"><p>71,188</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">72f793376f8e2841656bf21d77a5de010f2929bd6956a22ee848ad0c7eb978af</span></code></p></td>
+<td><p>OFL-1.1</p></td>
+</tr>
+<tr class="row-odd"><td><p>JetBrains Mono 2.304</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">v2.304</span></code>, 2023-01-14</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fonts/webfonts/JetBrainsMono-Regular.woff2</span></code></p></td>
+<td class="text-right"><p>92,164</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">a9cb1cd82332b23a47e3a1239d25d13c86d16c4220695e34b243effa999f45f2</span></code></p></td>
+<td><p>OFL-1.1</p></td>
+</tr>
+<tr class="row-even"><td><p>The platform’s <code class="docutils literal notranslate"><span class="pre">ui-monospace</span></code> stack</p></td>
+<td><p>none</p></td>
+<td><p>none</p></td>
+<td class="text-right"><p>0</p></td>
+<td><p>none</p></td>
+<td><p>none</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Coverage (share of each range in the character map):</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Face</p></th>
+<th class="head text-right"><p>Latin-1</p></th>
+<th class="head text-right"><p>Latin Ext-A</p></th>
+<th class="head text-right"><p>Greek</p></th>
+<th class="head text-right"><p>Cyrillic</p></th>
+<th class="head"><p>♭ ♮ ♯</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>DejaVu Sans Mono 2.37</p></td>
+<td class="text-right"><p>100 %</p></td>
+<td class="text-right"><p>100 %</p></td>
+<td class="text-right"><p>98 %</p></td>
+<td class="text-right"><p>100 %</p></td>
+<td><p>all three</p></td>
+</tr>
+<tr class="row-odd"><td><p>IBM Plex Mono 2.5.0</p></td>
+<td class="text-right"><p>100 %</p></td>
+<td class="text-right"><p>100 %</p></td>
+<td class="text-right"><p>2 %</p></td>
+<td class="text-right"><p>100 %</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-even"><td><p>Courier Prime 3.018</p></td>
+<td class="text-right"><p>100 %</p></td>
+<td class="text-right"><p>98 %</p></td>
+<td class="text-right"><p>7 %</p></td>
+<td class="text-right"><p>0 %</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p>JetBrains Mono 2.304</p></td>
+<td class="text-right"><p>100 %</p></td>
+<td class="text-right"><p>98 %</p></td>
+<td class="text-right"><p>98 %</p></td>
+<td class="text-right"><p>100 %</p></td>
+<td><p>♭ and ♯</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<ul class="simple">
+<li><p><strong>DejaVu Sans Mono 2.37</strong>, the monospaced member of the release whose Sans
+the schema package already bundles, under the same licence. The widest
+coverage, but a sans-serif coding face without any typewriter feature,
+and only a TrueType file upstream: 340,712 bytes, seven times Plex Mono’s
+WOFF2.</p></li>
+<li><p><strong>IBM Plex Mono 2.5.0</strong>: slab serifs on <code class="docutils literal notranslate"><span class="pre">i</span></code>, <code class="docutils literal notranslate"><span class="pre">l</span></code>, <code class="docutils literal notranslate"><span class="pre">r</span></code> and the capitals, a
+typewriter’s rhythm with a contemporary finish; an upstream WOFF2 of
+49,248 bytes; maintained by IBM in <code class="docutils literal notranslate"><span class="pre">IBM/plex</span></code> (the last push 2026-10-16,
+releases per face, a variable version released 2026-07-30 beside the
+static one). Greek and the accidentals fall back.</p></li>
+<li><p><strong>Courier Prime 3.018</strong>: the most literal typewriter face (a redrawn
+Courier), but no tagged release, no upstream WOFF2, no change since 2019,
+and no Greek or Cyrillic.</p></li>
+<li><p><strong>JetBrains Mono 2.304</strong>: good coverage, but a coding face without serifs,
+and nearly twice Plex Mono’s bytes.</p></li>
+<li><p><strong>The platform’s <code class="docutils literal notranslate"><span class="pre">ui-monospace</span></code> stack</strong>: no bytes, no notice and no
+maintenance, but not bundled: SF Mono where the browser maps
+<code class="docutils literal notranslate"><span class="pre">ui-monospace</span></code> (Safari on Apple systems), elsewhere whatever <code class="docutils literal notranslate"><span class="pre">monospace</span></code>
+resolves to (Consolas, DejaVu Sans Mono, Liberation Mono), so the line
+looks different on every platform, and on none like a typewriter.</p></li>
+<li><p><strong>Write it ourselves</strong>: designing and hinting a typeface is a craft of its
+own, out of all proportion to one line of the inspector.</p></li>
+</ul>
+<p>Scores run from 1 (least suitable) to 5 (most suitable).</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Criterion</p></th>
+<th class="head text-right"><p>DejaVu Sans Mono</p></th>
+<th class="head text-right"><p>Plex Mono</p></th>
+<th class="head text-right"><p>Courier Prime</p></th>
+<th class="head text-right"><p>JetBrains Mono</p></th>
+<th class="head text-right"><p><code class="docutils literal notranslate"><span class="pre">ui-monospace</span></code></p></th>
+<th class="head text-right"><p>Own face</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Fit (typewriter look, same everywhere)</p></td>
+<td class="text-right"><p>2</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>2</p></td>
+<td class="text-right"><p>1</p></td>
+<td class="text-right"><p>3</p></td>
+</tr>
+<tr class="row-odd"><td><p>Coverage</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>4</p></td>
+<td class="text-right"><p>3</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>4</p></td>
+<td class="text-right"><p>1</p></td>
+</tr>
+<tr class="row-even"><td><p>Bytes</p></td>
+<td class="text-right"><p>2</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>4</p></td>
+<td class="text-right"><p>4</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>3</p></td>
+</tr>
+<tr class="row-odd"><td><p>Maintenance cost</p></td>
+<td class="text-right"><p>4</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>3</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>1</p></td>
+</tr>
+<tr class="row-even"><td><p>Licence</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>5</p></td>
+</tr>
+<tr class="row-odd"><td><p>Exit cost</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>3</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Total</strong></p></td>
+<td class="text-right"><p><strong>23</strong></p></td>
+<td class="text-right"><p><strong>29</strong></p></td>
+<td class="text-right"><p><strong>25</strong></p></td>
+<td class="text-right"><p><strong>26</strong></p></td>
+<td class="text-right"><p><strong>25</strong></p></td>
+<td class="text-right"><p><strong>16</strong></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="decision">
+<h2>Decision<a class="headerlink" href="#decision" title="Link to this heading">#</a></h2>
+<p>Bundle IBM Plex Mono 2.5.0 Regular: the file
+<code class="docutils literal notranslate"><span class="pre">fonts/complete/woff2/IBMPlexMono-Regular.woff2</span></code> of the release archive
+<code class="docutils literal notranslate"><span class="pre">ibm-plex-mono.zip</span></code> of <code class="docutils literal notranslate"><span class="pre">&#64;ibm/plex-mono&#64;2.5.0</span></code> (font revision 2.005), copied
+unchanged to <code class="docutils literal notranslate"><span class="pre">app/packages/editor/fonts/IBMPlexMono-Regular.woff2</span></code> (49,248
+bytes, SHA-256
+<code class="docutils literal notranslate"><span class="pre">ba204497f16b6d334cee9d1e963a831b73e3a56e1d6300a8489d18df7214b350</span></code>), with
+the archive’s <code class="docutils literal notranslate"><span class="pre">LICENSE.txt</span></code> beside it as <code class="docutils literal notranslate"><span class="pre">fonts/LICENSE.txt</span></code>. The
+inspector’s stylesheet declares it with <code class="docutils literal notranslate"><span class="pre">&#64;font-face</span></code> as the family “TiLiE
+Plex Mono” (<code class="docutils literal notranslate"><span class="pre">font-display:</span> <span class="pre">swap</span></code>), which only the title line names,
+followed by <code class="docutils literal notranslate"><span class="pre">ui-monospace,</span> <span class="pre">monospace</span></code> for the characters it lacks. The
+About pane lists it with its licence and copyright line, and the notices
+file carries its full licence text after DejaVu Sans’s. The build test
+requires the emitted asset to equal the vendored file byte for byte.</p>
+<p><strong>Superseded in part (2026-11-16).</strong> The editor bundles a second drawing
+face from the schema package, Noto Music 2.004, for what DejaVu Sans does
+not map (TimeToShare’s decision 0012), so it carries three faces; the
+notices file holds IBM Plex Mono’s licence after Noto Music’s.</p>
+</section>
+<section id="maintenance-and-dependencies">
+<h2>Maintenance and dependencies<a class="headerlink" href="#maintenance-and-dependencies" title="Link to this heading">#</a></h2>
+<p>No package and no code: one static file and its licence. IBM maintains
+Plex in <code class="docutils literal notranslate"><span class="pre">IBM/plex</span></code> (11,713 stars on 2026-10-19), publishing each face as
+its own release; the static Regular of 2.5.0 is final as it stands, so the
+file changes only by a decision to take a later release, checked against
+this record.</p>
+<p>What the builds gain: the page build and the embed build each emit the file
+as one asset, 49,248 bytes, which the browser fetches only when the title
+line is first shown (a face is loaded on use, so a host page that never
+opens the inspector never fetches it); the stylesheet gains the minified
+<code class="docutils literal notranslate"><span class="pre">&#64;font-face</span></code> rule, 159 bytes in the embed’s <code class="docutils literal notranslate"><span class="pre">tilie.css</span></code> (measured on the
+embed build of 2026-10-19) and seven fewer in the page’s stylesheet, which
+lies beside the asset and so names it without the <code class="docutils literal notranslate"><span class="pre">assets/</span></code> prefix. No
+script bytes. The wheel carries the page build, so it
+gains the same asset.</p>
+<p>Primary sources:
+<a class="github reference external" href="https://github.com/IBM/plex/releases/tag/%40ibm%2Fplex-mono%402.5.0">IBM/plex</a>,
+<a class="github reference external" href="https://github.com/IBM/plex">IBM/plex</a>,
+<a class="github reference external" href="https://github.com/dejavu-fonts/dejavu-fonts/releases/tag/version_2_37">dejavu-fonts/dejavu-fonts</a>,
+<a class="github reference external" href="https://github.com/quoteunquoteapps/CourierPrime">quoteunquoteapps/CourierPrime</a>,
+<a class="github reference external" href="https://github.com/JetBrains/JetBrainsMono/releases/tag/v2.304">JetBrains/JetBrainsMono</a>,
+<a class="reference external" href="https://openfontlicense.org/open-font-license-official-text/">https://openfontlicense.org/open-font-license-official-text/</a>.</p>
+</section>
+<section id="consequences">
+<h2>Consequences<a class="headerlink" href="#consequences" title="Link to this heading">#</a></h2>
+<p>The title line looks the same in every browser and in every host page of
+the embed. Greek letters and the accidentals ♭ and ♯ in a name are drawn by
+the platform’s monospaced face, so a name holding them mixes two faces.
+The Reserved Font Name binds only modified versions; the file is shipped
+unmodified. Exit cost: the two files in <code class="docutils literal notranslate"><span class="pre">fonts/</span></code>, the <code class="docutils literal notranslate"><span class="pre">&#64;font-face</span></code> rule,
+the attribution, the notice and the build test’s lines.</p>
+</section>
+<section id="review-date">
+<h2>Review date<a class="headerlink" href="#review-date" title="Link to this heading">#</a></h2>
+<p>2027-04-19, or when a release of IBM Plex Mono adds Greek or the musical
+accidentals.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="0025-toml-library.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Read and write the inspector’s TOML with <code class="docutils literal notranslate"><span class="pre">&#64;decimalturn/toml-patch</span></code></p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="0027-own-combobox.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Write the editor’s combobox ourselves, after the WAI-ARIA pattern</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#context">Context</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#considered-options">Considered options</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#decision">Decision</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#maintenance-and-dependencies">Maintenance and dependencies</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#consequences">Consequences</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#review-date">Review date</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

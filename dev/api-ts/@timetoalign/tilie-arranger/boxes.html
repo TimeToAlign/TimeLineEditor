@@ -1,0 +1,2307 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>boxes &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api-ts/@timetoalign/tilie-arranger/boxes';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="cardAxis" href="cardAxis.html" />
+    <link rel="prev" title="blockDrag" href="blockDrag.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../tilie-core/index.html">@timetoalign/tilie-core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-layout/index.html">@timetoalign/tilie-layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-writers/index.html">@timetoalign/tilie-writers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-client/index.html">@timetoalign/tilie-client</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">@timetoalign/tilie-arranger</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="affected.html">affected</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/cardMotions.svelte.html">animation/cardMotions.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/elide.html">animation/elide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/progress.svelte.html">animation/progress.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/raise.html">animation/raise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/unfold.html">animation/unfold</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/unfolding.svelte.html">animation/unfolding.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arrangeMenu.html">arrangeMenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bands.html">bands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="blockDrag.html">blockDrag</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">boxes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cardAxis.html">cardAxis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html">commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="containers.html">containers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coordinates.html">coordinates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="focus.html">focus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gaps.html">gaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gesture.html">gesture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/arranged.html">gestures/arranged</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/band.html">gestures/band</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/canvas.html">gestures/canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/gap.html">gestures/gap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/wheel.html">gestures/wheel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index-1.html">index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="items.html">items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="keys.html">keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="liveStore.svelte.html">liveStore.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="marquee.html">marquee</a></li>
+<li class="toctree-l2"><a class="reference internal" href="matches.html">matches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="motion.html">motion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="node.html">node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nodeActions.html">nodeActions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nodes.svelte.html">nodes.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="numbers.html">numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="onScreen.html">onScreen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pane.html">pane</a></li>
+<li class="toctree-l2"><a class="reference internal" href="picking.html">picking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="project.html">project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reorder.html">reorder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="resize.html">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="roving.html">roving</a></li>
+<li class="toctree-l2"><a class="reference internal" href="selection.html">selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="selectionRules.html">selectionRules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="snap.html">snap</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-editor/index.html">@timetoalign/tilie-editor</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../typescript.html" class="nav-link">TypeScript API</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">&#64;timetoalign/tilie-arranger</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">boxes</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="boxes">
+<h1>boxes<a class="headerlink" href="#boxes" title="Link to this heading">#</a></h1>
+<section id="interfaces">
+<h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
+<section id="affordancesource">
+<h3>AffordanceSource<a class="headerlink" href="#affordancesource" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L48">arranger/src/boxes.ts:48</a></p>
+<p>What an affordance of the canvas stands for: a named timestamp the
+drawing draws nothing of (<code class="docutils literal notranslate"><span class="pre">affordancesOf</span></code>), shown by the canvas alone, so
+it names no element of the drawing, only the timestamp’s address.</p>
+<section id="extended-by">
+<h4>Extended by<a class="headerlink" href="#extended-by" title="Link to this heading">#</a></h4>
+<ul class="simple">
+<li><p><a class="reference internal" href="coordinates.html#affordance"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Affordance</span></code></span></a></p></li>
+</ul>
+</section>
+<section id="properties">
+<h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
+<section id="address">
+<h5>address<a class="headerlink" href="#address" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>address</strong>: <a class="reference internal" href="../tilie-core/manifest/address.html#elementaddress"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElementAddress</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L51">arranger/src/boxes.ts:51</a></p>
+<p>The named timestamp’s address <code class="docutils literal notranslate"><span class="pre">{id}</span></code>.</p>
+</section>
+<section id="kind">
+<h5>kind<a class="headerlink" href="#kind" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>kind</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;affordance&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L49">arranger/src/boxes.ts:49</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="drawingpoint">
+<h3>DrawingPoint<a class="headerlink" href="#drawingpoint" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L259">arranger/src/boxes.ts:259</a></p>
+<p>A point in a drawing’s own units.</p>
+<section id="id1">
+<h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
+<section id="x">
+<h5>x<a class="headerlink" href="#x" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>x</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L260">arranger/src/boxes.ts:260</a></p>
+</section>
+<section id="y">
+<h5>y<a class="headerlink" href="#y" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>y</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L261">arranger/src/boxes.ts:261</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="hit">
+<h3>Hit<a class="headerlink" href="#hit" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L268">arranger/src/boxes.ts:268</a></p>
+<p>What a pointer target hits in block <code class="docutils literal notranslate"><span class="pre">block</span></code>.</p>
+<section id="id2">
+<h4>Properties<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
+<section id="id3">
+<h5>address<a class="headerlink" href="#id3" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>address</strong>: <a class="reference internal" href="../tilie-core/workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L273">arranger/src/boxes.ts:273</a></p>
+<p><code class="docutils literal notranslate"><span class="pre">{block}</span></code> for the block itself, else the address of the element in the block.</p>
+</section>
+<section id="block">
+<h5>block<a class="headerlink" href="#block" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>block</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L269">arranger/src/boxes.ts:269</a></p>
+</section>
+<section id="boundary">
+<h5>boundary<a class="headerlink" href="#boundary" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>boundary</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L277">arranger/src/boxes.ts:277</a></p>
+<p>Whether the target is a segment’s boundary line.</p>
+</section>
+<section id="box">
+<h5>box<a class="headerlink" href="#box" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>box</strong>: <a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L275">arranger/src/boxes.ts:275</a></p>
+<p>The container hit: the block, a frame, a card or a band; <code class="docutils literal notranslate"><span class="pre">null</span></code> for an element.</p>
+</section>
+<section id="id4">
+<h5>kind<a class="headerlink" href="#id4" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>kind</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;block&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;frame&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;card&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;band&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;element&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L271">arranger/src/boxes.ts:271</a></p>
+<p>A container’s kind, or <code class="docutils literal notranslate"><span class="pre">&quot;element&quot;</span></code> for anything else drawn.</p>
+</section>
+<section id="within">
+<h5>within<a class="headerlink" href="#within" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>within</strong>: <a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L282">arranger/src/boxes.ts:282</a></p>
+<p>The displayed frame or card on top at the point (<code class="docutils literal notranslate"><span class="pre">boxAt</span></code>); <code class="docutils literal notranslate"><span class="pre">null</span></code>
+outside every one, or when no point was given.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="holding">
+<h3>Holding<a class="headerlink" href="#holding" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L302">arranger/src/boxes.ts:302</a></p>
+<p>The boxes holding part of a selection: the block itself, and its frames and cards by <code class="docutils literal notranslate"><span class="pre">boxKey</span></code>.</p>
+<section id="id5">
+<h4>Properties<a class="headerlink" href="#id5" title="Link to this heading">#</a></h4>
+<section id="id6">
+<h5>block<a class="headerlink" href="#id6" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>block</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L303">arranger/src/boxes.ts:303</a></p>
+</section>
+<section id="id7">
+<h5>boxes<a class="headerlink" href="#id7" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>boxes</strong>: <code class="docutils literal notranslate"><span class="pre">ReadonlySet</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L304">arranger/src/boxes.ts:304</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="hover">
+<h3>Hover<a class="headerlink" href="#hover" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L290">arranger/src/boxes.ts:290</a></p>
+<p>What the pointer highlights in a block, held by strings so that a redraw
+keeps it: a box by its place key (<code class="docutils literal notranslate"><span class="pre">boxKey</span></code>), a boundary and a band by
+their addresses’ keys (<code class="docutils literal notranslate"><span class="pre">addressKey</span></code>).</p>
+<section id="id8">
+<h4>Properties<a class="headerlink" href="#id8" title="Link to this heading">#</a></h4>
+<section id="band">
+<h5>band<a class="headerlink" href="#band" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>band</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L295">arranger/src/boxes.ts:295</a></p>
+<p>A band of the edited timeline.</p>
+</section>
+<section id="id9">
+<h5>boundary<a class="headerlink" href="#id9" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>boundary</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L293">arranger/src/boxes.ts:293</a></p>
+</section>
+<section id="id10">
+<h5>box<a class="headerlink" href="#id10" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>box</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L292">arranger/src/boxes.ts:292</a></p>
+<p>A card or a frame. The block itself is never marked: its node shows it.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="stacking">
+<h3>Stacking<a class="headerlink" href="#stacking" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L155">arranger/src/boxes.ts:155</a></p>
+<p>The order a block node shows its drawing in, from bottom to top, with the
+ancestor cards of the root <code class="docutils literal notranslate"><span class="pre">raised</span></code> raised (<code class="docutils literal notranslate"><span class="pre">raisedRoot</span></code>, else <code class="docutils literal notranslate"><span class="pre">null</span></code>):
+the ancestor cards that are not raised (<code class="docutils literal notranslate"><span class="pre">docs/drawing.md</span></code> in TimeToShare,
+section 8.8, in record order, a later one over an earlier one), then
+every other frame and card (one level: a member’s card lies in its
+frame, and items laid over one another by the user cover nothing here),
+then the raised ancestor cards, in record order. The one statement of
+that order: the block node draws by it (<code class="docutils literal notranslate"><span class="pre">raisedLayers</span></code>), the pointer and
+every place of a coordinate read lines by <code class="docutils literal notranslate"><span class="pre">covered</span></code>, the marquee and an
+editor’s focus leave out what lies <code class="docutils literal notranslate"><span class="pre">behind</span></code>.</p>
+<section id="id11">
+<h4>Properties<a class="headerlink" href="#id11" title="Link to this heading">#</a></h4>
+<section id="above">
+<h5>above<a class="headerlink" href="#above" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>above</strong>: (<code class="docutils literal notranslate"><span class="pre">index</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L169">arranger/src/boxes.ts:169</a></p>
+<p>Whether the element at an index of <code class="docutils literal notranslate"><span class="pre">drawing.elements</span></code> lies in a raised card.</p>
+<section id="parameters">
+<h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
+</section>
+<section id="index">
+<h6>index<a class="headerlink" href="#index" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="returns">
+<h6>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<section id="behind">
+<h5>behind<a class="headerlink" href="#behind" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>behind</strong>: (<code class="docutils literal notranslate"><span class="pre">index</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L167">arranger/src/boxes.ts:167</a></p>
+<p>Whether the element at an index of <code class="docutils literal notranslate"><span class="pre">drawing.elements</span></code> lies in an ancestor card below the frames.</p>
+<section id="id12">
+<h6>Parameters<a class="headerlink" href="#id12" title="Link to this heading">#</a></h6>
+</section>
+<section id="id13">
+<h6>index<a class="headerlink" href="#id13" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id14">
+<h6>Returns<a class="headerlink" href="#id14" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<section id="covered">
+<h5>covered<a class="headerlink" href="#covered" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>covered</strong>: <a class="reference internal" href="#id30"><code class="docutils literal notranslate"><span class="pre">Covered</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L165">arranger/src/boxes.ts:165</a></p>
+<p>Whether a line is covered at a point: a displayed frame or card of a higher rank holds the point.</p>
+</section>
+<section id="coveredelement">
+<h5>coveredElement<a class="headerlink" href="#coveredelement" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>coveredElement</strong>: (<code class="docutils literal notranslate"><span class="pre">index</span></code>, <code class="docutils literal notranslate"><span class="pre">point</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L174">arranger/src/boxes.ts:174</a></p>
+<p>Whether the element at an index of <code class="docutils literal notranslate"><span class="pre">drawing.elements</span></code> is covered at a point: a displayed
+frame or card of a higher rank than the card drawing it holds the point.</p>
+<section id="id15">
+<h6>Parameters<a class="headerlink" href="#id15" title="Link to this heading">#</a></h6>
+</section>
+<section id="id16">
+<h6>index<a class="headerlink" href="#id16" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="point">
+<h6>point<a class="headerlink" href="#point" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#drawingpoint"><code class="docutils literal notranslate"><span class="pre">DrawingPoint</span></code></a></p>
+</section>
+<section id="id17">
+<h6>Returns<a class="headerlink" href="#id17" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<section id="lifted">
+<h5>lifted<a class="headerlink" href="#lifted" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>lifted</strong>: (<code class="docutils literal notranslate"><span class="pre">axis</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L161">arranger/src/boxes.ts:161</a></p>
+<p>Whether a line lies in a raised card, above every frame.</p>
+<section id="id18">
+<h6>Parameters<a class="headerlink" href="#id18" title="Link to this heading">#</a></h6>
+</section>
+<section id="axis">
+<h6>axis<a class="headerlink" href="#axis" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="../tilie-layout/axes.html#lineaxis"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineAxis</span></code></span></a></p>
+</section>
+<section id="id19">
+<h6>Returns<a class="headerlink" href="#id19" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<section id="raised">
+<h5>raised<a class="headerlink" href="#raised" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>raised</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L157">arranger/src/boxes.ts:157</a></p>
+<p>The root whose ancestor cards are raised, else <code class="docutils literal notranslate"><span class="pre">null</span></code>.</p>
+</section>
+<section id="rankof">
+<h5>rankOf<a class="headerlink" href="#rankof" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>rankOf</strong>: (<code class="docutils literal notranslate"><span class="pre">axis</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L159">arranger/src/boxes.ts:159</a></p>
+<p>How high a line lies: the rank of the card drawing it.</p>
+<section id="id20">
+<h6>Parameters<a class="headerlink" href="#id20" title="Link to this heading">#</a></h6>
+</section>
+<section id="id21">
+<h6>axis<a class="headerlink" href="#id21" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="../tilie-layout/axes.html#lineaxis"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineAxis</span></code></span></a></p>
+</section>
+<section id="id22">
+<h6>Returns<a class="headerlink" href="#id22" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="sunk">
+<h5>sunk<a class="headerlink" href="#sunk" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>sunk</strong>: (<code class="docutils literal notranslate"><span class="pre">axis</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L163">arranger/src/boxes.ts:163</a></p>
+<p>Whether a line lies in an ancestor card below the frames.</p>
+<section id="id23">
+<h6>Parameters<a class="headerlink" href="#id23" title="Link to this heading">#</a></h6>
+</section>
+<section id="id24">
+<h6>axis<a class="headerlink" href="#id24" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="../tilie-layout/axes.html#lineaxis"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineAxis</span></code></span></a></p>
+</section>
+<section id="id25">
+<h6>Returns<a class="headerlink" href="#id25" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+</section>
+</section>
+</section>
+<section id="type-aliases">
+<h2>Type Aliases<a class="headerlink" href="#type-aliases" title="Link to this heading">#</a></h2>
+<section id="bandbox">
+<h3>BandBox<a class="headerlink" href="#bandbox" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>BandBox</strong> = <a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> &amp; <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L76">arranger/src/boxes.ts:76</a></p>
+<p>A band of a timeline drawn with a line of its own.</p>
+<section id="type-declaration">
+<h4>Type Declaration<a class="headerlink" href="#type-declaration" title="Link to this heading">#</a></h4>
+<section id="id26">
+<h5>band<a class="headerlink" href="#id26" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>band</strong>: <code class="docutils literal notranslate"><span class="pre">NonNullable</span></code>&lt;<a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a>[<code class="docutils literal notranslate"><span class="pre">&quot;band&quot;</span></code>]&gt;</p>
+</div></blockquote>
+</section>
+<section id="id27">
+<h5>kind<a class="headerlink" href="#id27" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>kind</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;band&quot;</span></code></p>
+</div></blockquote>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="canvassource">
+<h3>CanvasSource<a class="headerlink" href="#canvassource" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>CanvasSource</strong> = <a class="reference internal" href="../tilie-writers/source.html#descriptorsource"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DescriptorSource</span></code></span></a> | <a class="reference internal" href="#affordancesource"><code class="docutils literal notranslate"><span class="pre">AffordanceSource</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L55">arranger/src/boxes.ts:55</a></p>
+<p>What an element of a block node draws: a descriptor of the drawing, or an affordance.</p>
+</section>
+<hr class="docutils" />
+<section id="cardbox">
+<h3>CardBox<a class="headerlink" href="#cardbox" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>CardBox</strong> = <a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> &amp; <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L69">arranger/src/boxes.ts:69</a></p>
+<p>Any card, an item of the block or held by a frame.</p>
+<section id="id28">
+<h4>Type Declaration<a class="headerlink" href="#id28" title="Link to this heading">#</a></h4>
+<section id="card">
+<h5>card<a class="headerlink" href="#card" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>card</strong>: <code class="docutils literal notranslate"><span class="pre">NonNullable</span></code>&lt;<a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a>[<code class="docutils literal notranslate"><span class="pre">&quot;card&quot;</span></code>]&gt;</p>
+</div></blockquote>
+</section>
+<section id="key">
+<h5>key<a class="headerlink" href="#key" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <a class="reference internal" href="../tilie-core/manifest/containers.html#placekey"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PlaceKey</span></code></span></a></p>
+</div></blockquote>
+</section>
+<section id="id29">
+<h5>kind<a class="headerlink" href="#id29" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>kind</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;card&quot;</span></code></p>
+</div></blockquote>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="id30">
+<h3>Covered<a class="headerlink" href="#id30" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>Covered</strong> = (<code class="docutils literal notranslate"><span class="pre">axis</span></code>, <code class="docutils literal notranslate"><span class="pre">point</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L141">arranger/src/boxes.ts:141</a></p>
+<p>Whether a line of a drawing is covered at a point (block-local canvas units): a box stacked above it holds the point.</p>
+<section id="id31">
+<h4>Parameters<a class="headerlink" href="#id31" title="Link to this heading">#</a></h4>
+<section id="id32">
+<h5>axis<a class="headerlink" href="#id32" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/axes.html#lineaxis"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineAxis</span></code></span></a></p>
+</section>
+<section id="id33">
+<h5>point<a class="headerlink" href="#id33" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#drawingpoint"><code class="docutils literal notranslate"><span class="pre">DrawingPoint</span></code></a></p>
+</section>
+</section>
+<section id="id34">
+<h4>Returns<a class="headerlink" href="#id34" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="itembox">
+<h3>ItemBox<a class="headerlink" href="#itembox" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>ItemBox</strong> = <a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> &amp; <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L63">arranger/src/boxes.ts:63</a></p>
+<p>A frame or a block-held card: a box placed freely in the block.</p>
+<section id="id35">
+<h4>Type Declaration<a class="headerlink" href="#id35" title="Link to this heading">#</a></h4>
+<section id="item">
+<h5>item<a class="headerlink" href="#item" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>item</strong>: <code class="docutils literal notranslate"><span class="pre">NonNullable</span></code>&lt;<a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a>[<code class="docutils literal notranslate"><span class="pre">&quot;item&quot;</span></code>]&gt;</p>
+</div></blockquote>
+</section>
+<section id="id36">
+<h5>key<a class="headerlink" href="#id36" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <a class="reference internal" href="../tilie-core/manifest/containers.html#placekey"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PlaceKey</span></code></span></a></p>
+</div></blockquote>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="role">
+<h3>Role<a class="headerlink" href="#role" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>Role</strong> = <a class="reference internal" href="../tilie-core/manifest/containers.html#containerkind"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ContainerKind</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">&quot;shadow&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;boundary&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;element&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L265">arranger/src/boxes.ts:265</a></p>
+<p>What a descriptor draws, as the pointer and the marks read it.</p>
+</section>
+</section>
+<section id="variables">
+<h2>Variables<a class="headerlink" href="#variables" title="Link to this heading">#</a></h2>
+<section id="no-hover">
+<h3>NO_HOVER<a class="headerlink" href="#no-hover" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>NO_HOVER</strong>: <a class="reference internal" href="#hover"><code class="docutils literal notranslate"><span class="pre">Hover</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L299">arranger/src/boxes.ts:299</a></p>
+<p>Nothing highlighted.</p>
+</section>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<section id="bandat">
+<h3>bandAt()<a class="headerlink" href="#bandat" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>bandAt</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">point</span></code>): <a class="reference internal" href="#bandbox"><code class="docutils literal notranslate"><span class="pre">BandBox</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L569">arranger/src/boxes.ts:569</a></p>
+<p>The offered band of <code class="docutils literal notranslate"><span class="pre">timeline</span></code> whose rectangle, its edges included, holds
+<code class="docutils literal notranslate"><span class="pre">point</span></code> (in the drawing’s units), the first in drawing order, else <code class="docutils literal notranslate"><span class="pre">null</span></code>.
+A band 0 high holds the points of its edge only. A drawn element is hit
+before any band: the caller asks only where the press hit no element.</p>
+<section id="id37">
+<h4>Parameters<a class="headerlink" href="#id37" title="Link to this heading">#</a></h4>
+<section id="drawing">
+<h5>drawing<a class="headerlink" href="#drawing" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="timeline">
+<h5>timeline<a class="headerlink" href="#timeline" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id38">
+<h5>point<a class="headerlink" href="#id38" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#drawingpoint"><code class="docutils literal notranslate"><span class="pre">DrawingPoint</span></code></a></p>
+</section>
+</section>
+<section id="id39">
+<h4>Returns<a class="headerlink" href="#id39" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#bandbox"><code class="docutils literal notranslate"><span class="pre">BandBox</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="blockbox">
+<h3>blockBox()<a class="headerlink" href="#blockbox" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>blockBox</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>): <a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L421">arranger/src/boxes.ts:421</a></p>
+<p>The block’s own record, the first of <code class="docutils literal notranslate"><span class="pre">drawing.boxes</span></code>.</p>
+<section id="id40">
+<h4>Parameters<a class="headerlink" href="#id40" title="Link to this heading">#</a></h4>
+<section id="id41">
+<h5>drawing<a class="headerlink" href="#id41" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+</section>
+<section id="id42">
+<h4>Returns<a class="headerlink" href="#id42" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="boxat">
+<h3>boxAt()<a class="headerlink" href="#boxat" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>boxAt</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">point</span></code>, <code class="docutils literal notranslate"><span class="pre">kinds?</span></code>): <a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L487">arranger/src/boxes.ts:487</a></p>
+<p>The last displayed container of <code class="docutils literal notranslate"><span class="pre">kinds</span></code> (frames and cards unless named)
+whose rectangle holds <code class="docutils literal notranslate"><span class="pre">point</span></code>, edges included: the one drawn on top, since
+a frame is drawn before its cards and items that overlap are drawn in item
+order; <code class="docutils literal notranslate"><span class="pre">null</span></code> where none does. A frame or card that is not displayed holds
+no point.</p>
+<section id="id43">
+<h4>Parameters<a class="headerlink" href="#id43" title="Link to this heading">#</a></h4>
+<section id="id44">
+<h5>drawing<a class="headerlink" href="#id44" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id45">
+<h5>point<a class="headerlink" href="#id45" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#drawingpoint"><code class="docutils literal notranslate"><span class="pre">DrawingPoint</span></code></a></p>
+</section>
+<section id="kinds">
+<h5>kinds?<a class="headerlink" href="#kinds" title="Link to this heading">#</a></h5>
+<p>readonly (<code class="docutils literal notranslate"><span class="pre">&quot;block&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;frame&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;card&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;band&quot;</span></code>)[] = <code class="docutils literal notranslate"><span class="pre">...</span></code></p>
+</section>
+</section>
+<section id="id46">
+<h4>Returns<a class="headerlink" href="#id46" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="boxkey">
+<h3>boxKey()<a class="headerlink" href="#boxkey" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>boxKey</strong>(<code class="docutils literal notranslate"><span class="pre">box</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L254">arranger/src/boxes.ts:254</a></p>
+<p>The one string form of a frame’s or card’s identity, its place key’s (<code class="docutils literal notranslate"><span class="pre">placeKeyText</span></code>).</p>
+<section id="id47">
+<h4>Parameters<a class="headerlink" href="#id47" title="Link to this heading">#</a></h4>
+<section id="id48">
+<h5>box<a class="headerlink" href="#id48" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+</section>
+<section id="id49">
+<h4>Returns<a class="headerlink" href="#id49" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="boxof">
+<h3>boxOf()<a class="headerlink" href="#boxof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>boxOf</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">address</span></code>): <a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L384">arranger/src/boxes.ts:384</a></p>
+<p>The container of <code class="docutils literal notranslate"><span class="pre">drawing</span></code> at the element address <code class="docutils literal notranslate"><span class="pre">address</span></code>, its first
+record (a timeline drawn at two lines has two records of each band, and a
+member of several groups a card in each frame); the block for the
+bundle’s address <code class="docutils literal notranslate"><span class="pre">{}</span></code>; <code class="docutils literal notranslate"><span class="pre">undefined</span></code> where no container has it.</p>
+<section id="id50">
+<h4>Parameters<a class="headerlink" href="#id50" title="Link to this heading">#</a></h4>
+<section id="id51">
+<h5>drawing<a class="headerlink" href="#id51" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id52">
+<h5>address<a class="headerlink" href="#id52" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/address.html#elementaddress"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElementAddress</span></code></span></a></p>
+</section>
+</section>
+<section id="id53">
+<h4>Returns<a class="headerlink" href="#id53" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="contentcountof">
+<h3>contentCountOf()<a class="headerlink" href="#contentcountof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>contentCountOf</strong>(<code class="docutils literal notranslate"><span class="pre">box</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L463">arranger/src/boxes.ts:463</a></p>
+<p>The number of contents of the container <code class="docutils literal notranslate"><span class="pre">box</span></code> (<code class="docutils literal notranslate"><span class="pre">docs/drawing.md</span></code> in
+TimeToShare, section 1) as layout records it: a block’s items, a frame’s
+cards, a card’s rows and bands; a band has none.</p>
+<section id="id54">
+<h4>Parameters<a class="headerlink" href="#id54" title="Link to this heading">#</a></h4>
+<section id="id55">
+<h5>box<a class="headerlink" href="#id55" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+</section>
+<section id="id56">
+<h4>Returns<a class="headerlink" href="#id56" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="hitforaddress">
+<h3>hitForAddress()<a class="headerlink" href="#hitforaddress" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>hitForAddress</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">address</span></code>, <code class="docutils literal notranslate"><span class="pre">editing?</span></code>): <a class="reference internal" href="#hit"><code class="docutils literal notranslate"><span class="pre">Hit</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L652">arranger/src/boxes.ts:652</a></p>
+<p>The hit of the selected <code class="docutils literal notranslate"><span class="pre">address</span></code> of block <code class="docutils literal notranslate"><span class="pre">block</span></code> as Enter reads it,
+from the drawing alone, with no point: the block itself for the block,
+a displayed frame or card for its address (for the cards of a member of
+several groups the one in the frame <code class="docutils literal notranslate"><span class="pre">editing</span></code> works in, <code class="docutils literal notranslate"><span class="pre">workedBox</span></code>, else
+the first displayed, so a hidden card never hides a shown one), else the
+first element drawn with that address; <code class="docutils literal notranslate"><span class="pre">null</span></code> when nothing draws it
+(another block’s address, a band, a box that is not displayed, an
+element not drawn).</p>
+<section id="id57">
+<h4>Parameters<a class="headerlink" href="#id57" title="Link to this heading">#</a></h4>
+<section id="id58">
+<h5>block<a class="headerlink" href="#id58" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id59">
+<h5>drawing<a class="headerlink" href="#id59" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id60">
+<h5>address<a class="headerlink" href="#id60" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a></p>
+</section>
+<section id="editing">
+<h5>editing?<a class="headerlink" href="#editing" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="editing.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Editing</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code> = <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id61">
+<h4>Returns<a class="headerlink" href="#id61" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#hit"><code class="docutils literal notranslate"><span class="pre">Hit</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="hitof">
+<h3>hitOf()<a class="headerlink" href="#hitof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>hitOf</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">source</span></code>, <code class="docutils literal notranslate"><span class="pre">point?</span></code>, <code class="docutils literal notranslate"><span class="pre">editing?</span></code>): <a class="reference internal" href="#hit"><code class="docutils literal notranslate"><span class="pre">Hit</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L595">arranger/src/boxes.ts:595</a></p>
+<p>What the element of source <code class="docutils literal notranslate"><span class="pre">source</span></code> hits in block <code class="docutils literal notranslate"><span class="pre">block</span></code>, drawn as
+<code class="docutils literal notranslate"><span class="pre">drawing</span></code>: the frame or card a descriptor draws (its rectangle, or a
+card’s shadow), else the element it draws, classified by the drawing’s
+containers; for an affordance the element of its address, the named
+timestamp (no box, no boundary); the block itself where nothing carrying
+an element’s address is hit (<code class="docutils literal notranslate"><span class="pre">source</span></code> null, or the block’s background).
+With <code class="docutils literal notranslate"><span class="pre">point</span></code> (in the drawing’s units), also the displayed frame or card
+on top under it (<code class="docutils literal notranslate"><span class="pre">boxAt</span></code>).</p>
+<p>A band is hit only in the timeline editor of its timeline, when <code class="docutils literal notranslate"><span class="pre">editing</span></code>,
+the innermost open editor, is that editor in this block
+(<code class="docutils literal notranslate"><span class="pre">bandTimelineOf</span></code>): where the hit is a container (the block, a frame, a
+card), the band of the edited timeline whose rectangle holds
+<code class="docutils literal notranslate"><span class="pre">point</span></code> (<code class="docutils literal notranslate"><span class="pre">bandAt</span></code>) is hit instead, so a drawn element is always hit before
+a band.</p>
+<section id="id62">
+<h4>Parameters<a class="headerlink" href="#id62" title="Link to this heading">#</a></h4>
+<section id="id63">
+<h5>block<a class="headerlink" href="#id63" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id64">
+<h5>drawing<a class="headerlink" href="#id64" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="source">
+<h5>source<a class="headerlink" href="#source" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#canvassource"><code class="docutils literal notranslate"><span class="pre">CanvasSource</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+<section id="id65">
+<h5>point?<a class="headerlink" href="#id65" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#drawingpoint"><code class="docutils literal notranslate"><span class="pre">DrawingPoint</span></code></a></p>
+</section>
+<section id="id66">
+<h5>editing?<a class="headerlink" href="#id66" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="editing.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Editing</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code> = <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id67">
+<h4>Returns<a class="headerlink" href="#id67" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#hit"><code class="docutils literal notranslate"><span class="pre">Hit</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="holdingof">
+<h3>holdingOf()<a class="headerlink" href="#holdingof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>holdingOf</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">selected</span></code>): <a class="reference internal" href="#holding"><code class="docutils literal notranslate"><span class="pre">Holding</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L743">arranger/src/boxes.ts:743</a></p>
+<p>The boxes of <code class="docutils literal notranslate"><span class="pre">drawing</span></code> holding part of the selection <code class="docutils literal notranslate"><span class="pre">selected</span></code> (element
+addresses by their keys, as the descriptors carry them): a displayed frame or card holds
+the selection when an element of its range (<code class="docutils literal notranslate"><span class="pre">DrawnBox.range</span></code>) carries a
+selected address, the box itself excepted. A card holds its member
+drawing, its timeline and everything drawn with it; a frame its title, its
+members’ cards and what they hold; the block’s own box every drawn
+element. Where a box lies plays no part, so items that overlap change
+nothing. So a selected card marks its frame and the block but not itself;
+a line marks its card, that card’s frame and the block; and an address
+drawn in several cards, such as an ancestor line, marks each of them. An
+address that is not drawn marks nothing. A band, which draws nothing,
+counts as its timeline’s line. A group elision’s gap, written after every
+item, is held by its frame (and, carried, by each ancestor card behind it).</p>
+<section id="id68">
+<h4>Parameters<a class="headerlink" href="#id68" title="Link to this heading">#</a></h4>
+<section id="id69">
+<h5>drawing<a class="headerlink" href="#id69" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="selected">
+<h5>selected<a class="headerlink" href="#selected" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, <a class="reference internal" href="../tilie-core/manifest/address.html#elementaddress"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElementAddress</span></code></span></a>&gt;</p>
+</section>
+</section>
+<section id="id70">
+<h4>Returns<a class="headerlink" href="#id70" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#holding"><code class="docutils literal notranslate"><span class="pre">Holding</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="hoverof">
+<h3>hoverOf()<a class="headerlink" href="#hoverof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>hoverOf</strong>(<code class="docutils literal notranslate"><span class="pre">hit</span></code>): <a class="reference internal" href="#hover"><code class="docutils literal notranslate"><span class="pre">Hover</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L718">arranger/src/boxes.ts:718</a></p>
+<p>What the pointer highlights: the box under it (a card or a frame), the
+boundary it is on, and the band it is on.</p>
+<section id="id71">
+<h4>Parameters<a class="headerlink" href="#id71" title="Link to this heading">#</a></h4>
+<section id="id72">
+<h5>hit<a class="headerlink" href="#id72" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#hit"><code class="docutils literal notranslate"><span class="pre">Hit</span></code></a></p>
+</section>
+</section>
+<section id="id73">
+<h4>Returns<a class="headerlink" href="#id73" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#hover"><code class="docutils literal notranslate"><span class="pre">Hover</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="isaffordance">
+<h3>isAffordance()<a class="headerlink" href="#isaffordance" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>isAffordance</strong>(<code class="docutils literal notranslate"><span class="pre">source</span></code>): <code class="docutils literal notranslate"><span class="pre">source</span> <span class="pre">is</span> <span class="pre">AffordanceSource</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L58">arranger/src/boxes.ts:58</a></p>
+<p>Whether <code class="docutils literal notranslate"><span class="pre">source</span></code> is an affordance’s rather than a descriptor’s.</p>
+<section id="id74">
+<h4>Parameters<a class="headerlink" href="#id74" title="Link to this heading">#</a></h4>
+<section id="id75">
+<h5>source<a class="headerlink" href="#id75" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#canvassource"><code class="docutils literal notranslate"><span class="pre">CanvasSource</span></code></a></p>
+</section>
+</section>
+<section id="id76">
+<h4>Returns<a class="headerlink" href="#id76" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">source</span> <span class="pre">is</span> <span class="pre">AffordanceSource</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="isancestorcard">
+<h3>isAncestorCard()<a class="headerlink" href="#isancestorcard" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>isAncestorCard</strong>(<code class="docutils literal notranslate"><span class="pre">box</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L101">arranger/src/boxes.ts:101</a></p>
+<p>Whether <code class="docutils literal notranslate"><span class="pre">box</span></code> is an ancestor card (<code class="docutils literal notranslate"><span class="pre">docs/drawing.md</span></code> in TimeToShare, section 8.8): a card the
+block holds behind a frame, with no place, never moved, resized or reordered, offering no band.
+It is no item and no card of <code class="docutils literal notranslate"><span class="pre">isCard</span></code>.</p>
+<section id="id77">
+<h4>Parameters<a class="headerlink" href="#id77" title="Link to this heading">#</a></h4>
+<section id="id78">
+<h5>box<a class="headerlink" href="#id78" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+</section>
+<section id="id79">
+<h4>Returns<a class="headerlink" href="#id79" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="isband">
+<h3>isBand()<a class="headerlink" href="#isband" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>isBand</strong>(<code class="docutils literal notranslate"><span class="pre">box</span></code>): <code class="docutils literal notranslate"><span class="pre">box</span> <span class="pre">is</span> <span class="pre">BandBox</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L249">arranger/src/boxes.ts:249</a></p>
+<p>Whether <code class="docutils literal notranslate"><span class="pre">box</span></code> is a band.</p>
+<section id="id80">
+<h4>Parameters<a class="headerlink" href="#id80" title="Link to this heading">#</a></h4>
+<section id="id81">
+<h5>box<a class="headerlink" href="#id81" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+</section>
+<section id="id82">
+<h4>Returns<a class="headerlink" href="#id82" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">box</span> <span class="pre">is</span> <span class="pre">BandBox</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="iscard">
+<h3>isCard()<a class="headerlink" href="#iscard" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>isCard</strong>(<code class="docutils literal notranslate"><span class="pre">box</span></code>): <code class="docutils literal notranslate"><span class="pre">box</span> <span class="pre">is</span> <span class="pre">CardBox</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L87">arranger/src/boxes.ts:87</a></p>
+<p>Whether <code class="docutils literal notranslate"><span class="pre">box</span></code> is a card.</p>
+<section id="id83">
+<h4>Parameters<a class="headerlink" href="#id83" title="Link to this heading">#</a></h4>
+<section id="id84">
+<h5>box<a class="headerlink" href="#id84" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+</section>
+<section id="id85">
+<h4>Returns<a class="headerlink" href="#id85" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">box</span> <span class="pre">is</span> <span class="pre">CardBox</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="isdisplayed">
+<h3>isDisplayed()<a class="headerlink" href="#isdisplayed" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>isDisplayed</strong>(<code class="docutils literal notranslate"><span class="pre">box</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L374">arranger/src/boxes.ts:374</a></p>
+<p>Whether <code class="docutils literal notranslate"><span class="pre">box</span></code> is drawn: a frame or a card is when its own rectangle is
+(<code class="docutils literal notranslate"><span class="pre">DrawnBox.displayed</span></code>; one that is not displayed keeps its record and the
+range of what it still draws, section 2.4); the block’s own box and a band,
+which draws nothing, always count as drawn.</p>
+<section id="id86">
+<h4>Parameters<a class="headerlink" href="#id86" title="Link to this heading">#</a></h4>
+<section id="id87">
+<h5>box<a class="headerlink" href="#id87" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+</section>
+<section id="id88">
+<h4>Returns<a class="headerlink" href="#id88" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="isheld">
+<h3>isHeld()<a class="headerlink" href="#isheld" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>isHeld</strong>(<code class="docutils literal notranslate"><span class="pre">box</span></code>): <code class="docutils literal notranslate"><span class="pre">box</span> <span class="pre">is</span> <span class="pre">CardBox</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L92">arranger/src/boxes.ts:92</a></p>
+<p>Whether <code class="docutils literal notranslate"><span class="pre">box</span></code> is a card held by a frame, a group member’s: a card that is no item.</p>
+<section id="id89">
+<h4>Parameters<a class="headerlink" href="#id89" title="Link to this heading">#</a></h4>
+<section id="id90">
+<h5>box<a class="headerlink" href="#id90" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+</section>
+<section id="id91">
+<h4>Returns<a class="headerlink" href="#id91" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">box</span> <span class="pre">is</span> <span class="pre">CardBox</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="isitem">
+<h3>isItem()<a class="headerlink" href="#isitem" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>isItem</strong>(<code class="docutils literal notranslate"><span class="pre">box</span></code>): <code class="docutils literal notranslate"><span class="pre">box</span> <span class="pre">is</span> <span class="pre">ItemBox</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L82">arranger/src/boxes.ts:82</a></p>
+<p>Whether <code class="docutils literal notranslate"><span class="pre">box</span></code> is an item: a frame, or a card the block holds.</p>
+<section id="id92">
+<h4>Parameters<a class="headerlink" href="#id92" title="Link to this heading">#</a></h4>
+<section id="id93">
+<h5>box<a class="headerlink" href="#id93" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+</section>
+<section id="id94">
+<h4>Returns<a class="headerlink" href="#id94" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">box</span> <span class="pre">is</span> <span class="pre">ItemBox</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="itemholding">
+<h3>itemHolding()<a class="headerlink" href="#itemholding" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>itemHolding</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">box</span></code>): <a class="reference internal" href="#itembox"><code class="docutils literal notranslate"><span class="pre">ItemBox</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L449">arranger/src/boxes.ts:449</a></p>
+<p>The item holding <code class="docutils literal notranslate"><span class="pre">box</span></code>: the box itself when it is an item, its frame when it is a held card.</p>
+<section id="id95">
+<h4>Parameters<a class="headerlink" href="#id95" title="Link to this heading">#</a></h4>
+<section id="id96">
+<h5>drawing<a class="headerlink" href="#id96" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id97">
+<h5>box<a class="headerlink" href="#id97" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+</section>
+<section id="id98">
+<h4>Returns<a class="headerlink" href="#id98" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#itembox"><code class="docutils literal notranslate"><span class="pre">ItemBox</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="itemof">
+<h3>itemOf()<a class="headerlink" href="#itemof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>itemOf</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">key</span></code>): <a class="reference internal" href="#itembox"><code class="docutils literal notranslate"><span class="pre">ItemBox</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L440">arranger/src/boxes.ts:440</a></p>
+<p>The item <code class="docutils literal notranslate"><span class="pre">key</span></code> of <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, a group’s frame or an ungrouped root’s card.</p>
+<section id="id99">
+<h4>Parameters<a class="headerlink" href="#id99" title="Link to this heading">#</a></h4>
+<section id="id100">
+<h5>drawing<a class="headerlink" href="#id100" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id101">
+<h5>key<a class="headerlink" href="#id101" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/containers.html#placekey"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PlaceKey</span></code></span></a></p>
+</section>
+</section>
+<section id="id102">
+<h4>Returns<a class="headerlink" href="#id102" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#itembox"><code class="docutils literal notranslate"><span class="pre">ItemBox</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="keyedbox">
+<h3>keyedBox()<a class="headerlink" href="#keyedbox" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>keyedBox</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">key</span></code>): <a class="reference internal" href="#itembox"><code class="docutils literal notranslate"><span class="pre">ItemBox</span></code></a> | <a class="reference internal" href="#cardbox"><code class="docutils literal notranslate"><span class="pre">CardBox</span></code></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L426">arranger/src/boxes.ts:426</a></p>
+<p>The frame or card of <code class="docutils literal notranslate"><span class="pre">drawing</span></code> whose place lies under <code class="docutils literal notranslate"><span class="pre">key</span></code>.</p>
+<section id="id103">
+<h4>Parameters<a class="headerlink" href="#id103" title="Link to this heading">#</a></h4>
+<section id="id104">
+<h5>drawing<a class="headerlink" href="#id104" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id105">
+<h5>key<a class="headerlink" href="#id105" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/containers.html#placekey"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PlaceKey</span></code></span></a></p>
+</section>
+</section>
+<section id="id106">
+<h4>Returns<a class="headerlink" href="#id106" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#itembox"><code class="docutils literal notranslate"><span class="pre">ItemBox</span></code></a> | <a class="reference internal" href="#cardbox"><code class="docutils literal notranslate"><span class="pre">CardBox</span></code></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="offeredbands">
+<h3>offeredBands()<a class="headerlink" href="#offeredbands" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>offeredBands</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>): readonly <a class="reference internal" href="#bandbox"><code class="docutils literal notranslate"><span class="pre">BandBox</span></code></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L547">arranger/src/boxes.ts:547</a></p>
+<p>The bands the drawing records for <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, in drawing order: the bands
+its timeline editor offers. Every recorded band is present; whether an
+editor offers them at all (the timeline editor of <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, the
+innermost open editor of its block) is the caller’s test. Memoized by the
+drawing.</p>
+<section id="id107">
+<h4>Parameters<a class="headerlink" href="#id107" title="Link to this heading">#</a></h4>
+<section id="id108">
+<h5>drawing<a class="headerlink" href="#id108" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id109">
+<h5>timeline<a class="headerlink" href="#id109" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<section id="id110">
+<h4>Returns<a class="headerlink" href="#id110" title="Link to this heading">#</a></h4>
+<p>readonly <a class="reference internal" href="#bandbox"><code class="docutils literal notranslate"><span class="pre">BandBox</span></code></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="pressselection">
+<h3>pressSelection()<a class="headerlink" href="#pressselection" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>pressSelection</strong>(<code class="docutils literal notranslate"><span class="pre">hit</span></code>, <code class="docutils literal notranslate"><span class="pre">editing</span></code>, <code class="docutils literal notranslate"><span class="pre">inside</span></code>): <a class="reference internal" href="../tilie-core/workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L699">arranger/src/boxes.ts:699</a></p>
+<p>What a press selects: what it hit, when it lies inside the edited element,
+else nothing (<code class="docutils literal notranslate"><span class="pre">null</span></code>). A card selects the card (its shadow does the same),
+a frame its group, any other element that element, each when <code class="docutils literal notranslate"><span class="pre">inside</span></code>
+(the keys of the drawn addresses inside the edited element,
+<code class="docutils literal notranslate"><span class="pre">BlockNodeData.inside</span></code>) holds its element address; the block itself
+selects the block on the arranger (<code class="docutils literal notranslate"><span class="pre">editing</span></code> null) and in the block’s own
+bundle editor, never in another editor. A band selects itself: only a
+band of the edited timeline is hit.</p>
+<section id="id111">
+<h4>Parameters<a class="headerlink" href="#id111" title="Link to this heading">#</a></h4>
+<section id="id112">
+<h5>hit<a class="headerlink" href="#id112" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#hit"><code class="docutils literal notranslate"><span class="pre">Hit</span></code></a></p>
+</section>
+<section id="id113">
+<h5>editing<a class="headerlink" href="#id113" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="editing.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Editing</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+<section id="inside">
+<h5>inside<a class="headerlink" href="#inside" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">ReadonlySet</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>&gt;</p>
+</section>
+</section>
+<section id="id114">
+<h4>Returns<a class="headerlink" href="#id114" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../tilie-core/workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="raisedroot">
+<h3>raisedRoot()<a class="headerlink" href="#raisedroot" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>raisedRoot</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">editing</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L118">arranger/src/boxes.ts:118</a></p>
+<p>The root whose ancestor cards block <code class="docutils literal notranslate"><span class="pre">block</span></code> shows raised over every
+frame while <code class="docutils literal notranslate"><span class="pre">editing</span></code>, the innermost open editor, is open: the root of
+the timeline a timeline editor in this block edits, where no timeline
+from the root’s child down to the edited one is a group member (the
+edited timeline is then drawn in no member card below the root), and
+the root is either in no group or itself a member of one while it draws
+an ancestor card, a descendant of it being a member: such a root stands
+in its own group’s frame and lies covered behind the frame holding its
+descendant, and its card comes to the front over that frame; <code class="docutils literal notranslate"><span class="pre">null</span></code> for
+any other editor, none, or another block’s. The one decision of the
+raise, which the stacking (<code class="docutils literal notranslate"><span class="pre">stackingOf</span></code>) is read with.</p>
+<section id="id115">
+<h4>Parameters<a class="headerlink" href="#id115" title="Link to this heading">#</a></h4>
+<section id="id116">
+<h5>block<a class="headerlink" href="#id116" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">Pick</span></code>&lt;<a class="reference internal" href="../tilie-core/workspace/blocks.html#block"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Block</span></code></span></a>, <code class="docutils literal notranslate"><span class="pre">&quot;id&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;manifest&quot;</span></code>&gt;</p>
+</section>
+<section id="id117">
+<h5>editing<a class="headerlink" href="#id117" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="editing.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Editing</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id118">
+<h4>Returns<a class="headerlink" href="#id118" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="roleof">
+<h3>roleOf()<a class="headerlink" href="#roleof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>roleOf</strong>(<code class="docutils literal notranslate"><span class="pre">descriptor</span></code>): <a class="reference internal" href="#role"><code class="docutils literal notranslate"><span class="pre">Role</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L504">arranger/src/boxes.ts:504</a></p>
+<p>What a descriptor draws, read from its source: the block’s background, a
+frame, a card’s own rectangle, a card’s shadow, a segment’s boundary line,
+else an element.</p>
+<section id="id119">
+<h4>Parameters<a class="headerlink" href="#id119" title="Link to this heading">#</a></h4>
+<section id="descriptor">
+<h5>descriptor<a class="headerlink" href="#descriptor" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-writers/descriptors.html#descriptor"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Descriptor</span></code></span></a></p>
+</section>
+</section>
+<section id="id120">
+<h4>Returns<a class="headerlink" href="#id120" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#role"><code class="docutils literal notranslate"><span class="pre">Role</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="shapebox">
+<h3>shapeBox()<a class="headerlink" href="#shapebox" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>shapeBox</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">element</span></code>): <a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L435">arranger/src/boxes.ts:435</a></p>
+<p>The displayed frame or card whose own rectangle is the element at
+<code class="docutils literal notranslate"><span class="pre">element</span></code> in <code class="docutils literal notranslate"><span class="pre">drawing.elements</span></code> (a card’s shadow is drawn from the same
+element); <code class="docutils literal notranslate"><span class="pre">undefined</span></code> for any other element.</p>
+<section id="id121">
+<h4>Parameters<a class="headerlink" href="#id121" title="Link to this heading">#</a></h4>
+<section id="id122">
+<h5>drawing<a class="headerlink" href="#id122" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="element">
+<h5>element<a class="headerlink" href="#element" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id123">
+<h4>Returns<a class="headerlink" href="#id123" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="showscontainedselection">
+<h3>showsContainedSelection()<a class="headerlink" href="#showscontainedselection" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>showsContainedSelection</strong>(<code class="docutils literal notranslate"><span class="pre">role</span></code>, <code class="docutils literal notranslate"><span class="pre">box</span></code>, <code class="docutils literal notranslate"><span class="pre">holding</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L779">arranger/src/boxes.ts:779</a></p>
+<p>Whether a descriptor shows that its box holds part of the selection: a
+card’s or a frame’s own rectangle, <code class="docutils literal notranslate"><span class="pre">box</span></code>, among <code class="docutils literal notranslate"><span class="pre">holding</span></code> (<code class="docutils literal notranslate"><span class="pre">holdingOf</span></code>),
+never a card’s shadow.</p>
+<section id="id124">
+<h4>Parameters<a class="headerlink" href="#id124" title="Link to this heading">#</a></h4>
+<section id="id125">
+<h5>role<a class="headerlink" href="#id125" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#role"><code class="docutils literal notranslate"><span class="pre">Role</span></code></a></p>
+</section>
+<section id="id126">
+<h5>box<a class="headerlink" href="#id126" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</section>
+<section id="id127">
+<h5>holding<a class="headerlink" href="#id127" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">ReadonlySet</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>&gt;</p>
+</section>
+</section>
+<section id="id128">
+<h4>Returns<a class="headerlink" href="#id128" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="showsselection">
+<h3>showsSelection()<a class="headerlink" href="#showsselection" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>showsSelection</strong>(<code class="docutils literal notranslate"><span class="pre">role</span></code>, <code class="docutils literal notranslate"><span class="pre">address</span></code>, <code class="docutils literal notranslate"><span class="pre">selected</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L766">arranger/src/boxes.ts:766</a></p>
+<p>Whether a descriptor shows the selection: it carries a selected address
+and is not a card’s shadow, so a selected card glows on its own rectangle.</p>
+<section id="id129">
+<h4>Parameters<a class="headerlink" href="#id129" title="Link to this heading">#</a></h4>
+<section id="id130">
+<h5>role<a class="headerlink" href="#id130" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#role"><code class="docutils literal notranslate"><span class="pre">Role</span></code></a></p>
+</section>
+<section id="id131">
+<h5>address<a class="headerlink" href="#id131" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/address.html#elementaddress"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElementAddress</span></code></span></a></p>
+</section>
+<section id="id132">
+<h5>selected<a class="headerlink" href="#id132" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, <a class="reference internal" href="../tilie-core/manifest/address.html#elementaddress"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElementAddress</span></code></span></a>&gt;</p>
+</section>
+</section>
+<section id="id133">
+<h4>Returns<a class="headerlink" href="#id133" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="stackingof">
+<h3>stackingOf()<a class="headerlink" href="#stackingof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>stackingOf</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">raised</span></code>): <a class="reference internal" href="#stacking"><code class="docutils literal notranslate"><span class="pre">Stacking</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L197">arranger/src/boxes.ts:197</a></p>
+<p>The stacking of <code class="docutils literal notranslate"><span class="pre">drawing</span></code> with the ancestor cards of <code class="docutils literal notranslate"><span class="pre">raised</span></code> raised
+(<code class="docutils literal notranslate"><span class="pre">Stacking</span></code>), once per drawing and root. Ranks: the <code class="docutils literal notranslate"><span class="pre">n</span></code> ancestor cards
+not raised 0 to <code class="docutils literal notranslate"><span class="pre">n</span> <span class="pre">−</span> <span class="pre">1</span></code> by record order, every other frame and card <code class="docutils literal notranslate"><span class="pre">n</span></code>,
+a raised one <code class="docutils literal notranslate"><span class="pre">n</span> <span class="pre">+</span> <span class="pre">1</span></code> plus its record index. A line takes the rank of the
+card drawing it (an ancestor card’s lines carry <code class="docutils literal notranslate"><span class="pre">LineAxis.ancestor</span></code>, its
+key the card’s); a box whose rectangle is not drawn covers nothing.</p>
+<section id="id134">
+<h4>Parameters<a class="headerlink" href="#id134" title="Link to this heading">#</a></h4>
+<section id="id135">
+<h5>drawing<a class="headerlink" href="#id135" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id136">
+<h5>raised<a class="headerlink" href="#id136" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id137">
+<h4>Returns<a class="headerlink" href="#id137" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#stacking"><code class="docutils literal notranslate"><span class="pre">Stacking</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="verticalstretchof">
+<h3>verticalStretchOf()<a class="headerlink" href="#verticalstretchof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>verticalStretchOf</strong>(<code class="docutils literal notranslate"><span class="pre">box</span></code>): <code class="docutils literal notranslate"><span class="pre">&quot;spacing&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;margin&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L472">arranger/src/boxes.ts:472</a></p>
+<p>What a vertical Stretch of the container <code class="docutils literal notranslate"><span class="pre">box</span></code> changes (section 1): its
+<code class="docutils literal notranslate"><span class="pre">margin</span></code> when it has exactly one content, which has no gap to widen, else
+its <code class="docutils literal notranslate"><span class="pre">spacing</span></code>, the gap between its contents.</p>
+<section id="id138">
+<h4>Parameters<a class="headerlink" href="#id138" title="Link to this heading">#</a></h4>
+<section id="id139">
+<h5>box<a class="headerlink" href="#id139" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
+</section>
+</section>
+<section id="id140">
+<h4>Returns<a class="headerlink" href="#id140" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">&quot;spacing&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;margin&quot;</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="workedbox">
+<h3>workedBox()<a class="headerlink" href="#workedbox" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>workedBox</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">address</span></code>, <code class="docutils literal notranslate"><span class="pre">editing</span></code>): <a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/boxes.ts#L403">arranger/src/boxes.ts:403</a></p>
+<p>The container of <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, the drawing of block <code class="docutils literal notranslate"><span class="pre">block</span></code>, that the
+element address <code class="docutils literal notranslate"><span class="pre">address</span></code> names where <code class="docutils literal notranslate"><span class="pre">editing</span></code>, the innermost open
+editor, works: as <code class="docutils literal notranslate"><span class="pre">boxOf</span></code> gives it, except for a card address, which
+covers every card of its timeline: inside a group editor the card in that
+group’s frame (<code class="docutils literal notranslate"><span class="pre">frameGroupOf</span></code>), else the timeline’s only card, a card
+with a place before an ancestor card; <code class="docutils literal notranslate"><span class="pre">undefined</span></code> where no frame tells
+several cards apart (on the arranger, in the bundle editor), and where no
+container has the address.</p>
+<section id="id141">
+<h4>Parameters<a class="headerlink" href="#id141" title="Link to this heading">#</a></h4>
+<section id="id142">
+<h5>drawing<a class="headerlink" href="#id142" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+</section>
+<section id="id143">
+<h5>block<a class="headerlink" href="#id143" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id144">
+<h5>address<a class="headerlink" href="#id144" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/address.html#elementaddress"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElementAddress</span></code></span></a></p>
+</section>
+<section id="id145">
+<h5>editing<a class="headerlink" href="#id145" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="editing.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Editing</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id146">
+<h4>Returns<a class="headerlink" href="#id146" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</section>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="blockDrag.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">blockDrag</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="cardAxis.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">cardAxis</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#affordancesource">AffordanceSource</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#extended-by">Extended by</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#address">address</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#kind">kind</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#drawingpoint">DrawingPoint</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#x">x</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#y">y</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hit">Hit</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">address</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#block">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#boundary">boundary</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#box">box</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">kind</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#within">within</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#holding">Holding</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">boxes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hover">Hover</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#band">band</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">boundary</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">box</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stacking">Stacking</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#above">above</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#index">index</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#behind">behind</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">index</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#covered">covered</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#coveredelement">coveredElement</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">index</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#point">point</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#lifted">lifted</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#axis">axis</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#raised">raised</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#rankof">rankOf</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">axis</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#sunk">sunk</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">axis</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#type-aliases">Type Aliases</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#bandbox">BandBox</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#type-declaration">Type Declaration</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id26">band</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id27">kind</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#canvassource">CanvasSource</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cardbox">CardBox</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">Type Declaration</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#card">card</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#key">key</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id29">kind</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id30">Covered</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id31">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">axis</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id33">point</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id34">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#itembox">ItemBox</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id35">Type Declaration</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#item">item</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id36">key</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#role">Role</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#variables">Variables</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#no-hover">NO_HOVER</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#bandat">bandAt()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id37">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#drawing">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#timeline">timeline</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id38">point</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id39">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#blockbox">blockBox()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id40">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id41">drawing</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id42">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#boxat">boxAt()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id43">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id44">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id45">point</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#kinds">kinds?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id46">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#boxkey">boxKey()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id47">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id48">box</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id49">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#boxof">boxOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id50">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id51">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id52">address</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id53">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#contentcountof">contentCountOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id54">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id55">box</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id56">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hitforaddress">hitForAddress()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id57">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id58">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id59">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id60">address</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#editing">editing?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id61">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hitof">hitOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id62">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id63">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id64">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#source">source</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id65">point?</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id66">editing?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id67">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#holdingof">holdingOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id68">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id69">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#selected">selected</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id70">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hoverof">hoverOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id71">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id72">hit</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id73">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isaffordance">isAffordance()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id74">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id75">source</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id76">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isancestorcard">isAncestorCard()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id77">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id78">box</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id79">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isband">isBand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id80">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id81">box</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id82">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#iscard">isCard()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id83">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id84">box</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id85">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isdisplayed">isDisplayed()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id86">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id87">box</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id88">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isheld">isHeld()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id89">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id90">box</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id91">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isitem">isItem()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id92">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id93">box</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id94">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#itemholding">itemHolding()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id95">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id96">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id97">box</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id98">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#itemof">itemOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id99">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id100">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id101">key</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id102">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#keyedbox">keyedBox()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id103">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id104">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id105">key</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id106">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#offeredbands">offeredBands()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id107">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id108">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id109">timeline</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id110">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pressselection">pressSelection()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id111">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id112">hit</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id113">editing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#inside">inside</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id114">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#raisedroot">raisedRoot()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id115">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id116">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id117">editing</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id118">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#roleof">roleOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id119">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#descriptor">descriptor</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id120">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#shapebox">shapeBox()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id121">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id122">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#element">element</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id123">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#showscontainedselection">showsContainedSelection()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id124">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id125">role</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id126">box</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id127">holding</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id128">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#showsselection">showsSelection()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id129">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id130">role</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id131">address</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id132">selected</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id133">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stackingof">stackingOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id134">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id135">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id136">raised</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id137">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#verticalstretchof">verticalStretchOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id138">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id139">box</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id140">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#workedbox">workedBox()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id141">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id142">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id143">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id144">address</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id145">editing</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id146">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

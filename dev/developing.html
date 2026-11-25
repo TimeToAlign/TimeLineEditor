@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Developing TimeLineEditor &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="_static/documentation_options.js?v=0926e583"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'developing';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Python API" href="python.html" />
+    <link rel="prev" title="Architecture" href="architecture.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#" aria-current="page">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#" aria-current="page">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Developing TimeLineEditor</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="developing-timelineeditor">
+<h1>Developing TimeLineEditor<a class="headerlink" href="#developing-timelineeditor" title="Link to this heading">#</a></h1>
+<p>This guide is for people who change the code. It says how the repository is
+laid out, what the words mean, how a change travels through the layers, and
+where a new thing goes. The rules every contributor holds are in
+<a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/main/AGENTS.md"><code class="docutils literal notranslate"><span class="pre">AGENTS.md</span></code></a>; the public code model is in
+<a class="reference internal" href="architecture.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">architecture.md</span></code></span></a>; each decision that brought a dependency
+in is an ADR under <a class="reference internal" href="decisions.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">decisions/</span></code></span></a>. The commands to install,
+test, build and run are the table in <code class="docutils literal notranslate"><span class="pre">AGENTS.md</span></code>; this guide does not repeat
+them.</p>
+<section id="two-repositories-one-wall">
+<h2>Two repositories, one wall<a class="headerlink" href="#two-repositories-one-wall" title="Link to this heading">#</a></h2>
+<p>TimeLineEditor holds the editor (<code class="docutils literal notranslate"><span class="pre">app/</span></code>, a pnpm workspace of TypeScript
+packages, Svelte 5 and Vite) and the server (<code class="docutils literal notranslate"><span class="pre">server/</span></code>, FastAPI,
+installed from PyPI as <code class="docutils literal notranslate"><span class="pre">tilie-server</span></code>, whose wheel ships the built editor),
+run by its user on their own computer or as a
+<a class="reference internal" href="overview.html#a-public-instance"><span class="std std-ref">public instance</span></a>.
+The manifest format the editor reads and writes is specified by the
+TimeToShare repository: the JSON Schema, the generated TypeScript types
+and validator, the Python validator, the fixtures, the drawing
+specification <code class="docutils literal notranslate"><span class="pre">docs/drawing.md</span></code> and the two drawing fonts with their
+metrics table. Setting up both
+checkouts is described in <a class="reference internal" href="contributing.html#setup"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">CONTRIBUTING.md</span></code></span></a>. The editor never
+specifies the manifest; where the editor needs a word the schema does not
+have, the schema is changed first.</p>
+</section>
+<section id="the-three-layers-named-by-one-word-each">
+<h2>The three layers, named by one word each<a class="headerlink" href="#the-three-layers-named-by-one-word-each" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>A <strong>manifest</strong> is one TimeToShare manifest: root timelines with exact
+coordinates, children at exact offsets, conversion maps, regions, flow
+control; optionally groups, measure maps, an <code class="docutils literal notranslate"><span class="pre">id</span></code>, a <code class="docutils literal notranslate"><span class="pre">name</span></code>, statements
+(the manifest, every timeline and every region state what they stand
+for in property–value pairs with their provenance, under an inline
+JSON-LD <code class="docutils literal notranslate"><span class="pre">&#64;context</span></code>), <code class="docutils literal notranslate"><span class="pre">resources</span></code> (the files that come with it, such as
+its MatchClaim table), and <code class="docutils literal notranslate"><span class="pre">graphical</span></code>, the
+styling of its own drawing with the display orders of its groups, the
+band orders of its timelines, its named timestamps (groupstamps among
+them), its named MatchStamps and its elisions, the stretches of
+timelines its drawing leaves out. A manifest knows nothing about a canvas.</p></li>
+<li><p>A <strong>block</strong> is one manifest placed on the canvas with its placement: <code class="docutils literal notranslate"><span class="pre">x</span></code>,
+<code class="docutils literal notranslate"><span class="pre">y</span></code>, <code class="docutils literal notranslate"><span class="pre">scale</span></code>, <code class="docutils literal notranslate"><span class="pre">length</span></code>, <code class="docutils literal notranslate"><span class="pre">spacing</span></code> (the gap between the items of its
+drawing), <code class="docutils literal notranslate"><span class="pre">margin</span></code> (the empty space above its first item and below its
+last), the requested <code class="docutils literal notranslate"><span class="pre">width</span></code> and <code class="docutils literal notranslate"><span class="pre">height</span></code>, and <code class="docutils literal notranslate"><span class="pre">places</span></code>, the stated
+places of its items and the stated sizes, spacings and margins of its
+members’ cards, a member’s card set through its group, and, where it
+has one, its <code class="docutils literal notranslate"><span class="pre">arrangement</span></code>, which places its items in an order instead
+of at their places. A block’s styling is its manifest’s <code class="docutils literal notranslate"><span class="pre">graphical</span></code>;
+the block has no style layer of its own.</p></li>
+<li><p>The <strong>workspace</strong> is the canvas: its name, its blocks (and, where it
+has one, how they are arranged), its default style rules, the settings (outside the journal), and
+the command journal that produced them with the sessions of its editors.
+It is one pretty JSON file, written as TimeToShare’s schema package
+writes JSON, by default <code class="docutils literal notranslate"><span class="pre">&lt;name&gt;.tle.json</span></code> after its name, format
+version 7; the manifests it holds are written there in their complete
+form with bare IDs, whatever file form each is exported in.</p></li>
+</ul>
+<p>No other noun names any of these. “Document”, “record” and “envelope” name
+nothing here.</p>
+</section>
+<section id="the-containers-of-a-drawing">
+<h2>The containers of a drawing<a class="headerlink" href="#the-containers-of-a-drawing" title="Link to this heading">#</a></h2>
+<p>A manifest and its drawing nest the same four containers, each drawn by a
+container of its own (TimeToShare’s README, “Containers”, states the
+format’s side):</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Semantic level</p></th>
+<th class="head"><p>Graphical container</p></th>
+<th class="head"><p>What it draws</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>bundle</p></td>
+<td><p><strong>block</strong></p></td>
+<td><p>the manifest; a block’s whole drawing</p></td>
+</tr>
+<tr class="row-odd"><td><p>group</p></td>
+<td><p><strong>frame</strong></p></td>
+<td><p>a group, with its title and its members’ cards</p></td>
+</tr>
+<tr class="row-even"><td><p>timeline</p></td>
+<td><p><strong>card</strong></p></td>
+<td><p>a timeline drawn as a root: an ungrouped root’s card lies in the block, a member has one in the frame of each group that has it as a member</p></td>
+</tr>
+<tr class="row-odd"><td><p>facet</p></td>
+<td><p><strong>band</strong></p></td>
+<td><p>one of a timeline’s five facets, <code class="docutils literal notranslate"><span class="pre">markers</span></code>, <code class="docutils literal notranslate"><span class="pre">conversion_maps</span></code>, <code class="docutils literal notranslate"><span class="pre">children</span></code>, <code class="docutils literal notranslate"><span class="pre">regions</span></code> and <code class="docutils literal notranslate"><span class="pre">flow_control</span></code>, at the timeline’s line</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>All four are <strong>boxes</strong>, drawn as rectangles with rounded corners; “box” is
+the generic word and names none of them. A child timeline is content of
+its parent’s <code class="docutils literal notranslate"><span class="pre">children</span></code> facet, drawn as a line in the children band, never
+in a card of its own unless a group has it as a member. A band draws
+nothing of its own; it is the unit that holds and orders what its timeline
+has of its facet, placed by the timeline’s band order in
+<code class="docutils literal notranslate"><span class="pre">graphical.order</span></code>. Manifest content and addresses take the semantic words,
+the drawing’s containers the graphical ones.</p>
+<p>One card stands apart: a root that contains a group member is drawn
+whole as an <strong>ancestor card</strong> behind the frame of that member’s group
+(TimeToShare’s drawing specification, section 8.8; shown by default,
+hidden by a style rule). It is a card held by the block with no place (its
+key <code class="docutils literal notranslate"><span class="pre">{item:</span> <span class="pre">G,</span> <span class="pre">member:</span> <span class="pre">R}</span></code>, core’s holding <code class="docutils literal notranslate"><span class="pre">&quot;ancestor&quot;</span></code>), no bands and no
+<code class="docutils literal notranslate"><span class="pre">places</span></code> entry; layout records it only when displayed, with axes for its
+lines marked <code class="docutils literal notranslate"><span class="pre">ancestor</span></code>. The arranger tells it apart with <code class="docutils literal notranslate"><span class="pre">isAncestorCard</span></code>
+and raises it over the frames while a timeline editor is open on its root
+or on a descendant of it that no member card below the root draws, where
+the root is in no group or is a member drawing an ancestor card itself
+(<code class="docutils literal notranslate"><span class="pre">raisedRoot</span></code>, the one decision that the drawn order, the pointer, the
+places of coordinates, the marquee and the focus all read, through one
+stacking, <code class="docutils literal notranslate"><span class="pre">stackingOf</span></code>). The Elisions tab’s timeline block hides it
+(the mode Hidden, a <code class="docutils literal notranslate"><span class="pre">display</span></code> of <code class="docutils literal notranslate"><span class="pre">none</span></code> on the root’s cards) or chooses
+which elisions it draws.</p>
+<p>Elisions follow the containers. A <strong>card elision</strong>, on a timeline in no
+group, is drawn by the cards that draw its root whole, the root’s own card
+where it is ungrouped and its ancestor cards; a <strong>group elision</strong>, on a
+timeline that lies in a group, is drawn across that group’s frame, held by
+the frame, and carried into the ancestor cards behind it. Which elisions a
+card or a frame draws is a style property of that container
+(<code class="docutils literal notranslate"><span class="pre">elision-mode</span></code> and its companions, in one rule on the root’s card address
+or on the frame’s), never a setting of the workspace, so an export draws
+what the canvas shows (<a class="reference internal" href="decisions/0035-elision-modes-are-style-properties.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">decisions/0035</span></code></span></a>).
+Layout records what each such container decides in <code class="docutils literal notranslate"><span class="pre">Drawing.elisions</span></code>,
+and the arranger’s <code class="docutils literal notranslate"><span class="pre">cardAxis.ts</span></code> is the one map between its abscissas and
+the coordinates of its timelines.</p>
+<p>Arrangements are placement, never part of the manifest
+(<a class="reference internal" href="decisions/0036-arrangements-are-placement.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">decisions/0036</span></code></span></a>). A
+block’s <code class="docutils literal notranslate"><span class="pre">arrangement</span></code> takes its items, frames and ungrouped roots’ cards,
+in an order: one under another, or side by side in one row, where every
+root that a group hangs on (a member of the group lying inside it) is
+drawn once, by one ancestor card, the <strong>once card</strong>, behind every group
+hanging on it. Core owns the rules (<code class="docutils literal notranslate"><span class="pre">manifest/arrangement.ts</span></code>: the
+anchors, <code class="docutils literal notranslate"><span class="pre">rowOf</span></code>, the refusal and its reason), layout places what they
+give (<code class="docutils literal notranslate"><span class="pre">block/arrangement.ts</span></code>, and <code class="docutils literal notranslate"><span class="pre">packed</span></code>, the one packing function),
+and the arranger reorders: the workspace’s <code class="docutils literal notranslate"><span class="pre">arrangement</span></code> packs the
+blocks, an arranged level turns <code class="docutils literal notranslate"><span class="pre">move</span></code> into a drag that reorders, and
+<code class="docutils literal notranslate"><span class="pre">orderAt</span></code> is the one rule of where a content drops. The once card’s
+line changes scale only between two groups, in a gap of origin
+<code class="docutils literal notranslate"><span class="pre">arrangement</span></code> or at a <strong>seam</strong>, a jump of its axis that leaves out
+nothing and is no element; seams also lie where an ancestor card’s
+member meets its frame’s borders.</p>
+<p>The code treats the four kinds through one model:</p>
+<ul class="simple">
+<li><p>core’s registry (<code class="docutils literal notranslate"><span class="pre">manifest/containers.ts</span></code>) says what each kind is, the
+level it draws, what holds it, which place members it may state in a
+block’s <code class="docutils literal notranslate"><span class="pre">places</span></code>, and the schema element type it is styled as (<code class="docutils literal notranslate"><span class="pre">block</span></code>,
+<code class="docutils literal notranslate"><span class="pre">frame</span></code>, <code class="docutils literal notranslate"><span class="pre">card</span></code>, <code class="docutils literal notranslate"><span class="pre">band</span></code>); <code class="docutils literal notranslate"><span class="pre">containersOf</span></code> lists every container of a
+manifest with its holder;</p></li>
+<li><p>layout records every container of a drawing as one <code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code> in
+<code class="docutils literal notranslate"><span class="pre">Drawing.boxes</span></code>, with its kind, its place in <code class="docutils literal notranslate"><span class="pre">places</span></code>, address, holder,
+rectangle and the range of elements it drew; the arranger and the editor
+read that list and derive nothing from element order;</p></li>
+<li><p>the arranger’s level table (<code class="docutils literal notranslate"><span class="pre">containers.ts</span></code>) says, per level of the
+canvas (the arranger, the bundle editor, the group editor, the timeline
+editor), what may be moved, reordered, resized, removed and opened, and
+how each kind of box resizes.</p></li>
+</ul>
+<p>“Item” is a role (a frame or a block-held card is placed freely in the
+block); “member” is a fact about a timeline (a group names it); neither is
+a kind.</p>
+</section>
+<section id="ids-and-addresses">
+<h2>IDs and addresses<a class="headerlink" href="#ids-and-addresses" title="Link to this heading">#</a></h2>
+<p>Every element of a manifest has an ID, unique across the manifest and kept
+verbatim: any non-empty string without control characters, with no
+reserved word (TimeToShare’s README, “Identity”). TiLiE never parses an ID,
+and names a timeline, group or manifest without a <code class="docutils literal notranslate"><span class="pre">name</span></code> by its whole ID.
+Where core creates an element itself (the first segment of an empty
+segment line, the default timestamps), it mints <code class="docutils literal notranslate"><span class="pre">{prefix}_{N}</span></code> with the
+smallest <code class="docutils literal notranslate"><span class="pre">N</span></code> whose ID the manifest does not hold; a command that adds an
+element carries its ID, except a named timestamp, an elision and a named
+MatchStamp, which core mints the same way.</p>
+<p>An address names anything a command can target, and it is an object,
+never a string composed from IDs: <code class="docutils literal notranslate"><span class="pre">{}</span></code> the workspace, <code class="docutils literal notranslate"><span class="pre">{block}</span></code> a block,
+and <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id?,</span> <span class="pre">facet?,</span> <span class="pre">part?}</span></code> an element of the block’s manifest, its
+members those of the manifest’s own address (TimeToShare’s drawing
+specification, section 2.2): <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">X}</span></code> a timeline, group, measure
+map, conversion map, region, flow-control element, named timestamp (its
+wedge), named MatchStamp, alignment anchor (its line) or stored elision
+(every gap drawn of it); <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">T,</span> <span class="pre">part:</span> <span class="pre">[&quot;elision&quot;]}</span></code> the gaps a
+card derives on <code class="docutils literal notranslate"><span class="pre">T</span></code>, which have no ID; <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">T,</span> <span class="pre">facet:</span> <span class="pre">F}</span></code> the band drawing facet <code class="docutils literal notranslate"><span class="pre">F</span></code> of timeline <code class="docutils literal notranslate"><span class="pre">T</span></code>; <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">T,</span> <span class="pre">part:</span> <span class="pre">[&quot;card&quot;]}</span></code> every card of <code class="docutils literal notranslate"><span class="pre">T</span></code>; <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">part:</span> <span class="pre">[&quot;name&quot;]}</span></code> the
+manifest’s title; and a part of an element its address with <code class="docutils literal notranslate"><span class="pre">start</span></code>,
+<code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">label</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">coordinate</span></code>, <code class="docutils literal notranslate"><span class="pre">line</span></code> or <code class="docutils literal notranslate"><span class="pre">ellipsis</span></code> appended to <code class="docutils literal notranslate"><span class="pre">part</span></code>
+(a named timestamp’s line, a groupstamp’s across every frame drawing it
+included, is <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">X,</span> <span class="pre">part:</span> <span class="pre">[&quot;line&quot;]}</span></code>). An element drawn more than
+once, a member’s cards in several frames among them, keeps one address in
+every drawing of it, so a rule or a selection reaches every drawing.
+Two addresses are equal when they are equal as whole objects, and
+<code class="docutils literal notranslate"><span class="pre">addressKey(address)</span></code> is an address’s one string form, the only key a map
+or a Svelte keyed block takes for it. Core’s <code class="docutils literal notranslate"><span class="pre">resolveAddress(view,</span> <span class="pre">address)</span></code> is the one place that decides what an address names, returning
+a discriminated record (workspace, block, title, frame, timeline, card,
+band, entry, measure map, timestamp, elision, MatchStamp, anchor, part); a part
+names something only where it is drawn. Nothing reads an ID or an address out of
+a string. A statement has neither an ID nor an address: it is changed
+through the element holding it, by one <code class="docutils literal notranslate"><span class="pre">set</span></code> of that element’s whole
+<code class="docutils literal notranslate"><span class="pre">statements</span></code> or <code class="docutils literal notranslate"><span class="pre">provenance</span></code>.</p>
+</section>
+<section id="how-a-change-travels">
+<h2>How a change travels<a class="headerlink" href="#how-a-change-travels" title="Link to this heading">#</a></h2>
+<ol class="arabic simple">
+<li><p><strong>A gesture or a form edit</strong> in the arranger or the inspector builds one
+command: <code class="docutils literal notranslate"><span class="pre">add</span></code>, <code class="docutils literal notranslate"><span class="pre">set</span></code>, <code class="docutils literal notranslate"><span class="pre">remove</span></code> or <code class="docutils literal notranslate"><span class="pre">style</span></code>, aimed at addresses. One
+completed gesture is one command; a preview shows
+<code class="docutils literal notranslate"><span class="pre">drawingOf(preview(view,</span> <span class="pre">command))</span></code>, the command applied without the
+schema check, so a preview can never differ from what the release stores.</p></li>
+<li><p><strong>The store</strong> parses the command, applies it through the pure reducer
+(<code class="docutils literal notranslate"><span class="pre">apply</span></code> in core), refuses it with a typed <code class="docutils literal notranslate"><span class="pre">{code,</span> <span class="pre">message,</span> <span class="pre">path}</span></code> when a
+rule is broken (the path starts with the <code class="docutils literal notranslate"><span class="pre">addressKey</span></code> of the target at
+fault, an added value’s problems under the address it goes into, never
+with a bare block id), runs the side-effect guard when an editor is open, and
+journals it with its author and time. Undo and redo move by steps over
+the journal; a closed editor session undoes by runs.</p></li>
+<li><p><strong>The view</strong> is an immutable value; every component reads it through the
+arranger’s <code class="docutils literal notranslate"><span class="pre">liveStore</span></code> adapter, never through a copy.</p></li>
+<li><p><strong>The projection</strong> turns the view into one Svelte Flow node per block;
+each node renders its block’s drawing, <code class="docutils literal notranslate"><span class="pre">draw(manifest,</span> <span class="pre">placement,</span> <span class="pre">layers,</span> <span class="pre">metrics)</span></code> from layout, memoised by the identity of its inputs, as the
+element descriptors the writers produce. The same descriptors become the
+SVG and TikZ exports, so the screen and the file agree element for
+element.</p></li>
+<li><p><strong>Saving</strong> writes the store’s snapshot (every open editor folded as Done
+would fold it) through core’s canonical writer; opening reads the file,
+checks its structure, and <code class="docutils literal notranslate"><span class="pre">createStore</span></code> replays the journal to verify
+that it reproduces the snapshot, refusing a file whose journal does not.</p></li>
+</ol>
+</section>
+<section id="where-a-new-thing-goes">
+<h2>Where a new thing goes<a class="headerlink" href="#where-a-new-thing-goes" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><strong>A new settable property</strong> of an existing target: a row in the capability
+table <code class="docutils literal notranslate"><span class="pre">commands/set.ts</span></code> with its reader in <code class="docutils literal notranslate"><span class="pre">values.ts</span></code>; a test case per
+accepted and refused value; the README section of the commands.</p></li>
+<li><p><strong>A new command kind</strong> does not exist: the four commands are the whole
+vocabulary (<code class="docutils literal notranslate"><span class="pre">AGENTS.md</span></code>). A new editable thing is a new target kind or a
+new property.</p></li>
+<li><p><strong>A new target kind</strong> (something addressable): the resolver
+(<code class="docutils literal notranslate"><span class="pre">workspace/address.ts</span></code>) learns to name it, the registry learns its
+container facts if it is a container, <code class="docutils literal notranslate"><span class="pre">commands/set.ts</span></code> gets its table,
+<code class="docutils literal notranslate"><span class="pre">commands/add.ts</span></code> and <code class="docutils literal notranslate"><span class="pre">commands/remove.ts</span></code> their branches, and
+<code class="docutils literal notranslate"><span class="pre">manifest/contains.ts</span></code> what it contains, which the side-effect guard reads.</p></li>
+<li><p><strong>A new container kind</strong>: a row of core’s registry <code class="docutils literal notranslate"><span class="pre">CONTAINERS</span></code> (its level,
+its element type, the place members it may state by holder); layout’s
+<code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code> records for it; the arranger’s <code class="docutils literal notranslate"><span class="pre">RESIZING</span></code> row and its rules in
+the level table, which <code class="docutils literal notranslate"><span class="pre">fieldsOf</span></code> turns into the inspector’s Properties
+fields. The drawing specification names it first.</p></li>
+<li><p><strong>A new element of the drawing</strong>: <code class="docutils literal notranslate"><span class="pre">drawing.md</span></code> first (the specification
+and its fixtures pin the drawing; a rule the code applies that the
+specification does not state is a defect), then layout’s element type,
+its band or module, its bounds in <code class="docutils literal notranslate"><span class="pre">geometry.ts</span></code>, its descriptors in the
+writers, a hand-derived fixture beside the emitted ones. <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">draw</span></code>
+(the writers’ script, <code class="docutils literal notranslate"><span class="pre">AGENTS.md</span></code>) draws any manifest file to SVG and
+TikZ as the fixtures are drawn, to look at a case before it becomes one.</p></li>
+<li><p><strong>A new gesture</strong>: a strategy in the arranger’s <code class="docutils literal notranslate"><span class="pre">gestures/</span></code> for its
+<code class="docutils literal notranslate"><span class="pre">pointerGesture</span></code> engine (what a press takes, the value a point gives, the
+preview, the command on release) and a row property in the level table saying where it is
+offered; never a fifth pointer machinery.</p></li>
+<li><p><strong>A new inspector panel</strong>: a Svelte component over a plain state module
+(<code class="docutils literal notranslate"><span class="pre">&lt;name&gt;.svelte.ts</span></code>) with the logic unit-tested without the component, a
+tab in <code class="docutils literal notranslate"><span class="pre">tabs.ts</span></code>, words in <code class="docutils literal notranslate"><span class="pre">words.ts</span></code>.</p></li>
+<li><p><strong>A new area of a stamp tab</strong> (Timestamp, Matchstamp): a section
+component in the editor’s <code class="docutils literal notranslate"><span class="pre">inspector/stamps/</span></code>, beside the name header
+(<code class="docutils literal notranslate"><span class="pre">StampName</span></code>), the Coordinates both tabs share (<code class="docutils literal notranslate"><span class="pre">StampCoordinates</span></code>), the
+display toggles (<code class="docutils literal notranslate"><span class="pre">DisplayToggles</span></code>), the wedge’s rotation
+(<code class="docutils literal notranslate"><span class="pre">WedgeRotation</span></code>), the Timestamp tab’s Properties
+(<code class="docutils literal notranslate"><span class="pre">TimestampProperties</span></code>), a MatchStamp’s Lines, MatchClaims, Update and
+Remove and MatchClaim filter (<code class="docutils literal notranslate"><span class="pre">MatchstampLines</span></code>, <code class="docutils literal notranslate"><span class="pre">MatchClaimList</span></code>,
+<code class="docutils literal notranslate"><span class="pre">MatchstampActions</span></code>, <code class="docutils literal notranslate"><span class="pre">MatchClaimFilter</span></code>) and the coordinate granularity
+(<code class="docutils literal notranslate"><span class="pre">CoordinateGranularity</span></code>), all inside <code class="docutils literal notranslate"><span class="pre">StampPane</span></code>, which holds their
+shared look. The section reads what its tab hands it and builds its
+commands with the tab’s readers (<code class="docutils literal notranslate"><span class="pre">timestamp.ts</span></code>, <code class="docutils literal notranslate"><span class="pre">matchstamps.ts</span></code>,
+<code class="docutils literal notranslate"><span class="pre">matchstampLines.ts</span></code>); what both tabs show is one section, never two.</p></li>
+<li><p><strong>A new schema rule</strong>: the rule in both validators (<code class="docutils literal notranslate"><span class="pre">js/src/validate/*</span></code>,
+<code class="docutils literal notranslate"><span class="pre">python/src/timetoshare/validation/*</span></code>, the same module and the same
+order), a stable code in both <code class="docutils literal notranslate"><span class="pre">diagnostics</span></code> modules’ <code class="docutils literal notranslate"><span class="pre">ValidationCode</span></code>, a shared rejection fixture that pins the path and
+message in both languages, and the README’s rule table.</p></li>
+<li><p><strong>A new lookup system</strong>: an ADR on its access rules first (where it is
+asked from, its rate limit and identification, what leaves the browser);
+a module in the editor’s <code class="docutils literal notranslate"><span class="pre">src/lookup/</span></code> behind the one <code class="docutils literal notranslate"><span class="pre">Lookup</span></code>, its
+kinds in <code class="docutils literal notranslate"><span class="pre">kinds.ts</span></code>, and answers recorded once for its tests. A service
+whose rules of use a browser cannot keep is asked only through the
+server, which keeps them for every request of the run.</p></li>
+<li><p><strong>A new viewer setting</strong> (who the user is, type profiles): the
+browser’s <code class="docutils literal notranslate"><span class="pre">localStorage</span></code> under a key the host passes in <code class="docutils literal notranslate"><span class="pre">storage</span></code>,
+never a workspace setting, a command or a manifest member.</p></li>
+<li><p><strong>A new dependency</strong>: an ADR first, always weighing “write it ourselves”
+(<code class="docutils literal notranslate"><span class="pre">AGENTS.md</span></code>, Design Rules).</p></li>
+</ul>
+</section>
+<section id="testing">
+<h2>Testing<a class="headerlink" href="#testing" title="Link to this heading">#</a></h2>
+<p>Every package carries <code class="docutils literal notranslate"><span class="pre">tests/README.md</span></code>, written before its tests. It
+states what proves each behaviour, which values the package owns and
+derives, and where the oracle is: the drawing fixtures of TimeToShare
+(byte-equal SVG and TikZ), the specification’s arithmetic, or another
+package. It names no internal function. Values are exact; no thresholds,
+no approximate matchers. Tests reach a package through its public
+behaviour: what a press at a point hits, which command a drop produces,
+what a drawing contains. Small runs (one package’s <code class="docutils literal notranslate"><span class="pre">vitest</span> <span class="pre">--project</span></code>, one
+Playwright spec, one package’s <code class="docutils literal notranslate"><span class="pre">tsc</span></code>) run freely and in parallel; the whole
+suite, <code class="docutils literal notranslate"><span class="pre">e2e:all</span></code>, the build, the budgets and the screenshots are heavy and
+run one at a time. The end-to-end specs read state through the test hook
+<code class="docutils literal notranslate"><span class="pre">window.__tilie</span></code>, present only in development and test builds, never
+through pixels, except the screenshot project.</p>
+</section>
+<section id="embedding">
+<h2>Embedding<a class="headerlink" href="#embedding" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Editor.svelte</span></code> is the whole editor as a component with options: the server
+(<code class="docutils literal notranslate"><span class="pre">{url,</span> <span class="pre">token}</span></code> or none), the storage slot and keys (or none: the
+user and the type profiles are kept under <code class="docutils literal notranslate"><span class="pre">userKey</span></code> and <code class="docutils literal notranslate"><span class="pre">profilesKey</span></code>
+only where the host names them), whether the Metadata tab may look values
+up (<code class="docutils literal notranslate"><span class="pre">lookup</span></code>), the shortcut scope (<code class="docutils literal notranslate"><span class="pre">&quot;editor&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;window&quot;</span></code>), the notices
+URL, and <code class="docutils literal notranslate"><span class="pre">onchange</span></code> and <code class="docutils literal notranslate"><span class="pre">onselect</span></code> callbacks. It styles only its own root, names its ids per instance and
+reaches the page only through those options. <code class="docutils literal notranslate"><span class="pre">App.svelte</span></code> is the one page
+that owns a document: it writes the title, styles <code class="docutils literal notranslate"><span class="pre">html</span></code> and <code class="docutils literal notranslate"><span class="pre">body</span></code>, takes
+the server’s token from the URL fragment and binds the window shortcuts.
+<code class="docutils literal notranslate"><span class="pre">embed.ts</span></code> exports <code class="docutils literal notranslate"><span class="pre">mount(element,</span> <span class="pre">options)</span></code>, a framework-free entry over
+Svelte’s <code class="docutils literal notranslate"><span class="pre">mount</span></code>/<code class="docutils literal notranslate"><span class="pre">unmount</span></code>, built by <code class="docutils literal notranslate"><span class="pre">pnpm</span> <span class="pre">build:embed</span></code> into <code class="docutils literal notranslate"><span class="pre">dist-embed/</span></code>
+(<code class="docutils literal notranslate"><span class="pre">tilie.js</span></code>, <code class="docutils literal notranslate"><span class="pre">tilie.css</span></code>, the fonts). A host page loads the stylesheet,
+imports <code class="docutils literal notranslate"><span class="pre">mount</span></code>, and hands it one element with a definite height.</p>
+</section>
+<section id="releasing">
+<h2>Releasing<a class="headerlink" href="#releasing" title="Link to this heading">#</a></h2>
+<p>A TimeToShare version is a schema version, released by release-please on
+<code class="docutils literal notranslate"><span class="pre">main</span></code> and published to npm and PyPI by trusted publishing. TimeLineEditor
+is released as <code class="docutils literal notranslate"><span class="pre">tilie-server</span></code> to PyPI, by release-please and trusted
+publishing as well; while the editor builds against an unreleased schema
+version it links the sibling checkout and is not published.
+<code class="docutils literal notranslate"><span class="pre">scripts/check_versions.py</span></code> checks a tag against the declared versions.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="architecture.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Architecture</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="python.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Python API</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#two-repositories-one-wall">Two repositories, one wall</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#the-three-layers-named-by-one-word-each">The three layers, named by one word each</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#the-containers-of-a-drawing">The containers of a drawing</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ids-and-addresses">IDs and addresses</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#how-a-change-travels">How a change travels</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#where-a-new-thing-goes">Where a new thing goes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#testing">Testing</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#embedding">Embedding</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#releasing">Releasing</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>
