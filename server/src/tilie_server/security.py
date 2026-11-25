@@ -117,6 +117,7 @@ class BodyLimit:
                 break
 
         async def replay() -> Message:
+            """The messages already received, in order, then the next ones."""
             return chunks.pop(0) if chunks else await receive()
 
         await self._app(scope, replay, send)
@@ -146,6 +147,7 @@ class NoReferrer:
             return
 
         async def send_with_policy(message: Message) -> None:
+            """Send a message, adding the header to the start of a response."""
             if message["type"] == "http.response.start":
                 message["headers"] = [*message.get("headers", []), self.HEADER]
             await send(message)

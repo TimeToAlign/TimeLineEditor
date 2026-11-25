@@ -301,6 +301,7 @@ def catalogue_recognizer() -> Callable[[str], str | None]:
     catalogue = load_catalogue()
 
     def recognized(url: str) -> str | None:
+        """The IRI the catalogue recognises in ``url``, or ``None``."""
         recognition = recognize(catalogue, url)
         return None if recognition is None else recognition.iri
 
@@ -364,6 +365,7 @@ async def answered(
 
 
 async def service(musicbrainz: MusicBrainz, given: dict[str, str]) -> Any:
+    """Answer ``queries``, else ``extend``, else return the service manifest."""
     if "queries" in given:
         return await reconciled(musicbrainz, given["queries"])
     if "extend" in given:
@@ -372,6 +374,12 @@ async def service(musicbrainz: MusicBrainz, given: dict[str, str]) -> Any:
 
 
 async def suggestions(musicbrainz: MusicBrainz, given: dict[str, str]) -> Any:
+    """Suggest the entities of a type whose name ``prefix`` finds, ten from ``cursor``.
+
+    Raises:
+        Refusal: If ``prefix`` is blank, ``type`` is none of the service's
+            types, or ``cursor`` is no integer of 0 or more.
+    """
     prefix = given.get("prefix", "")
     if not prefix.strip():
         raise Refusal("prefix is required")
@@ -382,6 +390,11 @@ async def suggestions(musicbrainz: MusicBrainz, given: dict[str, str]) -> Any:
 
 
 async def proposed(musicbrainz: MusicBrainz, given: dict[str, str]) -> Any:
+    """Propose the properties of data extension for a type.
+
+    Raises:
+        Refusal: If ``type`` is none of the service's types.
+    """
     kind = entity_type(given.get("type", DEFAULT_TYPE))
     return {
         "type": kind,
@@ -403,6 +416,7 @@ async def service_post(request: Request) -> JSONResponse:
     """The answer to a form's ``queries`` or ``extend``."""
 
     async def posted(musicbrainz: MusicBrainz, given: dict[str, str]) -> Any:
+        """Answer a form that holds ``queries`` or ``extend``; refuse any other."""
         if "queries" not in given and "extend" not in given:
             raise Refusal("queries is no JSON object of queries")
         return await service(musicbrainz, given)

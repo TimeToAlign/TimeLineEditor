@@ -100,6 +100,7 @@ def create_app(
         # "/", which answers 405 to every method but GET and HEAD.
         @app.api_route(f"{API_PREFIX}{{path:path}}", methods=API_METHODS)
         async def not_served(path: str) -> None:
+            """Answer 404 to an API path while the server serves no files."""
             raise HTTPException(status_code=404)
 
     app.state.musicbrainz = MusicBrainz() if musicbrainz is None else musicbrainz

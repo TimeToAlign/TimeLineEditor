@@ -179,6 +179,7 @@ def provenance_answer(body: bytes, bounds: TableBounds) -> dict[str, Any]:
     cells = tables.row_provenance(table)
 
     def entry(cell: Any) -> dict[str, Any] | None:
+        """A row's provenance cell as an entry, each actor expanded; ``None`` stays."""
         if cell is None:
             return None
         described = Provenance.from_row(cell).to_dict()

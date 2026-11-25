@@ -216,6 +216,7 @@ def flows_answer(body: bytes) -> dict[str, Any]:
     _, timeline = asked_timeline(parameters, manifest, bare)
 
     def on_axis(coordinate: Any) -> Any:
+        """The JSON form of a coordinate's value on the timeline's axis."""
         return number_to_json(coordinate.value)
 
     try:
@@ -231,6 +232,7 @@ def flows_answer(body: bytes) -> dict[str, Any]:
         raise Refusal(["timeline"], str(error)) from error
 
     def answered(convention: Any) -> dict[str, Any]:
+        """The answer for one convention: its runs, sections and findings."""
         flow = flows[convention]
         answer: dict[str, Any] = {
             "runs": [[on_axis(run.start), on_axis(run.end)] for run in flow.runs],

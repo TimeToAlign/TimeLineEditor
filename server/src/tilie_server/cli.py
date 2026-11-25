@@ -115,6 +115,11 @@ opens no browser."""
 
 
 def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
+    """Parse the command line of ``tilie``; ``None`` reads ``sys.argv``.
+
+    An option a public run excludes is an error next to ``--public-host``;
+    ``--root`` defaults to the home folder only after that check.
+    """
     parser = argparse.ArgumentParser(
         prog="tilie",
         description="Start the TimeLineEditor server on 127.0.0.1 and open the "
@@ -260,6 +265,7 @@ def run_server(server: uvicorn.Server, on_started: Callable[[], None]) -> bool:
     """
 
     def observe_startup() -> None:
+        """Perform ``on_started`` once the server listens."""
         if wait_until_started(server):
             on_started()
 
@@ -313,6 +319,16 @@ def verify(base_url: str, token: str) -> dict[str, str | bool | None]:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run the ``tilie`` command and return its exit status.
+
+    A public run prints what it serves; a ``--check`` run prints the health
+    document once the checks pass, then stops; a local run prints the
+    editor's URL, the token in its fragment, and opens a browser unless
+    ``--no-browser`` is given.
+
+    Returns:
+        0 on success, 1 if the server did not start or a check failed.
+    """
     args = parse_args(argv)
     port, notice = choose_port(args.port)
     if notice is not None:
@@ -327,6 +343,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         # check (the options are refused), only the line saying what it serves.
 
         def announce_public_server() -> None:
+            """Print the line saying what the public run serves."""
             print(public_notice(settings), file=sys.stderr, flush=True)
 
         if not run_server(server, announce_public_server):
@@ -341,6 +358,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         result: Queue[dict[str, str | bool | None] | Exception] = Queue(maxsize=1)
 
         def check_started_server() -> None:
+            """Verify the running server, keep the outcome, then stop it."""
             try:
                 result.put(verify(base_url, token))
             except (CheckFailed, OSError, ValueError) as error:
@@ -374,6 +392,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     url = f"{base_url}/#token={token}"
 
     def announce_started_server() -> None:
+        """Print the editor's URL and open it unless ``--no-browser`` is given."""
         print(url, flush=True)
         if not args.no_browser:
             webbrowser.open(url)

@@ -17,4 +17,5 @@ def mount_static(app: FastAPI, static_dir: Path) -> None:
 
     @app.get("/")
     def app_not_built() -> JSONResponse:
+        """Answer 503: the editor has not been built."""
         return JSONResponse({"detail": "app not built"}, status_code=503)

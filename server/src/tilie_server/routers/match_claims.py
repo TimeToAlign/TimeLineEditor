@@ -180,6 +180,7 @@ def table_reader(bounds: TableBounds) -> tuple[Callable[[bytes], Any], Any, Any,
         raise Refusal([], message, status_code=501) from error
 
     def read(data: bytes) -> Any:
+        """Read a MatchClaim table from Parquet bytes, within the bounds."""
         try:
             return bounded_table(parquet, pyarrow, data, bounds)
         except (pyarrow.ArrowException, OSError, ValueError) as error:
