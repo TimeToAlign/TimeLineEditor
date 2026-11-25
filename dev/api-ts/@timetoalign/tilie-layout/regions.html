@@ -508,27 +508,108 @@
                   
   <section id="regions">
 <h1>regions<a class="headerlink" href="#regions" title="Link to this heading">#</a></h1>
+<section id="interfaces">
+<h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
+<section id="stagedregions">
+<h3>StagedRegions<a class="headerlink" href="#stagedregions" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/regions.ts#L24">layout/src/regions.ts:24</a></p>
+<p>A regions band before its tiered first fit (section 6.4, Regions): its
+regions with their drawn labels’ extents in the order its first fit takes
+them, the largest font size of its drawn labels, and the band once they
+are placed by <code class="docutils literal notranslate"><span class="pre">fit</span></code>, its labels’ tiers <code class="docutils literal notranslate"><span class="pre">size</span></code> high: its own first fit
+alone, or one first fit over the regions bands of a row of one band order.</p>
+<section id="properties">
+<h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
+<section id="items">
+<h5>items<a class="headerlink" href="#items" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>items</strong>: readonly <a class="reference internal" href="fit.html#tiereditem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">TieredItem</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/regions.ts#L25">layout/src/regions.ts:25</a></p>
+</section>
+<section id="size">
+<h5>size<a class="headerlink" href="#size" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>size</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/regions.ts#L26">layout/src/regions.ts:26</a></p>
+</section>
+</section>
+<section id="methods">
+<h4>Methods<a class="headerlink" href="#methods" title="Link to this heading">#</a></h4>
+<section id="band">
+<h5>band()<a class="headerlink" href="#band" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>band</strong>(<code class="docutils literal notranslate"><span class="pre">fit</span></code>, <code class="docutils literal notranslate"><span class="pre">size</span></code>): <a class="reference internal" href="bands.html#preparedband"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedBand</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/regions.ts#L27">layout/src/regions.ts:27</a></p>
+<section id="parameters">
+<h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
+</section>
+<section id="fit">
+<h6>fit<a class="headerlink" href="#fit" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="fit.html#tiered"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Tiered</span></code></span></a></p>
+</section>
+<section id="id1">
+<h6>size<a class="headerlink" href="#id1" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="returns">
+<h6>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="bands.html#preparedband"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedBand</span></code></span></a></p>
+</section>
+</section>
+</section>
+</section>
+</section>
 <section id="functions">
 <h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<section id="regionsalone">
+<h3>regionsAlone()<a class="headerlink" href="#regionsalone" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>regionsAlone</strong>(<code class="docutils literal notranslate"><span class="pre">staged</span></code>): <a class="reference internal" href="bands.html#preparedband"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedBand</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/regions.ts#L31">layout/src/regions.ts:31</a></p>
+<p>A staged regions band placed by its own tiered first fit alone.</p>
+<section id="id2">
+<h4>Parameters<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
+<section id="staged">
+<h5>staged<a class="headerlink" href="#staged" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#stagedregions"><code class="docutils literal notranslate"><span class="pre">StagedRegions</span></code></a></p>
+</section>
+</section>
+<section id="id3">
+<h4>Returns<a class="headerlink" href="#id3" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="bands.html#preparedband"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedBand</span></code></span></a></p>
+</section>
+</section>
+<hr class="docutils" />
 <section id="regionsband">
 <h3>regionsBand()<a class="headerlink" href="#regionsband" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>regionsBand</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">sources</span></code>): <a class="reference internal" href="bands.html#preparedband"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedBand</span></code></span></a></p>
+<div><p><strong>regionsBand</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">sources</span></code>): <a class="reference internal" href="#stagedregions"><code class="docutils literal notranslate"><span class="pre">StagedRegions</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/regions.ts#L31">layout/src/regions.ts:31</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/regions.ts#L54">layout/src/regions.ts:54</a></p>
 <p>The regions band of the timeline drawn with the line <code class="docutils literal notranslate"><span class="pre">line</span></code> (section 6.4,
 Regions and Segments without a line): the displayed regions of each
 timeline of <code class="docutils literal notranslate"><span class="pre">sources</span></code>, the line first and then each joined segment, each
-one’s in canonical order, placed in that order by one first fit with the
-extent from the smaller to the larger of their start and end, widened to
-their drawn label’s extent. <code class="docutils literal notranslate"><span class="pre">R</span></code> rows are <code class="docutils literal notranslate"><span class="pre">R</span> <span class="pre">×</span> <span class="pre">pr</span> <span class="pre">−</span> <span class="pre">S</span></code> wide, <code class="docutils literal notranslate"><span class="pre">pr</span> <span class="pre">=</span> <span class="pre">6</span> <span class="pre">+</span> <span class="pre">2</span> <span class="pre">+</span> <span class="pre">h(9)</span> <span class="pre">+</span> <span class="pre">S</span></code>, <code class="docutils literal notranslate"><span class="pre">S</span></code> the card spacing, 9 the largest font size of the band’s drawn labels.
-Drawn from its start <code class="docutils literal notranslate"><span class="pre">r0</span></code>, row <code class="docutils literal notranslate"><span class="pre">k</span></code> has its brace’s arms <code class="docutils literal notranslate"><span class="pre">r0</span> <span class="pre">+</span> <span class="pre">(k</span> <span class="pre">−</span> <span class="pre">1)</span> <span class="pre">×</span> <span class="pre">pr</span></code> out, the tip 6 further and the label’s ordinate 2 further again, each
-distance summed whole first (section 6.6, Regions). A region whose start,
-end or midpoint lies in a gap is not drawn, nor is its label; another is
-drawn at their elided x, its brace cut at every gap it spans (section 6.6,
-Elisions).</p>
-<section id="parameters">
-<h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
+one’s in canonical order, placed in that order by one tiered first fit
+(<code class="docutils literal notranslate"><span class="pre">tieredFit</span></code>): each region into a row by its extent alone, from the smaller
+to the larger of its start and end, so that no label moves it, and its
+drawn label by its label extent into the label tiers of that row. Row <code class="docutils literal notranslate"><span class="pre">k</span></code>
+with <code class="docutils literal notranslate"><span class="pre">Tk</span></code> tiers has the pitch <code class="docutils literal notranslate"><span class="pre">prk</span> <span class="pre">=</span> <span class="pre">6</span> <span class="pre">+</span> <span class="pre">2</span> <span class="pre">+</span> <span class="pre">Tk</span> <span class="pre">×</span> <span class="pre">h(9)</span> <span class="pre">+</span> <span class="pre">S</span></code>, <code class="docutils literal notranslate"><span class="pre">S</span></code> the card
+spacing, 9 the largest font size of the band’s drawn labels; the band is
+<code class="docutils literal notranslate"><span class="pre">pr1</span> <span class="pre">+</span> <span class="pre">…</span> <span class="pre">+</span> <span class="pre">prR</span> <span class="pre">−</span> <span class="pre">S</span></code> wide. Drawn from its start <code class="docutils literal notranslate"><span class="pre">r0</span></code>, row <code class="docutils literal notranslate"><span class="pre">k</span></code> has its
+brace’s arms <code class="docutils literal notranslate"><span class="pre">r0</span> <span class="pre">+</span> <span class="pre">pr1</span> <span class="pre">+</span> <span class="pre">…</span> <span class="pre">+</span> <span class="pre">pr(k</span> <span class="pre">−</span> <span class="pre">1)</span></code> out, the tip 6 further, and a label
+in tier <code class="docutils literal notranslate"><span class="pre">j</span></code> its ordinate <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">+</span> <span class="pre">(j</span> <span class="pre">−</span> <span class="pre">1)</span> <span class="pre">×</span> <span class="pre">h(9)</span></code> beyond the tip, each distance
+summed whole first (section 6.6, Regions); a label beyond tier 1 is joined
+to the tip by a leader from the tip to where its tier begins. A region
+whose start, end or midpoint lies in a gap is not drawn, nor is its label;
+another is drawn at their elided x, its brace cut at every gap it spans
+(section 6.6, Elisions). Its extents, which its timeline’s extent holds,
+are its regions’ and their drawn labels’.</p>
+<section id="id4">
+<h4>Parameters<a class="headerlink" href="#id4" title="Link to this heading">#</a></h4>
 <section id="scope">
 <h5>scope<a class="headerlink" href="#scope" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="traversal.html#scope"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Scope</span></code></span></a></p>
@@ -538,9 +619,9 @@ Elisions).</p>
 <p>readonly <a class="reference internal" href="traversal.html#entry"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Entry</span></code></span></a>[]</p>
 </section>
 </section>
-<section id="returns">
-<h4>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h4>
-<p><a class="reference internal" href="bands.html#preparedband"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedBand</span></code></span></a></p>
+<section id="id5">
+<h4>Returns<a class="headerlink" href="#id5" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#stagedregions"><code class="docutils literal notranslate"><span class="pre">StagedRegions</span></code></a></p>
 </section>
 </section>
 </section>
@@ -593,14 +674,43 @@ Elisions).</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stagedregions">StagedRegions</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#items">items</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#size">size</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#methods">Methods</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#band">band()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#fit">fit</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">size</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#regionsalone">regionsAlone()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#staged">staged</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Returns</a></li>
+</ul>
+</li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#regionsband">regionsBand()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#scope">scope</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#sources">sources</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Returns</a></li>
 </ul>
 </li>
 </ul>

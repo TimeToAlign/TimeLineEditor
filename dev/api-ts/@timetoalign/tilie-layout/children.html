@@ -512,7 +512,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="childrenfit">
 <h3>ChildrenFit<a class="headerlink" href="#childrenfit" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/children.ts#L13">layout/src/children.ts:13</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/children.ts#L13">layout/src/children.ts:13</a></p>
 <p>The first fit of one children band (sections 6.3 and 6.4, Children).</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -521,7 +521,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>count</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/children.ts#L17">layout/src/children.ts:17</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/children.ts#L17">layout/src/children.ts:17</a></p>
 <p>The number <code class="docutils literal notranslate"><span class="pre">C</span></code> of rows its children fill; 0 for an absent band.</p>
 </section>
 <section id="row">
@@ -529,7 +529,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>row</strong>: <code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<a class="reference internal" href="traversal.html#entry"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Entry</span></code></span></a>, <code class="docutils literal notranslate"><span class="pre">number</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/children.ts#L15">layout/src/children.ts:15</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/children.ts#L15">layout/src/children.ts:15</a></p>
 <p>The row of each child line the band places, from 1.</p>
 </section>
 </section>
@@ -537,26 +537,26 @@
 <hr class="docutils" />
 <section id="fitted">
 <h3>Fitted<a class="headerlink" href="#fitted" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/children.ts#L21">layout/src/children.ts:21</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/children.ts#L37">layout/src/children.ts:37</a></p>
 <p>One timeline drawn with a line of its own after the first pass (section 6.4).</p>
 <section id="id1">
 <h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
 <section id="extent">
 <h5>extent<a class="headerlink" href="#extent" title="Link to this heading">#</a></h5>
 <blockquote>
-<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>extent</strong>: <a class="reference internal" href="fit.html#id6"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></span></a></p>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>extent</strong>: <a class="reference internal" href="fit.html#id8"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/children.ts#L28">layout/src/children.ts:28</a></p>
-<p>Its extent (section 6.4, Children), from the root’s start: the smallest interval holding its
-own extent and the extent of every child its children band places, at any depth
-(<code class="docutils literal notranslate"><span class="pre">wholeExtent</span></code>). Its parent’s first fit places it by this, and its band records span it.</p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/children.ts#L45">layout/src/children.ts:45</a></p>
+<p>The extent by which its parent’s first fit places it (section 6.4, Children), from the root’s
+start: <code class="docutils literal notranslate"><span class="pre">Unplaced.lineOnly</span></code> where aligned bands place it, else <code class="docutils literal notranslate"><span class="pre">Unplaced.whole</span></code>, the root’s
+<code class="docutils literal notranslate"><span class="pre">whole</span></code>. Its band records span it.</p>
 </section>
 <section id="fit">
 <h5>fit<a class="headerlink" href="#fit" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>fit</strong>: <a class="reference internal" href="#childrenfit"><code class="docutils literal notranslate"><span class="pre">ChildrenFit</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/children.ts#L30">layout/src/children.ts:30</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/children.ts#L47">layout/src/children.ts:47</a></p>
 <p>Its children band’s first fit.</p>
 </section>
 <section id="prepared">
@@ -564,7 +564,43 @@ own extent and the extent of every child its children band places, at any depth
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>prepared</strong>: <a class="reference internal" href="timeline.html#preparedtimeline"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedTimeline</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/children.ts#L22">layout/src/children.ts:22</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/children.ts#L39">layout/src/children.ts:39</a></p>
+<p>Its bands with their first fits placed: alone, or together in a row of one band order.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="unplaced">
+<h3>Unplaced<a class="headerlink" href="#unplaced" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/children.ts#L21">layout/src/children.ts:21</a></p>
+<p>One timeline drawn with a line of its own, prepared alone, with its two extents (section 6.4, Children).</p>
+<section id="id2">
+<h4>Properties<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
+<section id="lineonly">
+<h5>lineOnly<a class="headerlink" href="#lineonly" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>lineOnly</strong>: <a class="reference internal" href="fit.html#id8"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/children.ts#L33">layout/src/children.ts:33</a></p>
+<p>Its extent where aligned bands place it: the smallest interval holding its line’s extent and
+this extent of every child its children band places, at any depth.</p>
+</section>
+<section id="id3">
+<h5>prepared<a class="headerlink" href="#id3" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>prepared</strong>: <a class="reference internal" href="timeline.html#preparedtimeline"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedTimeline</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/children.ts#L23">layout/src/children.ts:23</a></p>
+<p>Its bands with their first fits placed alone (<code class="docutils literal notranslate"><span class="pre">prepareTimeline</span></code>).</p>
+</section>
+<section id="whole">
+<h5>whole<a class="headerlink" href="#whole" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>whole</strong>: <a class="reference internal" href="fit.html#id8"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/children.ts#L28">layout/src/children.ts:28</a></p>
+<p>Its extent where bands that are not aligned place it: the smallest interval holding its own
+extent and the whole extent of every child its children band places, at any depth.</p>
 </section>
 </section>
 </section>
@@ -574,23 +610,23 @@ own extent and the extent of every child its children band places, at any depth
 <section id="fitchildren">
 <h3>fitChildren()<a class="headerlink" href="#fitchildren" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>fitChildren</strong>(<code class="docutils literal notranslate"><span class="pre">lines</span></code>, <code class="docutils literal notranslate"><span class="pre">extents</span></code>): <a class="reference internal" href="#childrenfit"><code class="docutils literal notranslate"><span class="pre">ChildrenFit</span></code></a></p>
+<div><p><strong>fitChildren</strong>(<code class="docutils literal notranslate"><span class="pre">lines</span></code>, <code class="docutils literal notranslate"><span class="pre">extentOf</span></code>): <a class="reference internal" href="#childrenfit"><code class="docutils literal notranslate"><span class="pre">ChildrenFit</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/children.ts#L40">layout/src/children.ts:40</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/children.ts#L57">layout/src/children.ts:57</a></p>
 <p>The first fit of a children band (section 6.4, Children): the child lines
 <code class="docutils literal notranslate"><span class="pre">lines</span></code>, in the order <code class="docutils literal notranslate"><span class="pre">PreparedTimeline.children</span></code> gives them, each placed
-as a whole by its extent from <code class="docutils literal notranslate"><span class="pre">extents</span></code> into the lowest row holding no
-child whose extent conflicts with it (section 6.3). Each band fills its
-own rows, from 1, whatever the rows of its timeline’s parent.</p>
+as a whole by its extent <code class="docutils literal notranslate"><span class="pre">extentOf</span></code> into the lowest row holding no child
+whose extent conflicts with it (section 6.3). Each band fills its own rows,
+from 1, whatever the rows of its timeline’s parent.</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
 <section id="lines">
 <h5>lines<a class="headerlink" href="#lines" title="Link to this heading">#</a></h5>
 <p>readonly <a class="reference internal" href="traversal.html#entry"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Entry</span></code></span></a>[]</p>
 </section>
-<section id="extents">
-<h5>extents<a class="headerlink" href="#extents" title="Link to this heading">#</a></h5>
-<p><code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<a class="reference internal" href="traversal.html#entry"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Entry</span></code></span></a>, <a class="reference internal" href="fit.html#id6"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></span></a>&gt;</p>
+<section id="extentof">
+<h5>extentOf<a class="headerlink" href="#extentof" title="Link to this heading">#</a></h5>
+<p>(<code class="docutils literal notranslate"><span class="pre">line</span></code>) =&gt; <a class="reference internal" href="fit.html#id8"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></span></a></p>
 </section>
 </section>
 <section id="returns">
@@ -599,28 +635,27 @@ own rows, from 1, whatever the rows of its timeline’s parent.</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="fittimelines">
-<h3>fitTimelines()<a class="headerlink" href="#fittimelines" title="Link to this heading">#</a></h3>
+<section id="preparetimelines">
+<h3>prepareTimelines()<a class="headerlink" href="#preparetimelines" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>fitTimelines</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>): <code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<a class="reference internal" href="traversal.html#entry"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Entry</span></code></span></a>, <a class="reference internal" href="#fitted"><code class="docutils literal notranslate"><span class="pre">Fitted</span></code></a>&gt;</p>
+<div><p><strong>prepareTimelines</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>): <code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<a class="reference internal" href="traversal.html#entry"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Entry</span></code></span></a>, <a class="reference internal" href="#unplaced"><code class="docutils literal notranslate"><span class="pre">Unplaced</span></code></a>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/children.ts#L57">layout/src/children.ts:57</a></p>
-<p>The first pass of a member drawing (section 6.4): every timeline drawn with
-a line of its own, from the root down through <code class="docutils literal notranslate"><span class="pre">PreparedTimeline.children</span></code>,
-prepared (<code class="docutils literal notranslate"><span class="pre">prepareTimeline</span></code>), then, from the deepest up, its extent
-(<code class="docutils literal notranslate"><span class="pre">wholeExtent</span></code> of its own extent and its children’s) and its children
-band’s first fit (<code class="docutils literal notranslate"><span class="pre">fitChildren</span></code>). Keyed by each line’s entry, the root’s
-included; uses no distance.</p>
-<section id="id2">
-<h4>Parameters<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/children.ts#L73">layout/src/children.ts:73</a></p>
+<p>Every timeline of a member drawing drawn with a line of its own, from the
+root down through <code class="docutils literal notranslate"><span class="pre">PreparedTimeline.children</span></code>, prepared alone
+(<code class="docutils literal notranslate"><span class="pre">prepareTimeline</span></code>), and, from the deepest up, its two extents
+(<code class="docutils literal notranslate"><span class="pre">wholeExtent</span></code>). Keyed by each line’s entry, the root’s included; uses no
+distance.</p>
+<section id="id4">
+<h4>Parameters<a class="headerlink" href="#id4" title="Link to this heading">#</a></h4>
 <section id="scope">
 <h5>scope<a class="headerlink" href="#scope" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="traversal.html#scope"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Scope</span></code></span></a></p>
 </section>
 </section>
-<section id="id3">
-<h4>Returns<a class="headerlink" href="#id3" title="Link to this heading">#</a></h4>
-<p><code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<a class="reference internal" href="traversal.html#entry"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Entry</span></code></span></a>, <a class="reference internal" href="#fitted"><code class="docutils literal notranslate"><span class="pre">Fitted</span></code></a>&gt;</p>
+<section id="id5">
+<h4>Returns<a class="headerlink" href="#id5" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<a class="reference internal" href="traversal.html#entry"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Entry</span></code></span></a>, <a class="reference internal" href="#unplaced"><code class="docutils literal notranslate"><span class="pre">Unplaced</span></code></a>&gt;</p>
 </section>
 </section>
 </section>
@@ -691,24 +726,33 @@ included; uses no distance.</p>
 </li>
 </ul>
 </li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#unplaced">Unplaced</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#lineonly">lineOnly</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">prepared</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#whole">whole</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fitchildren">fitChildren()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#lines">lines</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#extents">extents</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#extentof">extentOf</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fittimelines">fitTimelines()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#preparetimelines">prepareTimelines()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#scope">scope</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Returns</a></li>
 </ul>
 </li>
 </ul>

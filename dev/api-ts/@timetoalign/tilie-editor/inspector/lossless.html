@@ -411,6 +411,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../fixtures.html">fixtures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="claimProvenance.html">inspector/claimProvenance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="codec.html">inspector/codec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="display.html">inspector/display</a></li>
 <li class="toctree-l2"><a class="reference internal" href="elisions.html">inspector/elisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="flow.html">inspector/flow</a></li>
 <li class="toctree-l2"><a class="reference internal" href="formats.svelte.html">inspector/formats.svelte</a></li>
@@ -539,7 +540,7 @@
 <blockquote>
 <div><p><strong>LibraryValue</strong> = <code class="docutils literal notranslate"><span class="pre">null</span></code> | <code class="docutils literal notranslate"><span class="pre">boolean</span></code> | <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">bigint</span></code> | <code class="docutils literal notranslate"><span class="pre">number</span></code> | <a class="reference internal" href="#libraryvalue"><code class="docutils literal notranslate"><span class="pre">LibraryValue</span></code></a>[] | {[<code class="docutils literal notranslate"><span class="pre">key</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>]: <a class="reference internal" href="#libraryvalue"><code class="docutils literal notranslate"><span class="pre">LibraryValue</span></code></a>; }</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/lossless.ts#L18">editor/src/inspector/lossless.ts:18</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/lossless.ts#L18">editor/src/inspector/lossless.ts:18</a></p>
 <p>A value as the libraries hold it: integers as <code class="docutils literal notranslate"><span class="pre">bigint</span></code>, floats as <code class="docutils literal notranslate"><span class="pre">number</span></code>.</p>
 </section>
 </section>
@@ -550,7 +551,7 @@
 <blockquote>
 <div><p><strong>fromLibrary</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path?</span></code>): <a class="reference internal" href="../../tilie-core/json.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Json</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/lossless.ts#L35">editor/src/inspector/lossless.ts:35</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/lossless.ts#L35">editor/src/inspector/lossless.ts:35</a></p>
 <p>The manifest value of a value read by a library: a <code class="docutils literal notranslate"><span class="pre">bigint</span></code> within the
 safe range becomes a plain number, an integral float a <code class="docutils literal notranslate"><span class="pre">JsonFloat</span></code>; an
 object of any plain prototype becomes a plain object.</p>
@@ -581,7 +582,7 @@ form (a TOML date), at its path.</p>
 <blockquote>
 <div><p><strong>toLibrary</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>): <a class="reference internal" href="#libraryvalue"><code class="docutils literal notranslate"><span class="pre">LibraryValue</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/lossless.ts#L70">editor/src/inspector/lossless.ts:70</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/lossless.ts#L70">editor/src/inspector/lossless.ts:70</a></p>
 <p>The value for a library: every integer a <code class="docutils literal notranslate"><span class="pre">bigint</span></code>, every float a <code class="docutils literal notranslate"><span class="pre">number</span></code>.</p>
 <section id="id1">
 <h4>Parameters<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>

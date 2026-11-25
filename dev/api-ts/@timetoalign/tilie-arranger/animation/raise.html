@@ -418,6 +418,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowOverlay.html">flowOverlay</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../focus.html">focus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gaps.html">gaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gesture.html">gesture</a></li>
@@ -523,7 +524,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="cardunfold">
 <h3>CardUnfold<a class="headerlink" href="#cardunfold" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/raise.ts#L19">arranger/src/animation/raise.ts:19</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/animation/raise.ts#L19">arranger/src/animation/raise.ts:19</a></p>
 <p>How one raised ancestor card unfolds: its clip opens from <code class="docutils literal notranslate"><span class="pre">from</span></code> to <code class="docutils literal notranslate"><span class="pre">to</span></code>,
 and the element at an index of <code class="docutils literal notranslate"><span class="pre">drawing.elements</span></code> in the card’s range
 moves by <code class="docutils literal notranslate"><span class="pre">motionOf(index)</span></code>.</p>
@@ -534,14 +535,14 @@ moves by <code class="docutils literal notranslate"><span class="pre">motionOf(i
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>from</strong>: <a class="reference internal" href="unfold.html#rect"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rect</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/raise.ts#L20">arranger/src/animation/raise.ts:20</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/animation/raise.ts#L20">arranger/src/animation/raise.ts:20</a></p>
 </section>
 <section id="motionof">
 <h5>motionOf<a class="headerlink" href="#motionof" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>motionOf</strong>: (<code class="docutils literal notranslate"><span class="pre">element</span></code>) =&gt; <a class="reference internal" href="unfold.html#rowmotion"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">RowMotion</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/raise.ts#L23">arranger/src/animation/raise.ts:23</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/animation/raise.ts#L23">arranger/src/animation/raise.ts:23</a></p>
 <p>The motion of the row an element of the card belongs to; <code class="docutils literal notranslate"><span class="pre">null</span></code> for its own rectangle and shadow, its gaps and their ellipses, or an element of no drawn row.</p>
 <section id="parameters">
 <h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
@@ -560,7 +561,7 @@ moves by <code class="docutils literal notranslate"><span class="pre">motionOf(i
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>to</strong>: <a class="reference internal" href="unfold.html#rect"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rect</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/raise.ts#L21">arranger/src/animation/raise.ts:21</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/animation/raise.ts#L21">arranger/src/animation/raise.ts:21</a></p>
 </section>
 </section>
 </section>
@@ -572,7 +573,7 @@ moves by <code class="docutils literal notranslate"><span class="pre">motionOf(i
 <blockquote>
 <div><p><strong>raiseUnfold</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">card</span></code>, <code class="docutils literal notranslate"><span class="pre">measure</span></code>): <a class="reference internal" href="#cardunfold"><code class="docutils literal notranslate"><span class="pre">CardUnfold</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/animation/raise.ts#L46">arranger/src/animation/raise.ts:46</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/animation/raise.ts#L46">arranger/src/animation/raise.ts:46</a></p>
 <p>How the ancestor card <code class="docutils literal notranslate"><span class="pre">card</span></code> of <code class="docutils literal notranslate"><span class="pre">drawing</span></code> (a box with <code class="docutils literal notranslate"><span class="pre">ancestor</span></code>) unfolds
 out of the member card it is aligned to, the card of <code class="docutils literal notranslate"><span class="pre">card.ancestor.member</span></code>
 in the frame of <code class="docutils literal notranslate"><span class="pre">card.ancestor.group</span></code> (for a root drawn once behind a row,

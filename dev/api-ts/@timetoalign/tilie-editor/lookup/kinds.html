@@ -411,6 +411,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../fixtures.html">fixtures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../inspector/claimProvenance.html">inspector/claimProvenance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../inspector/codec.html">inspector/codec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../inspector/display.html">inspector/display</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../inspector/elisions.html">inspector/elisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../inspector/flow.html">inspector/flow</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../inspector/formats.svelte.html">inspector/formats.svelte</a></li>
@@ -536,7 +537,7 @@
 <h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
 <section id="lookuperror">
 <h3>LookupError<a class="headerlink" href="#lookuperror" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L86">editor/src/lookup/kinds.ts:86</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L86">editor/src/lookup/kinds.ts:86</a></p>
 <p>A request a service did not answer as asked: <code class="docutils literal notranslate"><span class="pre">unreachable</span></code> when no
 answer came, <code class="docutils literal notranslate"><span class="pre">status</span></code> when the answer’s HTTP status is not 2xx,
 <code class="docutils literal notranslate"><span class="pre">malformed</span></code> when its body is not of the service’s form. The message
@@ -555,7 +556,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><strong>new LookupError</strong>(<code class="docutils literal notranslate"><span class="pre">system</span></code>, <code class="docutils literal notranslate"><span class="pre">code</span></code>, <code class="docutils literal notranslate"><span class="pre">status</span></code>, <code class="docutils literal notranslate"><span class="pre">message</span></code>, <code class="docutils literal notranslate"><span class="pre">cause?</span></code>): <a class="reference internal" href="#lookuperror"><code class="docutils literal notranslate"><span class="pre">LookupError</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L91">editor/src/lookup/kinds.ts:91</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L91">editor/src/lookup/kinds.ts:91</a></p>
 <section id="parameters">
 <h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
 </section>
@@ -596,21 +597,21 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>code</strong>: <a class="reference internal" href="#lookuperrorcode"><code class="docutils literal notranslate"><span class="pre">LookupErrorCode</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L88">editor/src/lookup/kinds.ts:88</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L88">editor/src/lookup/kinds.ts:88</a></p>
 </section>
 <section id="id2">
 <h5>status<a class="headerlink" href="#id2" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>status</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L89">editor/src/lookup/kinds.ts:89</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L89">editor/src/lookup/kinds.ts:89</a></p>
 </section>
 <section id="id3">
 <h5>system<a class="headerlink" href="#id3" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>system</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L87">editor/src/lookup/kinds.ts:87</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L87">editor/src/lookup/kinds.ts:87</a></p>
 </section>
 </section>
 </section>
@@ -619,7 +620,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="candidate">
 <h3>Candidate<a class="headerlink" href="#candidate" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L31">editor/src/lookup/kinds.ts:31</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L31">editor/src/lookup/kinds.ts:31</a></p>
 <p>A thing a service found.</p>
 <section id="id4">
 <h4>Properties<a class="headerlink" href="#id4" title="Link to this heading">#</a></h4>
@@ -628,7 +629,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>crossReferences</strong>: readonly <a class="reference internal" href="#crossreference"><code class="docutils literal notranslate"><span class="pre">CrossReference</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L41">editor/src/lookup/kinds.ts:41</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L41">editor/src/lookup/kinds.ts:41</a></p>
 <p>The things it is the same as: filled by <code class="docutils literal notranslate"><span class="pre">resolve</span></code>, empty from <code class="docutils literal notranslate"><span class="pre">search</span></code>.</p>
 </section>
 <section id="description">
@@ -636,14 +637,14 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>description</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L37">editor/src/lookup/kinds.ts:37</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L37">editor/src/lookup/kinds.ts:37</a></p>
 </section>
 <section id="image">
 <h5>image<a class="headerlink" href="#image" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>image</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L39">editor/src/lookup/kinds.ts:39</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L39">editor/src/lookup/kinds.ts:39</a></p>
 <p>A thumbnail’s URL, for display only; never written to a manifest.</p>
 </section>
 <section id="iri">
@@ -651,7 +652,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>iri</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L35">editor/src/lookup/kinds.ts:35</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L35">editor/src/lookup/kinds.ts:35</a></p>
 <p>Its absolute IRI, as the system’s thing template writes it.</p>
 </section>
 <section id="label">
@@ -659,14 +660,14 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>label</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L36">editor/src/lookup/kinds.ts:36</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L36">editor/src/lookup/kinds.ts:36</a></p>
 </section>
 <section id="match">
 <h5>match<a class="headerlink" href="#match" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>match</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L45">editor/src/lookup/kinds.ts:45</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L45">editor/src/lookup/kinds.ts:45</a></p>
 <p>Whether a reconciliation service called it a match; false elsewhere.</p>
 </section>
 <section id="service">
@@ -674,7 +675,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>service</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L43">editor/src/lookup/kinds.ts:43</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L43">editor/src/lookup/kinds.ts:43</a></p>
 <p>The service that answered, as a provenance entry’s <code class="docutils literal notranslate"><span class="pre">service</span></code> names it.</p>
 </section>
 <section id="id5">
@@ -682,7 +683,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>system</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L33">editor/src/lookup/kinds.ts:33</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L33">editor/src/lookup/kinds.ts:33</a></p>
 <p>The catalogue system of the thing.</p>
 </section>
 </section>
@@ -690,7 +691,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <hr class="docutils" />
 <section id="crossreference">
 <h3>CrossReference<a class="headerlink" href="#crossreference" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L23">editor/src/lookup/kinds.ts:23</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L23">editor/src/lookup/kinds.ts:23</a></p>
 <p>A thing another system names that a looked-up thing is the same as.</p>
 <section id="id6">
 <h4>Properties<a class="headerlink" href="#id6" title="Link to this heading">#</a></h4>
@@ -699,7 +700,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>iri</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L27">editor/src/lookup/kinds.ts:27</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L27">editor/src/lookup/kinds.ts:27</a></p>
 <p>Its IRI, as that thing’s template writes it.</p>
 </section>
 <section id="id8">
@@ -707,7 +708,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>system</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L25">editor/src/lookup/kinds.ts:25</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L25">editor/src/lookup/kinds.ts:25</a></p>
 <p>The catalogue system holding the thing.</p>
 </section>
 </section>
@@ -715,7 +716,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <hr class="docutils" />
 <section id="lookupcontext">
 <h3>LookupContext<a class="headerlink" href="#lookupcontext" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L107">editor/src/lookup/kinds.ts:107</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L107">editor/src/lookup/kinds.ts:107</a></p>
 <p>What every service module reads: how to fetch, in which language, from which catalogue.</p>
 <section id="id9">
 <h4>Properties<a class="headerlink" href="#id9" title="Link to this heading">#</a></h4>
@@ -724,14 +725,14 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>catalogue</strong>: <code class="docutils literal notranslate"><span class="pre">Catalogue</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L110">editor/src/lookup/kinds.ts:110</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L110">editor/src/lookup/kinds.ts:110</a></p>
 </section>
 <section id="fetch">
 <h5>fetch<a class="headerlink" href="#fetch" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>fetch</strong>: {(<code class="docutils literal notranslate"><span class="pre">input</span></code>, <code class="docutils literal notranslate"><span class="pre">init?</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Response</span></code>&gt;; (<code class="docutils literal notranslate"><span class="pre">input</span></code>, <code class="docutils literal notranslate"><span class="pre">init?</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Response</span></code>&gt;; }</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L108">editor/src/lookup/kinds.ts:108</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L108">editor/src/lookup/kinds.ts:108</a></p>
 <section id="call-signature">
 <h6>Call Signature<a class="headerlink" href="#call-signature" title="Link to this heading">#</a></h6>
 <blockquote>
@@ -782,7 +783,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>language</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L109">editor/src/lookup/kinds.ts:109</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L109">editor/src/lookup/kinds.ts:109</a></p>
 </section>
 </section>
 </section>
@@ -794,7 +795,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><strong>LookupErrorCode</strong> = <code class="docutils literal notranslate"><span class="pre">&quot;unreachable&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;status&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;malformed&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L77">editor/src/lookup/kinds.ts:77</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L77">editor/src/lookup/kinds.ts:77</a></p>
 <p>Why a request failed (see <code class="docutils literal notranslate"><span class="pre">LookupError</span></code>).</p>
 </section>
 <hr class="docutils" />
@@ -803,7 +804,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><strong>ValueKind</strong> = <code class="docutils literal notranslate"><span class="pre">&quot;work&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;agent&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;recording&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;release&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;class&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;any&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L10">editor/src/lookup/kinds.ts:10</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L10">editor/src/lookup/kinds.ts:10</a></p>
 <p>What a value field asks for: the lookup narrows its search by it.</p>
 </section>
 </section>
@@ -814,7 +815,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>GND_FILTERS</strong>: <code class="docutils literal notranslate"><span class="pre">Readonly</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Partial</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Record</span></code>&lt;<a class="reference internal" href="#valuekind"><code class="docutils literal notranslate"><span class="pre">ValueKind</span></code></a>, <code class="docutils literal notranslate"><span class="pre">string</span></code>&gt;&gt;&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L63">editor/src/lookup/kinds.ts:63</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L63">editor/src/lookup/kinds.ts:63</a></p>
 <p>The type filter of a GND search per kind; a kind without one is not searched.</p>
 </section>
 <hr class="docutils" />
@@ -823,7 +824,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>MUSICBRAINZ_TYPES</strong>: <code class="docutils literal notranslate"><span class="pre">Readonly</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Partial</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Record</span></code>&lt;<a class="reference internal" href="#valuekind"><code class="docutils literal notranslate"><span class="pre">ValueKind</span></code></a>, <code class="docutils literal notranslate"><span class="pre">string</span></code>&gt;&gt;&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L69">editor/src/lookup/kinds.ts:69</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L69">editor/src/lookup/kinds.ts:69</a></p>
 <p>The MusicBrainz entity type searched per kind; a kind without one is not searched.</p>
 </section>
 <hr class="docutils" />
@@ -832,7 +833,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>VALUE_KINDS</strong>: readonly <a class="reference internal" href="#valuekind"><code class="docutils literal notranslate"><span class="pre">ValueKind</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L13">editor/src/lookup/kinds.ts:13</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L13">editor/src/lookup/kinds.ts:13</a></p>
 <p>Every value kind, in the order above.</p>
 </section>
 <hr class="docutils" />
@@ -841,7 +842,7 @@ completes a sentence naming the system (“Wikidata could not be searched:
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>WIKIDATA_FILTERS</strong>: <code class="docutils literal notranslate"><span class="pre">Readonly</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Record</span></code>&lt;<a class="reference internal" href="#valuekind"><code class="docutils literal notranslate"><span class="pre">ValueKind</span></code></a>, <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code>&gt;&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L53">editor/src/lookup/kinds.ts:53</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L53">editor/src/lookup/kinds.ts:53</a></p>
 <p>The statement filter of a Wikidata search per kind, <code class="docutils literal notranslate"><span class="pre">null</span></code> for none:
 works with a composer, humans, musical groups and orchestras, recordings
 with a performer, albums, and classes (items that are a subclass).</p>
@@ -854,7 +855,7 @@ with a performer, albums, and classes (items that are a subclass).</p>
 <blockquote>
 <div><p><strong>answerOf</strong>(<code class="docutils literal notranslate"><span class="pre">system</span></code>, <code class="docutils literal notranslate"><span class="pre">fetcher</span></code>, <code class="docutils literal notranslate"><span class="pre">url</span></code>, <code class="docutils literal notranslate"><span class="pre">init?</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">unknown</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L154">editor/src/lookup/kinds.ts:154</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L154">editor/src/lookup/kinds.ts:154</a></p>
 <p>Fetch <code class="docutils literal notranslate"><span class="pre">url</span></code> for <code class="docutils literal notranslate"><span class="pre">system</span></code> and answer its JSON body.</p>
 <p>A request aborted through <code class="docutils literal notranslate"><span class="pre">init.signal</span></code> rejects with the signal’s
 reason, never with a <code class="docutils literal notranslate"><span class="pre">LookupError</span></code>, so a caller tells a superseded
@@ -895,7 +896,7 @@ one; <code class="docutils literal notranslate"><span class="pre">malformed</spa
 <blockquote>
 <div><p><strong>isObject</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>): <code class="docutils literal notranslate"><span class="pre">value</span> <span class="pre">is</span> <span class="pre">object</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L114">editor/src/lookup/kinds.ts:114</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L114">editor/src/lookup/kinds.ts:114</a></p>
 <p>Whether <code class="docutils literal notranslate"><span class="pre">value</span></code> is a JSON object (not a list).</p>
 <section id="id21">
 <h4>Parameters<a class="headerlink" href="#id21" title="Link to this heading">#</a></h4>
@@ -915,7 +916,7 @@ one; <code class="docutils literal notranslate"><span class="pre">malformed</spa
 <blockquote>
 <div><p><strong>malformed</strong>(<code class="docutils literal notranslate"><span class="pre">system</span></code>, <code class="docutils literal notranslate"><span class="pre">what</span></code>): <a class="reference internal" href="#lookuperror"><code class="docutils literal notranslate"><span class="pre">LookupError</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L188">editor/src/lookup/kinds.ts:188</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L188">editor/src/lookup/kinds.ts:188</a></p>
 <p>The error of an answer that is not of the service’s form: “its answer is <what>”.</p>
 <section id="id23">
 <h4>Parameters<a class="headerlink" href="#id23" title="Link to this heading">#</a></h4>
@@ -939,7 +940,7 @@ one; <code class="docutils literal notranslate"><span class="pre">malformed</spa
 <blockquote>
 <div><p><strong>memberOf</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">key</span></code>): <code class="docutils literal notranslate"><span class="pre">unknown</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L119">editor/src/lookup/kinds.ts:119</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L119">editor/src/lookup/kinds.ts:119</a></p>
 <p>The member <code class="docutils literal notranslate"><span class="pre">key</span></code> of a JSON object, <code class="docutils literal notranslate"><span class="pre">undefined</span></code> for anything else.</p>
 <section id="id26">
 <h4>Parameters<a class="headerlink" href="#id26" title="Link to this heading">#</a></h4>
@@ -963,7 +964,7 @@ one; <code class="docutils literal notranslate"><span class="pre">malformed</spa
 <blockquote>
 <div><p><strong>textOf</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">key</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L124">editor/src/lookup/kinds.ts:124</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L124">editor/src/lookup/kinds.ts:124</a></p>
 <p>The member <code class="docutils literal notranslate"><span class="pre">key</span></code> of a JSON object if it is a string, else <code class="docutils literal notranslate"><span class="pre">undefined</span></code>.</p>
 <section id="id29">
 <h4>Parameters<a class="headerlink" href="#id29" title="Link to this heading">#</a></h4>
@@ -987,7 +988,7 @@ one; <code class="docutils literal notranslate"><span class="pre">malformed</spa
 <blockquote>
 <div><p><strong>urlWith</strong>(<code class="docutils literal notranslate"><span class="pre">base</span></code>, <code class="docutils literal notranslate"><span class="pre">parameters</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/lookup/kinds.ts#L193">editor/src/lookup/kinds.ts:193</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/lookup/kinds.ts#L193">editor/src/lookup/kinds.ts:193</a></p>
 <p>A URL with its query parameters in the order given.</p>
 <section id="id33">
 <h4>Parameters<a class="headerlink" href="#id33" title="Link to this heading">#</a></h4>

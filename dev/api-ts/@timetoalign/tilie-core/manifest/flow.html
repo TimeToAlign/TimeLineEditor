@@ -535,7 +535,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="elementbelief">
 <h3>ElementBelief<a class="headerlink" href="#elementbelief" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/core/src/manifest/flow.ts#L44">manifest/flow.ts:44</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/manifest/flow.ts#L59">manifest/flow.ts:59</a></p>
 <p>An actor’s belief to record: who, what, and the day (<code class="docutils literal notranslate"><span class="pre">YYYY-MM-DD</span></code>).</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -544,33 +544,52 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>actor</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/core/src/manifest/flow.ts#L45">manifest/flow.ts:45</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/manifest/flow.ts#L60">manifest/flow.ts:60</a></p>
 </section>
 <section id="belief">
 <h5>belief<a class="headerlink" href="#belief" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>belief</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;true&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;false&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;unlikely&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/core/src/manifest/flow.ts#L46">manifest/flow.ts:46</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/manifest/flow.ts#L61">manifest/flow.ts:61</a></p>
 </section>
 <section id="date">
 <h5>date<a class="headerlink" href="#date" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>date</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/core/src/manifest/flow.ts#L47">manifest/flow.ts:47</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/manifest/flow.ts#L62">manifest/flow.ts:62</a></p>
 </section>
 </section>
 </section>
 </section>
 <section id="type-aliases">
 <h2>Type Aliases<a class="headerlink" href="#type-aliases" title="Link to this heading">#</a></h2>
+<section id="destinationplace">
+<h3>DestinationPlace<a class="headerlink" href="#destinationplace" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>DestinationPlace</strong> = { <code class="docutils literal notranslate"><span class="pre">at</span></code>: <a class="reference internal" href="../number/coordinate.html#coordinate"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Coordinate</span></code></span></a>; <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;by&quot;</span></code>; } | { <code class="docutils literal notranslate"><span class="pre">at</span></code>: <a class="reference internal" href="../number/coordinate.html#coordinate"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Coordinate</span></code></span></a>; <code class="docutils literal notranslate"><span class="pre">element</span></code>: <a class="reference internal" href="types.html#flowcontrolelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">FlowControlElement</span></code></span></a>; <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;jump_target&quot;</span></code>; } | { <code class="docutils literal notranslate"><span class="pre">at</span></code>: <a class="reference internal" href="../number/coordinate.html#coordinate"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Coordinate</span></code></span></a>; <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;region&quot;</span></code>; <code class="docutils literal notranslate"><span class="pre">region</span></code>: <a class="reference internal" href="types.html#region"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Region</span></code></span></a>; } | { <code class="docutils literal notranslate"><span class="pre">at</span></code>: <a class="reference internal" href="../number/coordinate.html#coordinate"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Coordinate</span></code></span></a>; <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;timeline&quot;</span></code>; <code class="docutils literal notranslate"><span class="pre">timeline</span></code>: <a class="reference internal" href="types.html#timelinemanifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">TimelineManifest</span></code></span></a>; } | { <code class="docutils literal notranslate"><span class="pre">at</span></code>: <a class="reference internal" href="../number/coordinate.html#coordinate"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Coordinate</span></code></span></a>; <code class="docutils literal notranslate"><span class="pre">child</span></code>: <a class="reference internal" href="types.html#childtimeline"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ChildTimeline</span></code></span></a>; <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;child&quot;</span></code>; } | { <code class="docutils literal notranslate"><span class="pre">at</span></code>: <a class="reference internal" href="../number/coordinate.html#coordinate"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Coordinate</span></code></span></a>; <code class="docutils literal notranslate"><span class="pre">holder</span></code>: <a class="reference internal" href="types.html#timelinemanifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">TimelineManifest</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code>; <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;section&quot;</span></code>; <code class="docutils literal notranslate"><span class="pre">start</span></code>: <a class="reference internal" href="types.html#flowcontrolelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">FlowControlElement</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code>; } | { <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;nowhere&quot;</span></code>; <code class="docutils literal notranslate"><span class="pre">to</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; }</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/manifest/flow.ts#L177">manifest/flow.ts:177</a></p>
+<p>What the place of a destination of a jump names, on the own axis of the
+timeline listing the jump, with <code class="docutils literal notranslate"><span class="pre">at</span></code> the coordinate it reaches there:
+<code class="docutils literal notranslate"><span class="pre">by</span></code>, that distance from the jump’s coordinate; <code class="docutils literal notranslate"><span class="pre">to</span></code>, the jump target
+(rejected or not: a rejected target is still what the destination names),
+the region (its start), the timeline itself (0) or the child timeline (its
+offset) with that ID; neither, the start of the jump’s section
+(<code class="docutils literal notranslate"><span class="pre">sectionStart</span></code>): the nearest section break before the jump, not rejected,
+among those of the root’s whole tree, never before the start of the
+timeline listing the jump (<code class="docutils literal notranslate"><span class="pre">start</span></code>, held by <code class="docutils literal notranslate"><span class="pre">holder</span></code>), else that start, 0,
+with <code class="docutils literal notranslate"><span class="pre">start</span></code> and <code class="docutils literal notranslate"><span class="pre">holder</span></code> null. <code class="docutils literal notranslate"><span class="pre">nowhere</span></code> for a <code class="docutils literal notranslate"><span class="pre">to</span></code> naming none of these,
+which a valid manifest never holds.</p>
+</section>
+<hr class="docutils" />
 <section id="elementprovenance">
 <h3>ElementProvenance<a class="headerlink" href="#elementprovenance" title="Link to this heading">#</a></h3>
 <blockquote>
 <div><p><strong>ElementProvenance</strong> = <code class="docutils literal notranslate"><span class="pre">NonNullable</span></code>&lt;<a class="reference internal" href="types.html#flowcontrolelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">FlowControlElement</span></code></span></a>[<code class="docutils literal notranslate"><span class="pre">&quot;provenance&quot;</span></code>]&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/core/src/manifest/flow.ts#L24">manifest/flow.ts:24</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/manifest/flow.ts#L39">manifest/flow.ts:39</a></p>
 <p>The <code class="docutils literal notranslate"><span class="pre">provenance</span></code> of a flow-control element: its entries, each about the element itself.</p>
 </section>
 <hr class="docutils" />
@@ -579,7 +598,7 @@
 <blockquote>
 <div><p><strong>ElementProvenanceEntry</strong> = <a class="reference internal" href="#elementprovenance"><code class="docutils literal notranslate"><span class="pre">ElementProvenance</span></code></a>[<code class="docutils literal notranslate"><span class="pre">number</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/core/src/manifest/flow.ts#L27">manifest/flow.ts:27</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/manifest/flow.ts#L42">manifest/flow.ts:42</a></p>
 <p>One entry of a flow-control element’s <code class="docutils literal notranslate"><span class="pre">provenance</span></code>.</p>
 </section>
 <hr class="docutils" />
@@ -588,7 +607,7 @@
 <blockquote>
 <div><p><strong>FlowLineRole</strong> = <em>typeof</em> <a class="reference internal" href="#flow-line-roles"><code class="docutils literal notranslate"><span class="pre">FLOW_LINE_ROLES</span></code></a>[<code class="docutils literal notranslate"><span class="pre">number</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/core/src/manifest/flow.ts#L21">manifest/flow.ts:21</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/manifest/flow.ts#L36">manifest/flow.ts:36</a></p>
 <p>A role drawn as a vertical line.</p>
 </section>
 </section>
@@ -599,31 +618,110 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>FLOW_LINE_ROLES</strong>: readonly [<code class="docutils literal notranslate"><span class="pre">&quot;break&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;section_break&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;barline&quot;</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/core/src/manifest/flow.ts#L14">manifest/flow.ts:14</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/manifest/flow.ts#L29">manifest/flow.ts:29</a></p>
 <p>The roles drawn as a vertical line at the element’s coordinate, in no order of their own.</p>
 </section>
 </section>
 <section id="functions">
 <h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<section id="id1">
+<h3>destinationPlace()<a class="headerlink" href="#id1" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>destinationPlace</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">jump</span></code>, <code class="docutils literal notranslate"><span class="pre">destination</span></code>): <a class="reference internal" href="#destinationplace"><code class="docutils literal notranslate"><span class="pre">DestinationPlace</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/manifest/flow.ts#L260">manifest/flow.ts:260</a></p>
+<p>The place the destination <code class="docutils literal notranslate"><span class="pre">destination</span></code> of the jump <code class="docutils literal notranslate"><span class="pre">jump</span></code>, listed by
+<code class="docutils literal notranslate"><span class="pre">timeline</span></code> of <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, names (<code class="docutils literal notranslate"><span class="pre">DestinationPlace</span></code>).</p>
+<section id="parameters">
+<h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
+<section id="manifest">
+<h5>manifest<a class="headerlink" href="#manifest" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="tree.html#roots"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Roots</span></code></span></a></p>
+</section>
+<section id="timeline">
+<h5>timeline<a class="headerlink" href="#timeline" title="Link to this heading">#</a></h5>
+<p>{ }</p>
+</section>
+<section id="jump">
+<h5>jump<a class="headerlink" href="#jump" title="Link to this heading">#</a></h5>
+<p>{ }</p>
+</section>
+<section id="destination">
+<h5>destination<a class="headerlink" href="#destination" title="Link to this heading">#</a></h5>
+<p>{ }</p>
+</section>
+</section>
+<section id="returns">
+<h4>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#destinationplace"><code class="docutils literal notranslate"><span class="pre">DestinationPlace</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="flowsymbols">
+<h3>flowSymbols()<a class="headerlink" href="#flowsymbols" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>flowSymbols</strong>(<code class="docutils literal notranslate"><span class="pre">element</span></code>): readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/manifest/flow.ts#L126">manifest/flow.ts:126</a></p>
+<p>The symbols a flow-control element draws on the flow row (section 6.6,
+Symbols): a jump one per destination whose manifestation has one, in the
+order of its <code class="docutils literal notranslate"><span class="pre">targets</span></code>; a section break the final barline 𝄂; any other
+element the symbol of its manifestation, or none where it has no
+manifestation or one without a symbol.</p>
+<section id="id2">
+<h4>Parameters<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
+<section id="element">
+<h5>element<a class="headerlink" href="#element" title="Link to this heading">#</a></h5>
+<p>{ }</p>
+</section>
+</section>
+<section id="id3">
+<h4>Returns<a class="headerlink" href="#id3" title="Link to this heading">#</a></h4>
+<p>readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</section>
+</section>
+<hr class="docutils" />
 <section id="isrejected">
 <h3>isRejected()<a class="headerlink" href="#isrejected" title="Link to this heading">#</a></h3>
 <blockquote>
 <div><p><strong>isRejected</strong>(<code class="docutils literal notranslate"><span class="pre">element</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/core/src/manifest/flow.ts#L37">manifest/flow.ts:37</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/manifest/flow.ts#L52">manifest/flow.ts:52</a></p>
 <p>Whether a flow-control element is rejected, as TimeToShare reads it: an
 entry of its <code class="docutils literal notranslate"><span class="pre">provenance</span></code> holds a belief <code class="docutils literal notranslate"><span class="pre">false</span></code>, whoever holds it. A
 rejected element is left out of every flow and is drawn faded.</p>
-<section id="parameters">
-<h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
-<section id="element">
-<h5>element<a class="headerlink" href="#element" title="Link to this heading">#</a></h5>
+<section id="id4">
+<h4>Parameters<a class="headerlink" href="#id4" title="Link to this heading">#</a></h4>
+<section id="id5">
+<h5>element<a class="headerlink" href="#id5" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">Pick</span></code>&lt;<a class="reference internal" href="types.html#flowcontrolelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">FlowControlElement</span></code></span></a>, <code class="docutils literal notranslate"><span class="pre">&quot;provenance&quot;</span></code>&gt;</p>
 </section>
 </section>
-<section id="returns">
-<h4>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h4>
+<section id="id6">
+<h4>Returns<a class="headerlink" href="#id6" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="passestext">
+<h3>passesText()<a class="headerlink" href="#passestext" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>passesText</strong>(<code class="docutils literal notranslate"><span class="pre">passes</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/manifest/flow.ts#L155">manifest/flow.ts:155</a></p>
+<p>The text of a volta bracket (section 6.6, Volta brackets): its passes as
+printed, each number followed by a full stop and the numbers joined by a
+comma and a space (<code class="docutils literal notranslate"><span class="pre">1.</span></code>, <code class="docutils literal notranslate"><span class="pre">1.,</span> <span class="pre">3.</span></code>); <code class="docutils literal notranslate"><span class="pre">{from:</span> <span class="pre">n}</span></code> as <code class="docutils literal notranslate"><span class="pre">n.–</span></code>.</p>
+<section id="id7">
+<h4>Parameters<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>
+<section id="passes">
+<h5>passes<a class="headerlink" href="#passes" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">NonNullable</span></code>&lt;readonly <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>[] | { } | <code class="docutils literal notranslate"><span class="pre">undefined</span></code>&gt;</p>
+</section>
+</section>
+<section id="id8">
+<h4>Returns<a class="headerlink" href="#id8" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 </section>
 <hr class="docutils" />
@@ -632,7 +730,7 @@ rejected element is left out of every flow and is drawn faded.</p>
 <blockquote>
 <div><p><strong>withElementBelief</strong>(<code class="docutils literal notranslate"><span class="pre">provenance</span></code>, <code class="docutils literal notranslate"><span class="pre">context</span></code>, <code class="docutils literal notranslate"><span class="pre">__namedParameters</span></code>): readonly [{ }, { }]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/core/src/manifest/flow.ts#L59">manifest/flow.ts:59</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/manifest/flow.ts#L74">manifest/flow.ts:74</a></p>
 <p>The <code class="docutils literal notranslate"><span class="pre">provenance</span></code> of a flow-control element with <code class="docutils literal notranslate"><span class="pre">actor</span></code>’s belief recorded:
 every belief an entry holds of the actor (actors compared as the IRIs they
 stand for under <code class="docutils literal notranslate"><span class="pre">context</span></code>, the manifest’s <code class="docutils literal notranslate"><span class="pre">&#64;context</span></code>) is replaced in
@@ -640,8 +738,8 @@ place, its note dropped with it; where no entry holds one, the belief is
 appended to the first entry’s; an element without provenance gains one
 entry holding the belief alone. Every other entry and every other actor’s
 belief stays as it is.</p>
-<section id="id1">
-<h4>Parameters<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
+<section id="id9">
+<h4>Parameters<a class="headerlink" href="#id9" title="Link to this heading">#</a></h4>
 <section id="provenance">
 <h5>provenance<a class="headerlink" href="#provenance" title="Link to this heading">#</a></h5>
 <p>readonly [{ }, { }] | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
@@ -655,8 +753,8 @@ belief stays as it is.</p>
 <p><a class="reference internal" href="#elementbelief"><code class="docutils literal notranslate"><span class="pre">ElementBelief</span></code></a></p>
 </section>
 </section>
-<section id="id2">
-<h4>Returns<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
+<section id="id10">
+<h4>Returns<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
 <p>readonly [{ }, { }]</p>
 </section>
 </section>
@@ -723,6 +821,7 @@ belief stays as it is.</p>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#type-aliases">Type Aliases</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#destinationplace">DestinationPlace</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#elementprovenance">ElementProvenance</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#elementprovenanceentry">ElementProvenanceEntry</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowlinerole">FlowLineRole</a></li>
@@ -733,22 +832,49 @@ belief stays as it is.</p>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isrejected">isRejected()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">destinationPlace()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#element">element</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#manifest">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#timeline">timeline</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#jump">jump</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#destination">destination</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
 </ul>
 </li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowsymbols">flowSymbols()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#element">element</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isrejected">isRejected()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">element</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#passestext">passesText()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#passes">passes</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">Returns</a></li>
+</ul>
+</li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#withelementbelief">withElementBelief()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#provenance">provenance</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#context">context</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#namedparameters">__namedParameters</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Returns</a></li>
 </ul>
 </li>
 </ul>

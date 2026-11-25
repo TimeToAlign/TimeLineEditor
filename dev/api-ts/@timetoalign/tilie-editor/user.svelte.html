@@ -411,6 +411,7 @@
 <li class="toctree-l2"><a class="reference internal" href="fixtures.html">fixtures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/claimProvenance.html">inspector/claimProvenance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/codec.html">inspector/codec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="inspector/display.html">inspector/display</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/elisions.html">inspector/elisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/flow.html">inspector/flow</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/formats.svelte.html">inspector/formats.svelte</a></li>
@@ -536,7 +537,7 @@
 <h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
 <section id="userstate">
 <h3>UserState<a class="headerlink" href="#userstate" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/user.svelte.ts#L35">editor/src/user.svelte.ts:35</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/user.svelte.ts#L35">editor/src/user.svelte.ts:35</a></p>
 <p>The editor’s user as Svelte state, read from and remembered in storage under one key.</p>
 <section id="constructors">
 <h4>Constructors<a class="headerlink" href="#constructors" title="Link to this heading">#</a></h4>
@@ -545,7 +546,7 @@
 <blockquote>
 <div><p><strong>new UserState</strong>(<code class="docutils literal notranslate"><span class="pre">key</span></code>): <a class="reference internal" href="#userstate"><code class="docutils literal notranslate"><span class="pre">UserState</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/user.svelte.ts#L43">editor/src/user.svelte.ts:43</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/user.svelte.ts#L43">editor/src/user.svelte.ts:43</a></p>
 <p>The user stored under <code class="docutils literal notranslate"><span class="pre">key</span></code> (<code class="docutils literal notranslate"><span class="pre">null</span></code> stores nothing); the default user without one.</p>
 <section id="parameters">
 <h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
@@ -567,7 +568,7 @@
 <blockquote>
 <div><p><strong>name</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/user.svelte.ts#L37">editor/src/user.svelte.ts:37</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/user.svelte.ts#L37">editor/src/user.svelte.ts:37</a></p>
 <p>The user’s name: the journal’s author, and the words of what they state.</p>
 </section>
 <section id="orcid">
@@ -575,7 +576,7 @@
 <blockquote>
 <div><p><strong>orcid</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/user.svelte.ts#L39">editor/src/user.svelte.ts:39</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/user.svelte.ts#L39">editor/src/user.svelte.ts:39</a></p>
 <p>The user’s bare ORCID iD; <code class="docutils literal notranslate"><span class="pre">null</span></code> without one.</p>
 </section>
 </section>
@@ -588,7 +589,7 @@
 <blockquote>
 <div><p><strong>get</strong> <strong>statedBy</strong>(): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/user.svelte.ts#L56">editor/src/user.svelte.ts:56</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/user.svelte.ts#L56">editor/src/user.svelte.ts:56</a></p>
 <p>The IRI that states what the user states.</p>
 </section>
 <section id="id1">
@@ -603,7 +604,7 @@
 <blockquote>
 <div><p><strong>get</strong> <strong>user</strong>(): <a class="reference internal" href="../tilie-core/workspace/user.html#user"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">User</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/user.svelte.ts#L51">editor/src/user.svelte.ts:51</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/user.svelte.ts#L51">editor/src/user.svelte.ts:51</a></p>
 <p>The user: its name and ORCID iD.</p>
 </section>
 <section id="id3">
@@ -619,7 +620,7 @@
 <blockquote>
 <div><p><strong>set</strong>(<code class="docutils literal notranslate"><span class="pre">user</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/user.svelte.ts#L61">editor/src/user.svelte.ts:61</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/user.svelte.ts#L61">editor/src/user.svelte.ts:61</a></p>
 <p>Make <code class="docutils literal notranslate"><span class="pre">user</span></code> the user, remembered where storage allows.</p>
 <section id="id4">
 <h6>Parameters<a class="headerlink" href="#id4" title="Link to this heading">#</a></h6>
@@ -640,7 +641,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="usercontext">
 <h3>UserContext<a class="headerlink" href="#usercontext" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/user.svelte.ts#L74">editor/src/user.svelte.ts:74</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/user.svelte.ts#L74">editor/src/user.svelte.ts:74</a></p>
 <p>The user and the question that changes it, for every part of the editor.</p>
 <section id="id7">
 <h4>Properties<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>
@@ -649,7 +650,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>state</strong>: <a class="reference internal" href="#userstate"><code class="docutils literal notranslate"><span class="pre">UserState</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/user.svelte.ts#L75">editor/src/user.svelte.ts:75</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/user.svelte.ts#L75">editor/src/user.svelte.ts:75</a></p>
 </section>
 </section>
 <section id="id8">
@@ -659,7 +660,7 @@
 <blockquote>
 <div><p><strong>ask</strong>(): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">void</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/user.svelte.ts#L77">editor/src/user.svelte.ts:77</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/user.svelte.ts#L77">editor/src/user.svelte.ts:77</a></p>
 <p>Ask for the user’s name and iD (“Your name”); a saved answer becomes the user and the journal’s author.</p>
 <section id="id9">
 <h6>Returns<a class="headerlink" href="#id9" title="Link to this heading">#</a></h6>
@@ -676,7 +677,7 @@
 <blockquote>
 <div><p><strong>provideUser</strong>: (<code class="docutils literal notranslate"><span class="pre">context</span></code>) =&gt; <a class="reference internal" href="#usercontext"><code class="docutils literal notranslate"><span class="pre">UserContext</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/user.svelte.ts#L81">editor/src/user.svelte.ts:81</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/user.svelte.ts#L81">editor/src/user.svelte.ts:81</a></p>
 <section id="id10">
 <h4>Parameters<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
 <section id="context">
@@ -695,7 +696,7 @@
 <blockquote>
 <div><p><strong>userOf</strong>: () =&gt; <a class="reference internal" href="#usercontext"><code class="docutils literal notranslate"><span class="pre">UserContext</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/user.svelte.ts#L81">editor/src/user.svelte.ts:81</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/user.svelte.ts#L81">editor/src/user.svelte.ts:81</a></p>
 <section id="id12">
 <h4>Returns<a class="headerlink" href="#id12" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="#usercontext"><code class="docutils literal notranslate"><span class="pre">UserContext</span></code></a></p>

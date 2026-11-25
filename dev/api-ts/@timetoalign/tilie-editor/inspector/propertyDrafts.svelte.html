@@ -411,6 +411,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../fixtures.html">fixtures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="claimProvenance.html">inspector/claimProvenance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="codec.html">inspector/codec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="display.html">inspector/display</a></li>
 <li class="toctree-l2"><a class="reference internal" href="elisions.html">inspector/elisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="flow.html">inspector/flow</a></li>
 <li class="toctree-l2"><a class="reference internal" href="formats.svelte.html">inspector/formats.svelte</a></li>
@@ -536,7 +537,7 @@
 <h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
 <section id="propertydrafts">
 <h3>PropertyDrafts<a class="headerlink" href="#propertydrafts" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L120">editor/src/inspector/propertyDrafts.svelte.ts:120</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L120">editor/src/inspector/propertyDrafts.svelte.ts:120</a></p>
 <p>The Properties form’s drafts and refusals, and the open blocks of the Elisions tab.</p>
 <section id="constructors">
 <h4>Constructors<a class="headerlink" href="#constructors" title="Link to this heading">#</a></h4>
@@ -558,7 +559,7 @@
 <blockquote>
 <div><p><strong>commit</strong>(<code class="docutils literal notranslate"><span class="pre">geometry</span></code>, <code class="docutils literal notranslate"><span class="pre">property</span></code>, <code class="docutils literal notranslate"><span class="pre">store</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L180">editor/src/inspector/propertyDrafts.svelte.ts:180</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L180">editor/src/inspector/propertyDrafts.svelte.ts:180</a></p>
 <p>Commit the draft of <code class="docutils literal notranslate"><span class="pre">property</span></code> as one <code class="docutils literal notranslate"><span class="pre">set</span></code>: dropped once the store
 accepts it (a draft of the stored value dispatches nothing), kept with
 the refusal otherwise. Returns the notice of what it wrote, if any.</p>
@@ -587,7 +588,7 @@ the refusal otherwise. Returns the notice of what it wrote, if any.</p>
 <blockquote>
 <div><p><strong>commitElision</strong>(<code class="docutils literal notranslate"><span class="pre">owner</span></code>, <code class="docutils literal notranslate"><span class="pre">field</span></code>, <code class="docutils literal notranslate"><span class="pre">store</span></code>, <code class="docutils literal notranslate"><span class="pre">edit</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L315">editor/src/inspector/propertyDrafts.svelte.ts:315</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L315">editor/src/inspector/propertyDrafts.svelte.ts:315</a></p>
 <p>Commit the draft of an elision field as the one command <code class="docutils literal notranslate"><span class="pre">edit</span></code> makes of
 it: dropped once the store accepts it (a draft of the stored value
 dispatches nothing), kept with the refusal otherwise.</p>
@@ -620,7 +621,7 @@ dispatches nothing), kept with the refusal otherwise.</p>
 <blockquote>
 <div><p><strong>commitName</strong>(<code class="docutils literal notranslate"><span class="pre">field</span></code>, <code class="docutils literal notranslate"><span class="pre">store</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L255">editor/src/inspector/propertyDrafts.svelte.ts:255</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L255">editor/src/inspector/propertyDrafts.svelte.ts:255</a></p>
 <p>Commit the name’s draft as one <code class="docutils literal notranslate"><span class="pre">set</span></code>: dropped once the store accepts it
 (a draft of the stored name dispatches nothing), kept with the refusal
 otherwise.</p>
@@ -645,7 +646,7 @@ otherwise.</p>
 <blockquote>
 <div><p><strong>discard</strong>(<code class="docutils literal notranslate"><span class="pre">geometry</span></code>, <code class="docutils literal notranslate"><span class="pre">property</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L171">editor/src/inspector/propertyDrafts.svelte.ts:171</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L171">editor/src/inspector/propertyDrafts.svelte.ts:171</a></p>
 <p>Drop the draft of <code class="docutils literal notranslate"><span class="pre">property</span></code> and its refusal.</p>
 <section id="id9">
 <h6>Parameters<a class="headerlink" href="#id9" title="Link to this heading">#</a></h6>
@@ -668,7 +669,7 @@ otherwise.</p>
 <blockquote>
 <div><p><strong>discardElision</strong>(<code class="docutils literal notranslate"><span class="pre">owner</span></code>, <code class="docutils literal notranslate"><span class="pre">field</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L306">editor/src/inspector/propertyDrafts.svelte.ts:306</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L306">editor/src/inspector/propertyDrafts.svelte.ts:306</a></p>
 <p>Drop the draft of an elision field and its refusal.</p>
 <section id="id13">
 <h6>Parameters<a class="headerlink" href="#id13" title="Link to this heading">#</a></h6>
@@ -691,7 +692,7 @@ otherwise.</p>
 <blockquote>
 <div><p><strong>discardName</strong>(<code class="docutils literal notranslate"><span class="pre">field</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L246">editor/src/inspector/propertyDrafts.svelte.ts:246</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L246">editor/src/inspector/propertyDrafts.svelte.ts:246</a></p>
 <p>Drop the name’s draft and its refusal.</p>
 <section id="id17">
 <h6>Parameters<a class="headerlink" href="#id17" title="Link to this heading">#</a></h6>
@@ -710,7 +711,7 @@ otherwise.</p>
 <blockquote>
 <div><p><strong>elisionProblem</strong>(<code class="docutils literal notranslate"><span class="pre">owner</span></code>, <code class="docutils literal notranslate"><span class="pre">field</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L296">editor/src/inspector/propertyDrafts.svelte.ts:296</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L296">editor/src/inspector/propertyDrafts.svelte.ts:296</a></p>
 <p>Why the last commit of an elision field was refused; <code class="docutils literal notranslate"><span class="pre">undefined</span></code> while it was not.</p>
 <section id="id20">
 <h6>Parameters<a class="headerlink" href="#id20" title="Link to this heading">#</a></h6>
@@ -733,7 +734,7 @@ otherwise.</p>
 <blockquote>
 <div><p><strong>elisionValue</strong>(<code class="docutils literal notranslate"><span class="pre">owner</span></code>, <code class="docutils literal notranslate"><span class="pre">field</span></code>, <code class="docutils literal notranslate"><span class="pre">stored</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L291">editor/src/inspector/propertyDrafts.svelte.ts:291</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L291">editor/src/inspector/propertyDrafts.svelte.ts:291</a></p>
 <p>What an elision field shows: its draft, else <code class="docutils literal notranslate"><span class="pre">stored</span></code>, the text of the value it holds.</p>
 <section id="id24">
 <h6>Parameters<a class="headerlink" href="#id24" title="Link to this heading">#</a></h6>
@@ -760,7 +761,7 @@ otherwise.</p>
 <blockquote>
 <div><p><strong>nameProblem</strong>(<code class="docutils literal notranslate"><span class="pre">field</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L235">editor/src/inspector/propertyDrafts.svelte.ts:235</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L235">editor/src/inspector/propertyDrafts.svelte.ts:235</a></p>
 <p>Why the last commit of the name was refused; <code class="docutils literal notranslate"><span class="pre">undefined</span></code> while it was not.</p>
 <section id="id28">
 <h6>Parameters<a class="headerlink" href="#id28" title="Link to this heading">#</a></h6>
@@ -779,7 +780,7 @@ otherwise.</p>
 <blockquote>
 <div><p><strong>nameValue</strong>(<code class="docutils literal notranslate"><span class="pre">field</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L230">editor/src/inspector/propertyDrafts.svelte.ts:230</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L230">editor/src/inspector/propertyDrafts.svelte.ts:230</a></p>
 <p>What the name field shows: its draft, else the stored name (empty for none).</p>
 <section id="id31">
 <h6>Parameters<a class="headerlink" href="#id31" title="Link to this heading">#</a></h6>
@@ -798,7 +799,7 @@ otherwise.</p>
 <blockquote>
 <div><p><strong>open</strong>(<code class="docutils literal notranslate"><span class="pre">key</span></code>, <code class="docutils literal notranslate"><span class="pre">open</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L339">editor/src/inspector/propertyDrafts.svelte.ts:339</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L339">editor/src/inspector/propertyDrafts.svelte.ts:339</a></p>
 <p>Keep the block of <code class="docutils literal notranslate"><span class="pre">key</span></code> open or closed.</p>
 <section id="id34">
 <h6>Parameters<a class="headerlink" href="#id34" title="Link to this heading">#</a></h6>
@@ -821,7 +822,7 @@ otherwise.</p>
 <blockquote>
 <div><p><strong>opened</strong>(<code class="docutils literal notranslate"><span class="pre">key</span></code>, <code class="docutils literal notranslate"><span class="pre">byDefault</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L334">editor/src/inspector/propertyDrafts.svelte.ts:334</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L334">editor/src/inspector/propertyDrafts.svelte.ts:334</a></p>
 <p>Whether the Elisions tab’s block of <code class="docutils literal notranslate"><span class="pre">key</span></code> is open: as it was last shown or hidden, else <code class="docutils literal notranslate"><span class="pre">byDefault</span></code>.</p>
 <section id="id37">
 <h6>Parameters<a class="headerlink" href="#id37" title="Link to this heading">#</a></h6>
@@ -844,7 +845,7 @@ otherwise.</p>
 <blockquote>
 <div><p><strong>placeholder</strong>(<code class="docutils literal notranslate"><span class="pre">geometry</span></code>, <code class="docutils literal notranslate"><span class="pre">property</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L158">editor/src/inspector/propertyDrafts.svelte.ts:158</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L158">editor/src/inspector/propertyDrafts.svelte.ts:158</a></p>
 <p>A field’s placeholder: “mixed” while the containers differ, “auto” for the box’s own size.</p>
 <section id="id40">
 <h6>Parameters<a class="headerlink" href="#id40" title="Link to this heading">#</a></h6>
@@ -867,7 +868,7 @@ otherwise.</p>
 <blockquote>
 <div><p><strong>problem</strong>(<code class="docutils literal notranslate"><span class="pre">geometry</span></code>, <code class="docutils literal notranslate"><span class="pre">property</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L141">editor/src/inspector/propertyDrafts.svelte.ts:141</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L141">editor/src/inspector/propertyDrafts.svelte.ts:141</a></p>
 <p>Why the last commit of <code class="docutils literal notranslate"><span class="pre">property</span></code> was refused; <code class="docutils literal notranslate"><span class="pre">undefined</span></code> while it was not.</p>
 <section id="id44">
 <h6>Parameters<a class="headerlink" href="#id44" title="Link to this heading">#</a></h6>
@@ -890,7 +891,7 @@ otherwise.</p>
 <blockquote>
 <div><p><strong>step</strong>(<code class="docutils literal notranslate"><span class="pre">geometry</span></code>, <code class="docutils literal notranslate"><span class="pre">property</span></code>, <code class="docutils literal notranslate"><span class="pre">direction</span></code>, <code class="docutils literal notranslate"><span class="pre">store</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L198">editor/src/inspector/propertyDrafts.svelte.ts:198</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L198">editor/src/inspector/propertyDrafts.svelte.ts:198</a></p>
 <p>Commit one step of the property’s <code class="docutils literal notranslate"><span class="pre">STEPS</span></code> (<code class="docutils literal notranslate"><span class="pre">direction</span></code> ±1) at once:
 from the draft when there is one (an empty field counts as 0, a draft
 that is no number is not stepped), else each container from its own
@@ -925,7 +926,7 @@ notice of what it wrote, if any.</p>
 <blockquote>
 <div><p><strong>type</strong>(<code class="docutils literal notranslate"><span class="pre">geometry</span></code>, <code class="docutils literal notranslate"><span class="pre">property</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L166">editor/src/inspector/propertyDrafts.svelte.ts:166</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L166">editor/src/inspector/propertyDrafts.svelte.ts:166</a></p>
 <p>Keep <code class="docutils literal notranslate"><span class="pre">text</span></code> as the draft of <code class="docutils literal notranslate"><span class="pre">property</span></code>; its refusal stays until the next commit.</p>
 <section id="id53">
 <h6>Parameters<a class="headerlink" href="#id53" title="Link to this heading">#</a></h6>
@@ -952,7 +953,7 @@ notice of what it wrote, if any.</p>
 <blockquote>
 <div><p><strong>typeElision</strong>(<code class="docutils literal notranslate"><span class="pre">owner</span></code>, <code class="docutils literal notranslate"><span class="pre">field</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L301">editor/src/inspector/propertyDrafts.svelte.ts:301</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L301">editor/src/inspector/propertyDrafts.svelte.ts:301</a></p>
 <p>Keep <code class="docutils literal notranslate"><span class="pre">text</span></code> as the draft of an elision field; its refusal stays until the next commit.</p>
 <section id="id57">
 <h6>Parameters<a class="headerlink" href="#id57" title="Link to this heading">#</a></h6>
@@ -979,7 +980,7 @@ notice of what it wrote, if any.</p>
 <blockquote>
 <div><p><strong>typeName</strong>(<code class="docutils literal notranslate"><span class="pre">field</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L240">editor/src/inspector/propertyDrafts.svelte.ts:240</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L240">editor/src/inspector/propertyDrafts.svelte.ts:240</a></p>
 <p>Keep <code class="docutils literal notranslate"><span class="pre">text</span></code> as the name’s draft; its refusal stays until the next commit.</p>
 <section id="id62">
 <h6>Parameters<a class="headerlink" href="#id62" title="Link to this heading">#</a></h6>
@@ -1002,7 +1003,7 @@ notice of what it wrote, if any.</p>
 <blockquote>
 <div><p><strong>value</strong>(<code class="docutils literal notranslate"><span class="pre">geometry</span></code>, <code class="docutils literal notranslate"><span class="pre">property</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L150">editor/src/inspector/propertyDrafts.svelte.ts:150</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L150">editor/src/inspector/propertyDrafts.svelte.ts:150</a></p>
 <p>What a field shows: its draft, else the value every edited container
 shares (stated, else drawn, the live one during a gesture), rounded to
 two decimals; empty while the containers’ values differ.</p>
@@ -1029,7 +1030,7 @@ two decimals; empty while the containers’ values differ.</p>
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="elisionowner">
 <h3>ElisionOwner<a class="headerlink" href="#elisionowner" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L65">editor/src/inspector/propertyDrafts.svelte.ts:65</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L65">editor/src/inspector/propertyDrafts.svelte.ts:65</a></p>
 <p>What elision fields belong to: an address in the manifest they were typed against.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -1038,14 +1039,14 @@ two decimals; empty while the containers’ values differ.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>address</strong>: <a class="reference internal" href="../../tilie-core/workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L66">editor/src/inspector/propertyDrafts.svelte.ts:66</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L66">editor/src/inspector/propertyDrafts.svelte.ts:66</a></p>
 </section>
 <section id="manifest">
 <h5>manifest<a class="headerlink" href="#manifest" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>manifest</strong>: <a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L67">editor/src/inspector/propertyDrafts.svelte.ts:67</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L67">editor/src/inspector/propertyDrafts.svelte.ts:67</a></p>
 </section>
 </section>
 </section>
@@ -1057,7 +1058,7 @@ two decimals; empty while the containers’ values differ.</p>
 <blockquote>
 <div><p><strong>ElisionDraftField</strong> = <a class="reference internal" href="elisions.html#elisionfield"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElisionField</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">&quot;proportion&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L62">editor/src/inspector/propertyDrafts.svelte.ts:62</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/propertyDrafts.svelte.ts#L62">editor/src/inspector/propertyDrafts.svelte.ts:62</a></p>
 <p>A field of the elisions: a selected elision’s, or a root’s Proportion.</p>
 </section>
 </section>

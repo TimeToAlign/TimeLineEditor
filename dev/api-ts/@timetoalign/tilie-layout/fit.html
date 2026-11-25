@@ -512,7 +512,7 @@
 <h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
 <section id="rows">
 <h3>Rows<a class="headerlink" href="#rows" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/fit.ts#L89">layout/src/fit.ts:89</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L89">layout/src/fit.ts:89</a></p>
 <p>Numbered rows filled by first fit: each extent goes to the first row it conflicts with none of.</p>
 <section id="constructors">
 <h4>Constructors<a class="headerlink" href="#constructors" title="Link to this heading">#</a></h4>
@@ -536,7 +536,7 @@
 <blockquote>
 <div><p><strong>get</strong> <strong>count</strong>(): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/fit.ts#L111">layout/src/fit.ts:111</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L111">layout/src/fit.ts:111</a></p>
 <p>The number of rows.</p>
 </section>
 <section id="id1">
@@ -549,14 +549,14 @@
 <section id="id3">
 <h6>Get Signature<a class="headerlink" href="#id3" title="Link to this heading">#</a></h6>
 <blockquote>
-<div><p><strong>get</strong> <strong>rows</strong>(): readonly (readonly <a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a>[])[]</p>
+<div><p><strong>get</strong> <strong>rows</strong>(): readonly (readonly <a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a>[])[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/fit.ts#L93">layout/src/fit.ts:93</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L93">layout/src/fit.ts:93</a></p>
 <p>Each row’s extents, from row 1, each row’s in the order placed.</p>
 </section>
 <section id="id4">
 <h6>Returns<a class="headerlink" href="#id4" title="Link to this heading">#</a></h6>
-<p>readonly (readonly <a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a>[])[]</p>
+<p>readonly (readonly <a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a>[])[]</p>
 </section>
 </section>
 </section>
@@ -567,14 +567,14 @@
 <blockquote>
 <div><p><strong>place</strong>(<code class="docutils literal notranslate"><span class="pre">extent</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/fit.ts#L98">layout/src/fit.ts:98</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L98">layout/src/fit.ts:98</a></p>
 <p>Places <code class="docutils literal notranslate"><span class="pre">extent</span></code> in the first row it fits, adding a row when none does: that row’s number, from 1.</p>
 <section id="parameters">
 <h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
 </section>
 <section id="extent">
 <h6>extent<a class="headerlink" href="#extent" title="Link to this heading">#</a></h6>
-<p><a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a></p>
+<p><a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a></p>
 </section>
 <section id="id5">
 <h6>Returns<a class="headerlink" href="#id5" title="Link to this heading">#</a></h6>
@@ -584,14 +584,72 @@
 </section>
 </section>
 </section>
+<section id="interfaces">
+<h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
+<section id="tiered">
+<h3>Tiered<a class="headerlink" href="#tiered" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L146">layout/src/fit.ts:146</a></p>
+<p>What a tiered first fit gives (section 6.4, Regions).</p>
+<section id="properties">
+<h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
+<section id="row">
+<h5>row<a class="headerlink" href="#row" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>row</strong>: readonly <code class="docutils literal notranslate"><span class="pre">number</span></code>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L148">layout/src/fit.ts:148</a></p>
+<p>The row of each item, from 1.</p>
+</section>
+<section id="tier">
+<h5>tier<a class="headerlink" href="#tier" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>tier</strong>: readonly (<code class="docutils literal notranslate"><span class="pre">number</span></code> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code>)[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L150">layout/src/fit.ts:150</a></p>
+<p>The label tier of each item within its row, from 1; <code class="docutils literal notranslate"><span class="pre">undefined</span></code> for an item without a label.</p>
+</section>
+<section id="tiers">
+<h5>tiers<a class="headerlink" href="#tiers" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>tiers</strong>: readonly <code class="docutils literal notranslate"><span class="pre">number</span></code>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L152">layout/src/fit.ts:152</a></p>
+<p>The number <code class="docutils literal notranslate"><span class="pre">Tk</span></code> of label tiers of each row <code class="docutils literal notranslate"><span class="pre">k</span></code>, from row 1: at least 1, so every row keeps a label’s room.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="tiereditem">
+<h3>TieredItem<a class="headerlink" href="#tiereditem" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L140">layout/src/fit.ts:140</a></p>
+<p>An item a tiered first fit places: its own extent, and its drawn label’s when it has one.</p>
+<section id="id6">
+<h4>Properties<a class="headerlink" href="#id6" title="Link to this heading">#</a></h4>
+<section id="id7">
+<h5>extent<a class="headerlink" href="#id7" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>extent</strong>: <a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L141">layout/src/fit.ts:141</a></p>
+</section>
+<section id="label">
+<h5>label<a class="headerlink" href="#label" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>label</strong>: <a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L142">layout/src/fit.ts:142</a></p>
+</section>
+</section>
+</section>
+</section>
 <section id="type-aliases">
 <h2>Type Aliases<a class="headerlink" href="#type-aliases" title="Link to this heading">#</a></h2>
-<section id="id6">
-<h3>Extent<a class="headerlink" href="#id6" title="Link to this heading">#</a></h3>
+<section id="id8">
+<h3>Extent<a class="headerlink" href="#id8" title="Link to this heading">#</a></h3>
 <blockquote>
 <div><p><strong>Extent</strong> = readonly [<code class="docutils literal notranslate"><span class="pre">number</span></code>, <code class="docutils literal notranslate"><span class="pre">number</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/fit.ts#L9">layout/src/fit.ts:9</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L9">layout/src/fit.ts:9</a></p>
 <p>An extent <code class="docutils literal notranslate"><span class="pre">[a,</span> <span class="pre">b]</span></code> along the axis, from its start <code class="docutils literal notranslate"><span class="pre">a</span></code> to its end <code class="docutils literal notranslate"><span class="pre">b</span></code>.</p>
 </section>
 </section>
@@ -600,12 +658,12 @@
 <section id="labelextent">
 <h3>labelExtent()<a class="headerlink" href="#labelextent" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>labelExtent</strong>(<code class="docutils literal notranslate"><span class="pre">centre</span></code>, <code class="docutils literal notranslate"><span class="pre">width</span></code>): <a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a></p>
+<div><p><strong>labelExtent</strong>(<code class="docutils literal notranslate"><span class="pre">centre</span></code>, <code class="docutils literal notranslate"><span class="pre">width</span></code>): <a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/fit.ts#L117">layout/src/fit.ts:117</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L117">layout/src/fit.ts:117</a></p>
 <p>The extent <code class="docutils literal notranslate"><span class="pre">[L</span> <span class="pre">×</span> <span class="pre">u</span> <span class="pre">−</span> <span class="pre">wi</span> <span class="pre">/</span> <span class="pre">2</span> <span class="pre">−</span> <span class="pre">1,</span> <span class="pre">L</span> <span class="pre">×</span> <span class="pre">u</span> <span class="pre">+</span> <span class="pre">wi</span> <span class="pre">/</span> <span class="pre">2</span> <span class="pre">+</span> <span class="pre">1]</span></code> of a centred label (section 6.3).</p>
-<section id="id7">
-<h4>Parameters<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>
+<section id="id9">
+<h4>Parameters<a class="headerlink" href="#id9" title="Link to this heading">#</a></h4>
 <section id="centre">
 <h5>centre<a class="headerlink" href="#centre" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
@@ -615,9 +673,9 @@
 <p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </section>
 </section>
-<section id="id8">
-<h4>Returns<a class="headerlink" href="#id8" title="Link to this heading">#</a></h4>
-<p><a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a></p>
+<section id="id10">
+<h4>Returns<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a></p>
 </section>
 </section>
 <hr class="docutils" />
@@ -626,7 +684,7 @@
 <blockquote>
 <div><p><strong>labelTiers</strong>&lt;<code class="docutils literal notranslate"><span class="pre">T</span></code>&gt;(<code class="docutils literal notranslate"><span class="pre">labels</span></code>, <code class="docutils literal notranslate"><span class="pre">centre</span></code>, <code class="docutils literal notranslate"><span class="pre">rows</span></code>): <code class="docutils literal notranslate"><span class="pre">Map</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">T</span></code>, <code class="docutils literal notranslate"><span class="pre">number</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/fit.ts#L123">layout/src/fit.ts:123</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L123">layout/src/fit.ts:123</a></p>
 <p>First fit of centred labels, in order, into the tiers <code class="docutils literal notranslate"><span class="pre">rows</span></code>: the tier of each.</p>
 <section id="type-parameters">
 <h4>Type Parameters<a class="headerlink" href="#type-parameters" title="Link to this heading">#</a></h4>
@@ -635,48 +693,73 @@
 <p><code class="docutils literal notranslate"><span class="pre">T</span></code> <em>extends</em> <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
 </section>
 </section>
-<section id="id9">
-<h4>Parameters<a class="headerlink" href="#id9" title="Link to this heading">#</a></h4>
+<section id="id11">
+<h4>Parameters<a class="headerlink" href="#id11" title="Link to this heading">#</a></h4>
 <section id="labels">
 <h5>labels<a class="headerlink" href="#labels" title="Link to this heading">#</a></h5>
 <p>readonly <code class="docutils literal notranslate"><span class="pre">T</span></code>[]</p>
 </section>
-<section id="id10">
-<h5>centre<a class="headerlink" href="#id10" title="Link to this heading">#</a></h5>
+<section id="id12">
+<h5>centre<a class="headerlink" href="#id12" title="Link to this heading">#</a></h5>
 <p>(<code class="docutils literal notranslate"><span class="pre">label</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </section>
-<section id="id11">
-<h5>rows<a class="headerlink" href="#id11" title="Link to this heading">#</a></h5>
+<section id="id13">
+<h5>rows<a class="headerlink" href="#id13" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="#rows"><code class="docutils literal notranslate"><span class="pre">Rows</span></code></a></p>
 </section>
 </section>
-<section id="id12">
-<h4>Returns<a class="headerlink" href="#id12" title="Link to this heading">#</a></h4>
+<section id="id14">
+<h4>Returns<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">Map</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">T</span></code>, <code class="docutils literal notranslate"><span class="pre">number</span></code>&gt;</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="tieredfit">
+<h3>tieredFit()<a class="headerlink" href="#tieredfit" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>tieredFit</strong>(<code class="docutils literal notranslate"><span class="pre">items</span></code>): <a class="reference internal" href="#tiered"><code class="docutils literal notranslate"><span class="pre">Tiered</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L163">layout/src/fit.ts:163</a></p>
+<p>A tiered first fit (section 6.4, Regions): the items, in order, placed by
+their own extents alone into rows, so that a label never moves its item;
+and each item’s label, in the same order, by its label extent into the
+label tiers of its item’s row, each row filling its own tiers. A label
+that conflicts with one before it in its row’s first tier lies in a later
+tier, joined to its item by a leader line.</p>
+<section id="id15">
+<h4>Parameters<a class="headerlink" href="#id15" title="Link to this heading">#</a></h4>
+<section id="items">
+<h5>items<a class="headerlink" href="#items" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="#tiereditem"><code class="docutils literal notranslate"><span class="pre">TieredItem</span></code></a>[]</p>
+</section>
+</section>
+<section id="id16">
+<h4>Returns<a class="headerlink" href="#id16" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#tiered"><code class="docutils literal notranslate"><span class="pre">Tiered</span></code></a></p>
 </section>
 </section>
 <hr class="docutils" />
 <section id="widen">
 <h3>widen()<a class="headerlink" href="#widen" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>widen</strong>(<code class="docutils literal notranslate"><span class="pre">__namedParameters</span></code>, <code class="docutils literal notranslate"><span class="pre">__namedParameters</span></code>): <a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a></p>
+<div><p><strong>widen</strong>(<code class="docutils literal notranslate"><span class="pre">__namedParameters</span></code>, <code class="docutils literal notranslate"><span class="pre">__namedParameters</span></code>): <a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/layout/src/fit.ts#L134">layout/src/fit.ts:134</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/fit.ts#L134">layout/src/fit.ts:134</a></p>
 <p>The smallest extent covering both <code class="docutils literal notranslate"><span class="pre">[a1,</span> <span class="pre">b1]</span></code> and <code class="docutils literal notranslate"><span class="pre">[a2,</span> <span class="pre">b2]</span></code>.</p>
-<section id="id13">
-<h4>Parameters<a class="headerlink" href="#id13" title="Link to this heading">#</a></h4>
+<section id="id17">
+<h4>Parameters<a class="headerlink" href="#id17" title="Link to this heading">#</a></h4>
 <section id="namedparameters">
 <h5>__namedParameters<a class="headerlink" href="#namedparameters" title="Link to this heading">#</a></h5>
-<p><a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a></p>
+<p><a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a></p>
 </section>
-<section id="id14">
-<h5>__namedParameters<a class="headerlink" href="#id14" title="Link to this heading">#</a></h5>
-<p><a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a></p>
+<section id="id18">
+<h5>__namedParameters<a class="headerlink" href="#id18" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a></p>
 </section>
 </section>
-<section id="id15">
-<h4>Returns<a class="headerlink" href="#id15" title="Link to this heading">#</a></h4>
-<p><a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a></p>
+<section id="id19">
+<h4>Returns<a class="headerlink" href="#id19" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></a></p>
 </section>
 </section>
 </section>
@@ -764,18 +847,38 @@
 </li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tiered">Tiered</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#row">row</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#tier">tier</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#tiers">tiers</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tiereditem">TieredItem</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">extent</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#label">label</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#type-aliases">Type Aliases</a><ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Extent</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">Extent</a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#labelextent">labelExtent()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#centre">centre</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#width">width</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#labeltiers">labelTiers()</a><ul class="nav section-nav flex-column">
@@ -783,22 +886,30 @@
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#t">T</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#labels">labels</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">centre</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">rows</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">centre</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">rows</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tieredfit">tieredFit()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#items">items</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#widen">widen()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#namedparameters">__namedParameters</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">__namedParameters</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">__namedParameters</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">Returns</a></li>
 </ul>
 </li>
 </ul>

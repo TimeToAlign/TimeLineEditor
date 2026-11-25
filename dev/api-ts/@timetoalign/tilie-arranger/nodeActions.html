@@ -418,6 +418,7 @@
 <li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowOverlay.html">flowOverlay</a></li>
 <li class="toctree-l2"><a class="reference internal" href="focus.html">focus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gaps.html">gaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gesture.html">gesture</a></li>
@@ -523,7 +524,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="id1">
 <h3>NodeActions<a class="headerlink" href="#id1" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L21">arranger/src/nodeActions.ts:21</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L21">arranger/src/nodeActions.ts:21</a></p>
 <p>The canvas’s side of an edit made inside a block node or with a resize handle.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -532,7 +533,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>gestures</strong>: <a class="reference internal" href="gesture.html#gestureslot"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">GestureSlot</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L72">arranger/src/nodeActions.ts:72</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L72">arranger/src/nodeActions.ts:72</a></p>
 <p>The gesture in progress on this canvas, which Escape ends.</p>
 </section>
 <section id="metrics">
@@ -540,7 +541,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>metrics</strong>: <code class="docutils literal notranslate"><span class="pre">FontMetrics</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L34">arranger/src/nodeActions.ts:34</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L34">arranger/src/nodeActions.ts:34</a></p>
 <p>The font metrics the canvas lays blocks out with.</p>
 </section>
 </section>
@@ -551,7 +552,7 @@
 <blockquote>
 <div><p><strong>coordinates</strong>(): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L57">arranger/src/nodeActions.ts:57</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L57">arranger/src/nodeActions.ts:57</a></p>
 <p>Whether “Show coordinates” is on: every part of a named timestamp (its
 wedge, its labels, its line, the canvas’s wedge for one that draws
 nothing) then lets the pointer through, so the coordinate gesture gets
@@ -566,7 +567,7 @@ it.</p>
 <blockquote>
 <div><p><strong>dispatch</strong>(<code class="docutils literal notranslate"><span class="pre">command</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L23">arranger/src/nodeActions.ts:23</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L23">arranger/src/nodeActions.ts:23</a></p>
 <p>Runs a command; the canvas reports a refusal to its host (<code class="docutils literal notranslate"><span class="pre">onrefuse</span></code>).</p>
 <section id="parameters">
 <h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
@@ -585,7 +586,7 @@ it.</p>
 <blockquote>
 <div><p><strong>matches</strong>(): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L63">arranger/src/nodeActions.ts:63</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L63">arranger/src/nodeActions.ts:63</a></p>
 <p>Whether “Show matches” is on: every part of a named MatchStamp (an
 alignment anchor’s line and label) and of a match timestamp then lets
 the pointer through, so the canvas reads the potential MatchStamps there.</p>
@@ -599,7 +600,7 @@ the pointer through, so the canvas reads the potential MatchStamps there.</p>
 <blockquote>
 <div><p><strong>matchPaint</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>): <a class="reference internal" href="matches.html#matchpaint"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MatchPaint</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L70">arranger/src/nodeActions.ts:70</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L70">arranger/src/nodeActions.ts:70</a></p>
 <p>How block <code class="docutils literal notranslate"><span class="pre">block</span></code>’s named MatchStamps are painted over their style while
 a MatchClaim table is loaded for it (<code class="docutils literal notranslate"><span class="pre">namedPaint</span></code>): each anchor’s line by
 the belief in the MatchClaims stating it, one out of date all red;
@@ -621,7 +622,7 @@ nothing without a table.</p>
 <blockquote>
 <div><p><strong>pane</strong>(): <a class="reference internal" href="pane.html#panesource"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PaneSource</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L36">arranger/src/nodeActions.ts:36</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L36">arranger/src/nodeActions.ts:36</a></p>
 <p>The pane the canvas’s drawings are fitted to (<code class="docutils literal notranslate"><span class="pre">Pane.view</span></code>); <code class="docutils literal notranslate"><span class="pre">undefined</span></code> before it is measured.</p>
 <section id="id6">
 <h6>Returns<a class="headerlink" href="#id6" title="Link to this heading">#</a></h6>
@@ -633,7 +634,7 @@ nothing without a table.</p>
 <blockquote>
 <div><p><strong>preview</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">preview</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L32">arranger/src/nodeActions.ts:32</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L32">arranger/src/nodeActions.ts:32</a></p>
 <p>Draws the block with the preview, or as it is stored when the preview is null.</p>
 <section id="id7">
 <h6>Parameters<a class="headerlink" href="#id7" title="Link to this heading">#</a></h6>
@@ -656,7 +657,7 @@ nothing without a table.</p>
 <blockquote>
 <div><p><strong>previewing</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L50">arranger/src/nodeActions.ts:50</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L50">arranger/src/nodeActions.ts:50</a></p>
 <p>Whether block <code class="docutils literal notranslate"><span class="pre">block</span></code> is drawn at a preview: a gesture’s or a transient
 command’s. Its drawing then follows the pointer or the control, so no
 change of it moves by itself (decision record 0034).</p>
@@ -677,7 +678,7 @@ change of it moves by itself (decision record 0034).</p>
 <blockquote>
 <div><p><strong>reducedMotion</strong>(): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L44">arranger/src/nodeActions.ts:44</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L44">arranger/src/nodeActions.ts:44</a></p>
 <p>Whether the reader prefers reduced motion, under which nothing in a drawing slides.</p>
 <section id="id14">
 <h6>Returns<a class="headerlink" href="#id14" title="Link to this heading">#</a></h6>
@@ -689,7 +690,7 @@ change of it moves by itself (decision record 0034).</p>
 <blockquote>
 <div><p><strong>refuse</strong>(<code class="docutils literal notranslate"><span class="pre">message</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L28">arranger/src/nodeActions.ts:28</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L28">arranger/src/nodeActions.ts:28</a></p>
 <p>Reports to the canvas’s host (<code class="docutils literal notranslate"><span class="pre">onrefuse</span></code>) why a gesture stored nothing,
 where no command was refused: a drop the arrangement’s rules refuse.</p>
 <section id="id15">
@@ -709,7 +710,7 @@ where no command was refused: a drop the arrangement’s rules refuse.</p>
 <blockquote>
 <div><p><strong>rules</strong>(): <a class="reference internal" href="containers.html#levelrules"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LevelRules</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L42">arranger/src/nodeActions.ts:42</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L42">arranger/src/nodeActions.ts:42</a></p>
 <p>What the canvas allows now, the lock and the read-only mode applied (<code class="docutils literal notranslate"><span class="pre">rulesOf</span></code>).</p>
 <section id="id17">
 <h6>Returns<a class="headerlink" href="#id17" title="Link to this heading">#</a></h6>
@@ -721,7 +722,7 @@ where no command was refused: a drop the arrangement’s rules refuse.</p>
 <blockquote>
 <div><p><strong>select</strong>(<code class="docutils literal notranslate"><span class="pre">address</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L30">arranger/src/nodeActions.ts:30</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L30">arranger/src/nodeActions.ts:30</a></p>
 <p>Selects one address, replacing the selection: the press that starts a gesture.</p>
 <section id="id18">
 <h6>Parameters<a class="headerlink" href="#id18" title="Link to this heading">#</a></h6>
@@ -740,7 +741,7 @@ where no command was refused: a drop the arrangement’s rules refuse.</p>
 <blockquote>
 <div><p><strong>view</strong>(): <a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L38">arranger/src/nodeActions.ts:38</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L38">arranger/src/nodeActions.ts:38</a></p>
 <p>The workspace view the canvas currently shows as stored.</p>
 <section id="id20">
 <h6>Returns<a class="headerlink" href="#id20" title="Link to this heading">#</a></h6>
@@ -752,7 +753,7 @@ where no command was refused: a drop the arrangement’s rules refuse.</p>
 <blockquote>
 <div><p><strong>zoom</strong>(): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L40">arranger/src/nodeActions.ts:40</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L40">arranger/src/nodeActions.ts:40</a></p>
 <p>The canvas zoom: screen pixels per canvas unit.</p>
 <section id="id21">
 <h6>Returns<a class="headerlink" href="#id21" title="Link to this heading">#</a></h6>
@@ -764,7 +765,7 @@ where no command was refused: a drop the arrangement’s rules refuse.</p>
 <hr class="docutils" />
 <section id="nodepreview">
 <h3>NodePreview<a class="headerlink" href="#nodepreview" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L16">arranger/src/nodeActions.ts:16</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L16">arranger/src/nodeActions.ts:16</a></p>
 <p>What a block is drawn with while a gesture is under way, before anything
 is stored: the view the gesture’s command gives (core’s <code class="docutils literal notranslate"><span class="pre">preview</span></code>), whose
 block of the same id is drawn in place of the stored one.</p>
@@ -775,7 +776,7 @@ block of the same id is drawn in place of the stored one.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>view</strong>: <a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L17">arranger/src/nodeActions.ts:17</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L17">arranger/src/nodeActions.ts:17</a></p>
 </section>
 </section>
 </section>
@@ -787,7 +788,7 @@ block of the same id is drawn in place of the stored one.</p>
 <blockquote>
 <div><p><strong>getNodeActions</strong>: () =&gt; <a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">NodeActions</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L79">arranger/src/nodeActions.ts:79</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L79">arranger/src/nodeActions.ts:79</a></p>
 <section id="id24">
 <h4>Returns<a class="headerlink" href="#id24" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">NodeActions</span></code></a></p>
@@ -799,7 +800,7 @@ block of the same id is drawn in place of the stored one.</p>
 <blockquote>
 <div><p><strong>setNodeActions</strong>: (<code class="docutils literal notranslate"><span class="pre">context</span></code>) =&gt; <a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">NodeActions</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/nodeActions.ts#L79">arranger/src/nodeActions.ts:79</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/nodeActions.ts#L79">arranger/src/nodeActions.ts:79</a></p>
 <section id="id25">
 <h4>Parameters<a class="headerlink" href="#id25" title="Link to this heading">#</a></h4>
 <section id="context">

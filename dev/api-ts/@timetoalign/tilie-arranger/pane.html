@@ -418,6 +418,7 @@
 <li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowOverlay.html">flowOverlay</a></li>
 <li class="toctree-l2"><a class="reference internal" href="focus.html">focus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gaps.html">gaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gesture.html">gesture</a></li>
@@ -523,7 +524,7 @@
 <h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
 <section id="id1">
 <h3>Pane<a class="headerlink" href="#id1" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/pane.ts#L33">arranger/src/pane.ts:33</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/pane.ts#L33">arranger/src/pane.ts:33</a></p>
 <p>A canvas’s pane (<code class="docutils literal notranslate"><span class="pre">PaneSource</span></code>), settled from the sizes the canvas measures.</p>
 <section id="implements">
 <h4>Implements<a class="headerlink" href="#implements" title="Link to this heading">#</a></h4>
@@ -551,16 +552,16 @@
 <section id="get-signature">
 <h6>Get Signature<a class="headerlink" href="#get-signature" title="Link to this heading">#</a></h6>
 <blockquote>
-<div><p><strong>get</strong> <strong>view</strong>(): <a class="reference internal" href="../tilie-layout/elements.html#id115"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+<div><p><strong>get</strong> <strong>view</strong>(): <a class="reference internal" href="../tilie-layout/elements.html#id148"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/pane.ts#L48">arranger/src/pane.ts:48</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/pane.ts#L48">arranger/src/pane.ts:48</a></p>
 <p>The size drawings are fitted to now; <code class="docutils literal notranslate"><span class="pre">undefined</span></code> before one settles.
 Read in a reaction (a <code class="docutils literal notranslate"><span class="pre">$derived</span></code>, a template), it is read again when
 the pane settles; read anywhere else, it is a plain value.</p>
 </section>
 <section id="id2">
 <h6>Returns<a class="headerlink" href="#id2" title="Link to this heading">#</a></h6>
-<p><a class="reference internal" href="../tilie-layout/elements.html#id115"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+<p><a class="reference internal" href="../tilie-layout/elements.html#id148"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 <p>The size drawings are fitted to; <code class="docutils literal notranslate"><span class="pre">undefined</span></code> for layout’s default view.</p>
 </section>
 <section id="implementation-of">
@@ -576,7 +577,7 @@ the pane settles; read anywhere else, it is a plain value.</p>
 <blockquote>
 <div><p><strong>measure</strong>(<code class="docutils literal notranslate"><span class="pre">width</span></code>, <code class="docutils literal notranslate"><span class="pre">height</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/pane.ts#L60">arranger/src/pane.ts:60</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/pane.ts#L60">arranger/src/pane.ts:60</a></p>
 <p>The canvas measures <code class="docutils literal notranslate"><span class="pre">width</span></code> × <code class="docutils literal notranslate"><span class="pre">height</span></code> screen pixels: the first size
 settles at once, a later one <code class="docutils literal notranslate"><span class="pre">PANE_SETTLE</span></code> milliseconds after the last
 size measured, a size equal to the settled one only cancels a pending
@@ -603,7 +604,7 @@ yet, a collapsed one) is skipped.</p>
 <blockquote>
 <div><p><strong>release</strong>(): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/pane.ts#L77">arranger/src/pane.ts:77</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/pane.ts#L77">arranger/src/pane.ts:77</a></p>
 <p>The canvas is gone: a pending size is dropped and the pane withdrawn.</p>
 <section id="id4">
 <h6>Returns<a class="headerlink" href="#id4" title="Link to this heading">#</a></h6>
@@ -617,7 +618,7 @@ yet, a collapsed one) is skipped.</p>
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="panesource">
 <h3>PaneSource<a class="headerlink" href="#panesource" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/pane.ts#L27">arranger/src/pane.ts:27</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/pane.ts#L27">arranger/src/pane.ts:27</a></p>
 <p>Where a drawing reads its pane: read only for a manifest drawing an
 ancestor card, so a reaction drawing any other manifest never waits on it.</p>
 <section id="properties">
@@ -625,9 +626,9 @@ ancestor card, so a reaction drawing any other manifest never waits on it.</p>
 <section id="id5">
 <h5>view<a class="headerlink" href="#id5" title="Link to this heading">#</a></h5>
 <blockquote>
-<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>view</strong>: <a class="reference internal" href="../tilie-layout/elements.html#id115"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>view</strong>: <a class="reference internal" href="../tilie-layout/elements.html#id148"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/pane.ts#L29">arranger/src/pane.ts:29</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/pane.ts#L29">arranger/src/pane.ts:29</a></p>
 <p>The size drawings are fitted to; <code class="docutils literal notranslate"><span class="pre">undefined</span></code> for layout’s default view.</p>
 </section>
 </section>
@@ -640,7 +641,7 @@ ancestor card, so a reaction drawing any other manifest never waits on it.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>PANE_SETTLE</strong>: <code class="docutils literal notranslate"><span class="pre">150</span></code> = <code class="docutils literal notranslate"><span class="pre">150</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/54baf559e912ff10fac74037ae7cff3a9058d6a8/app/packages/arranger/src/pane.ts#L21">arranger/src/pane.ts:21</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/arranger/src/pane.ts#L21">arranger/src/pane.ts:21</a></p>
 <p>How long, in milliseconds, a pane waits after the last size measured before it settles.</p>
 </section>
 </section>
