@@ -1,6 +1,6 @@
 /** A block's drawing, memoized by the identity of its inputs and by its placement, and where its node lies. */
 
-import type { Block } from "@timetoalign/tilie-core";
+import type { Block, FlowReading } from "@timetoalign/tilie-core";
 import { containersOf } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox, View } from "@timetoalign/tilie-layout";
 import { DEFAULT_LAYER, draw, manifestLayer } from "@timetoalign/tilie-layout";
@@ -15,6 +15,8 @@ interface Memo {
   readonly metrics: FontMetrics;
   /** The pane it was drawn for; `undefined` for layout's default view. */
   readonly view: View | undefined;
+  /** The reading it was drawn with, as `readingKey` writes it. */
+  readonly reading: string;
   readonly drawing: Drawing;
 }
 
@@ -32,10 +34,14 @@ type Placement = Pick<
   "length" | "spacing" | "margin" | "width" | "height" | "places" | "arrangement"
 >;
 
-/** The one string form of a placement's values and the pane, `-0` told apart from `0`. */
+/** The one string form of a reading of flow control, `null` for none. */
+const readingKey = (reading: FlowReading | null): string => JSON.stringify(reading);
+
+/** The one string form of a placement's values, the pane and the reading, `-0` told apart from `0`. */
 function placementKey(
   { length, spacing, margin, width, height, places, arrangement }: Placement,
   view: View | undefined,
+  reading: string,
 ): string {
   return JSON.stringify(
     [
@@ -48,6 +54,7 @@ function placementKey(
       arrangement ?? null,
       view?.width,
       view?.height,
+      reading,
     ],
     (_key, value) => (Object.is(value, -0) ? "-0" : value),
   );
@@ -68,9 +75,11 @@ export function styleLayers(
  * pane `pane` of the canvas showing it (its `view`, the placement's `view`;
  * layout's default view without one) where the manifest draws an ancestor
  * card, whose automatic proportion alone reads it (and only then is the
- * pane read, so a reaction drawing any other manifest never follows it). Blocks are
+ * pane read, so a reaction drawing any other manifest never follows it), and
+ * with the pane's reading of flow control for the block (`readingOf`; none
+ * without one), which fades what it does not read. Blocks are
  * immutable, so the drawing is memoized per block and redrawn only when the
- * workspace's `graphical`, the metrics or the pane change.
+ * workspace's `graphical`, the metrics, the pane or the reading change.
  * `overrides` replace members of the block's placement (a resize measuring
  * the content at another length or with no size request). Every drawing is
  * also kept by its manifest and its placement's values, the `RECENT` last
@@ -88,13 +97,16 @@ export function drawingOf(
   // Only an ancestor card's default proportion reads the pane (section 8.9): a manifest drawing
   // none is drawn once, whatever the pane.
   const view = containersOf(manifest).ancestorCards.length === 0 ? undefined : pane?.view;
+  const reading = pane?.readingOf?.(block) ?? null;
+  const read = readingKey(reading);
   if (overrides === undefined) {
     const memo = drawings.get(block);
     if (
       memo !== undefined &&
       memo.graphical === graphical &&
       memo.metrics === metrics &&
-      memo.view === view
+      memo.view === view &&
+      memo.reading === read
     ) {
       return memo.drawing;
     }
@@ -105,7 +117,7 @@ export function drawingOf(
     recent = new Map();
     placed.set(placement.manifest, recent);
   }
-  const key = placementKey(placement, view);
+  const key = placementKey(placement, view, read);
   let memo = recent.get(key);
   recent.delete(key);
   if (memo === undefined || memo.graphical !== graphical || memo.metrics !== metrics) {
@@ -123,8 +135,9 @@ export function drawingOf(
       },
       styleLayers(graphical, placement.manifest),
       metrics,
+      reading,
     );
-    memo = { graphical, metrics, view, drawing };
+    memo = { graphical, metrics, view, reading: read, drawing };
   }
   recent.set(key, memo);
   for (const oldest of recent.keys()) {

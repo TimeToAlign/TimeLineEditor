@@ -11,6 +11,7 @@ import {
   type ConversionMap,
   type ElementAddress,
   type Facet,
+  type FlowReading,
   idAddress,
   type Manifest,
   type OwnerAddress,
@@ -118,6 +119,8 @@ export interface Context {
   readonly placement: Placement;
   readonly cascade: Cascade;
   readonly measure: TextMeasure;
+  /** The reading in force of flow control (section 1): what it does not read is faded; `null` for none. */
+  readonly reading: FlowReading | null;
 }
 
 /** One timeline drawn as a root, traversed, with the measures of its axis and its texts. */
@@ -343,7 +346,7 @@ export function traverse(
   V: number,
   frame: GroupFrame | null,
 ): Scope {
-  const { manifest, placement, cascade, measure } = context;
+  const { manifest, placement, cascade, measure, reading } = context;
   const root = member.timeline;
   const L = placement.length;
   const h = (size: number) => measure.lineHeight(size);
@@ -493,6 +496,7 @@ export function traverse(
     placement,
     cascade,
     measure,
+    reading,
     member,
     frame,
     root,

@@ -7,13 +7,16 @@
  * and every drawing read for what it shows (its gestures, keys and the
  * inspector beside it), is drawn at that canvas's pane. Until the canvas is
  * measured (and in a test without one) no pane is given, and a drawing
- * takes layout's default view.
+ * takes layout's default view. The pane also carries the host's reading of
+ * flow control for each block (`readingOf`), with which every drawing of
+ * that block fades what the reading does not read.
  *
  * The first size measured settles at once; every later size settles
  * `PANE_SETTLE` milliseconds after the last one measured, so dragging the
  * window or the drawer redraws once, when it stops.
  */
 
+import type { Block, FlowReading } from "@timetoalign/tilie-core";
 import type { View } from "@timetoalign/tilie-layout";
 import { createSubscriber } from "svelte/reactivity";
 
@@ -27,10 +30,18 @@ export const PANE_SETTLE = 150;
 export interface PaneSource {
   /** The size drawings are fitted to; `undefined` for layout's default view. */
   readonly view: View | undefined;
+  /**
+   * The reading in force of flow control for `block`'s drawing, which fades
+   * what it does not read (`docs/drawing.md` in TimeToShare, section 1);
+   * none (`null`, or no such member) fades what some actor believes `false`.
+   */
+  readingOf?(block: Block): FlowReading | null;
 }
 
 /** A canvas's pane (`PaneSource`), settled from the sizes the canvas measures. */
 export class Pane implements PaneSource {
+  /** The reading of flow control the host gives each block's drawing; none without one. */
+  readonly readingOf: (block: Block) => FlowReading | null;
   #settled: View | undefined = undefined;
   #timer: ReturnType<typeof setTimeout> | undefined = undefined;
   /** The reactions reading the pane, told when it changes. */
@@ -39,6 +50,10 @@ export class Pane implements PaneSource {
     this.#readers.add(update);
     return () => this.#readers.delete(update);
   });
+
+  constructor(readingOf: (block: Block) => FlowReading | null = () => null) {
+    this.readingOf = readingOf;
+  }
 
   /**
    * The size drawings are fitted to now; `undefined` before one settles.

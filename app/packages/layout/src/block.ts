@@ -1,5 +1,5 @@
 /**
- * `draw(manifest, placement, layers, metrics)`: the drawing of one
+ * `draw(manifest, placement, layers, metrics, reading)`: the drawing of one
  * TimeToShare manifest (`docs/drawing.md` in TimeToShare). Every manifest
  * is drawn as one block (section 8): each timeline drawn as a root lies in its
  * own card and is laid out by sections 3 to 6, and each item of the block, a
@@ -8,6 +8,7 @@
  */
 
 import {
+  type FlowReading,
   indexOf,
   isNamed,
   type Manifest,
@@ -68,16 +69,21 @@ import type { Context, Holder } from "./traversal.ts";
  * is: the drawing follows the order of its arrays and never copies it. Its
  * timelines' ancestry and its containers are read from core's index of the
  * manifest, memoised by identity, so drawing one manifest again reuses them.
+ *
+ * `reading` is the reading in force of flow control (section 1): a
+ * flow-control element it does not read is faded (section 6.4); `null`, the
+ * default, fades those some actor believes `false`. It fades and nothing more.
  */
 export function draw(
   manifest: Manifest,
   placement: Placement,
   layers: readonly (Graphical | undefined)[],
   metrics: FontMetrics,
+  reading: FlowReading | null = null,
 ): Drawing {
   const measure = new TextMeasure(metrics);
   const cascade = new Cascade(layers, indexOf(manifest).ancestry);
-  const context: Context = { manifest, placement, cascade, measure };
+  const context: Context = { manifest, placement, cascade, measure, reading };
   const block: Holder = { key: BLOCK_KEY, style: cascade.resolve(BLOCK_KEY, undefined) };
 
   // The manifest's title: its name, else its id; a manifest with neither has none. `Pt` (section

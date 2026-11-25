@@ -482,6 +482,23 @@ describe("the test hook", () => {
     expect(last !== undefined && isSessionEntry(last)).toBe(true);
   });
 
+  it("draws flow control by the user's reading, not by another actor's rejection", () => {
+    hook().load(workspaceOf("flow/repairs"));
+    flushSync();
+    const symbol = document.querySelector(
+      `.svelte-flow__node[data-id="${A}"] [data-id="jump_1"][data-part="symbol"]`,
+    );
+    if (symbol === null) throw new Error("jump_1's symbol is not rendered");
+    // The user holds no belief in jump_1 and the block's filter keeps undecided: it is read.
+    expect(symbol.getAttribute("opacity")).toBeNull();
+    // Drawn without a reading, the editor's rejection by another actor fades it.
+    const { view } = hook().store();
+    const unread = drawingOf(view.blocks[A] as Block, view.graphical, fontMetrics).elements.find(
+      (item) => item.address.id === "jump_1" && item.type === "symbol",
+    );
+    expect(unread?.style.opacity).toBe(0.35);
+  });
+
   it("lists a block's drawn bands placed through its own drawing", () => {
     hook().load(workspaceOf("map", "map_child_band_order"));
     flushSync();

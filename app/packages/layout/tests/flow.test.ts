@@ -2,7 +2,12 @@
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { isLoadError, loadManifest, type Manifest } from "@timetoalign/tilie-core";
+import {
+  type FlowReading,
+  isLoadError,
+  loadManifest,
+  type Manifest,
+} from "@timetoalign/tilie-core";
 import type { Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
@@ -260,6 +265,58 @@ describe("flow/repairs", () => {
       y1: yf,
       y2: END,
     });
+  });
+});
+
+describe("the reading in force", () => {
+  const EDITOR = "https://example.org/people/editor";
+  /** `flow/repairs` with its arcs shown, read by `reading`: each element's type, ID and opacity. */
+  const read = (reading: FlowReading | null) => {
+    const manifest = loadFile("flow/repairs");
+    const drawing = draw(
+      manifest,
+      DEFAULT_PLACEMENT,
+      [DEFAULT_LAYER, ARCS_ALONE, manifestLayer(manifest)],
+      metrics,
+      reading,
+    );
+    const arcs = drawing.elements.filter((item): item is JumpElement => item.type === "jump");
+    return {
+      opacities: drawing.elements
+        .filter((item) => ["barline_1", "jump_1", "jump_2"].includes(item.address.id ?? ""))
+        .map((item) => [item.type, item.address.id, item.style.opacity]),
+      arcs: arcs.map((item) => [item.address.id, item.start, item.c1, item.tip]),
+    };
+  };
+  const none = read(null);
+
+  it("fades what its believer rejects and, its filter dropping undecided, what they hold no belief in", () => {
+    expect(read({ believer: EDITOR, beliefs: ["true", "unlikely"] }).opacities).toEqual([
+      ["barline", "barline_1", FADED_OPACITY],
+      ["jump", "jump_2", 1],
+      ["jump", "jump_1", FADED_OPACITY],
+    ]);
+  });
+
+  it("reads an element another actor rejects, which keeps its place and arcs", () => {
+    const other = read({
+      believer: "https://example.org/people/other",
+      beliefs: ["true", "unlikely", "undecided"],
+    });
+    expect(other.opacities).toEqual([
+      ["barline", "barline_1", 1],
+      ["jump", "jump_2", 1],
+      ["jump", "jump_1", 1],
+    ]);
+    expect(other.arcs).toEqual(none.arcs);
+  });
+
+  it("without one, fades what some actor believes false", () => {
+    expect(none.opacities).toEqual([
+      ["barline", "barline_1", 1],
+      ["jump", "jump_2", 1],
+      ["jump", "jump_1", FADED_OPACITY],
+    ]);
   });
 });
 
@@ -548,14 +605,15 @@ describe("Op. 106 drawn with the defaults", () => {
   it("draws one volta fork for the first movement's two branches, and no bracket", () => {
     const X = x(48.15259268616182);
     const e = 5.5 + 17.96875 + 10.4765625 / 2;
+    // Each text starts 3 right of its own tip, its line centred on the tip: t = (e + 18 × sk) − h(9) / 2.
     const branch = (ck: number, sk: number, t: number, text: string) => ({
-      tip: [X + 10 * ck, yl + (e + 10 * sk)],
-      base: [X + 6 * ck, yl + (e + 6 * sk)],
+      tip: [X + 18 * ck, yl + (e + 18 * sk)],
+      base: [X + 14 * ck, yl + (e + 14 * sk)],
       corners: [
-        [X + 6 * ck + 2 * 1 * sk, yl + (e + 6 * sk - 2 * 1 * ck)],
-        [X + 6 * ck - 2 * 1 * sk, yl + (e + 6 * sk + 2 * 1 * ck)],
+        [X + 14 * ck + 2 * 1 * sk, yl + (e + 14 * sk - 2 * 1 * ck)],
+        [X + 14 * ck - 2 * 1 * sk, yl + (e + 14 * sk + 2 * 1 * ck)],
       ],
-      tx: X + 12,
+      tx: X + 18 * ck + 3,
       baseline: yl + t + 8.35400390625,
       text,
     });
@@ -564,11 +622,11 @@ describe("Op. 106 drawn with the defaults", () => {
       {
         type: "fork",
         address: at("jump_1", "fork"),
-        stem: [X - 6, yl + e],
+        stem: [X - 8, yl + e],
         point: [X, yl + e],
         branches: [
-          branch(1, 0, 23.46875, "1."),
-          branch(0.906307787, 0.4226182617, 33.9453125, "2."),
+          branch(1, 0, e + 0 - 10.4765625 / 2, "1."),
+          branch(0.8191520443, 0.5735764364, e + 18 * 0.5735764364 - 10.4765625 / 2, "2."),
         ],
       },
     ]);
@@ -579,11 +637,13 @@ describe("Op. 106 drawn with the defaults", () => {
       "#000000",
       9,
     ]);
-    // The band: the symbol row and the fork row, 17.96875 + 20.953125.
+    // The band: the symbol row and the fork row, Hs 17.96875 and Hf (h(9) / 2 + 18 × s2) + h(9) / 2.
     const band = drawing.boxes.find(
       (box) => box.kind === "band" && box.address.facet === "flow_control",
     );
-    expect([band?.y, (band?.y ?? 0) + (band?.height ?? 0)]).toEqual([yl + 5.5, yl + 44.421875]);
+    const Hf = 10.4765625 / 2 + 18 * 0.5735764364 + 10.4765625 / 2;
+    expect(Hf).toBe(20.8009383552);
+    expect([band?.y, band?.height]).toEqual([yl + 5.5, 0 + 17.96875 + Hf]);
   });
 
   it("draws the arcs where a rule shows them", () => {
@@ -689,12 +749,12 @@ describe("symbols, forks and stacks", () => {
   it("draws a jump's branches as one fork, by their places, each with its passes", () => {
     const drawing = drawFixture("flow/volta_passes");
     const X = X0 + 200;
-    expect(forkTexts(drawing)).toEqual([[at("jump_1", "fork"), X, X - 6, ["1., 3.", "2."]]]);
+    expect(forkTexts(drawing)).toEqual([[at("jump_1", "fork"), X, X - 8, ["1., 3.", "2."]]]);
     const fork = forksOf(drawing)[0];
     expect(fork?.point[1]).toBe(LINE + 28.70703125);
     expect(fork?.branches.map(({ tip, tx }) => [tip[0], tx])).toEqual([
-      [X + 10 * 1, X + 12],
-      [X + 10 * 0.906307787, X + 12],
+      [X + 18 * 1, X + 18 * 1 + 3],
+      [X + 18 * 0.8191520443, X + 18 * 0.8191520443 + 3],
     ]);
     // Canonical order lists `by` 0 first; the branches follow their places.
     const reversed = draw(
@@ -724,8 +784,8 @@ describe("symbols, forks and stacks", () => {
       metrics,
     );
     expect(forkTexts(reversed)).toEqual([
-      [at("jump_4", "fork"), X0 + 150, X0 + 144, ["1.", "2."]],
-      [at("jump_1", "fork"), X, X - 6, ["1., 3.", "2."]],
+      [at("jump_4", "fork"), X0 + 150, X0 + 150 - 8, ["1.", "2."]],
+      [at("jump_1", "fork"), X, X - 8, ["1., 3.", "2."]],
     ]);
   });
 
@@ -746,10 +806,10 @@ describe("symbols, forks and stacks", () => {
       [800, X0 + 400],
     ] as const) {
       const fork = geometry(length);
-      expect([fork.stem[0], fork.point[0]]).toEqual([X - 6, X]);
+      expect([fork.stem[0], fork.point[0]]).toEqual([X - 8, X]);
       expect(fork.branches.map(({ tip, tx }) => [tip[0], tx])).toEqual([
-        [X + 10, X + 12],
-        [X + 10 * 0.906307787, X + 12],
+        [X + 18, X + 18 + 3],
+        [X + 18 * 0.8191520443, X + 18 * 0.8191520443 + 3],
       ]);
       expect(fork.point[1]).toBe(geometry(400).point[1]);
       expect(fork.branches.map(({ tip, baseline }) => [tip[1], baseline])).toEqual(
@@ -758,7 +818,7 @@ describe("symbols, forks and stacks", () => {
     }
   });
 
-  it("bends every further branch by 25° more, up to 75°, and makes room for all its texts", () => {
+  it("bends the second branch by 35° and every further one by 70°, and makes room for all its texts", () => {
     const drawing = draw(
       edit("flow/volta_passes", {
         type: "add",
@@ -784,17 +844,22 @@ describe("symbols, forks and stacks", () => {
     expect(fork?.branches.map(({ tip }) => tip)).toEqual(
       [
         [1, 0],
-        [0.906307787, 0.4226182617],
-        [0.6427876097, 0.7660444431],
-        [0.2588190451, 0.9659258263],
-        [0.2588190451, 0.9659258263],
-      ].map(([ck = 0, sk = 0]) => [X + 10 * ck, LINE + (e + 10 * sk)]),
+        [0.8191520443, 0.5735764364],
+        [0.3420201433, 0.9396926208],
+        [0.3420201433, 0.9396926208],
+        [0.3420201433, 0.9396926208],
+      ].map(([ck = 0, sk = 0]) => [X + 18 * ck, LINE + (e + 18 * sk)]),
     );
-    expect(fork?.branches.at(-1)?.baseline).toBe(LINE + 65.375 + 8.35400390625);
-    expect(flowBandWidth(drawing)).toBe(17.96875 + 52.3828125);
+    // The last text's line is centred on its tip, 70° down: t = (e + 18 × s3) − h(9) / 2.
+    const t5 = e + 18 * 0.9396926208 - 10.4765625 / 2;
+    expect(t5).toBe(40.3832171744);
+    expect(fork?.branches.at(-1)?.baseline).toBe(LINE + t5 + 8.35400390625);
+    // The fork row reaches the lowest tip plus half a text height: Hf = (h(9) / 2 + 18 × s3) + h(9) / 2.
+    const Hf = 10.4765625 / 2 + 18 * 0.9396926208 + 10.4765625 / 2;
+    expect(flowBandWidth(drawing)).toBe(0 + 17.96875 + Hf);
   });
 
-  it("gives a fork of one branch the room of its arrow", () => {
+  it("gives a fork of one branch the room of one text line", () => {
     const drawing = draw(
       edit("flow/sections", {
         type: "add",
@@ -811,7 +876,8 @@ describe("symbols, forks and stacks", () => {
       metrics,
     );
     expect(forksOf(drawing).map((item) => item.branches.length)).toEqual([1]);
-    expect(flowBandWidth(drawing)).toBe(10.4765625 + 17.96875 + 15.23828125);
+    // One branch, straight on: Hf = (h(9) / 2 + 18 × 0) + h(9) / 2 = h(9).
+    expect(flowBandWidth(drawing)).toBe(10.4765625 + 17.96875 + 10.4765625);
   });
 
   it("stacks an element's labels as its label-display lists them", () => {

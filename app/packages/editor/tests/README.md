@@ -589,6 +589,15 @@ card `{id: "melody", part: ["card"]}`, the bands `children`,
 `conversion_maps`, `markers` of `melody` and `conversion_maps` of `phrase`;
 an unknown block throws the same `RangeError`.
 
+The canvas draws flow control by the user's reading (the user's belief
+where recorded, else the block's belief filter; TimeToShare's drawing
+specification, section 1), which the editor gives the canvas's pane: on
+`flow/repairs`, whose `jump_1` an actor other than the default user
+believes `false`, the default user holds no belief in it and the default
+filter keeps `undecided`, so its rendered symbol carries no `opacity`,
+while the same block drawn without a reading (`drawingOf` without a pane)
+fades it to 0.35.
+
 ## Embedding (`embed.test.ts`)
 
 `mount` is proven against a host page. The host stays untouched: its body

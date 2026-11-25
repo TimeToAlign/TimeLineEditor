@@ -61,7 +61,13 @@ function scopeOf(
   );
   const block = { key: BLOCK_KEY, style: cascade.resolve(BLOCK_KEY, undefined) };
   return traverse(
-    { manifest, placement: DEFAULT_PLACEMENT, cascade, measure: new TextMeasure(metrics) },
+    {
+      manifest,
+      placement: DEFAULT_PLACEMENT,
+      cascade,
+      measure: new TextMeasure(metrics),
+      reading: null,
+    },
     member,
     block,
     4,

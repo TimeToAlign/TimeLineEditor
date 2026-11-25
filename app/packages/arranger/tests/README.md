@@ -377,6 +377,19 @@ drawing of the same manifest object in the block before the `set`, which
 states none; overriding with an equal arrangement built anew serves the
 block's own drawing.
 
+**The reading of flow control comes from the pane.** A canvas's pane
+carries the host's reading of flow control per block (`readingOf`), and
+the block's drawing is layout's drawn with that reading (drawing.md
+section 1), remembered by it as by the placement. What proves it, on
+`flow/repairs` (the actor `https://example.org/people/editor` believes
+`jump_1` `false`, `jump_2` `true`, nothing of `barline_1`): read for that
+actor with the states `true`, `unlikely`, the drawing equals layout's
+drawing with that reading, and `barline_1` is faded (0.35, undecided and
+not kept). No pane, a pane without `readingOf` and a pane reading `null`
+serve one identical drawing, `barline_1` at 1; a pane reading for another
+actor with `true` alone draws a different one, `barline_1` at 0.35,
+served identically when asked again.
+
 ## The projection (`project.test.ts`, `properties.test.ts`)
 
 What proves the projection complete and stable is the exact shape of every

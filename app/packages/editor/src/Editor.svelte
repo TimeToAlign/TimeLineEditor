@@ -19,7 +19,7 @@ import type {
 import { Canvas, isTextInput, Pane, selectionOf, within } from "@timetoalign/tilie-arranger";
 import type { Health, Server } from "@timetoalign/tilie-client";
 import { connect } from "@timetoalign/tilie-client";
-import type { Address, LoadError, Problem, Store } from "@timetoalign/tilie-core";
+import type { Address, FlowReading, LoadError, Problem, Store } from "@timetoalign/tilie-core";
 import { emptyWorkspace, isCommandError, readAddress } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Snippet } from "svelte";
@@ -45,6 +45,7 @@ import {
   UNTITLED,
 } from "./files.ts";
 import InspectorDrawer from "./InspectorDrawer.svelte";
+import { readingOf } from "./inspector/flow.ts";
 import { blockIndexes, matchInputs, pinnedMatchStampOf } from "./inspector/matchstamps.ts";
 import { createLookup, NO_LOOKUP, provideLookup } from "./lookup/index.ts";
 import MessageBar from "./MessageBar.svelte";
@@ -125,9 +126,11 @@ provideTransient((shown) => (transient = shown));
 
 /**
  * The canvas's pane, which the canvas measures: every drawing the editor reads
- * beside the canvas (the inspector's, an import's place) is drawn at it.
+ * beside the canvas (the inspector's, an import's place) is drawn at it, and
+ * with the user's reading of flow control for its block (`readingOf`: the
+ * user's belief where recorded, else the block's belief filter).
  */
-const pane = new Pane();
+const pane: Pane = new Pane((block): FlowReading => readingOf(session.live.view, block, user.user));
 providePane(pane);
 
 // --- The user, the type profiles and the lookup ---------------------------------

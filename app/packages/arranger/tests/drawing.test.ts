@@ -1,7 +1,8 @@
-import { WORKSPACE } from "@timetoalign/tilie-core";
-import { DEFAULT_LAYER, draw, manifestLayer } from "@timetoalign/tilie-layout";
+import { type FlowReading, WORKSPACE } from "@timetoalign/tilie-core";
+import { DEFAULT_LAYER, type Drawing, draw, manifestLayer } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
 import { drawingOf } from "../src/drawing.ts";
+import type { PaneSource } from "../src/pane.ts";
 import {
   A,
   blockIn,
@@ -205,5 +206,43 @@ describe("a block's arrangement", () => {
     expect(free.arrangement).toBeUndefined();
     const again = { arrangement: { direction: "horizontal" as const, order: [...row] } };
     expect(drawingOf(block, arranged.graphical, metrics, again)).toBe(drawing);
+  });
+});
+
+describe("the reading of flow control", () => {
+  const view = viewOf({ id: A, fixture: "flow/repairs" });
+  const block = blockIn(view, A);
+  const EDITOR = "https://example.org/people/editor";
+  const withReading = (reading: FlowReading | null): PaneSource => ({
+    view: undefined,
+    readingOf: (asked) => (asked === block ? reading : null),
+  });
+  const opacityOf = (drawing: Drawing, id: string) =>
+    drawing.elements.find((item) => item.address.id === id)?.style.opacity;
+
+  it("reaches layout from the pane, for the block drawn", () => {
+    const reading: FlowReading = { believer: EDITOR, beliefs: ["true", "unlikely"] };
+    const drawing = drawingOf(block, view.graphical, metrics, undefined, withReading(reading));
+    expect(drawing).toEqual(
+      draw(
+        block.manifest,
+        { length: 400, spacing: 8, width: null, height: null, places: {}, arrangement: null },
+        [DEFAULT_LAYER, view.graphical, manifestLayer(block.manifest)],
+        metrics,
+        reading,
+      ),
+    );
+    expect(opacityOf(drawing, "barline_1")).toBe(0.35);
+  });
+
+  it("keys the drawings of a block, none and a pane without one alike", () => {
+    const plain = drawingOf(block, view.graphical, metrics);
+    expect(drawingOf(block, view.graphical, metrics, undefined, { view: undefined })).toBe(plain);
+    expect(drawingOf(block, view.graphical, metrics, undefined, withReading(null))).toBe(plain);
+    const other = { believer: "https://example.org/people/other", beliefs: ["true"] } as const;
+    const read = drawingOf(block, view.graphical, metrics, undefined, withReading(other));
+    expect(read).not.toBe(plain);
+    expect(drawingOf(block, view.graphical, metrics, undefined, withReading(other))).toBe(read);
+    expect([opacityOf(plain, "barline_1"), opacityOf(read, "barline_1")]).toEqual([1, 0.35]);
   });
 });

@@ -45,13 +45,15 @@ export const JUMP_PITCH = 6;
 /** The symbol gap, between a symbol's glyph box and the lines it meets: `Hs = 2 + h(zs) + 2`. */
 export const SYMBOL_GAP = 2;
 /** The length of a volta fork's stem, left of its branch point. */
-export const FORK_STEM = 6;
+export const FORK_STEM = 8;
 /** The length of each arrow of a volta fork, from its branch point to its tip. */
-export const FORK_BRANCH = 10;
+export const FORK_BRANCH = 18;
 /** The angle step of a volta fork's branches, in degrees. */
-export const FORK_ANGLE = 25;
-/** The fork text offset, from a fork's branch point to the start of its texts. */
-export const FORK_TEXT_OFFSET = 12;
+export const FORK_ANGLE = 35;
+/** The largest angle of a volta fork's branch, in degrees, shared from the third branch on. */
+export const FORK_LARGEST_ANGLE = 70;
+/** The fork text offset, from a branch's tip to the start of its text. */
+export const FORK_TEXT_OFFSET = 3;
 /** The boundary half-height `k`. */
 export const BOUNDARY = 8;
 /** The standard gap of an elision: the drawn width of a gap without a `width` (section 2). */
@@ -63,12 +65,11 @@ export const ELLIPSIS_SPACING = 6;
 /** The narrowest gap that draws an ellipsis. */
 export const ELLIPSIS_GAP = 20;
 /**
- * The directions `(ck, sk)` of a volta fork's branches by `min(k − 1, 3)`, along the axis and away
- * from the root's line: 0°, 25°, 50° and 75°, the specification's decimals read as doubles.
+ * The directions `(ck, sk)` of a volta fork's branches by `min(k − 1, 2)`, along the axis and away
+ * from the root's line: 0°, 35° and 70°, the specification's decimals read as doubles.
  */
 export const FORK_DIRECTIONS: readonly (readonly [number, number])[] = [
   [1, 0],
-  [0.906307787, 0.4226182617],
-  [0.6427876097, 0.7660444431],
-  [0.2588190451, 0.9659258263],
+  [0.8191520443, 0.5735764364],
+  [0.3420201433, 0.9396926208],
 ];

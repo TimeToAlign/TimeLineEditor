@@ -22,6 +22,7 @@ import {
   FLOW_LINE_ROLES,
   type FlowLineRole,
   idAddress,
+  isRead,
   isRejected,
   partAddress,
 } from "@timetoalign/tilie-core";
@@ -48,6 +49,7 @@ import { fadedStyle } from "./markers.ts";
 import { centredLabel } from "./names.ts";
 import { add, coordinateValue, exactDistance, midpoint, times, zero } from "./numbers.ts";
 import {
+  type Context,
   type Entry,
   type Holder,
   type Measured,
@@ -118,9 +120,12 @@ interface Gathered {
   readonly band: Holder;
 }
 
-/** A style faded where its element is rejected (`isRejected`). */
-const believedStyle = (style: Style, element: FlowControlElement): Style =>
-  isRejected(element) ? fadedStyle(style) : style;
+/**
+ * A style faded where the reading in force does not read its element (core's `isRead` under the
+ * manifest's `@context`; without a reading, where some actor believes it `false`).
+ */
+const believedStyle = (scope: Context, style: Style, element: FlowControlElement): Style =>
+  isRead(element, scope.reading, scope.manifest["@context"]) ? style : fadedStyle(style);
 
 /**
  * The flow-control elements the flow control band of `line` lays out
@@ -200,7 +205,7 @@ function stackOf(scope: Scope, item: Gathered): readonly { label: Part; text: Me
     if (!words.includes(word) || text === null || text === undefined) return [];
     const at = partAddress(idAddress(element.id), word);
     const key = elementKey("label", at, timeline, holder.key);
-    const style = believedStyle(scope.cascade.resolve(key, holder.style), element);
+    const style = believedStyle(scope, scope.cascade.resolve(key, holder.style), element);
     if (!shown(style)) return [];
     const label = { key, address: at, style };
     return [{ label, text: scope.measured(label, text) }];
@@ -216,7 +221,7 @@ function partOf(
 ): Part {
   const at = partAddress(idAddress(item.element.id), word);
   const key = elementKey(type, at, item.timeline, item.holder.key);
-  const style = believedStyle(scope.cascade.resolve(key, item.holder.style), item.element);
+  const style = believedStyle(scope, scope.cascade.resolve(key, item.holder.style), item.element);
   return { key, address: at, style };
 }
 
@@ -242,8 +247,9 @@ const sum = (values: readonly number[]): number =>
  * - the **forks** (`forkOf`): one per jump with a branch, a destination
  *   whose `manifestation` is `volta` and whose place resolves, the branches
  *   by their places; each at its jump's `x` on the fork row, of one size on
- *   the canvas, never placed by first fit, `Hf = max(N × h(zf), h(zf) / 2 +
- *   10)` wide, `N` the most branches a fork has;
+ *   the canvas, never placed by first fit, `Hf = (h(zf) / 2 + 18 × sM) +
+ *   h(zf) / 2` wide, `sM` the `sk` of `min(N − 1, 2)`, `N` the most
+ *   branches a fork has;
  * - the **arcs** of each displayed jump, one per destination not `by` 0 and
  *   not `volta` whose place resolves (`placeOf`), in a member's card only where its to
  *   lies on the member's stretch; sorted stably by span and placed by first
@@ -277,7 +283,7 @@ export function flowControlBand(scope: Scope, line: Entry): PreparedBand {
       (drawn): drawn is FlowLineRole => drawn === item.element.role,
     );
     if (role === undefined) return [];
-    const style = believedStyle(item.holder.style, item.element);
+    const style = believedStyle(scope, item.holder.style, item.element);
     return shown(style) ? [{ item, role, address: item.holder.address, style }] : [];
   });
   const drawnLines = new Set(lines.map(({ item }) => item));
@@ -337,7 +343,7 @@ export function flowControlBand(scope: Scope, line: Entry): PreparedBand {
   // The arcs of the displayed jumps; in a member's card only those arriving on its stretch.
   const member = scope.member.ancestors.length > 0;
   const arcs = jumps.flatMap((item) => {
-    const style = believedStyle(item.holder.style, item.element);
+    const style = believedStyle(scope, item.holder.style, item.element);
     if (!shown(style)) return [];
     const labelled = item.holder.style["label-display"].split(" ").includes("label");
     const label = partOf(scope, item, "label", "label");
@@ -388,7 +394,9 @@ export function flowControlBand(scope: Scope, line: Entry): PreparedBand {
   const Hs = symbols.length === 0 ? 0 : SYMBOL_GAP + h(symbolSize) + SYMBOL_GAP;
   const forkSize = maxSize(forks.map(({ part }) => part));
   const N = Math.max(0, ...forks.map(({ branches }) => branches.length));
-  const Hf = forks.length === 0 ? 0 : Math.max(N * h(forkSize), h(forkSize) / 2 + FORK_BRANCH);
+  // The lowest tip's distance beyond the row's start, plus half a text height.
+  const sM = forks.length === 0 ? 0 : nth(FORK_DIRECTIONS, Math.min(N - 1, 2))[1];
+  const Hf = forks.length === 0 ? 0 : h(forkSize) / 2 + FORK_BRANCH * sM + h(forkSize) / 2;
   const pj = Tk.map((tiersOfRow) => JUMP_PITCH + S + tiersOfRow * h(size));
   // The pitches before row k, summed first.
   const pitchesBefore = (row: number) => sum(pj.slice(0, row - 1));
@@ -413,8 +421,8 @@ export function flowControlBand(scope: Scope, line: Entry): PreparedBand {
       ...lines.map(({ item }): Extent => [relativeX(item.at), relativeX(item.at)]),
       ...stacks.map(({ extent }) => extent),
       ...symbols.map(({ item, text }) => labelExtent(relativeX(item.at), text.width)),
-      // A fork counts as a symbol of width 12 on its jump's position (section 6.7).
-      ...forks.map(({ item }) => labelExtent(relativeX(item.at), FORK_TEXT_OFFSET)),
+      // A fork counts as a symbol of width 16 on its jump's position (section 6.7).
+      ...forks.map(({ item }) => labelExtent(relativeX(item.at), 2 * FORK_STEM)),
       ...labelledArcs.map(({ arc }): Extent => {
         const [xFrom, xTo] = [relativeX(arc.from), relativeX(arc.to)];
         return [Math.min(xFrom, xTo), Math.max(xFrom, xTo)];
@@ -433,7 +441,7 @@ export function flowControlBand(scope: Scope, line: Entry): PreparedBand {
       }),
       ...forks.flatMap(({ item }) => {
         const x = scope.drawnX(item.at);
-        return x === undefined ? [] : [{ width: FORK_TEXT_OFFSET, x }];
+        return x === undefined ? [] : [{ width: 2 * FORK_STEM, x }];
       }),
     ],
     draw: (start, side, at) => {
@@ -541,7 +549,7 @@ export function flowControlBand(scope: Scope, line: Entry): PreparedBand {
             {
               type: "leader",
               address: leader.address,
-              style: believedStyle(leader.style, arc.item.element),
+              style: believedStyle(scope, leader.style, arc.item.element),
               x1: x,
               y1: at.yAt(side, apex(row)),
               x2: x,
@@ -560,7 +568,7 @@ export function flowControlBand(scope: Scope, line: Entry): PreparedBand {
             {
               type: "leader",
               address: leader.address,
-              style: believedStyle(leader.style, item.element),
+              style: believedStyle(scope, leader.style, item.element),
               x1: x,
               y1: yf,
               x2: x,
@@ -596,10 +604,10 @@ function onStretch(scope: Scope, value: Real): boolean {
 
 /**
  * Branch `index` (from 0) of a fork whose branch point lies at `X` and the distance `e` from the
- * root's line (section 6.4, Forks): its arrow, 10 long in the direction of its row of
- * `FORK_DIRECTIONS`, its arrowhead `4w` long and `2w` wide each side, and its text's line in the
- * column from `X + 12`, line `k` starting at `(e − h(z) / 2) + (k − 1) × h(z)`; each product
- * formed as written, each distance summed whole before it becomes an ordinate.
+ * root's line (section 6.4, Forks): its arrow, 18 long in the direction of its row of
+ * `FORK_DIRECTIONS`, its arrowhead `4w` long and `2w` wide each side, and its text starting 3
+ * right of its tip, its line centred on the tip, starting at `(e + 18 × sk) − h(z) / 2`; each
+ * product formed as written, each distance summed whole before it becomes an ordinate.
  */
 function forkBranch(
   at: LinePosition,
@@ -617,15 +625,17 @@ function forkBranch(
   const a = FORK_BRANCH - 4 * w;
   const xc = X + a * ck;
   const dc = e + a * sk;
-  const t = e - h(z) / 2 + index * h(z);
+  const tipX = X + FORK_BRANCH * ck;
+  const tipDistance = e + FORK_BRANCH * sk;
+  const t = tipDistance - h(z) / 2;
   return {
-    tip: [X + FORK_BRANCH * ck, at.yAt(side, e + FORK_BRANCH * sk)],
+    tip: [tipX, at.yAt(side, tipDistance)],
     base: [xc, at.yAt(side, dc)],
     corners: [
       [xc + 2 * w * sk, at.yAt(side, dc - 2 * w * ck)],
       [xc - 2 * w * sk, at.yAt(side, dc + 2 * w * ck)],
     ],
-    tx: X + FORK_TEXT_OFFSET,
+    tx: tipX + FORK_TEXT_OFFSET,
     baseline: at.beyond(side, at.yAt(side, t), z),
     text,
   };

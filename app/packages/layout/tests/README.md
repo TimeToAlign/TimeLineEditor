@@ -915,6 +915,18 @@ opacity of ancestor lines, in their rows as any other.
   (405.05029296875, 59.373697916666664)`, tip `(255.05029296875, yf)`),
   then `jump_1`'s (row 2, `C1 = (355.05029296875, 86.67578125)`, tip
   `(x0, yf)`); `jump_1`'s arc has opacity 0.35, `jump_2`'s 1.
+- **The reading in force** (drawing.md §1, §6.4 Arcs; `flow/repairs`,
+  arcs shown; the actor `https://example.org/people/editor` believes
+  `jump_1` `false`, `jump_2` and `jump_target_1` `true`, and holds no
+  belief in `barline_1`): `draw` fades a flow-control element the reading
+  does not read (core's `isRead`, the oracle of which element is read
+  being the beliefs written in the fixture). Read for the editor with the
+  states `true`, `unlikely` (a filter dropping `undecided`): `barline_1`
+  0.35 (undecided), `jump_2` 1, `jump_1` 0.35. Read for another actor with
+  `true`, `unlikely`, `undecided`: all three at 1, `jump_1` included,
+  and the arcs (from, apex control, tip) exactly those drawn without a
+  reading, since the reading fades and nothing more. Without a reading
+  (`null`): `jump_1` alone at 0.35, as above.
 - **`flow/volta_passes`**: the two destinations of `jump_1`, `by` 0 and
   `to` `jump_target_1`, are `volta`, branches of its fork, and draw no
   arc with the arcs shown; the drawing holds the two arcs of the other
@@ -969,20 +981,22 @@ on the symbol row, its text line starting at the **symbol gap** 2 beyond
 the flow row, the row `Hs = 2 + h(zs) + 2` wide, so that no glyph meets
 the flow lines ending at the flow row; a jump with `volta` destinations
 whose places resolve (its **branches**) draws one **fork** on the fork
-row beyond the symbol row, `Hf = max(N × h(zf), h(zf) / 2 + 10)` wide:
-its stem from `X − 6` to its branch point `X` at the distance `e = (f0 +
-Hs) + h(zf) / 2`, then per branch, in the order of the branches' places
-(ties in the canonical order of `targets`), an arrow 10 long, the first
-straight on and branch `k` at the angle `25° × min(k − 1, 3)` away from
-the root's line, its direction `(ck, sk)` the specification's table of
-decimals (0°: `(1, 0)`, 25°: `(0.906307787, 0.4226182617)`, 50°:
-`(0.6427876097, 0.7660444431)`, 75°: `(0.2588190451, 0.9659258263)`),
-ending in an arrowhead of length `4w` and half-width `2w` (`a = 10 −
-4w`: tip `(X + 10 × ck, e + 10 × sk)`, base centre `(X + a × ck, e + a
-× sk)`, corners `((X + a × ck) ± (2 × w) × sk, (e + a × sk) ∓ (2 × w) ×
-ck)`), and its passes as printed in a column from `X + 12`, line `k`
-starting at `t = (e − h(z) / 2) + (k − 1) × h(z)`, baseline `yl + t +
-a(z)` below the line; the fork has one size whatever the axis's scale
+row beyond the symbol row, `Hf = (h(zf) / 2 + 18 × sM) + h(zf) / 2`
+wide, `sM` the `sk` of `min(N − 1, 2)`: its stem from `X − 8` to its
+branch point `X` at the distance `e = (f0 + Hs) + h(zf) / 2`, then per
+branch, in the order of the branches' places (ties in the canonical
+order of `targets`), an arrow 18 long, the first straight on and branch
+`k` at the angle `35° × min(k − 1, 2)` away from the root's line, its
+direction `(ck, sk)` the specification's table of decimals (0°: `(1,
+0)`, 35°: `(0.8191520443, 0.5735764364)`, 70°: `(0.3420201433,
+0.9396926208)`), ending in an arrowhead of length `4w` and half-width
+`2w` (`a = 18 − 4w`: tip `(X + 18 × ck, e + 18 × sk)`, base centre `(X +
+a × ck, e + a × sk)`, corners `((X + a × ck) ± (2 × w) × sk, (e + a ×
+sk) ∓ (2 × w) × ck)`), and its passes as printed at its own tip, from
+`(X + 18 × ck) + 3`, its text line centred on the tip, starting at `t =
+(e + 18 × sk) − h(z) / 2`, baseline `yl + t + a(z)` below the line; the
+fork counts for the extents as a centred label of width 16 on its jump's
+position; the fork has one size whatever the axis's scale
 and is never placed by first fit; a `volta` destination draws **no
 arc**, whatever the `display` of `jump`; hiding the root's flow control
 band hides the flow control of its whole tree, the band then absent
@@ -1023,22 +1037,23 @@ solid, 1, and a fork black, 1 wide, its texts at the font size 9.
   + 2 = 2 + 13.96875 + 2 = 17.96875`. `jump_1` at 953/2 holds `by` 0
   (passes `[1]`, place 953/2) and `to` `jump_target_1` at 500 (passes
   `[2]`): its fork has two branches, `1.` (place 953/2) then `2.` (place
-  500), and is the band's one fork: `N = 2`, `zf = 9`, `Hf = max(2 ×
-  10.4765625, 10.4765625 / 2 + 10) = max(20.953125, 15.23828125) =
-  20.953125`; `e = (5.5 + 17.96875) + 5.23828125 = 28.70703125`, `w = 1`,
-  `a = 6`, `X = x(953/2)` (`400u = 48.15259268616182`). The stem from `(X
-  − 6, yl + e)` to `(X, yl + e)`. Branch 1 (0°): tip `(X + 10 × 1, yl + (e
-  + 10 × 0))`, base `(X + 6 × 1, yl + (e + 6 × 0))`, corners `((X + 6) +
-  2 × 0, yl + ((e + 0) − 2 × 1))` and `((X + 6) − 2 × 0, yl + ((e + 0) +
-  2 × 1))`, its text `1.` from `X + 12` on line 1, `t1 = 28.70703125 −
-  5.23828125 = 23.46875`, baseline `(yl + 23.46875) + 8.35400390625`.
-  Branch 2 (25°): tip `(X + 10 × 0.906307787, yl + (e + 10 ×
-  0.4226182617))`, base `(X + 6 × 0.906307787, yl + (e + 6 ×
-  0.4226182617))`, corners `± 2 × 0.4226182617` across and `∓ 2 ×
-  0.906307787` outwards from the base, as above; its text `2.` from `X +
-  12` on line 2, `t2 = 23.46875 + 10.4765625 = 33.9453125`. No bracket
-  and no arc: the band is `17.96875 + 20.953125 = 38.921875` wide, from
-  `yl + 5.5` to `yl + 44.421875`, and draws no `jump` element. With the
+  500), and is the band's one fork: `N = 2`, `zf = 9`, `sM = s(35°) =
+  0.5735764364`, `Hf = (10.4765625 / 2 + 18 × 0.5735764364) + 10.4765625
+  / 2 = 20.8009383552`; `e = (5.5 + 17.96875) + 5.23828125 =
+  28.70703125`, `w = 1`, `a = 14`, `X = x(953/2)` (`400u =
+  48.15259268616182`). The stem from `(X − 8, yl + e)` to `(X, yl + e)`.
+  Branch 1 (0°): tip `(X + 18 × 1, yl + (e + 18 × 0))`, base `(X + 14 ×
+  1, yl + (e + 14 × 0))`, corners `((X + 14) + 2 × 0, yl + ((e + 0) − 2 ×
+  1))` and `((X + 14) − 2 × 0, yl + ((e + 0) + 2 × 1))`, its text `1.`
+  from `(X + 18) + 3`, `t1 = (28.70703125 + 0) − 5.23828125 = 23.46875`,
+  baseline `(yl + 23.46875) + 8.35400390625`. Branch 2 (35°): tip `(X + 18
+  × 0.8191520443, yl + (e + 18 × 0.5735764364))`, base `(X + 14 ×
+  0.8191520443, yl + (e + 14 × 0.5735764364))`, corners `± 2 ×
+  0.5735764364` across and `∓ 2 × 0.8191520443` outwards from the base,
+  as above; its text `2.` from `(X + 18 × 0.8191520443) + 3`, `t2 = (e +
+  18 × 0.5735764364) − 5.23828125 = 33.7931258552`, so each text sits at
+  its own tip. No bracket and no arc: the band is `0 + 17.96875 +
+  20.8009383552` wide, from `yl + 5.5`, and draws no `jump` element. With the
   rule `{element: jump} display: inline` it draws one arc, `jump_2`'s
   repeat 500 → 0 (the start of its section, `clt_2`'s 0, the root's 0);
   `jump_1`'s two destinations are `volta`, branches of its fork, and draw
@@ -1068,31 +1083,34 @@ solid, 1, and a fork black, 1 wide, its texts at the font size 9.
   of `break_2` and 𝄇 of `jump_2` and `jump_3`, `Hs = 17.96875`): `jump_1`
   at 8 holds `by` 0 with passes `[1, 3]` (place 8) and `to`
   `jump_target_1` at 12 with `[2]` (place 12): one fork at `X = x(8) = x0
-  + 200`, the branch `1., 3.` straight on, then `2.` at 25°, the texts
-  from `X + 12`; the same `e = 28.70703125` and `Hf = 20.953125` as Op.
-  106's.
+  + 200`, its stem from `X − 8`, the branch `1., 3.` straight on, its
+  text from `X + 18 + 3`, then `2.` at 35°, its text from `X + 18 ×
+  0.8191520443 + 3`; the same `e = 28.70703125` and `Hf` as Op. 106's.
 - **Branches by their places.** Added by commands, a jump target
   `jump_target_2` at 2 and a jump `jump_4` at 6 with the destinations
   `by` 0 (volta, passes `[2]`, place 6) and `to` `jump_target_2` (volta,
   passes `[1]`, place 2): canonical order lists the `by` first, but the
-  branches follow their places, `1.` straight on and `2.` at 25°.
+  branches follow their places, `1.` straight on and `2.` at 35°, the
+  stem from `x(6) − 8`.
 - **One size on the canvas.** `flow/volta_passes` drawn at the lengths
   400 and 800 (`x(t) = x0 + 25 t` and `x0 + 50 t`): `jump_1`'s fork lies at
   `X = x(8)`, `x0 + 200` and `x0 + 400`, with the same ordinates, its
-  stem from `X − 6`, its tips at `X + 10` and `X + 10 × 0.906307787`, its
-  texts at `X + 12`, in both.
-- **Bending capped at 75°.** A jump `jump_6` at 1 added to
+  stem from `X − 8`, its tips at `X + 18` and `X + 18 × 0.8191520443`,
+  its texts 3 right of them, in both.
+- **Bending capped at 70°.** A jump `jump_6` at 1 added to
   `flow/volta_passes` with five `volta` destinations `by` 0, 1, 2, 3 and 4,
-  passes `[1]` … `[5]`: its five branches take the directions 0°, 25°,
-  50°, 75° and 75° (the fourth and fifth tips alike), `N = 5`, so `Hf = 5
-  × 10.4765625 = 52.3828125` and its fifth text's line starts at `t5 =
-  (28.70703125 − 5.23828125) + 4 × 10.4765625 = 65.375`; the band, no
-  stack, is `17.96875 + 52.3828125 = 70.3515625` wide.
+  passes `[1]` … `[5]`: its five branches take the directions 0°, 35°,
+  70°, 70° and 70° (the third to fifth tips alike), `N = 5`, `sM = s(70°)
+  = 0.9396926208`, so `Hf = (10.4765625 / 2 + 18 × 0.9396926208) +
+  10.4765625 / 2` and its fifth text's line starts at `t5 = (28.70703125
+  + 18 × 0.9396926208) − 5.23828125 = 40.3832171744`; the band, no stack,
+  is `0 + 17.96875 + Hf` wide.
 - **One branch.** A jump `jump_7` at 1 with one destination `by` 0
   (volta, passes `[1]`) added to `flow/sections` (no fork else, no other
-  volta): `N = 1`, `Hf = max(10.4765625, 15.23828125) = 15.23828125`; the
-  band, one stack tier (Stacks, below) and the symbols `Fine`, 𝄂 and the
-  jumps' 𝄊, is `10.4765625 + 17.96875 + 15.23828125 = 43.68359375` wide.
+  volta): `N = 1`, `sM = 0`, `Hf = (10.4765625 / 2 + 0) + 10.4765625 / 2
+  = 10.4765625`, one text line; the band, one stack tier (Stacks, below)
+  and the symbols `Fine`, 𝄂 and the jumps' 𝄊, is `10.4765625 + 17.96875
+  + 10.4765625` wide.
 - **A destination without a place** (`child_flow_control`, `x(t) = x0 +
   25 t` on `piece`'s axis, arcs shown): given by commands a section break
   `section_break_a` of `piece` at 2, a jump `jump_x` of `verse` at 6 (10
