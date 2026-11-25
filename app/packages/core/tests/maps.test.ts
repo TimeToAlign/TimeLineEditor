@@ -429,25 +429,31 @@ describe("compound floating measures", () => {
     expect([q(165, 2), 84n, 85n, q(171, 2)].map(read)).toEqual([1, 1.5, 1.833, 2]);
   });
 
+  const twoRows = (
+    first: number | null,
+    second: number | null,
+    secondNominal: Pair = [2, 1],
+    voltas: readonly [number | null, number | null] = [null, null],
+    firstNext: readonly number[] = [2],
+  ) =>
+    reader([
+      row(1, first, [0, 1], [2, 1], [1, 2], firstNext, [0, 1], voltas[0]),
+      row(2, second, [1, 2], secondNominal, [3, 2], [], [1, 2], voltas[1]),
+    ]);
+
+  it("joins a row its next names across a metre change", () => {
+    expect([0n, 1n, 2n].map(twoRows(5, 5, [3, 1]))).toEqual([1, 1.5, 2]);
+  });
+
   it("reads nothing where knots of rows that cannot join coincide", () => {
-    const pair = (
-      first: number | null,
-      second: number | null,
-      secondNominal: Pair = [2, 1],
-      voltas: readonly [number | null, number | null] = [null, null],
-    ) =>
-      reader([
-        row(1, first, [0, 1], [2, 1], [1, 2], [2], [0, 1], voltas[0]),
-        row(2, second, [1, 2], secondNominal, [3, 2], [], [1, 2], voltas[1]),
-      ]);
     for (const read of [
-      pair(5, 6),
-      pair(null, null),
-      pair(5, 5, [3, 1]),
-      pair(5, 5, [2, 1], [1, 2]),
+      twoRows(5, 6),
+      twoRows(null, null),
+      twoRows(5, 5, [3, 1], [null, null], [1]),
+      twoRows(5, 5, [2, 1], [1, 2]),
     ]) {
       expect([0n, 1n, 2n].map(read)).toEqual([undefined, undefined, undefined]);
     }
-    expect([0n, 1n, 2n].map(pair(5, 5))).toEqual([1, 1.5, 2]);
+    expect([0n, 1n, 2n].map(twoRows(5, 5))).toEqual([1, 1.5, 2]);
   });
 });

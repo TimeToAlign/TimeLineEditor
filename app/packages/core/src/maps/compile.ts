@@ -318,24 +318,28 @@ function differentVoltas(row: MeasureKnot, following: MeasureKnot): boolean {
   );
 }
 
+/** Whether two rows state the same nominal length (both none counts as the same). */
+function sameNominal(row: MeasureKnot, following: MeasureKnot): boolean {
+  const nominal = row.nominal_length;
+  const followingNominal = following.nominal_length;
+  if (nominal === null || followingNominal === null) return nominal === followingNominal;
+  return exactPair(nominal).equals(exactPair(followingNominal));
+}
+
 /**
  * Whether `following`, the row after the run `run`, continues its floating
- * measure: it has the number and the nominal length of the run's last row,
- * the two do not state different voltas, and either that row's next names
- * it or its offset within the measure is where the run ends in the notated
- * bar (the first row's offset plus the rows' actual lengths).
+ * measure: it has the number of the run's last row, the two do not state
+ * different voltas, and either that row's next names it (across a metre
+ * change too: one number is one notated bar), or it has that row's nominal
+ * length and its offset within the measure is where the run ends in the
+ * notated bar (the first row's offset plus the rows' actual lengths).
  */
 function continues(run: readonly MeasureKnot[], following: MeasureKnot): boolean {
   const row = nth(run, run.length - 1);
   if (row.number === null || row.number !== following.number) return false;
-  const nominal = row.nominal_length;
-  const followingNominal = following.nominal_length;
-  if ((nominal === null) !== (followingNominal === null)) return false;
-  if (nominal !== null && followingNominal !== null) {
-    if (!exactPair(nominal).equals(exactPair(followingNominal))) return false;
-  }
   if (differentVoltas(row, following)) return false;
   if (row.next.includes(following.count)) return true;
+  if (!sameNominal(row, following)) return false;
   let end = exactPair(nth(run, 0).offset_within_measure);
   for (const part of run) {
     if (part.actual_length === null) return false;

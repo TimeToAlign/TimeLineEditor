@@ -109,7 +109,28 @@ REPEAT = {
 """A 6/8 bar split at a repeat sign: its first part jumps back to count 1,
 its second part states the offset where the first ends."""
 
-MEASURE_MAPS = [BARS, SPLIT, REPEAT]
+METRE = {
+    "id": "metre",
+    "name": None,
+    "meta": {},
+    "rows": [
+        {"count": 1, "number": 1, "time_signature": "2/4", "actual_length": 2},
+        {"count": 2, "number": 2, "actual_length": 1},
+        {
+            "count": 3,
+            "number": 2,
+            "time_signature": "3/4",
+            "actual_length": 2,
+            "offset_within_measure": 1,
+        },
+        {"count": 4, "number": 3, "actual_length": 3},
+    ],
+}
+"""A bar whose metre changes from 2/4 to 3/4 inside it: its first part names
+its second in its (default) next, which joins them across the two nominal
+lengths."""
+
+MEASURE_MAPS = [BARS, SPLIT, REPEAT, METRE]
 
 
 def base(kind: str, map_id: str, source: str | None, target: str | None) -> dict[str, Any]:
@@ -266,6 +287,10 @@ QUARTERS = [
     (
         view("FloatingMeasureMap", "q_floating_repeat", "floating_measures", "repeat"),
         [F(0), F(3), F(9, 2), F(5), F(6), F(9)],
+    ),
+    (
+        view("FloatingMeasureMap", "q_floating_metre", "floating_measures", "metre"),
+        [F(0), F(2), F(3), F(4), F(5), F(8)],
     ),
 ]
 

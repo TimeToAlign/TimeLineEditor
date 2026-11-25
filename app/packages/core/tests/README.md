@@ -4933,6 +4933,14 @@ a Fraction, a `number` a float.
      offset 3/2, at 9/2); bar 3 (count 4, at 6). Count 3 joins count 2 by
      its offset alone (item 7): knots 0 → 1, 3 → 2, 6 → 3, 9 → 4, so 9/2
      reads 2.5 and 5 reads 2 + 2/3 → 2.666.
+   - **A bar across a metre change**, over a fourth MeasureMap, `metre`:
+     bar 1 (count 1, 2/4, actual 2); bar 2 in two rows, count 2 (2/4,
+     actual 1, its default next naming count 3) and count 3 (3/4, actual 2,
+     offset 1, at 3); bar 3 (count 4, 3/4, at 5). Count 3 joins count 2 by
+     the next although the nominal lengths are 2 and 3 (item 7): knots
+     0 → 1, 2 → 2, 5 → 3, 8 → 4, so 3 reads 2 + 1/3 → 2.333 and 4 reads
+     2 + 2/3 → 2.666. Split, count 3's knot 3 − 1 = 2 would coincide with
+     count 2's and nothing would be read.
 2. **Hand values** (the parity table's arithmetic, stated without the
    library): the PiecewiseMap with breaks 0, 4, 16 and the pieces `1/2·x`
    and `3/5·x − 2/5` (both exact LinearMaps, quarters to seconds) gives at
@@ -4962,10 +4970,12 @@ a Fraction, a `number` a float.
 7. **Compound floating measures** (hand values, the same as timetoalign's
    `tests/maps/test_floating_measures.py`, whose README derives them). A
    floating measure is a run of consecutive rows that represent one notated
-   bar. A row continues the run when it has the `number` (not null) and the
-   `nominal_length` of the run's last row, the two do not state `volta`s
-   naming different passes, and either that row's `next` names its count or
-   its `offset_within_measure` is where the run ends in the bar (the first
+   bar. A row continues the run when it has the `number` (not null) of the
+   run's last row, the two do not state `volta`s naming different passes,
+   and either that row's `next` names its count (whatever the two rows'
+   `nominal_length`s: one number is one notated bar, also across a metre
+   change), or it has that row's `nominal_length` and its
+   `offset_within_measure` is where the run ends in the bar (the first
    row's offset plus the rows' `actual_length`s). The run places one knot,
    at its first row's nominal downbeat (qstamp minus offset), and ordinals
    count runs, from 0 when the first run is an anacrusis (its first row
@@ -4991,10 +5001,13 @@ a Fraction, a `number` a float.
      offset 1/2), both number 5: the first naming itself in its next (a
      repeat sign) or naming the second, one 2/4 bar either way, the second
      row's offset 1/2 being where the first ends: 0 → 1.0, 1 → 1.5,
-     2 → 2.0. Numbered 5 and 6, without numbers, numbered 5 and 5 with the
-     second a 3/4 bar (nominal 3, so its downbeat is still 0), or numbered
-     5 and 5 under volta 1 and volta 2, the rows never join, the knots do
-     not increase and the map is `undefined` everywhere.
+     2 → 2.0. With the second a 3/4 bar (nominal 3, so its downbeat is
+     still 0) and the first naming it, they are one bar across the metre
+     change and read the same. Numbered 5 and 6, without numbers, numbered
+     5 and 5 with the second a 3/4 bar and the first naming itself (only
+     the offset links them, and the nominal lengths differ), or numbered 5
+     and 5 under volta 1 and volta 2, the rows never join, the knots do not
+     increase and the map is `undefined` everywhere.
    - The bar split at a repeat sign in the DCML Couperin musete
      (`c05n05_musete`, 6/8, nominal 3): rows 31 (number 28, qstamp 165/2,
      actual 3/2, next 17 and 6) and 32 (number 28, qstamp 84, actual 3/2,
