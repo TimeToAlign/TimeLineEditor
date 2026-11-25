@@ -102,13 +102,8 @@ width of the formula.
 ## The default layer (`defaults.test.ts`)
 
 The oracle is the JSON block of section 4, parsed from the installed schema
-package's `docs/drawing.md`: `DEFAULT_LAYER` equals it, read in the element
-types of the current schema. The block may still select the two earlier
-flow-control types: a rule selecting `flow_marker` then stands as three,
-for `break`, `section_break` and `barline` in that order, and one
-selecting `jump_from` selects `jump`, as TimeToShare's converter of flow
-control rewrites a manifest's rules; a block written in the current types
-is compared as it is. Every element type the layer selects, by `element`
+package's `docs/drawing.md`: `DEFAULT_LAYER` equals it, rule for rule.
+Every element type the layer selects, by `element`
 or `inside`, is one of the schema's `ElementType`, and of the four
 flow-control types it selects `jump`, `break`, `section_break`, `barline`,
 in that order. That file is the
@@ -153,7 +148,7 @@ text, with the text the layout's constants give it:
 - a fixed size is the constant itself: `P`, `G`, `d`, `g`, the wedge's base
   and height (one row, `6, 13`), the label gap, the brace height, the
   label offset of a break, a section break or a barline (the specification's
-  row "flow-marker label offset"), `k`, `Q`, `K`, `F`, the gap after a frame's
+  row "flow-line label offset"), `k`, `Q`, `K`, `F`, the gap after a frame's
   title and the card shadow offset; `g` is also `1.5 × d`, as its row says;
 - a size depending on the card spacing is the formula of its row with the
   fixed parts the constants hold: the row pitch `max(10 + S, h(s))`, the

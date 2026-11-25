@@ -62,29 +62,9 @@ function specifiedDefaults(file: string): unknown {
   return parseJson(section.slice(start, section.indexOf("```", start)));
 }
 
-/**
- * A layer whose rules select the element types of the current schema: a rule
- * selecting `flow_marker` stands as three, for a break, a section break and a
- * barline, and one selecting `jump_from` selects a jump, as TimeToShare's
- * converter of flow control rewrites a manifest's rules. A layer written in
- * the current types is returned as it is.
- */
-function inCurrentTypes(layer: unknown): unknown {
-  const { rules, ...rest } = layer as { rules: { select: { element?: string }; set: unknown }[] };
-  return {
-    ...rest,
-    rules: rules.flatMap((rule) => {
-      const retyped = (element: string) => ({ ...rule, select: { ...rule.select, element } });
-      if (rule.select.element === "jump_from") return [retyped("jump")];
-      if (rule.select.element !== "flow_marker") return [rule];
-      return ["break", "section_break", "barline"].map(retyped);
-    }),
-  };
-}
-
 describe("DEFAULT_LAYER", () => {
-  it("equals the JSON block of the specification, read in the current element types", () => {
-    expect(DEFAULT_LAYER).toEqual(inCurrentTypes(specifiedDefaults(specification)));
+  it("equals the JSON block of the specification", () => {
+    expect(DEFAULT_LAYER).toEqual(specifiedDefaults(specification));
   });
 
   it("selects only element types of the schema", () => {
@@ -138,7 +118,7 @@ describe("the constants", () => {
     ["region row pitch `pr`", `${BRACE} + ${LABEL_GAP} + h(9) + S`],
     ["first jump depth", `${JUMP_DEPTH} + S`],
     ["jump row pitch `pj`", `${JUMP_PITCH} + S + h(9)`],
-    ["flow-marker label offset", `${FLOW_LINE_LABEL_OFFSET}`],
+    ["flow-line label offset", `${FLOW_LINE_LABEL_OFFSET}`],
     ["boundary half-height `k`", `${BOUNDARY}`],
     ["group frame padding `Q`", `${Q}`],
     ["card padding `K`", `${K}`],
