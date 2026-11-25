@@ -35,7 +35,7 @@ dev = [
 ]
 docs = [
   "myst-parser==5.1.0",
-  "pydata-sphinx-theme==0.21.0",
+  "pydata-sphinx-theme==0.24.0",
   "sphinx==9.0.4",
 ]
 
@@ -62,9 +62,10 @@ path = "hatch_build.py"
 # The release-age policy of the repository: a package version must be at least
 # fourteen days old. Move this date forward when refreshing the lockfile.
 exclude-newer = "2026-09-25T00:00:00Z"
-# jsonschema-rs 0.60.3 (2026-10-27), which timetoshare requires, is past the
-# fourteen days; no other package moves with it.
-exclude-newer-package = { jsonschema-rs = "2026-11-08T00:00:00Z" }
+# jsonschema-rs 0.60.3 (2026-10-27), which timetoshare requires, and
+# pydata-sphinx-theme 0.24.0 (2026-11-02), the documentation theme, are past
+# the fourteen days; no other package moves with them.
+exclude-newer-package = { jsonschema-rs = "2026-11-08T00:00:00Z", pydata-sphinx-theme = "2026-11-03T00:00:00Z" }
 # timetoalign names TimeToShare's development branch by a git URL. The server
 # imports nothing from timetoshare and does not require it; the override only
 # replaces timetoalign's requirement in the lockfile, and the source below
