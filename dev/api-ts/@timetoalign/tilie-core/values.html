@@ -538,7 +538,7 @@
 <blockquote>
 <div><p><strong>MemberReader</strong> = (<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">unknown</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L309">values.ts:309</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L309">values.ts:309</a></p>
 <p>A reader of one member: its value as stored, a problem, or <code class="docutils literal notranslate"><span class="pre">undefined</span></code> when it pushed its problems.</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
@@ -564,7 +564,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>PLACE_READERS</strong>: <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L157">values.ts:157</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L157">values.ts:157</a></p>
 <p>The rule of each member of a place: a position is finite, a size and the
 scale positive, the spacing, a gap, and the margin, empty space, finite
 and at least 0.</p>
@@ -762,7 +762,7 @@ becomes its double), -0 stored as 0, the number a written file reads back.</p>
 <blockquote>
 <div><p><strong>readBoolean</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code> | <a class="reference internal" href="errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L108">values.ts:108</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L108">values.ts:108</a></p>
 <p>A boolean.</p>
 <section id="id33">
 <h4>Parameters<a class="headerlink" href="#id33" title="Link to this heading">#</a></h4>
@@ -786,7 +786,7 @@ becomes its double), -0 stored as 0, the number a written file reads back.</p>
 <blockquote>
 <div><p><strong>readExact</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>, <code class="docutils literal notranslate"><span class="pre">readers</span></code>, <code class="docutils literal notranslate"><span class="pre">problems</span></code>): {[<code class="docutils literal notranslate"><span class="pre">member</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>]: <code class="docutils literal notranslate"><span class="pre">unknown</span></code>; } | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L315">values.ts:315</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L315">values.ts:315</a></p>
 <p>The members of an object, each read by its reader; an unknown member is
 <code class="docutils literal notranslate"><span class="pre">unknown_member</span></code>, an absent one <code class="docutils literal notranslate"><span class="pre">missing_member</span></code>. Problems go to <code class="docutils literal notranslate"><span class="pre">problems</span></code>.</p>
 <section id="id37">
@@ -819,7 +819,7 @@ becomes its double), -0 stored as 0, the number a written file reads back.</p>
 <blockquote>
 <div><p><strong>readFinite</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code> | <a class="reference internal" href="errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L116">values.ts:116</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L116">values.ts:116</a></p>
 <p>A canvas number: a finite double (an integral float read as <code class="docutils literal notranslate"><span class="pre">JsonFloat</span></code>
 becomes its double), -0 stored as 0, the number a written file reads back.</p>
 <section id="id41">
@@ -844,7 +844,7 @@ becomes its double), -0 stored as 0, the number a written file reads back.</p>
 <blockquote>
 <div><p><strong>readGraphical</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <a class="reference internal" href="errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">Graphical</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L260">values.ts:260</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L260">values.ts:260</a></p>
 <p>The workspace’s <code class="docutils literal notranslate"><span class="pre">graphical</span></code> block. It lies beside no timeline, so the
 schema refuses every named timestamp in it (<code class="docutils literal notranslate"><span class="pre">timestamp_timeline</span></code>), every
 named MatchStamp (<code class="docutils literal notranslate"><span class="pre">alignment_anchor</span></code>: its anchors name timestamps) and
@@ -871,7 +871,7 @@ every elision (<code class="docutils literal notranslate"><span class="pre">elis
 <blockquote>
 <div><p><strong>readIndex</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <a class="reference internal" href="errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L235">values.ts:235</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L235">values.ts:235</a></p>
 <p>A fractional index (<code class="docutils literal notranslate"><span class="pre">isIndex</span></code>); anything else is <code class="docutils literal notranslate"><span class="pre">invalid_index</span></code>.</p>
 <section id="id49">
 <h4>Parameters<a class="headerlink" href="#id49" title="Link to this heading">#</a></h4>
@@ -895,7 +895,7 @@ every elision (<code class="docutils literal notranslate"><span class="pre">elis
 <blockquote>
 <div><p><strong>readName</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <a class="reference internal" href="errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L93">values.ts:93</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L93">values.ts:93</a></p>
 <p>A string holding at least one character: the workspace’s name.</p>
 <section id="id53">
 <h4>Parameters<a class="headerlink" href="#id53" title="Link to this heading">#</a></h4>
@@ -919,7 +919,7 @@ every elision (<code class="docutils literal notranslate"><span class="pre">elis
 <blockquote>
 <div><p><strong>readNonNegative</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code> | <a class="reference internal" href="errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L138">values.ts:138</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L138">values.ts:138</a></p>
 <p>A gap in canvas units, a container’s spacing: a finite number at least 0.</p>
 <section id="id57">
 <h4>Parameters<a class="headerlink" href="#id57" title="Link to this heading">#</a></h4>
@@ -943,7 +943,7 @@ every elision (<code class="docutils literal notranslate"><span class="pre">elis
 <blockquote>
 <div><p><strong>readNullablePositive</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code> | <a class="reference internal" href="errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L145">values.ts:145</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L145">values.ts:145</a></p>
 <p>A positive canvas number, as <code class="docutils literal notranslate"><span class="pre">readPositive</span></code> reads it, or null.</p>
 <section id="id61">
 <h4>Parameters<a class="headerlink" href="#id61" title="Link to this heading">#</a></h4>
@@ -967,7 +967,7 @@ every elision (<code class="docutils literal notranslate"><span class="pre">elis
 <blockquote>
 <div><p><strong>readNullableString</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <a class="reference internal" href="errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L100">values.ts:100</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L100">values.ts:100</a></p>
 <p>A string or null.</p>
 <section id="id65">
 <h4>Parameters<a class="headerlink" href="#id65" title="Link to this heading">#</a></h4>
@@ -991,7 +991,7 @@ every elision (<code class="docutils literal notranslate"><span class="pre">elis
 <blockquote>
 <div><p><strong>readObject</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <a class="reference internal" href="errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <a class="reference internal" href="json.html#jsonobject"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">JsonObject</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L68">values.ts:68</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L68">values.ts:68</a></p>
 <p>A JSON object.</p>
 <section id="id69">
 <h4>Parameters<a class="headerlink" href="#id69" title="Link to this heading">#</a></h4>
@@ -1015,7 +1015,7 @@ every elision (<code class="docutils literal notranslate"><span class="pre">elis
 <blockquote>
 <div><p><strong>readPlaces</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <a class="reference internal" href="errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <a class="reference internal" href="manifest/containers.html#places"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Places</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L222">values.ts:222</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L222">values.ts:222</a></p>
 <p>A block’s places: an object of places by item ID, keys any string, each
 read as an item’s place with its members’ <code class="docutils literal notranslate"><span class="pre">cards</span></code>; which keys and members
 a manifest’s containers take is <code class="docutils literal notranslate"><span class="pre">placeProblems</span></code>’s.</p>
@@ -1041,7 +1041,7 @@ a manifest’s containers take is <code class="docutils literal notranslate"><sp
 <blockquote>
 <div><p><strong>readPositive</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code> | <a class="reference internal" href="errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L129">values.ts:129</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L129">values.ts:129</a></p>
 <p>A canvas number greater than 0, read as <code class="docutils literal notranslate"><span class="pre">readFinite</span></code> reads it; 0 or less
 is <code class="docutils literal notranslate"><span class="pre">non_positive_number</span></code>.</p>
 <section id="id77">
@@ -1066,7 +1066,7 @@ is <code class="docutils literal notranslate"><span class="pre">non_positive_num
 <blockquote>
 <div><p><strong>readRule</strong>(<code class="docutils literal notranslate"><span class="pre">select</span></code>, <code class="docutils literal notranslate"><span class="pre">set</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <a class="reference internal" href="errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | { <code class="docutils literal notranslate"><span class="pre">select</span></code>: <code class="docutils literal notranslate"><span class="pre">Selector</span></code>; <code class="docutils literal notranslate"><span class="pre">set</span></code>: <code class="docutils literal notranslate"><span class="pre">Declaration</span></code>; }</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L290">values.ts:290</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L290">values.ts:290</a></p>
 <p>A selector and a declaration, checked as one rule of a <code class="docutils literal notranslate"><span class="pre">graphical</span></code>
 block and read as the plain <code class="docutils literal notranslate"><span class="pre">Selector</span></code> and <code class="docutils literal notranslate"><span class="pre">Declaration</span></code> (its numbers
 doubles), or the first problem at <code class="docutils literal notranslate"><span class="pre">path</span></code>.</p>
@@ -1096,7 +1096,7 @@ doubles), or the first problem at <code class="docutils literal notranslate"><sp
 <blockquote>
 <div><p><strong>readString</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <a class="reference internal" href="errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L88">values.ts:88</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L88">values.ts:88</a></p>
 <p>A string.</p>
 <section id="id84">
 <h4>Parameters<a class="headerlink" href="#id84" title="Link to this heading">#</a></h4>
@@ -1120,7 +1120,7 @@ doubles), or the first problem at <code class="docutils literal notranslate"><sp
 <blockquote>
 <div><p><strong>toJson</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <a class="reference internal" href="errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <a class="reference internal" href="json.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Json</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L27">values.ts:27</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L27">values.ts:27</a></p>
 <p>A value as the JSON <code class="docutils literal notranslate"><span class="pre">parse</span></code> would read: plain objects and arrays, strings,
 booleans, null and <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>s. A non-finite number is
 <code class="docutils literal notranslate"><span class="pre">non_finite_number</span></code>; anything else without a JSON form is <code class="docutils literal notranslate"><span class="pre">invalid_value</span></code>.</p>
@@ -1146,7 +1146,7 @@ booleans, null and <code class="docutils literal notranslate"><span class="pre">
 <blockquote>
 <div><p><strong>unknownMember</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">allowed</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>, <code class="docutils literal notranslate"><span class="pre">code?</span></code>): <a class="reference internal" href="errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/values.ts#L75">values.ts:75</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/values.ts#L75">values.ts:75</a></p>
 <p>The first member of <code class="docutils literal notranslate"><span class="pre">value</span></code> that <code class="docutils literal notranslate"><span class="pre">allowed</span></code> does not list, as an <code class="docutils literal notranslate"><span class="pre">unknown_member</span></code> problem.</p>
 <section id="id92">
 <h4>Parameters<a class="headerlink" href="#id92" title="Link to this heading">#</a></h4>

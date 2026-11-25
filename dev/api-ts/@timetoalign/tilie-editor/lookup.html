@@ -538,7 +538,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="id1">
 <h3>Lookup<a class="headerlink" href="#id1" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L56">editor/src/lookup/index.ts:56</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L56">editor/src/lookup/index.ts:56</a></p>
 <p>The services a statement’s value is looked up in.</p>
 <section id="methods">
 <h4>Methods<a class="headerlink" href="#methods" title="Link to this heading">#</a></h4>
@@ -547,7 +547,7 @@
 <blockquote>
 <div><p><strong>reconcile</strong>(<code class="docutils literal notranslate"><span class="pre">system</span></code>, <code class="docutils literal notranslate"><span class="pre">kind</span></code>, <code class="docutils literal notranslate"><span class="pre">texts</span></code>, <code class="docutils literal notranslate"><span class="pre">signal?</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;readonly (<a class="reference internal" href="lookup/kinds.html#candidate"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Candidate</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code>)[]&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L90">editor/src/lookup/index.ts:90</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L90">editor/src/lookup/index.ts:90</a></p>
 <p>The best candidate for each text, <code class="docutils literal notranslate"><span class="pre">null</span></code> where none is found: one
 request for all texts at MusicBrainz (with its <code class="docutils literal notranslate"><span class="pre">match</span></code>), one search per
 text elsewhere (<code class="docutils literal notranslate"><span class="pre">match</span></code> false).</p>
@@ -584,7 +584,7 @@ text elsewhere (<code class="docutils literal notranslate"><span class="pre">mat
 <blockquote>
 <div><p><strong>resolvable</strong>(<code class="docutils literal notranslate"><span class="pre">system</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L60">editor/src/lookup/index.ts:60</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L60">editor/src/lookup/index.ts:60</a></p>
 <p>Whether <code class="docutils literal notranslate"><span class="pre">resolve</span></code> asks <code class="docutils literal notranslate"><span class="pre">system</span></code>.</p>
 <section id="id2">
 <h6>Parameters<a class="headerlink" href="#id2" title="Link to this heading">#</a></h6>
@@ -603,7 +603,7 @@ text elsewhere (<code class="docutils literal notranslate"><span class="pre">mat
 <blockquote>
 <div><p><strong>resolve</strong>(<code class="docutils literal notranslate"><span class="pre">system</span></code>, <code class="docutils literal notranslate"><span class="pre">iri</span></code>, <code class="docutils literal notranslate"><span class="pre">signal?</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<a class="reference internal" href="lookup/kinds.html#candidate"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Candidate</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L82">editor/src/lookup/index.ts:82</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L82">editor/src/lookup/index.ts:82</a></p>
 <p>The thing an IRI names in <code class="docutils literal notranslate"><span class="pre">system</span></code>, with its cross-references; <code class="docutils literal notranslate"><span class="pre">null</span></code>
 without a request where the system is not resolvable or the IRI is
 none of its things, and <code class="docutils literal notranslate"><span class="pre">null</span></code> for a video oEmbed does not describe.</p>
@@ -636,7 +636,7 @@ none of its things, and <code class="docutils literal notranslate"><span class="
 <blockquote>
 <div><p><strong>search</strong>(<code class="docutils literal notranslate"><span class="pre">system</span></code>, <code class="docutils literal notranslate"><span class="pre">kind</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code>, <code class="docutils literal notranslate"><span class="pre">signal?</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;readonly <a class="reference internal" href="lookup/kinds.html#candidate"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Candidate</span></code></span></a>[]&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L69">editor/src/lookup/index.ts:69</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L69">editor/src/lookup/index.ts:69</a></p>
 <p>The things of <code class="docutils literal notranslate"><span class="pre">kind</span></code> that <code class="docutils literal notranslate"><span class="pre">system</span></code> finds for <code class="docutils literal notranslate"><span class="pre">text</span></code>, in the service’s
 order, without cross-references; <code class="docutils literal notranslate"><span class="pre">[]</span></code> without a request where the
 system is not searchable for the kind or the text is blank.</p>
@@ -674,7 +674,7 @@ aborted request rejects with the signal’s reason instead.</p>
 <blockquote>
 <div><p><strong>searchable</strong>(<code class="docutils literal notranslate"><span class="pre">system</span></code>, <code class="docutils literal notranslate"><span class="pre">kind</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L58">editor/src/lookup/index.ts:58</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L58">editor/src/lookup/index.ts:58</a></p>
 <p>Whether <code class="docutils literal notranslate"><span class="pre">search</span></code> asks <code class="docutils literal notranslate"><span class="pre">system</span></code> for things of <code class="docutils literal notranslate"><span class="pre">kind</span></code>.</p>
 <section id="id16">
 <h6>Parameters<a class="headerlink" href="#id16" title="Link to this heading">#</a></h6>
@@ -697,7 +697,7 @@ aborted request rejects with the signal’s reason instead.</p>
 <hr class="docutils" />
 <section id="lookupoptions">
 <h3>LookupOptions<a class="headerlink" href="#lookupoptions" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L99">editor/src/lookup/index.ts:99</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L99">editor/src/lookup/index.ts:99</a></p>
 <p>What <code class="docutils literal notranslate"><span class="pre">createLookup</span></code> is given: how it fetches, the server, and what it searches and labels with.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -706,7 +706,7 @@ aborted request rejects with the signal’s reason instead.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>catalogue?</strong>: <code class="docutils literal notranslate"><span class="pre">Catalogue</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L107">editor/src/lookup/index.ts:107</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L107">editor/src/lookup/index.ts:107</a></p>
 <p>The catalogue that recognises IRIs; the default catalogue by default.</p>
 </section>
 <section id="fetch">
@@ -714,7 +714,7 @@ aborted request rejects with the signal’s reason instead.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>fetch?</strong>: {(<code class="docutils literal notranslate"><span class="pre">input</span></code>, <code class="docutils literal notranslate"><span class="pre">init?</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Response</span></code>&gt;; (<code class="docutils literal notranslate"><span class="pre">input</span></code>, <code class="docutils literal notranslate"><span class="pre">init?</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Response</span></code>&gt;; }</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L101">editor/src/lookup/index.ts:101</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L101">editor/src/lookup/index.ts:101</a></p>
 <p>The fetch to send requests with; the global one by default.</p>
 <section id="call-signature">
 <h6>Call Signature<a class="headerlink" href="#call-signature" title="Link to this heading">#</a></h6>
@@ -766,7 +766,7 @@ aborted request rejects with the signal’s reason instead.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>language?</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L105">editor/src/lookup/index.ts:105</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L105">editor/src/lookup/index.ts:105</a></p>
 <p>The language of labels and descriptions; <code class="docutils literal notranslate"><span class="pre">&quot;en&quot;</span></code> by default.</p>
 </section>
 <section id="server">
@@ -774,7 +774,7 @@ aborted request rejects with the signal’s reason instead.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>server</strong>: <a class="reference internal" href="embed.html#serveroptions"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ServerOptions</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L103">editor/src/lookup/index.ts:103</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L103">editor/src/lookup/index.ts:103</a></p>
 <p>The server MusicBrainz is reached through; <code class="docutils literal notranslate"><span class="pre">null</span></code> leaves MusicBrainz out.</p>
 </section>
 <section id="services">
@@ -782,7 +782,7 @@ aborted request rejects with the signal’s reason instead.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>services?</strong>: () =&gt; readonly <a class="reference internal" href="lookup/services.html#id3"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Service</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L112">editor/src/lookup/index.ts:112</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L112">editor/src/lookup/index.ts:112</a></p>
 <p>The viewer’s services, read at every request (the editor gives its type
 profiles’); none by default.</p>
 <section id="id27">
@@ -800,7 +800,7 @@ profiles’); none by default.</p>
 <blockquote>
 <div><p><strong>lookupOf</strong>: () =&gt; <a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">Lookup</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L195">editor/src/lookup/index.ts:195</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L195">editor/src/lookup/index.ts:195</a></p>
 <section id="id28">
 <h4>Returns<a class="headerlink" href="#id28" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">Lookup</span></code></a></p>
@@ -812,7 +812,7 @@ profiles’); none by default.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>NO_LOOKUP</strong>: <a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">Lookup</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L186">editor/src/lookup/index.ts:186</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L186">editor/src/lookup/index.ts:186</a></p>
 <p>The lookup of an editor that looks nothing up: nothing searchable or resolvable, no request.</p>
 </section>
 <hr class="docutils" />
@@ -821,7 +821,7 @@ profiles’); none by default.</p>
 <blockquote>
 <div><p><strong>provideLookup</strong>: (<code class="docutils literal notranslate"><span class="pre">context</span></code>) =&gt; <a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">Lookup</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L195">editor/src/lookup/index.ts:195</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L195">editor/src/lookup/index.ts:195</a></p>
 <section id="id29">
 <h4>Parameters<a class="headerlink" href="#id29" title="Link to this heading">#</a></h4>
 <section id="context">
@@ -842,7 +842,7 @@ profiles’); none by default.</p>
 <blockquote>
 <div><p><strong>createLookup</strong>(<code class="docutils literal notranslate"><span class="pre">options</span></code>): <a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">Lookup</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/lookup/index.ts#L130">editor/src/lookup/index.ts:130</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/editor/src/lookup/index.ts#L130">editor/src/lookup/index.ts:130</a></p>
 <p>The lookup of the services <code class="docutils literal notranslate"><span class="pre">options</span></code> reach.</p>
 <section id="id31">
 <h4>Parameters<a class="headerlink" href="#id31" title="Link to this heading">#</a></h4>
