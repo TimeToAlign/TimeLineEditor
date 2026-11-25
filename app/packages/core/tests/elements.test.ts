@@ -1006,29 +1006,34 @@ describe("the selector member class on regions", () => {
   });
 
   it("reads an absolute IRI and a prefix of the manifest's own", () => {
-    const sonata = load(SONATA);
-    const { tts: _tts, ...context } = sonata["@context"] as Record<string, unknown>;
-    const [root] = sonata.timelines;
-    if (root === undefined) throw new Error("no root");
-    const manifest: Manifest = {
-      ...sonata,
-      "@context": { ...context, ex: "https://timetoalign.github.io/timetoshare/ns#" },
-      timelines: [
-        {
-          ...root,
-          regions: root.regions.map((region) =>
-            region.id === "region_2" ? { ...region, statements: { type: [ATOMIC] } } : region,
-          ),
-        },
-      ],
-    } as Manifest;
+    const value = manifestValue(SONATA);
+    const { tts: _tts, ...context } = value["@context"] as Record<string, unknown>;
+    const [root] = value.timelines as Record<string, unknown>[];
+    const regions = (root?.regions ?? []) as Record<string, unknown>[];
+    const manifest = loadText(
+      fileText({
+        ...value,
+        "@context": { ...context, ex: "https://timetoalign.github.io/timetoshare/ns#" },
+        timelines: [
+          {
+            ...root,
+            regions: regions.map(({ provenance: _provenance, ...region }) => ({
+              ...region,
+              statements: { type: [region.id === "region_2" ? "ex:AtomicSection" : ATOMIC] },
+            })),
+          },
+        ],
+      }),
+    );
     const keys = manifestElements(manifest);
     expect(
-      keys.find((key) => key.type === "region" && key.address.id === "region_2")?.types,
-    ).toEqual([ATOMIC, "tts:AtomicSection", "ex:AtomicSection"]);
+      keys.filter((key) => key.types !== undefined).map((key) => [key.address, key.types]),
+    ).toEqual(
+      REGIONS.map((address) => [address, [ATOMIC, "tts:AtomicSection", "ex:AtomicSection"]]),
+    );
     const matched = matcher(keys, timelineAncestry(manifest));
     for (const name of ["tts:AtomicSection", "ex:AtomicSection", ATOMIC]) {
-      expect(matched({ element: "region", class: name })).toContainEqual(id("region_2"));
+      expect(matched({ element: "region", class: name })).toEqual(REGIONS);
     }
   });
 });

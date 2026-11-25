@@ -1,4 +1,4 @@
-import { type ElementAddress, sameAddress } from "@timetoalign/tilie-core";
+import { type AxisValue, type ElementAddress, sameAddress } from "@timetoalign/tilie-core";
 import type { Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
@@ -46,8 +46,8 @@ const region = (
   timeline: string,
   id: string,
   name: string,
-  start: readonly [number, number],
-  end: readonly [number, number],
+  start: AxisValue,
+  end: AxisValue,
 ): object => ({ type: "add", into: target(timeline), region: { id, name, start, end, meta: {} } });
 
 const drawn = (manifest: Parameters<typeof draw>[0], ...extra: Graphical[]): Drawing =>
@@ -166,14 +166,14 @@ describe("Op. 106's regions and movements", () => {
     timeline: string,
     id: string,
     name: string,
-    start: [number, number],
-    end: [number, number],
+    start: AxisValue,
+    end: AxisValue,
   ) => [region(timeline, id, name, start, end), set(id, { statements: { type: [ATOMIC] } })];
   const movement = (
     id: string,
     name: string,
     offset: number,
-    length: readonly [number, number],
+    length: AxisValue,
   ) => {
     const added = child("op106", id, offset, 1) as { readonly child: object };
     return [{ ...added, child: { ...added.child, length } }, set(id, { name })];

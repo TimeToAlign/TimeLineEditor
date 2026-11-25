@@ -880,11 +880,12 @@ check of who holds what.
     not its region), `{class: "tts:Other"}` and `{class: "AtomicSection"}`
     nothing, and the region's timeline class still matches it
     (`{element: "region", class: "ContinuousLogicalTimeline"}`, all
-    three). The same fixture with `region_2` stating the absolute IRI
-    instead, `tts` removed from its context and `ex` declared for the
-    format's namespace: `region_2`'s spellings are the IRI, `tts:AtomicSection`
-    and `ex:AtomicSection`, and the three selectors `tts:AtomicSection`,
-    `ex:AtomicSection` and the IRI each match it.
+    three). The same fixture with `tts` removed from its context, `ex`
+    declared for the format's namespace, `region_2` stating
+    `ex:AtomicSection` and the other two the absolute IRI (their provenance
+    dropped): every region's spellings are the IRI, `tts:AtomicSection` and
+    `ex:AtomicSection`, and the three selectors `tts:AtomicSection`,
+    `ex:AtomicSection` and the IRI each match the three regions.
 
 The elements of manifests with several roots and groups are in "Several
 roots and groups".

@@ -391,7 +391,9 @@ describe("descriptors", () => {
     expect(svgBody(drawing)).toEqual([
       '<line data-id="region_2" data-part="leader" x1="40" y1="10" x2="40" y2="22" stroke="#9CA3AF" stroke-width="0.5"/>',
     ]);
-    expect(tikzBody(drawing)).toEqual(["\\path[draw=ts9CA3AF,line width=0.5pt] (40,20) -- (40,8);"]);
+    expect(tikzBody(drawing)).toEqual([
+      "\\path[draw=ts9CA3AF,line width=0.5pt] (40,20) -- (40,8);",
+    ]);
   });
 
   it("writes the bundle_matchstamps fixture's anchors and their label last, as stored", () => {

@@ -130,7 +130,7 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): PreparedBa
         ),
         // A label beyond its first tier is joined to its brace's tip by its leader, displayed
         // only with the label (sections 2.4 and 6.6, Leaders).
-        regionLeaders: drawn.flatMap(({ region, middle, label, out, tier, leader }) =>
+        regionLeaders: drawn.flatMap(({ middle, label, out, tier, leader }) =>
           label === undefined || tier === undefined || tier === 1 || !shown(leader.style)
             ? []
             : [
