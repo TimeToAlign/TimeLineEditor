@@ -53,9 +53,9 @@ export function flowSymbols(element: FlowControlElement): readonly string[] {
     });
   }
   const word = element.manifestation;
-  const symbol = word === undefined || word === null ? undefined : ELEMENT_SYMBOLS[element.role];
-  const text =
-    symbol === undefined || word === undefined || word === null ? undefined : symbol[word];
+  const symbols = ELEMENT_SYMBOLS[element.role];
+  if (word === undefined || word === null || symbols === undefined) return [];
+  const text = Object.hasOwn(symbols, word) ? symbols[word] : undefined;
   return text === undefined ? [] : [text];
 }
 
