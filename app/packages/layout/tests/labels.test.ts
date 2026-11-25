@@ -162,19 +162,11 @@ describe("a segment label in tier 2", () => {
 });
 
 describe("Op. 106's regions and movements", () => {
-  const typed = (
-    timeline: string,
-    id: string,
-    name: string,
-    start: AxisValue,
-    end: AxisValue,
-  ) => [region(timeline, id, name, start, end), set(id, { statements: { type: [ATOMIC] } })];
-  const movement = (
-    id: string,
-    name: string,
-    offset: number,
-    length: AxisValue,
-  ) => {
+  const typed = (timeline: string, id: string, name: string, start: AxisValue, end: AxisValue) => [
+    region(timeline, id, name, start, end),
+    set(id, { statements: { type: [ATOMIC] } }),
+  ];
+  const movement = (id: string, name: string, offset: number, length: AxisValue) => {
     const added = child("op106", id, offset, 1) as { readonly child: object };
     return [{ ...added, child: { ...added.child, length } }, set(id, { name })];
   };
