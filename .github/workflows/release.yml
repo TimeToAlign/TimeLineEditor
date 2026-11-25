@@ -3,7 +3,8 @@
 # Merging it tags vX.Y.Z and creates the GitHub release; the build job then checks the
 # tag against the declared versions, tests and builds the app and the server, and the
 # publish job uploads the wheel and sdist to PyPI through trusted publishing (OIDC):
-# no token is stored.
+# no token is stored. The docs job then dispatches docs.yml with the tag, which
+# publishes the release's folder of the documentation site.
 name: release
 
 on:
@@ -82,3 +83,17 @@ jobs:
           name: dist
           path: dist
       - uses: pypa/gh-action-pypi-publish@release/v1
+
+  docs:
+    needs: [release-please, publish]
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+    steps:
+      # A tag pushed with the workflow token starts no workflow, so the
+      # documentation of the release is published by dispatching docs.yml.
+      - name: Publish the documentation of the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: gh workflow run docs.yml --repo "$GITHUB_REPOSITORY" --ref main -f ref="$TAG"

@@ -1,0 +1,149 @@
+# Builds the documentation site and publishes it as one folder per version on
+# the gh-pages branch, served at https://timetoalign.github.io/TimeLineEditor/:
+#   push to main          -> dev/
+#   push of a tag vX.Y.Z  -> X.Y.Z/, and stable/ when it is the newest release
+#   manual run            -> a release tag vX.Y.Z publishes X.Y.Z/, main
+#                            publishes dev/; any other ref is refused
+# A release made by release-please is published by release.yml, which
+# dispatches this workflow with its tag (a tag pushed with the workflow token
+# does not start a run by itself).
+#
+# The publishing script and the version menu (versions.js) are those of the
+# timetoalign repository, which publishes its documentation the same way.
+name: docs
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Tag (vX.Y.Z) or branch to build; empty builds the selected branch"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+# One group per ref, so that a build of main never cancels a pending release
+# build; the publishing step retries when another run moved gh-pages.
+concurrency:
+  group: docs-${{ inputs.ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the sources to build
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          fetch-depth: 0
+          path: TimeLineEditor
+
+      # The ref is a branch for now; pinning it to a commit makes a change of
+      # the script a change of this file.
+      - name: Check out the publishing script
+        uses: actions/checkout@v7
+        with:
+          repository: TimeToAlign/TimeToAlign
+          ref: main
+          path: tools
+          sparse-checkout: |
+            docs/publish_site.py
+            docs/versions.js
+          sparse-checkout-cone-mode: false
+
+      - name: Determine the version folder
+        id: target
+        working-directory: TimeLineEditor
+        env:
+          REF: ${{ inputs.ref || github.ref }}
+        run: |
+          name="${REF#refs/tags/}"
+          name="${name#refs/heads/}"
+          if [[ "$name" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "version=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+            echo "message=docs: publish ${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          elif [ "$name" = "main" ]; then
+            echo "version=dev" >> "$GITHUB_OUTPUT"
+            echo "message=docs: publish dev at $(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Only main (dev/) and release tags vX.Y.Z (X.Y.Z/) are published, not '$name'."
+            exit 1
+          fi
+
+      # server/pyproject.toml takes timetoalign from the checkout beside this
+      # repository and timetoshare from the TimeToShare checkout, which the
+      # install-app action makes; autodoc imports the server, so both are
+      # checked out side by side, as in ci.yml.
+      - uses: actions/checkout@v7
+        with:
+          repository: TimeToAlign/timetoalign
+          # the timetoalign commit server/uv.lock was locked against; moves with it
+          ref: 3337db21974e7583506b133e213ca77119cef952
+          path: timetoalign
+      - uses: ./TimeLineEditor/.github/actions/install-app
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version: "0.11.28"
+          python-version: "3.11"
+
+      # The one step that runs the site generator (see docs/README.md); it
+      # leaves the built site in TimeLineEditor/docs/_build/html.
+      - name: Build the site
+        working-directory: TimeLineEditor
+        run: |
+          pnpm -C app install --frozen-lockfile
+          (cd server && uv sync --group docs)
+          uv run --project server --group docs sphinx-build -W --keep-going -n -d docs/_build/doctrees docs docs/_build/html
+
+      # The branch is created only when the remote answers that it does not
+      # exist (exit status 2); any other failure stops the job.
+      - name: Check out gh-pages
+        working-directory: TimeLineEditor
+        run: |
+          if git ls-remote --exit-code --heads origin gh-pages > /dev/null; then
+            git fetch origin gh-pages
+            git worktree add -B gh-pages ../pages FETCH_HEAD
+          else
+            status=$?
+            if [ "$status" -ne 2 ]; then
+              exit "$status"
+            fi
+            git worktree add --orphan -b gh-pages ../pages
+          fi
+
+      # When the push is rejected because another run moved gh-pages, the
+      # folder is published again on top of the fetched branch, so that the
+      # root files are rebuilt from the folders actually present.
+      - name: Publish the version folder and push gh-pages
+        env:
+          VERSION: ${{ steps.target.outputs.version }}
+          MESSAGE: ${{ steps.target.outputs.message }}
+        run: |
+          git -C pages config user.name "github-actions[bot]"
+          git -C pages config user.email "41898799+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            python3 tools/docs/publish_site.py TimeLineEditor/docs/_build/html \
+              --version "$VERSION" --pages pages --base-path /TimeLineEditor/ \
+              --title "TiLiE documentation" --forward-from ""
+            git -C pages add -A
+            if git -C pages diff --cached --quiet; then
+              echo "Nothing changed."
+              exit 0
+            fi
+            git -C pages commit -m "$MESSAGE"
+            if git -C pages push origin gh-pages; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt); publishing again on the fetched gh-pages."
+            git -C pages fetch origin gh-pages
+            git -C pages reset --hard FETCH_HEAD
+          done
+          echo "::error::gh-pages kept moving; the folder was not published."
+          exit 1
