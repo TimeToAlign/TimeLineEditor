@@ -63,11 +63,11 @@ function ordinate(
       return [item.yc, own(item.address)];
     case "region":
       return [item.ya, own(item.address)];
-    case "jump_from":
+    case "jump":
       return [item.c1[1], own(item.address)];
     case "wedge":
       return [baseOf(item), own(item.address)];
-    case "flow_marker":
+    case "break":
       return [item.y1, own(item.address)];
     default:
       throw new Error(item.type);
@@ -101,8 +101,8 @@ const CASES: readonly [Facet, ElementType, string, string, number, number][] = [
   ["conversion_maps", "map", "map", "melody", 2, -1],
   ["markers", "wedge", "map", "melody", 2, 1],
   ["regions", "region", "with_region", "clt_1", 1, 1],
-  ["flow_control", "jump_from", "flow_control", "flow:quarters", 2, 1],
-  ["flow_control", "flow_marker", "flow_control", "flow:quarters", 1, 1],
+  ["flow_control", "jump", "flow_control", "flow:quarters", 2, 1],
+  ["flow_control", "break", "flow_control", "flow:quarters", 1, 1],
 ];
 
 describe("a band moved across its line", () => {
@@ -116,7 +116,7 @@ describe("a band moved across its line", () => {
     });
   }
 
-  it("ends the root's flow marker at the bottom padding when its flow control band lies above", () => {
+  it("ends the root's break at the bottom padding when its flow control band lies above", () => {
     const drawing = drawn(
       edit("flow_control", set("flow:quarters", { order: moved("flow_control") })),
     );
@@ -207,7 +207,7 @@ describe("a band order listing a subset of the facets", () => {
   });
 });
 
-describe("a child's flow marker", () => {
+describe("a child's break", () => {
   const shown: Graphical = {
     rules: [
       {

@@ -11,7 +11,11 @@
  * anchors and the match timestamps no MatchStamp left names; a MatchStamp
  * goes with every match timestamp one of its anchors names, so a removed
  * timeline or match timestamp takes it along. A resource keeps naming the
- * timelines left. Removing a group removes the group only: its
+ * timelines left. A FlowMap goes with the root timeline it orders, and a
+ * virtual timeline with the map applied or the timeline it comes from, at
+ * any depth of virtual timelines; a FlowMap chunk or a jump's destination
+ * left naming a removed element leaves the manifest dangling, which the
+ * schema check refuses. Removing a group removes the group only: its
  * members stay where they are. A group left without members stays. Removing
  * a measure map removes it only; a measure view still naming it leaves the
  * manifest dangling, which the schema check refuses. A removed element's
@@ -38,7 +42,8 @@ function entryIds(timeline: TimelineManifest): string[] {
  * named MatchStamp an anchor of which names a removed timestamp, with its
  * anchors, and every match timestamp no MatchStamp left names (so a
  * manifest whose MatchStamps changed drops the match timestamps left over,
- * `elements` empty). An ID naming nothing removes nothing.
+ * `elements` empty), every FlowMap of a removed root timeline and every
+ * virtual timeline of a removed map or timeline. An ID naming nothing removes nothing.
  */
 export function removedBy(manifest: Manifest, elements: Iterable<string>): Set<string> {
   const asked = new Set(elements);
@@ -72,6 +77,21 @@ export function removedBy(manifest: Manifest, elements: Iterable<string>): Set<s
   for (const { id, matchstamp } of timestamps) {
     if (matchstamp && !named.has(id)) removed.add(id);
   }
+  for (const { id, timeline } of manifest.flow_maps ?? []) {
+    if (asked.has(id) || removed.has(timeline)) removed.add(id);
+  }
+  // A virtual timeline may come from another one listed after it: until nothing more goes.
+  const virtual = manifest.virtual_timelines ?? [];
+  let grown = true;
+  while (grown) {
+    grown = false;
+    for (const { id, map, timeline } of virtual) {
+      if (removed.has(id) || !(asked.has(id) || removed.has(map) || removed.has(timeline)))
+        continue;
+      removed.add(id);
+      grown = true;
+    }
+  }
   return removed;
 }
 
@@ -99,6 +119,10 @@ export function withoutElements(manifest: Manifest, elements: Iterable<string>):
         ? { ...resource, timelines: resource.timelines.filter((id) => !removed.has(id)) }
         : resource,
     ),
+    ...(manifest.flow_maps === undefined ? {} : { flow_maps: manifest.flow_maps.filter(kept) }),
+    ...(manifest.virtual_timelines === undefined
+      ? {}
+      : { virtual_timelines: manifest.virtual_timelines.filter(kept) }),
   };
   const result = withoutReferencesTo(pruned, removed);
   const { graphical } = manifest;

@@ -158,10 +158,12 @@ describe("the elements of a manifest", () => {
     ]);
   });
 
-  it("gives regions, flow markers and jump origins their drawn addresses, each with a label", () => {
+  it("gives regions, breaks and jumps their drawn addresses, each with a label", () => {
     const addresses = (name: string) =>
       manifestElements(load(name))
-        .filter((key) => ["region", "flow_marker", "jump_from"].includes(key.type as string))
+        .filter((key) =>
+          ["region", "break", "section_break", "barline", "jump"].includes(key.type as string),
+        )
         .map((key) => key.address);
     expect(addresses("with_region.yaml")).toEqual([id("region_1")]);
     expect(
@@ -184,11 +186,11 @@ describe("the elements of a manifest", () => {
       ["label", id("timestamp_2", "coordinate")],
       ["band", band(flow, "regions")],
       ["band", band(flow, "flow_control")],
-      ["flow_marker", id("flow_marker_1")],
+      ["break", id("flow_marker_1")],
       ["label", id("flow_marker_1", "label")],
-      ["jump_from", id("jump_from_1")],
+      ["jump", id("jump_from_1")],
       ["label", id("jump_from_1", "label")],
-      ["jump_from", id("jump_from_2")],
+      ["jump", id("jump_from_2")],
       ["label", id("jump_from_2", "label")],
     ]);
   });

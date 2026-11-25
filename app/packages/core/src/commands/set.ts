@@ -914,16 +914,12 @@ const ENTRY_SET: { readonly [kind in EntryTarget["kind"]]: Setters<EntryTarget> 
     statements: regionDescribed("statements"),
     provenance: regionDescribed("provenance"),
   },
-  // The type decides which other members an element may carry: a new type replaces it whole.
+  // A flow-control element is never changed in place: its role, its coordinate and what decides
+  // the flow stay as they were added. It is renamed, and rejected through its provenance.
   flow_control: {
-    flow_control: entryWhole("flow_control", "a flow-control element"),
-    manifestation: entrySchemaValue("manifestation"),
-    target: entrySchemaValue("target", true),
-    repeat_count: entrySchemaValue("repeat_count", true),
-    coordinate: entryValue("flow_control", "coordinate", readAxis),
     name: entryValue("flow_control", "name", readNullableString),
     label: entryValue("flow_control", "label", readNullableString),
-    meta: entryValue("flow_control", "meta", readObject),
+    provenance: entrySchemaValue("provenance", true),
   },
 };
 

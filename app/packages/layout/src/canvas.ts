@@ -100,7 +100,7 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
         ya: y(element.ya),
         cuts: element.cuts.map(([left, right]) => [x(left), x(right)] as const),
       };
-    case "jump_from":
+    case "jump":
       return {
         ...element,
         style,
@@ -111,7 +111,9 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
         base: point(element.base),
         corners: [point(element.corners[0]), point(element.corners[1])],
       };
-    case "flow_marker":
+    case "break":
+    case "section_break":
+    case "barline":
     case "boundary":
     case "cross_section":
       return { ...element, style, x: x(element.x), y1: y(element.y1), y2: y(element.y2) };

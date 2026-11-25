@@ -19,6 +19,7 @@ import {
   indicesBetween,
   isCommandError,
   preview,
+  resolveAddress,
   sameAddress,
   TITLE_ADDRESS,
   WORKSPACE,
@@ -303,13 +304,24 @@ export function zOrderCommand(
   return setOf(changes);
 }
 
+/** Whether `address` names a flow-control element of `view` (core's `resolveAddress`). */
+function isFlowControl(view: View, address: Address): boolean {
+  const resolved = resolveAddress(view, address);
+  return (
+    !isCommandError(resolved) && resolved.kind === "entry" && resolved.entry === "flow_control"
+  );
+}
+
 /**
  * One `remove` of the selected addresses, an element's part or card
  * standing for the element whose ID it carries. Every element can be removed, timelines
  * and groups included; a selection holding a manifest's title, which goes
  * only with its block, is refused whole, with a hint naming the block. A
  * band is never removed: its address is left out, and a selection of bands
- * alone is refused with a hint. Whether a segment may go is core's to
+ * alone is refused with a hint. Nor is a flow-control element, which is
+ * rejected through its provenance and never deleted: its address, or that
+ * of a part of it, is left out, and a selection that names nothing else is
+ * refused with a hint. Whether a segment may go is core's to
  * decide: one that would leave a gap in its segment line is refused there
  * (`segment_not_removable`), and the canvas shows that refusal as it shows
  * every refusal of the store. Inside an editor the edited element is never
@@ -331,6 +343,7 @@ export function removeCommand(
   }
   const targets = new Map<string, Address>();
   const add = (target: Address) => targets.set(addressKey(target), target);
+  let flow = false;
   for (const address of addresses) {
     const { block: id, element } = addressParts(address);
     const block = view.blocks[id];
@@ -344,7 +357,18 @@ export function removeCommand(
         refused: `${title.charAt(0).toUpperCase()}${title.slice(1)} is removed only with its block; select the block to delete it.`,
       };
     }
-    add(inBlock(block.id, idAddress(element.id)));
+    const owner = inBlock(block.id, idAddress(element.id));
+    if (isFlowControl(view, owner)) {
+      flow = true;
+      continue;
+    }
+    add(owner);
+  }
+  if (targets.size === 0 && flow) {
+    return {
+      refused:
+        "A flow-control element is not deleted; state your belief in it in the Properties tab to reject it.",
+    };
   }
   const removed = [...targets.values()].filter(
     (target) => editing === null || !sameAddress(target, editing.target),

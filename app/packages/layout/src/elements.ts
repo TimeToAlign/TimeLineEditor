@@ -5,6 +5,7 @@
 
 import type {
   ElementAddress,
+  FlowLineRole,
   ItemArrangement,
   ItemDirection,
   Places,
@@ -180,9 +181,9 @@ export type PathCommand =
   | { readonly command: "Q"; readonly points: readonly [Point, Point] }
   | { readonly command: "C"; readonly points: readonly [Point, Point, Point] };
 
-/** A jump origin's arc, from its coordinate to its target's, and its arrowhead. */
+/** One arc of a jump, from the jump's coordinate to the place of one of its destinations, and its arrowhead. */
 export interface JumpElement extends Addressed {
-  readonly type: "jump_from";
+  readonly type: "jump";
   /** The curve's start `P0` and its controls `C1`, `C2`. */
   readonly start: Point;
   readonly c1: Point;
@@ -196,11 +197,12 @@ export interface JumpElement extends Addressed {
 }
 
 /**
- * A vertical line: a flow marker, the boundary of a segment, or the
- * cross-section line of a named timestamp, from `(x, y1)` to `(x, y2)`.
+ * A vertical line: a break, a section break or a barline of a flow control
+ * band, the boundary of a segment, or the cross-section line of a named
+ * timestamp, from `(x, y1)` to `(x, y2)`.
  */
 export interface VerticalLineElement extends Addressed {
-  readonly type: "flow_marker" | "boundary" | "cross_section";
+  readonly type: FlowLineRole | "boundary" | "cross_section";
   readonly x: number;
   readonly y1: number;
   readonly y2: number;

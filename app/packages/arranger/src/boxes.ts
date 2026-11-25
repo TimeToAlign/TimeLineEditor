@@ -517,8 +517,10 @@ export function roleOf(descriptor: Descriptor): Role {
     case "ancestor":
     case "map":
     case "region":
-    case "jump_from":
-    case "flow_marker":
+    case "jump":
+    case "break":
+    case "section_break":
+    case "barline":
     case "cross_section":
     case "wedge":
     case "alignment_anchor":

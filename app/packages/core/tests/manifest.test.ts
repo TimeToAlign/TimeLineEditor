@@ -171,7 +171,7 @@ describe("unknown keys", () => {
     view = changed(view, {
       type: "add",
       into: at("bare"),
-      flow_control: { id: "fine", type: "flow_marker", manifestation: "fine", coordinate: [1, 1] },
+      flow_control: { id: "fine", role: "break", manifestation: "fine", coordinate: [1, 1] },
     });
     const edited = block(view).manifest;
     expect(kept(edited)).toEqual([1, { a: [1, 2] }, "kept"]);
@@ -261,7 +261,7 @@ describe("graphical styles", () => {
       "styles",
       "timestamps",
     ]);
-    const jump = graphical?.rules?.find((rule) => rule.select.element === "jump_from");
+    const jump = graphical?.rules?.find((rule) => rule.select.element === "jump");
     expect(Object.keys(jump?.set ?? {})).toEqual(["fill", "stroke", "stroke-width"]);
     expect(Object.keys(graphical?.styles?.accent ?? {})).toEqual(
       Object.keys(node(manifestValue("styled__score.yaml"), "graphical", "styles", "accent")),
@@ -360,7 +360,7 @@ describe("canonical order", () => {
     const [root] = value.timelines as Node[];
     const flow_control = ["\u{1F3B5}", "～"].map((id) => ({
       id,
-      type: "jump_to",
+      role: "jump_target",
       manifestation: "segno",
       coordinate: [1, 1],
     }));

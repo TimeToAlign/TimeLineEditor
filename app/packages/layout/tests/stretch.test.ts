@@ -95,17 +95,17 @@ describe("the padding", () => {
     }
   });
 
-  it("ends a flow marker's line at the padding below", () => {
+  it("ends a break's line at the padding below", () => {
     const drawing = drawFixture("flow_control", [], spaced("flow:quarters", 8));
     expect(drawing.height).toBe(134.80859375);
     expect(element(drawing, at("flow:quarters"))).toMatchObject({ y: 22.40234375 });
-    expect(drawing.elements.find((item) => item.type === "flow_marker")).toMatchObject({
+    expect(drawing.elements.find((item) => item.type === "break")).toMatchObject({
       y1: 67.85546875,
       y2: 16,
     });
   });
 
-  it("ends a flow marker of a flow control band above the line at the padding", () => {
+  it("ends a break of a flow control band above the line at the padding", () => {
     const order = bandOrder(
       ["flow_control", "children", "conversion_maps"],
       ["markers", "regions"],
@@ -119,7 +119,7 @@ describe("the padding", () => {
     );
     expect(drawing.height).toBe(129.90625);
     expect(element(drawing, at("flow:quarters"))).toMatchObject({ y: 84.9296875 });
-    expect(drawing.elements.find((item) => item.type === "flow_marker")).toMatchObject({
+    expect(drawing.elements.find((item) => item.type === "break")).toMatchObject({
       y1: 64.953125,
       y2: 111.90625,
     });

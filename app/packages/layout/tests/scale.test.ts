@@ -32,9 +32,9 @@ function thousandElements(): Manifest {
   const map = load("map").timelines[0]?.conversion_maps[0];
   const region = load("with_region").timelines[0]?.regions[0];
   const flow = load("flow_control").timelines[0]?.flow_control ?? [];
-  const stop = flow.find((item) => item.type === "flow_marker");
-  const jump = flow.find((item) => item.type === "jump_from");
-  const marker = flow.find((item) => item.type === "jump_to");
+  const stop = flow.find((item) => item.role === "break");
+  const jump = flow.find((item) => item.role === "jump");
+  const marker = flow.find((item) => item.role === "jump_target");
   if (
     template === undefined ||
     map === undefined ||
@@ -45,8 +45,11 @@ function thousandElements(): Manifest {
   ) {
     throw new Error("operation-count fixtures are incomplete");
   }
-  // The jump leads to the timeline's start: no target.
-  const { target: _, ...toStart } = jump;
+  // The jump leads to the timeline's start: its one destination names no place.
+  const [destination] = jump.targets ?? [];
+  if (destination === undefined) throw new Error("operation-count fixtures are incomplete");
+  const { to: _, ...placeless } = destination;
+  const toStart = { ...jump, targets: [placeless] as const };
 
   const richChildren: ChildTimeline[] = Array.from({ length: 60 }, (_, index) => ({
     ...template,
@@ -181,7 +184,7 @@ function counting(): { readonly font: FontMetrics; readonly reads: string[] } {
 /**
  * Every distinct text the drawing measures: the coordinate labels of the root's `origin` and
  * `length`, the region's,
- * flow marker's and jump origin's labels, the root's name, the nested child's, and the names
+ * break's and jump's labels, the root's name, the nested child's, and the names
  * of the rows of children, each row's names joined (the segment line's row ends with its own).
  */
 const MEASURED = [

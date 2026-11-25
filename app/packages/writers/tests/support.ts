@@ -236,7 +236,7 @@ export function everything(): Drawing {
       cuts: [],
     },
     {
-      type: "jump_from",
+      type: "jump",
       address: at("j"),
       style: style({ stroke: "#000000", fill: "#000000" }),
       start: [70, 50],
@@ -250,7 +250,7 @@ export function everything(): Drawing {
       ],
     },
     {
-      type: "flow_marker",
+      type: "break",
       address: at("k"),
       style: style({ stroke: "#FF0000", "stroke-dasharray": "2" }),
       x: 120,

@@ -91,6 +91,8 @@ export { contains } from "./manifest/contains.ts";
 export { elisionsUnder, groupElisions } from "./manifest/elisions.ts";
 export type { EntryKind, ListedElement } from "./manifest/files.ts";
 export { isNamed } from "./manifest/files.ts";
+export type { ElementBelief, ElementProvenance, FlowLineRole } from "./manifest/flow.ts";
+export { FLOW_LINE_ROLES, isRejected, withElementBelief } from "./manifest/flow.ts";
 export type { ReadManifestFile } from "./manifest/io.ts";
 export {
   idFormPath,
@@ -139,6 +141,7 @@ export type {
   Elision,
   FlowControlElement,
   Group,
+  JumpDestination,
   Manifest,
   ManifestGraphical,
   MeasureMap,

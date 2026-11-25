@@ -151,13 +151,13 @@ describe("a card's margin", () => {
     expect(boxAt(after, half)).toMatchObject({ contentCount: 3, card: { margin: MARGIN } });
   });
 
-  it("moves the root's flow markers with the card's contents", () => {
+  it("moves the root's breaks with the card's contents", () => {
     const manifest = loadFile("flow_control");
     const before = drawn(manifest);
     const after = drawn(manifest, { places: { "flow:quarters": { margin: MARGIN } } });
     const card = at("flow:quarters", "card");
     const markers = (drawing: Drawing) =>
-      inside(drawing, card).filter((item) => item.type === "flow_marker");
+      inside(drawing, card).filter((item) => item.type === "break");
     expect(markers(after).length).toBe(1);
     expect(markers(after)).toEqual(moved(markers(before), MARGIN));
     expect(rect(after, card)).toEqual(taller(rect(before, card)));

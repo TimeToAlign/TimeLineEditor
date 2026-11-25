@@ -25,6 +25,7 @@ import {
 import { ELISION_LABELS, elisionsOn, elisionsUnder, groupElisions } from "./elisions.ts";
 import type { GroupFrame, MemberDrawing } from "./files.ts";
 import { isNamed, memberDrawings } from "./files.ts";
+import { FLOW_LINE_ROLES } from "./flow.ts";
 import { findTimeline, groupsHolding, timelineAncestry } from "./tree.ts";
 import type {
   ChildTimeline,
@@ -108,11 +109,12 @@ export function unownedKey(
 }
 
 /**
- * The flow-control element types a flow control band draws, in drawing
- * order: its flow markers, then its jump origins; a `jump_to` draws nothing
- * of its own.
+ * The flow-control elements a flow control band draws, in drawing order:
+ * its breaks, section breaks and barlines together (`FLOW_LINE_ROLES`), then
+ * its jumps; a jump target draws nothing of its own. An element's type in
+ * the drawing is its role.
  */
-export const DRAWN_FLOW = ["flow_marker", "jump_from"] as const;
+const DRAWN_FLOW = [FLOW_LINE_ROLES, ["jump"]] as const;
 
 /** The domain and modality of every unit (drawing.md section 2.3). */
 const UNIT_DOMAINS: Readonly<Record<TimeUnit, readonly [Domain, Modality]>> = {
@@ -334,8 +336,8 @@ function gapElements(
  * but the `coordinate` label of one without a value (section 6.6);
  * every wedge and label of a named timestamp carries `coordinates`, the
  * primary or a secondary one; the regions band its
- * regions, and the flow control band its flow markers, then its jump origins,
- * each with its label (a jump target draws nothing of its own). In a card
+ * regions, and the flow control band its breaks, section breaks and barlines,
+ * then its jumps, each with its label (a jump target draws nothing of its own). In a card
  * drawing a root whole (`elides`: an ungrouped root's card or an ancestor
  * card, section 8.9), each timeline's line (or node) then holds, after its
  * five bands, the gaps of the stored card elisions lying on it
@@ -454,9 +456,10 @@ function memberElements(
         for (const region of timeline.regions) labelled("region", idAddress(region.id), band);
       },
       flow_control: (band) => {
-        for (const type of DRAWN_FLOW) {
+        for (const roles of DRAWN_FLOW) {
           for (const item of timeline.flow_control) {
-            if (item.type === type) labelled(type, idAddress(item.id), band);
+            const role = roles.find((drawn) => drawn === item.role);
+            if (role !== undefined) labelled(role, idAddress(item.id), band);
           }
         }
       },

@@ -197,7 +197,7 @@ export function layoutScope(
     ];
     const ancestorLinesDrawn = ancestorLineElements(scope, ancestors, bands, x0, yRoot);
     const elements: DrawnElement[] = [
-      ...each("flowMarkers"),
+      ...each("flowLines"),
       ...each("maps"),
       ...each("regions"),
       ...each("jumps"),
@@ -212,7 +212,7 @@ export function layoutScope(
       ...bySegment(each("segmentLabels")),
       ...each("regionLabels"),
       ...each("jumpLabels"),
-      ...each("flowMarkerLabels"),
+      ...each("flowLineLabels"),
       ...ancestorCrossSections(scope, ancestors, bands, x0, yRoot, [top, bottom]),
       ...each("crossSections"),
     ];

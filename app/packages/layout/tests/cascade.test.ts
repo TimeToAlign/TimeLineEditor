@@ -1,4 +1,4 @@
-import { addressKey, sameAddress } from "@timetoalign/tilie-core";
+import { addressKey, idAddress, sameAddress } from "@timetoalign/tilie-core";
 import { BLOCK_KEY, bandKey, manifestElements } from "@timetoalign/tilie-core/drawing";
 import type { Address, Graphical, Rule, Selector } from "@timetoalign/timetoshare";
 import { describe, expect, it, vi } from "vitest";
@@ -574,13 +574,20 @@ describe("the elements core enumerates", () => {
     ]);
     const cards = drawing.boxes.filter((box) => box.kind === "card");
     const frames = drawing.boxes.filter((box) => box.kind === "frame");
+    // The jumps, each drawn as one arc per destination, each arc with a label of its own.
+    const jumps = new Set(
+      [...listed].flatMap(([own, types]) => (types.includes("jump") ? [own] : [])),
+    );
     // One drawing of an address: an element, but the pieces a cross-section line is drawn in
-    // across a card, on either side of its gap, which are one drawing of that card, and the
+    // across a card, on either side of its gap, which are one drawing of that card, the arcs of
+    // a jump in a card and their labels, which are one drawing of that card each, and the
     // pieces a groupstamp's line is drawn in across a frame, outside every card, which are one
     // drawing of that frame.
     const drawingOf = (item: DrawnElement, index: number): string => {
       const inCard = cards.findIndex(({ range }) => range.start <= index && index < range.end);
       if (item.type === "cross_section" && inCard !== -1) return `card ${inCard}`;
+      const owner = addressKey(idAddress(item.address.id ?? ""));
+      if (jumps.has(owner) && inCard !== -1) return `card ${inCard}`;
       const frame =
         item.type !== "cross_section"
           ? undefined

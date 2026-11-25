@@ -60,11 +60,12 @@ function fixturesIn(subdirectory = ""): FixtureWithTwin[] {
     }));
 }
 
-/** Every manifest fixture of the installed schema version, its own, `groups/…` and `bundles/…`, each with its twin. */
+/** Every manifest fixture of the installed schema version, its own, `groups/…`, `bundles/…` and `flow/…`, each with its twin. */
 export const allFixtures: readonly FixtureWithTwin[] = [
   ...fixturesIn(),
   ...fixturesIn("groups"),
   ...fixturesIn("bundles"),
+  ...fixturesIn("flow"),
 ];
 
 /** A text of the schema package's `fixtures/file_forms/`, the cases of a manifest file's form, its line ends kept. */

@@ -8,8 +8,9 @@
  *   manifest in its complete form. In schema 0.2.0 these are `length`
  *   (required, may be null) and `name` of every timeline; `name`,
  *   `source_unit` and `target_unit` of every conversion map; `name` of a
- *   region; `name` and `label` of a flow-control element; `name` of a
- *   group, of a measure map and of the manifest.
+ *   region; `name` and `label` of a flow-control element and `label` of a
+ *   jump's destination; `name` of a group, of a measure map, of a FlowMap,
+ *   of a virtual timeline and of the manifest.
  * - Any other null cannot be shown: an optional member without the default
  *   null that may be null (a measure-map row's `nominal_length`, where
  *   absent and null mean different things) or a null array item. Such a

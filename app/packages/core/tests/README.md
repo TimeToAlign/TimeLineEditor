@@ -36,7 +36,7 @@ check or the guard) is a location in the view, not an address.
 
 **Where manifests come from.** Every manifest is a fixture of the
 installed TimeToShare package: `fixtures/<SCHEMA_VERSION>/` with its
-`groups/` and `bundles/`, each in the complete form beside its minimal twin
+`groups/`, `bundles/` and `flow/`, each in the complete form beside its minimal twin
 (`<name>.minimal.yaml`, canonical YAML), and the shared rejection cases of
 `fixtures/rejections/<SCHEMA_VERSION>/`. A variant is built from a fixture
 through commands, or by changing the fixture's value before loading it
@@ -210,8 +210,8 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    the case's `path`. These include TimeToShare's identity and
    representation rules (an ID repeated anywhere in the manifest, an ID
    holding a control character, an address of a rule of the wrong
-   shape, a band order in the former string form, a jump origin's `target`
-   naming no jump target of its timeline, a measure view naming no measure
+   shape, a band order in the former string form, a jump's destination
+   whose `to` names no place of its timeline, a measure view naming no measure
    map, an `int` on a `fraction` axis),
    all `schema_violation`s from its `validate`, so `core` checks none of
    them again; a `non_finite` case is refused with its number in place.
@@ -232,7 +232,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
 5. **Unknown keys survive.** `bare.yaml` with an unknown key at the top
    (`"x-top": 1`), on the root (`"x-root": {"a": [1, 2]}`) and on a region it
    is given (`"x-region": "kept"`) loads with all three in place; after a
-   `set` of the root's `name` and an `add` of a flow marker, all three are still
+   `set` of the root's `name` and an `add` of a break, all three are still
    there with their values, and `saveManifest` writes them. Core's
    `unknownKeys` (TimeToShare's of the manifest's file form) lists exactly
    the three `{path, key}` pairs, sorted by path then key.
@@ -596,8 +596,9 @@ timeline's length is fixed and binds no child to it.
 
 An ID unique across the whole manifest and free of control characters (any
 other string is an ID: `/`, spaces, URIs and part words alike), a group's members
-naming timelines of the manifest, a jump origin's `target` naming a jump
-target of its timeline, a measure view's `measure_map` naming a measure map
+naming timelines of the manifest, the `to` of a jump's destination naming a
+jump target, a region or a child of its timeline or the timeline itself, a
+measure view's `measure_map` naming a measure map
 of the manifest, a child sharing its parent's unit (`ChildrenMixin.validate_child`
 in the library), a conversion map's non-null `source_unit` being its
 timeline's unit (a held map's, its holder's), segment contiguity and the
@@ -607,10 +608,13 @@ may repeat.
 
 Rules the library does **not** enforce and this package therefore does not
 invent: a child may have another number type than its parent; a region may
-lie outside its timeline (negative start, end past the length); flow-control
-elements may lie outside it too; a locked timeline still accepts children
-within its length, regions, flow control and maps; any number of
-flow-control elements may share a coordinate. Measure maps and conversion-map
+lie outside its timeline (negative start, end past the length); a locked
+timeline still accepts children within its length, regions, flow control
+and maps. Flow control has rules of the format's own, which its `validate`
+checks and core does not repeat: an element's coordinate, and the place a
+destination reaches by its `by`, lie from 0 to the timeline's length; one
+coordinate holds one jump that is not rejected, and any number of other
+elements. Measure maps and conversion-map
 payloads are carried verbatim: their rules beyond the schema
 (`MeasureMap.from_dict`, `ConversionMap.from_dict`) are the server's to
 check, not the editor's.
@@ -641,8 +645,8 @@ check of who holds what.
    coordinate labels of the root's named timestamps `origin` and `length`,
    `{id: "timestamp_1"}`, `{id: "timestamp_1", part: ["coordinate"]}`,
    `{id: "timestamp_2"}`, `{id: "timestamp_2", part: ["coordinate"]}`, each
-   label held by the markers band and not by its wedge, regions, flow
-   markers then jump origins with their labels). No timeline's start or end
+   label held by the markers band and not by its wedge, regions, breaks,
+   section breaks and barlines, then jumps, with their labels). No timeline's start or end
    is an element of its own line. The maps are `{id: "ticks"}` and
    `{id: "tempo"}`. Every timeline lists all five bands. A band has no
    domain, modality or class, and its facet.
@@ -652,13 +656,14 @@ check of who holds what.
    `css_pixels` and `user_units` are `ContinuousGraphicalTimeline`, beside
    `points`. A map takes its `target_unit`'s domain and modality, `number`
    included.
-3. **Regions, flow markers and jump origins** of `with_region.yaml` and
+3. **Regions, breaks and jumps** of `with_region.yaml` and
    `flow_control.yaml` are addressed by their IDs, each with a label
    (`{id, part: ["label"]}`), and held by their bands (the whole (type,
-   address) list of `flow_control.yaml` is pinned: `flow_marker`
-   `{id: "flow_marker_1"}`, then the `jump_from`s `jump_from_1` and
-   `jump_from_2`, each followed by its label); a jump target (`jump_to_1`,
-   `jump_to_2`) is no element; in every one-root manifest fixture every
+   address) list of `flow_control.yaml` is pinned: the `break`
+   `{id: "flow_marker_1"}`, then the `jump`s `jump_from_1` and
+   `jump_from_2`, each followed by its label; the fixture keeps the IDs it
+   was first written with); a jump target (`jump_to_1`, `jump_to_2`) is no
+   element; in every one-root manifest fixture every
    address is distinct on the timeline it belongs to (compared by
    `addressKey` beside the timeline's ID: a secondary coordinate's wedge
    and labels carry its timestamp's addresses on the timeline they mark,
@@ -853,6 +858,74 @@ check of who holds what.
 
 The elements of manifests with several roots and groups are in "Several
 roots and groups".
+
+## Flow control, FlowMaps and virtual timelines (`flow.test.ts`)
+
+The oracle is TimeToShare's schema and its ten `flow/` fixtures, which
+core's fixture list holds beside the others (so every suite that iterates
+the manifest fixtures reads them: the round trips of
+`manifest.test.ts` and `manifest-file.test.ts` in three serializations, the
+drawn elements of `address.test.ts`, the properties and the budgets). The
+ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
+`ossia`, `repairs`, `repeat_end_and_dal_segno`, `sections`,
+`sonata_exposition` and `volta_passes`.
+
+1. **Kept through an edit of something else.** Each of the ten, held in a
+   block whose manifest's `name` is set to `Edited`, is saved in the
+   complete form as TimeToShare's `dumps` writes the fixture's own value
+   with that one member changed, byte for byte: the five roles with their
+   members, every key of every destination, `ends`, `provenance`,
+   `flow_maps`, `virtual_timelines` and the statements of the atomic-section
+   regions are neither reordered nor respelled nor dropped. Named back, it
+   is saved as the fixture's text, and in the minimal form as its twin.
+2. **The drawn elements.** The roles drawn as lines are `break`,
+   `section_break` and `barline`. A flow control band lists them together
+   in canonical order (coordinate, then ID), then its jumps, each element's
+   type its role, and no jump target: `flow/sections` (break `break_1` at
+   8, jump `jump_1` and section break `section_break_1` at 16, jump
+   `jump_2` at 32) lists `break_1`, `section_break_1`, `jump_1`, `jump_2`;
+   `flow/repairs` `barline_1`, then `jump_1` and `jump_2` (the rejected
+   jump is drawn, and so listed); `flow/sonata_exposition` `break_1`,
+   `jump_1`, `jump_2`. Each has one label `{id, part: ["label"]}`,
+   whatever its role and however many arcs a jump draws.
+3. **Words.** In a workspace of one block an element is worded by its role
+   and its ID: "break 'break_1'", "section break 'section_break_1'", "jump
+   'jump_1'", "barline 'barline_1'", "jump target 'jump_target_1'".
+4. **FlowMaps and virtual timelines** are neither drawn nor addressed:
+   `flow/sonata_exposition`'s `flow_map_1`, `flow_map_2`, `flow_map_3` and
+   `virtual_1` are IDs of the manifest (`manifestIds`) that `resolveElement`
+   gives nothing for, and adding a region under one of them is
+   `duplicate_id` at the region's `id`. They go with the root timeline
+   they belong to: `removedBy` of `score` is the twelve IDs `score`, its
+   three regions, its four flow-control elements, the three FlowMaps and
+   `virtual_1`, and removing `score` leaves `timelines`, `flow_maps` and
+   `virtual_timelines` empty; a manifest stating neither list
+   (`flow/sections`) gains neither. Anything else left dangling is
+   refused, never followed: removing `region_2`, which `flow_map_1` lists
+   second, is a `schema_violation` at `[A, "manifest", "flow_maps", 0,
+   "chunks", 1]`.
+5. **Rejected** is TimeToShare's reading: an entry of the element's
+   `provenance` holds a belief `false`, whoever holds it. Of
+   `flow/repairs`' `barline_1`, `jump_target_1`, `jump_1` and `jump_2`
+   only `jump_1` is; an element without provenance is not, nor one whose
+   beliefs are `true` and `unlikely`; one actor's `false` beside another's
+   `true` rejects.
+6. **A belief recorded** (`withElementBelief`), for the actor
+   `https://example.org/people/editor`, `false` on 2026-11-26: an element
+   without provenance gains the one entry `{beliefs: [that belief]}`;
+   where no entry holds a belief of the actor it joins the first entry
+   (after that entry's own beliefs), the other entries untouched; where an
+   entry holds one (`ex:editor` under the prefix `ex:
+   https://example.org/people/`, compared as the IRI it stands for), it
+   replaces that belief in place, the earlier note going with it, and
+   without the prefix `ex:editor` is another actor, so the belief joins
+   the first entry. On `flow/repairs`: believing the rejected `jump_1`
+   `true` while `jump_2` stands at the same coordinate is a
+   `schema_violation` at `flow_control` index 3 (two jumps at one
+   coordinate, the second in canonical order); after believing `jump_2`
+   `false` it is accepted, `jump_1`'s one entry then `{method: "imported",
+   beliefs: [{actor, belief: "true", date: "2026-11-26"}]}`, and of the
+   four elements only `jump_2` is rejected.
 
 ## Bands and band orders (`bands.test.ts`)
 
@@ -1108,7 +1181,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
    "label"]`; no line marks its own start or end), and of the child member
    `excerpt` (`{id: "excerpt", part: ["end"]}`: no mark of a member's start
    or end is drawn on its ancestor lines), a label of a timeline that is no segment (`{id: "score",
-   part: ["label"]}`), the name of a region and of a jump origin, and a
+   part: ["label"]}`), the name of a region and of a jump, and a
    map's label and name. A malformed address is
    `invalid_address` at `[address]` with the reader's message (`{block:
    "short"}`, a facet beside a part, an element without its block).
@@ -1125,8 +1198,8 @@ string form is `addressKey`, and nothing splits or composes an ID.
    with `resolveElement`, and to the kind its element type says (a card or
    an ancestor card the cards, a band a band, except a band of a timeline
    drawn in no card but an ancestor card, which has no container and
-   resolves to nothing, a frame a frame, a map, region, flow marker or jump
-   origin an entry, a label, wedge or boundary a part, the title the title,
+   resolves to nothing, a frame a frame, a map, region, break, section
+   break, barline or jump an entry, a label, wedge or boundary a part, the title the title,
    an alignment anchor's line its anchor, a stored elision's gap its
    elision (in a card, across a frame and carried into an ancestor card
    alike), its ellipsis and labels a part, every other line a timeline;
@@ -1250,7 +1323,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
     timeline 'Score' in bundle 'Mixed'", its end's label "the label of the
     end of timeline 'Score' in bundle 'Mixed'", `region_2` "region 'Chorus'
     in bundle 'Mixed'", `cmap_6` "conversion map 'cmap_6' in bundle
-    'Mixed'", `jump_from_1` "jump origin 'jump_from_1' in bundle 'Mixed'",
+    'Mixed'", `jump_from_1` "jump 'jump_from_1' in bundle 'Mixed'",
     `B`'s `tempo` "conversion map 'Tempo' in the anonymous bundle", the
     measure map `bars` added to `A` "measure map 'bars' in bundle 'Mixed'".
     On a view holding block `A` alone the bundle is left out: `score`
@@ -1288,7 +1361,7 @@ There are four commands, each aimed at **addresses**, objects read by
 `readAddress` ("Addresses and containers"): `add {into, <kind>:
 value}` with exactly one kind member; `set {changes: [{target, values}, …]}`,
 at least one change and one property in each `values`, the properties a
-member of their own so that none (a jump origin's `target`) collides with the
+member of their own so that none (a member named `target`) collides with the
 change's `target`; `remove {targets}`, at least one; `style {select, set,
 name?, blocks?}`. What a command does is decided by the **kind of its
 target**, resolved from the address alone: `{}` the workspace, `{block:
@@ -1354,22 +1427,26 @@ other commands are not judged by it.
    "A", start: [2, 1], end: [4, 1]}` is stored with `meta: {}`, and `end`
    `[6, 1]` with `name` null exactly so. On `flow_control.yaml`, whose
    elements in canonical order are the jump targets `jump_to_1` at 2 and
-   `jump_to_2` (segno) at 4, the jump origin `jump_from_1` at 8 targeting
-   `jump_to_1`, the flow marker `flow_marker_1` at 12 and the jump origin `jump_from_2`
-   (dal segno) at 16 targeting `jump_to_2`, each list compared whole in
-   canonical order (coordinate, then id): adding the jump target `{id:
-   "coda_1", type: "jump_to", manifestation: "coda", coordinate: [12, 1]}`
-   (stored with `name` and `label` null, `meta: {}`, before `flow_marker_1`,
-   which shares its coordinate and follows it by id) and
-   targeting it from `jump_from_1`; a copy of `flow_marker_1` as `flow_marker_2` at `[3, 1]`
-   with `flow_marker_1` removed (`jump_to_1`, `flow_marker_2`, `jump_to_2`, `jump_from_1`,
-   `jump_from_2`); `jump_from_1` removed; `jump_to_1` at `[2, 2]` stored
-   `[1, 1]`; `jump_from_1`'s `target` set to null, which removes the member (a
-   repeat end without a target leads to the timeline's start); `jump_from_1`
-   replaced whole through its `flow_control` property by `{id: "jump_from_1",
-   type: "flow_marker", manifestation: "double_barline", coordinate: [8,
-   1]}`, stored complete: an element's type, which decides the members it
-   may carry, changes only so.
+   `jump_to_2` (segno) at 4, the jump `jump_from_1` at 8 with one
+   destination to `jump_to_1`, the break `flow_marker_1` (a Fine) at 12 and
+   the jump `jump_from_2` at 16 with one destination to `jump_to_2`, each
+   list compared whole in canonical order (coordinate, then id): adding the
+   jump target `{id: "coda_1", role: "jump_target", manifestation: "coda",
+   coordinate: [12, 1]}` (stored with `name` and `label` null, `meta: {}`,
+   before `flow_marker_1`, which shares its coordinate and follows it by
+   id) and the jump `volta_1` at `[6, 1]` with the destinations `{to:
+   "coda_1", passes: [2], manifestation: "volta"}` and `{by: [0, 1],
+   passes: [1], manifestation: "volta"}`, given in that order and stored
+   in the canonical one (the `by` before the `to`), each complete
+   (`determined: true`, `reset: true`, `label: null`); `jump_from_1` named
+   `repeat` and its `label` set to null in one `set`; its `provenance` set
+   to one entry `{method: "imported", beliefs: [{actor:
+   "https://example.org/people/editor", belief: "false", date:
+   "2026-11-25"}]}`, stored as given, and set to null, which removes the
+   member; `jump_from_1` removed together with its timeline
+   `flow:quarters`, which leaves no timeline. A flow-control element is
+   never changed in place and never removed alone: a repair rejects it by
+   a belief and adds another.
 5. Measure maps, a block's manifest's top-level list, their IDs unique
    across the manifest as every ID: `add {into: {block: A}, measure_map:
    {id: "bars", rows: [{count: 1, qstamp: [0, 1]}]}}` into a block of
@@ -1524,17 +1601,21 @@ refusal as `apply`.
   `child_exceeds_parent` (`clt_2` at `[7, 1]` under the locked `clt_3`);
   `schema_violation` below `[{}, "graphical"]`, at `[A,
   "manifest", "timetoshare"]` for a manifest declaring `0.6.0`, and for
-  the flow marker `flow_marker_1` given a jump origin's manifestation
-  (`repeat_end`) or a `repeat_count`, at that member in the manifest
-  (`flow_control` index 3); `unknown_property` for an element's `type`,
-  which only the whole element (`flow_control`) changes, and
-  `id_not_settable` at `[{block: A, id: "jump_from_1"}, "flow_control",
-  "id"]` for a whole
-  element of another id. Manifest locations: `negative_child_offset`
-  (`clt_2` at `[-1, 1]`), `region_end_before_start` (`with_region.yaml`),
-  `schema_violation` for a jump origin targeting no jump target (at
-  `jump_from_1`'s `target`, index 2) and for removing the jump target a jump
-  origin names (at its `target`, index 1 once `jump_to_1` is gone): a
+  the earlier form of a flow-control element (`{id: "old", type:
+  "jump_to", …}` added at 8, at `flow_control` index 3, where canonical
+  order puts it), for a second jump at the coordinate of one that is not
+  rejected (`again` at 8 sorts before `jump_from_1`, which is then the
+  second, index 3), for an empty `provenance` (index 2, `provenance`) and
+  for rejecting `jump_from_2`, which the Fine's `ends` names (at
+  `flow_control` index 3, `ends`, `after`, `jump`); `not_removable` at
+  the element's address for each of `jump_to_1`, `jump_from_1` and
+  `flow_marker_1` removed alone; `unknown_property` for a `set` of
+  `flow_control`, `role`, `targets`, `manifestation` or `ends` on
+  `jump_from_1`, and `wrong_target_kind` for `coordinate` and `meta`,
+  which other kinds of target have: what decides the flow, and where the
+  element lies, is no property a `set` gives. Manifest locations:
+  `negative_child_offset`
+  (`clt_2` at `[-1, 1]`), `region_end_before_start` (`with_region.yaml`): a
   removal that leaves a reference dangling is refused, never followed by
   removing the referrer. A measure map is held to the same rule: on a
   block of `bare.yaml` holding `bars`, removing `{block: A, id: "bars"}` while the view
@@ -1583,7 +1664,7 @@ refusal as `apply`.
   `B` of `bare.yaml`): the workspace's own `graphical`; `A`'s `x`, `index`,
   `width` and its manifest as loaded; `clt_1`'s `name: null`, `meta: {}` and
   `length: [32, 2]`; `clt_3`'s own offset; on `map.yaml` `tempo`'s own
-  payload; on `flow_control.yaml` `jump_to_1` at `[4, 2]`. Judging the whole
+  payload; on `flow_control.yaml` `jump_to_1` named `repeat-start`. Judging the whole
   command: `A` at its own `x` with `B` moved is accepted; refused are both
   at their own `x` (at `[{block: A}, "x"]`), `A`'s `x` 5 then 0, `clt_1`'s
   place `{x: 3}` then `{x: null}` (at `[{block: A, id: "clt_1"},
@@ -1797,8 +1878,8 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    `timelines[0].conversion_maps[0]` and `{id: "ticks"}` the map
    `timelines[0].children[0].conversion_maps[0]`, both kind `map`; in
    `flow_control.yaml` `flow_marker_1`, `jump_from_1` and `jump_to_1` the
-   elements of `timelines[0].flow_control` with those ids (a flow marker, a
-   jump origin, a jump target), each kind `flow_control`; in
+   elements of `timelines[0].flow_control` with those ids (a break, a
+   jump, a jump target), each kind `flow_control`; in
    `group_number_types.yaml` with `region_1`, `{id: "region_1"}` the object
    `timelines[2].regions[0]`, kind `region`. It gives no entry for `{id:
    "score"}` (a timeline), `{id: "group_1"}` (a group), `{part: ["name"]}`

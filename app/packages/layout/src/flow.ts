@@ -1,98 +1,162 @@
 /**
- * The flow control band: a timeline's displayed flow markers and jump
- * origins and those of the segments that join it; the flow-marker label
- * tiers and the flow row, where jumps leave and arrive by rows and flow
- * markers end (`docs/drawing.md` in TimeToShare, sections 6.4 and 6.6). A
- * jump target draws nothing of its own.
+ * The flow control band: a timeline's displayed breaks, section breaks,
+ * barlines and jumps and those of the segments that join it; the label
+ * tiers of the lines and the flow row, where jumps leave and arrive by rows
+ * and the lines end (`docs/drawing.md` in TimeToShare, sections 6.4 and
+ * 6.6). A jump target draws nothing of its own.
  */
 
-import { idAddress } from "@timetoalign/tilie-core";
+import type {
+  FlowControlElement,
+  JumpDestination,
+  TimelineManifest,
+} from "@timetoalign/tilie-core";
+import { FLOW_LINE_ROLES, idAddress, isRejected } from "@timetoalign/tilie-core";
 import type { Real } from "@timetoalign/tilie-core/numbers";
+import { compareReal } from "@timetoalign/tilie-core/numbers";
 import type { PreparedBand } from "./bands.ts";
-import { FLOW_MARKER_LABEL_OFFSET, JUMP_DEPTH, JUMP_PITCH, LABEL_GAP } from "./constants.ts";
+import { FLOW_LINE_LABEL_OFFSET, JUMP_DEPTH, JUMP_PITCH, LABEL_GAP } from "./constants.ts";
 import type { Point } from "./elements.ts";
 import { type Extent, labelExtent, Rows, widen } from "./fit.ts";
+import { fadedStyle } from "./markers.ts";
 import { centredLabel } from "./names.ts";
 import { add, coordinateValue, exactDistance, midpoint, times, zero } from "./numbers.ts";
-import { type Entry, maxSize, type Scope, shown } from "./traversal.ts";
+import { type Entry, maxSize, type Owned, type Scope, shown } from "./traversal.ts";
+
+/**
+ * Where a destination of `jump` lands on the own axis of `timeline`, which
+ * lists the jump: `by`, that distance from the jump's coordinate; `to`, the
+ * coordinate of the jump target, the start of the region or the offset of
+ * the child timeline with that ID, or 0 for the timeline itself; neither,
+ * the start of the jump's section: the coordinate of the nearest section
+ * break before the jump that is not rejected, else 0. `undefined` for a
+ * `to` that names none of these, which only a rejected jump may hold.
+ */
+function placeOf(
+  timeline: TimelineManifest,
+  jump: FlowControlElement,
+  destination: JumpDestination,
+): Real | undefined {
+  const own = (value: Parameters<typeof coordinateValue>[0]) =>
+    coordinateValue(value, timeline.number_type);
+  const from = own(jump.coordinate);
+  if (destination.by !== undefined) return add(from, own(destination.by));
+  const { to } = destination;
+  if (to === undefined) {
+    return timeline.flow_control
+      .filter((item) => item.role === "section_break" && !isRejected(item))
+      .map((item) => own(item.coordinate))
+      .filter((start) => compareReal(start, from) < 0)
+      .reduce(
+        (nearest, start) => (compareReal(start, nearest) > 0 ? start : nearest),
+        zero(timeline.number_type),
+      );
+  }
+  if (to === timeline.id) return zero(timeline.number_type);
+  const target = timeline.flow_control.find(
+    (item) => item.role === "jump_target" && item.id === to,
+  );
+  if (target !== undefined) return own(target.coordinate);
+  const region = timeline.regions.find((item) => item.id === to);
+  if (region !== undefined) return own(region.start);
+  const child = timeline.children.find((item) => item.id === to);
+  return child === undefined ? undefined : own(child.offset);
+}
+
+/** An element's style and its label's, faded where the element is rejected (`isRejected`). */
+function believed<T extends Owned>(item: T, element: FlowControlElement): T {
+  if (!isRejected(element)) return item;
+  return {
+    ...item,
+    style: fadedStyle(item.style),
+    label: { ...item.label, style: fadedStyle(item.label.style) },
+  };
+}
 
 /**
  * The flow control band of the timeline drawn with the line `line` (section
- * 6.4, Flow control, Flow markers and Segments without a line): the
- * displayed flow markers and jump origins (`jump_from`) of each timeline of
- * `sources`, the line first and then each joined segment, each one's in
- * canonical order. A jump runs from its element's coordinate to its target
- * `jump_to`'s coordinate, or to 0 without a target. The drawn flow-marker
- * labels are placed in that order by first fit into the label tiers,
+ * 6.4, Flow control and Segments without a line): the displayed breaks,
+ * section breaks and barlines (its lines) and the displayed jumps of each
+ * timeline of `sources`, the line first and then each joined segment, each
+ * one's in canonical order. A jump draws one arc per destination, in the
+ * order of its `targets`, from its coordinate to the destination's place
+ * (`placeOf`); a destination whose place is `by` 0, which is going on and
+ * no jump, draws none, nor does one whose place resolves nowhere. An arc is
+ * drawn with its destination's `label`, else its jump's, else its
+ * destination's manifestation, else with no label; every arc and every
+ * label of a jump carries the jump's address. An element some actor
+ * believes `false` (`isRejected`) is drawn faded (`fadedStyle`), with its
+ * label, and takes its place in the rows as any other. The drawn labels of
+ * the lines are placed in that order by first fit into the label tiers,
  * `T × h(9)` wide; the flow row lies `T × h(9)` beyond the band's start. The
- * jumps, sorted stably by span (the exact absolute difference of their to
+ * arcs, sorted stably by span (the exact absolute difference of their to
  * and from positions), smallest first, are placed in that order by first fit
  * with the extent from the smaller to the larger of their from and to,
  * widened to their drawn label's extent, into the jump rows; row `k` has its
  * apex `f0 + (4 + S) + (k − 1) × pj` out, `pj = 6 + S + h(9)`, `S` the card
  * spacing. The band is `T × h(9) + (4 + S) + (K − 1) × pj + 2 + h(9)` wide for
  * `K ≥ 1` jump rows and
- * `T × h(9)` for none; 9 is the largest font size of its drawn jump and
- * flow-marker labels together; a jump without a label of its own is drawn
- * with its manifestation. A flow marker runs from the flow row to
- * `at.flowMarkerEnd`, its label starting at `x + 3` in its tier, tier 1
- * touching the flow row on the line's side of it. A flow marker whose
- * coordinate lies in a gap is not drawn, nor is its label; nor is a jump
+ * `T × h(9)` for none; 9 is the largest font size of its drawn arc and
+ * line labels together. A line runs from the flow row to
+ * `at.flowLineEnd`, its label starting at `x + 3` in its tier, tier 1
+ * touching the flow row on the line's side of it. A line whose
+ * coordinate lies in a gap is not drawn, nor is its label; nor is an arc
  * whose from, to or the midpoint of the two does, with its label (section
  * 6.6, Elisions).
  */
 export function flowControlBand(scope: Scope, sources: readonly Entry[]): PreparedBand {
   const { owned, measured, relativeX, S, h, a, d } = scope;
   const held = sources.filter((source) => shown(source.bands.flow_control.style));
-  const own = (source: Entry, value: Parameters<typeof coordinateValue>[0]) =>
-    add(source.start, coordinateValue(value, source.manifest.number_type));
-  const markers = held.flatMap((source) =>
-    source.manifest.flow_control
-      .filter((item) => item.type === "flow_marker")
-      .map((item) => ({
-        ...owned("flow_marker", idAddress(item.id), source, "flow_control"),
-        at: own(source, item.coordinate),
-        text: item.label,
-      }))
-      .filter((item) => shown(item.style)),
+  const own = (source: Entry, value: Real) => add(source.start, value);
+  const lines = held.flatMap((source) =>
+    source.manifest.flow_control.flatMap((item) => {
+      const role = FLOW_LINE_ROLES.find((drawn) => drawn === item.role);
+      if (role === undefined) return [];
+      const drawn = believed(owned(role, idAddress(item.id), source, "flow_control"), item);
+      if (!shown(drawn.style)) return [];
+      const at = own(source, coordinateValue(item.coordinate, source.manifest.number_type));
+      return [{ ...drawn, role, at, text: item.label }];
+    }),
   );
-  const jumps = held.flatMap((source) => {
-    const elements = source.manifest.flow_control;
-    const landing = (target: string | undefined) => {
-      const found = elements.find((item) => item.type === "jump_to" && item.id === target);
-      return found === undefined
-        ? add(source.start, zero(source.manifest.number_type))
-        : own(source, found.coordinate);
-    };
-    return elements
-      .filter((item) => item.type === "jump_from")
-      .map((item) => ({
-        ...owned("jump_from", idAddress(item.id), source, "flow_control"),
-        from: own(source, item.coordinate),
-        to: landing(item.target),
-        text: item.label ?? item.manifestation,
-      }))
-      .filter((item) => shown(item.style));
-  });
+  const jumps = held.flatMap((source) =>
+    source.manifest.flow_control.flatMap((item) => {
+      if (item.role !== "jump") return [];
+      const drawn = believed(owned("jump", idAddress(item.id), source, "flow_control"), item);
+      if (!shown(drawn.style)) return [];
+      const from = own(source, coordinateValue(item.coordinate, source.manifest.number_type));
+      const arcs = (item.targets ?? []).flatMap((destination) => {
+        const place = placeOf(source.manifest, item, destination);
+        if (place === undefined) return [];
+        const to = own(source, place);
+        // `by` 0 is going on, written where the source prints it: no jump, no arc.
+        if (destination.by !== undefined && exactDistance(to, from).numerator === 0n) return [];
+        const text = destination.label ?? item.label ?? destination.manifestation ?? null;
+        return [{ ...drawn, from, to, text }];
+      });
+      return arcs.length === 0 ? [] : [arcs];
+    }),
+  );
+  const arcs = jumps.flat();
 
-  // The drawn flow-marker labels, by first fit into the label tiers.
+  // The drawn labels of the lines, by first fit into the label tiers.
   const tiers = new Rows();
-  const labelledMarkers = markers.flatMap((item) => {
+  const labelledLines = lines.flatMap((item) => {
     if (item.text === null || !shown(item.label.style)) return [];
     const text = measured(item.label, item.text);
-    const left = relativeX(item.at) + FLOW_MARKER_LABEL_OFFSET;
+    const left = relativeX(item.at) + FLOW_LINE_LABEL_OFFSET;
     const extent: Extent = [left - 1, left + text.width + 1];
     return [{ item, text, extent, tier: tiers.place(extent) }];
   });
 
-  // The jumps, sorted stably by span, then by first fit into the jump rows.
+  // The arcs, sorted stably by span, then by first fit into the jump rows.
   const rows = new Rows();
-  const placedJumps = jumps
+  const placedJumps = arcs
     .map((jump, index) => ({ jump, index, span: exactDistance(jump.to, jump.from) }))
     .sort((left, right) => left.span.compare(right.span) || left.index - right.index)
     .map(({ jump }) => {
       const middle = midpoint(jump.from, jump.to);
-      const label = shown(jump.label.style) ? measured(jump.label, jump.text) : undefined;
+      const label =
+        jump.text !== null && shown(jump.label.style) ? measured(jump.label, jump.text) : undefined;
       const xFrom = relativeX(jump.from);
       const xTo = relativeX(jump.to);
       let extent: Extent = [Math.min(xFrom, xTo), Math.max(xFrom, xTo)];
@@ -102,7 +166,7 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
 
   const size = maxSize([
     ...placedJumps.flatMap((item) => (item.label === undefined ? [] : [item.jump.label])),
-    ...labelledMarkers.map((item) => item.item.label),
+    ...labelledLines.map((item) => item.item.label),
   ]);
   const tierRoom = tiers.count * h(size);
   // The first jump row's depth and the jump rows' pitch, each summed whole first.
@@ -111,15 +175,15 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
   const K = rows.count;
   return {
     facet: "flow_control",
-    elements: markers.length + jumps.length,
+    elements: lines.length + jumps.length,
     width: K === 0 ? tierRoom : tierRoom + depth + (K - 1) * pj + LABEL_GAP + h(size),
     extents: [
-      ...markers.map((item): Extent => [relativeX(item.at), relativeX(item.at)]),
-      ...labelledMarkers.map((item) => item.extent),
+      ...lines.map((item): Extent => [relativeX(item.at), relativeX(item.at)]),
+      ...labelledLines.map((item) => item.extent),
       ...placedJumps.map((item) => item.extent),
     ],
     centred: placedJumps.flatMap((item) => {
-      // A jump origin marking a position in a gap is not drawn, nor is its label (section 6.6).
+      // An arc leaving or arriving at a position in a gap is not drawn, nor is its label (section 6.6).
       const x = scope.drawnX(item.middle);
       const elided = [item.jump.from, item.jump.to].some(
         (value) => scope.drawnX(value) === undefined,
@@ -130,8 +194,8 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
     }),
     draw: (start, side, at) => {
       const elided = (...values: Real[]) => values.some((value) => at.gap(value) !== undefined);
-      const shownMarkers = markers.filter((item) => !elided(item.at));
-      const shownLabels = labelledMarkers.filter(({ item }) => !elided(item.at));
+      const shownLines = lines.filter((item) => !elided(item.at));
+      const shownLabels = labelledLines.filter(({ item }) => !elided(item.at));
       const shownJumps = placedJumps.filter(
         ({ jump, middle }) => !elided(jump.from, jump.to, middle),
       );
@@ -139,13 +203,13 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
       const yf = at.yAt(side, f0);
       const apex = (row: number) => f0 + depth + (row - 1) * pj;
       return {
-        flowMarkers: shownMarkers.map((item) => ({
-          type: "flow_marker",
+        flowLines: shownLines.map((item) => ({
+          type: item.role,
           address: item.address,
           style: item.style,
           x: at.x(item.at),
           y1: yf,
-          y2: at.flowMarkerEnd(side),
+          y2: at.flowLineEnd(side),
         })),
         jumps: shownJumps.map(({ jump, row }) => {
           const ya = at.yAt(side, apex(row));
@@ -162,7 +226,7 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
           const base: Point = [xt - 4 * w * ux, yf - 4 * w * uy];
           const [nx, ny] = [-uy, ux];
           return {
-            type: "jump_from",
+            type: "jump",
             address: jump.address,
             style: jump.style,
             start: [xf, yf],
@@ -189,13 +253,13 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
               ],
         ),
         // Tier 1 touches the flow row on the line's side; tier k lies (k − 1) h further in.
-        flowMarkerLabels: shownLabels.map(({ item, text, tier }) => {
+        flowLineLabels: shownLabels.map(({ item, text, tier }) => {
           const inwards = (tier - 1) * h(size);
           return {
             type: "label",
             address: item.label.address,
             style: item.label.style,
-            x: at.x(item.at) + FLOW_MARKER_LABEL_OFFSET,
+            x: at.x(item.at) + FLOW_LINE_LABEL_OFFSET,
             baseline: side === "below" ? yf - inwards - d(size) : yf + inwards + a(size),
             anchor: "start",
             text: text.clean,

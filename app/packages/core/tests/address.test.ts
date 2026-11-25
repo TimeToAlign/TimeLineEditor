@@ -391,7 +391,7 @@ describe("resolving an address", () => {
     [inA({ id: "region_1", part: ["name"] }), "the name of region 'Verse' in bundle 'Mixed'"],
     [
       inA({ id: "jump_from_1", part: ["name"] }),
-      "the name of jump origin 'jump_from_1' in bundle 'Mixed'",
+      "the name of jump 'jump_from_1' in bundle 'Mixed'",
     ],
     [
       inA({ id: "cmap_1", part: ["label"] }),
@@ -449,7 +449,7 @@ describe("the words of an address", () => {
     ],
     [inA({ id: "region_2" }), "region 'Chorus' in bundle 'Mixed'"],
     [inA({ id: "cmap_6" }), "conversion map 'cmap_6' in bundle 'Mixed'"],
-    [inA({ id: "jump_from_1" }), "jump origin 'jump_from_1' in bundle 'Mixed'"],
+    [inA({ id: "jump_from_1" }), "jump 'jump_from_1' in bundle 'Mixed'"],
     [{ block: B, id: "tempo" }, "conversion map 'Tempo' in the anonymous bundle"],
     [inA({ id: "gone" }), "'gone' in bundle 'Mixed'"],
     [
@@ -538,8 +538,10 @@ function kindOf(key: ElementKey): ResolvedElement["kind"] {
       return "frame";
     case "map":
     case "region":
-    case "flow_marker":
-    case "jump_from":
+    case "break":
+    case "section_break":
+    case "barline":
+    case "jump":
       return "entry";
     case "name":
       return key.address.id === undefined ? "title" : "part";

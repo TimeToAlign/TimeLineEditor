@@ -266,7 +266,7 @@ describe("a present band 0 high", () => {
       into: target("r"),
       flow_control: {
         id: "fine",
-        type: "flow_marker",
+        role: "break",
         manifestation: "fine",
         coordinate: quarters(4),
       },

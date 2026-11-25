@@ -210,6 +210,39 @@ describe("removeCommand", () => {
     });
   });
 
+  it("never removes a flow-control element: it is left out, and alone it is refused with a hint", () => {
+    const flow = viewOf({ id: A, fixture: "flow_control" });
+    const hint = {
+      refused:
+        "A flow-control element is not deleted; state your belief in it in the Properties tab to reject it.",
+    };
+    // A break, a jump, the label of either, and a jump target, which is selected by no drawing.
+    for (const address of [
+      at("flow_marker_1"),
+      at("jump_from_1"),
+      at("jump_from_1", "label"),
+      at("jump_to_1"),
+    ]) {
+      expect(removeCommand(flow, selectionOf([address]), null)).toEqual(hint);
+    }
+    expect(
+      removeCommand(flow, selectionOf([at("flow_marker_1"), at("jump_from_2", "label")]), null),
+    ).toEqual(hint);
+    const mixed = removeCommand(
+      flow,
+      selectionOf([at("jump_from_1"), at("timestamp_1"), at("flow_marker_1", "label")]),
+      null,
+    );
+    expect(mixed).toEqual(removing(at("timestamp_1")));
+    expect(
+      blockIn(changed(flow, mixed), A).manifest.timelines[0]?.flow_control.map(({ id }) => id),
+    ).toEqual(["jump_to_1", "jump_to_2", "jump_from_1", "flow_marker_1", "jump_from_2"]);
+    // Its timeline takes it along.
+    const whole = removeCommand(flow, selectionOf([at("jump_from_1"), at("flow:quarters")]), null);
+    expect(whole).toEqual(removing(at("flow:quarters")));
+    expect(blockIn(changed(flow, whole), A).manifest.timelines).toEqual([]);
+  });
+
   it("is accepted by apply", () => {
     const after = changed(nested, removeCommand(nested, selectionOf([at("clt_3")]), null));
     expect(manifestIds(blockIn(after, A).manifest)).toEqual(

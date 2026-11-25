@@ -537,11 +537,10 @@ beside it, which serves its MatchClaim table alone (reading
 `projections.parquet` from it gives `null`, nothing fetched), and every
 end-to-end workspace as `e2e/<name>`; no label
 repeats and the list is in code-unit order. For the installed package that
-is 184 manifest fixtures (92 and their minimal twins: 51 at the top
-level, 17 in `groups/`, 20 in `bundles/`, 4 in `statements/`, as the
-schema package's fixture README counts them: 2 × (51 + 17 + 20 + 4) =
-184), 16 warning cases, the table fixture and 5 workspaces, 184 + 16 + 1
-+ 5 = 206 options, from `bare` (then `bare.minimal`,
+is 204 manifest fixtures (102 and their minimal twins: 51 at the top
+level, 17 in `groups/`, 20 in `bundles/`, 4 in `statements/` and 10 in
+`flow/`: 2 × (51 + 17 + 20 + 4 + 10) = 204), 18 warning cases, the table
+fixture and 5 workspaces, 204 + 18 + 1 + 5 = 228 options, from `bare` (then `bare.minimal`,
 `bundles/bundle_arranged_conflict`, its twin, `bundles/bundle_arranged_roots`)
 to `with_region.minimal`; no option starts with `drawings/` or `rejections/`,
 which hold drawing inputs and outputs and refused manifests. Each option
@@ -552,7 +551,7 @@ fixture's or the warning case's `manifest`, which core's `loadManifest`
 accepts, so each option imports (`fixtures.test.ts`, one case per fixture
 named by its label, so that a failure names the fixture); every end-to-end
 workspace is of kind `workspace`, its text the file's, which the reader
-accepts; 184 + 16 + 1 = 201 entries of kind `manifest` and 5 of kind
+accepts; 204 + 18 + 1 = 223 entries of kind `manifest` and 5 of kind
 `workspace`. A
 manifest fixture is imported, never replacing the workspace and asking
 nothing, even with unsaved changes: chosen on a workspace holding one
@@ -633,8 +632,10 @@ accepts and refuses).
 
 1. **Every manifest round-trips through every format, byte for byte.**
    Each manifest fixture of the installed schema version (the 51 of the
-   top level, the 17 of `groups/` and the 20 of `bundles/`, the schema
-   package's counts; a minimal twin reads back as its complete fixture,
+   top level, the 17 of `groups/`, the 20 of `bundles/` and the 10 of
+   `flow/`, whose jumps with their destinations, `ends`, element
+   provenance, FlowMaps and virtual timelines so pass through YAML, JSON
+   and TOML unchanged; a minimal twin reads back as its complete fixture,
    a case already) is written in each format and read back, and `dumps` of
    the value read equals the fixture's bytes; the YAML text written is the
    fixture's bytes themselves.
@@ -648,8 +649,9 @@ accepts and refuses).
    is left out exactly when the schema requires it and admits null or gives
    it the default null, and reading puts it back; the walk over the
    schema's definitions lists exactly the `name` of the manifest, a group,
-   a measure map and a region; a timeline's `length`, `name`; a
-   flow-control element's `label`, `name`; `name`, `source_unit`,
+   a measure map, a region, a FlowMap and a virtual timeline; a timeline's
+   `length`, `name`; a flow-control element's `label`, `name`; the `label`
+   of a jump's destination; `name`, `source_unit`,
    `target_unit` of `MapBase`, the base every conversion map type takes
    through its `allOf`, which the walk along a value follows; statements
    and provenance have no nullable member. A manifest of
@@ -904,7 +906,7 @@ ancestor, has no card).
    (`Mixed`, target the block `{block}`), `group_1` (`Performance`),
    `score`, its card and its start the timeline's (`Score`, target `{block,
    id: "score"}`), the conversion map `cmap_4` of `page` (empty, its name
-   null; target `{block, id: "cmap_4"}`), the jump origin `jump_from_1`
+   null; target `{block, id: "cmap_4"}`), the jump `jump_from_1`
    likewise (every flow-control element has the schema's nullable `name`),
    and a measure map `bars` added to the block (empty; target `{block, id:
    "bars"}`). In the MatchStamps store (see "Words"): `matchstamp_1` its
@@ -974,6 +976,91 @@ reserved ID; an ID is unique across the manifest: the map `tempo` renamed
 `phrase` in the text is refused, listed as `schema_violation` `'phrase' is
 not unique in the manifest, first at #/timelines/0/conversion_maps/0/id`
 at `/timelines/0/children/0/id`, the text and the journal kept.
+
+## A flow-control element (`inspector-flow.test.ts`)
+
+The editor reads, keeps, draws and writes flow control and changes nothing
+of an element but its name and the user's belief in it: an element is
+rejected, never deleted or edited. With one flow-control element selected,
+itself or by its label, the Properties tab shows its name field, its
+read-only rows and its provenance; nothing else is a field. The oracles
+are TimeToShare's `flow/` fixtures, each held alone in block
+`0000000000`, the store (what it accepts, refuses and journals) and
+core's `withElementBelief`, `isRejected` and `statedBy`. The user is the
+default user, who states as `statedBy(DEFAULT_USER)`; the day is
+2026-11-26 (the clock is set to noon UTC).
+
+1. **The element a selection names** (`flowOf`). In
+   `flow/sonata_exposition`, `{id: "jump_1"}`, its label `{id: "jump_1",
+   part: ["label"]}` and both together name the element at `{block, id:
+   "jump_1"}`, listed by the timeline `score`; a jump target, which draws
+   nothing, is named by its own address. Nothing selected, the timeline, a
+   region, the flow control band, two elements, or an element beside a
+   timeline name none.
+2. **The rows** (`flowRows`), label and value, in order: Role (core's
+   word of the role), Coordinate (the pretty text on the timeline's axis),
+   Manifestation where the element states one, "Ends the flow" where a
+   break states `ends`, one "Destination n" per destination of a jump in
+   the order of its `targets`, and Status where the element is rejected.
+   A destination is worded from its members, joined by `; `: its place
+   (`to 'X'`, `by` the pretty distance, or "to the start of its section"
+   without either), then `passes` ("on pass 2", "on passes 1 and 3",
+   "from pass n on"), `repeat_count` ("at most once", "at most n times"),
+   `after` ("after jump 'J' took its destination", followed by that
+   destination's place where the reference states one), `determined`
+   false ("not determined by the source"), `reset` false ("without
+   restoring what it goes back over"), its manifestation ("notated as
+   volta") and its label ("labelled 'D.S.'"). Pinned whole:
+   `sonata_exposition`'s `jump_1` (jump, `12 ♩`, "by 0 ♩; on pass 1;
+   notated as volta", "to 'jump_target_1'; on pass 2; notated as volta"),
+   its `jump_2` ("to the start of its section; at most once; notated as
+   repeat_end") and its `break_1` (break, `16 ♩`, Manifestation volta);
+   `repeat_end_and_dal_segno`'s `jump_1` with both destinations, the
+   second "to 'jump_target_2'; at most once; without restoring what it
+   goes back over; notated as dal_segno; labelled 'D.S.'";
+   `dal_segno_al_coda`'s To Coda ("to 'jump_target_2'; after jump 'jump_2'
+   took its destination; notated as to_coda"); `ossia`'s choice ("by 0 ♩"
+   and "to 'ossia'; not determined by the source; notated as ossia");
+   `volta_passes`' "by 0 ♩; on passes 1 and 3; notated as volta"; `loop`'s
+   jump at 6 seconds (`6″`, "to 'jump_target_1'; at most 127 times");
+   `sections`' Fine (break, `8 ♩`, fine, Ends the flow "after jump
+   'jump_1' took its destination") and its section break (two rows);
+   `repairs`' barline and jump target (three rows each, `double_barline`
+   and `repeat_start`), its rejected `jump_1` with the last row Status
+   "rejected: no flow reads it", and its `jump_2` without that row.
+3. **The provenance** (`flowProvenance`): one line per entry of the
+   element (`lineOf`, the reader of both other tabs), and one line holding
+   the beliefs of all entries, each actor once. `repairs`' `jump_1`: one
+   entry, method `imported`, no date, and the editor's belief `false` of
+   2026-11-25 with its note; `jump_2`: method `manual`, date 2026-11-25,
+   stated by the editor; `barline_1`: method `imported`, no belief;
+   `sections`' `jump_1`, which states no provenance: no entry, no belief
+   line. The user's own belief is found by the IRI the user states as:
+   after `beliefCommand` records `unlikely` on `jump_2` (accepted, the
+   belief appended to the one entry's, after the editor's), it is
+   `unlikely`.
+4. **The panel.** On `repairs` with `jump_1` selected: the name field
+   (empty: the jump has no name) is the only input; the rows are the four
+   of item 2; the provenance shows `method` `imported`, the one belief
+   "https://example.org/people/editor believes it false (2026-11-25): The
+   repeat begins at the double barline.", and the three belief buttons
+   True, Unlikely, False, none pressed, their group named "Your belief in
+   jump 'jump_1'". On `sections` with `break_1`'s label selected: the
+   break's four rows, "No provenance entry: the manifest states it." and
+   "No one has stated a belief.".
+5. **A belief is one `set` of the element's `provenance`.** On `repairs`
+   with `jump_2` selected, False journals one `set` whose one change
+   targets `{block, id: "jump_2"}` with the one entry's beliefs the
+   editor's `true` and then the user's `false` of 2026-11-26, nothing
+   posted; the element is then rejected (core's `isRejected`), False is
+   pressed and the last row is Status. False again journals nothing.
+   True journals a second `set`, replaces the user's belief in place and
+   the element is read again, True pressed.
+6. **A refusal is posted.** On `sections` with `jump_1` selected, False
+   would leave the Fine, whose `ends` names the jump, dangling: the store
+   refuses, nothing is journalled, the message bar receives the store's
+   message "'jump_1' names no jump of this timeline" as information, and
+   no button is pressed.
 
 ## The Elisions tab (`inspector-elision.test.ts`)
 
@@ -3600,8 +3687,8 @@ name, and `timestamp_3` "Take 2, bar 2"; the ordinary timestamp
    "Anonymous bundle" with neither; a bundle given the id `takes` "Bundle"
    with that id, its title "Title of bundle" (the manifest's own id
    addresses nothing, so `{block, id: "takes"}` gives nothing); maps, regions and flow-control elements by their kind, a
-   flow-control element's by its type ("Conversion map", "Region", "Flow
-   marker", "Jump origin" with its id, "Jump target") and their parts the
+   flow-control element's by its role ("Conversion map", "Region", "Break",
+   "Jump" with its id, "Jump target") and their parts the
    same way; a measure map added to a block "Measure map" with its id; a
    band `{block, id: T, facet}` "<Facet> band of timeline" (Markers,
    Conversion maps, Children, Regions, Flow control). Several addresses give

@@ -173,14 +173,14 @@ describe("flow_control", () => {
         104.80859375,
       ),
       {
-        type: "flow_marker",
+        type: "break",
         address: at("flow_marker_1"),
         x: 390.9775390625,
         y1: yf,
         y2: 16,
       },
       {
-        type: "jump_from",
+        type: "jump",
         address: at("jump_from_1"),
         start: [290.9775390625, yf],
         c1: [253.4775390625, yc],
@@ -193,7 +193,7 @@ describe("flow_control", () => {
         ],
       },
       {
-        type: "jump_from",
+        type: "jump",
         address: at("jump_from_2"),
         start: [490.9775390625, yf],
         c1: [415.9775390625, 101.82421875],

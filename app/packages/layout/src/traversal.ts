@@ -80,7 +80,7 @@ export interface Entry extends Holder {
   readonly drawn: boolean;
 }
 
-/** An element a timeline's band holds: a map, a region, a flow marker, a jump origin or a wedge. */
+/** An element a timeline's band holds: a map, a region, a break, a section break, a barline, a jump or a wedge. */
 export interface Owned extends Styled {
   readonly entry: Entry;
   readonly label: Styled;

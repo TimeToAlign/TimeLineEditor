@@ -327,7 +327,7 @@ describe("spacings, each its own container's", () => {
         height: 92.4296875,
       });
       expect(line(drawing, "score")).toMatchObject({ y: 172.234375 });
-      expect(drawing.elements.find((item) => item.type === "flow_marker")).toMatchObject({
+      expect(drawing.elements.find((item) => item.type === "break")).toMatchObject({
         y1: 217.6875,
         y2: 165.734375,
       });

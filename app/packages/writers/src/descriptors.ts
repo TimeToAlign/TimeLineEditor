@@ -343,7 +343,7 @@ function elementDescriptors(element: DrawnElement, index: number): Descriptor[] 
     }
     case "region":
       return [writer.path(brace(element), open)];
-    case "jump_from": {
+    case "jump": {
       const shaft: PathCommand[] = [
         { command: "M", points: [element.start] },
         { command: "C", points: [element.c1, element.c2, element.base] },
@@ -353,7 +353,9 @@ function elementDescriptors(element: DrawnElement, index: number): Descriptor[] 
         writer.points("polygon", [element.tip, ...element.corners], filled),
       ];
     }
-    case "flow_marker":
+    case "break":
+    case "section_break":
+    case "barline":
     case "boundary":
     case "cross_section":
       return [writer.line(element.x, element.y1, element.x, element.y2)];

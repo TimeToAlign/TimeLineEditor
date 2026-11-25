@@ -50,11 +50,11 @@ export { fontMetrics as metrics } from "@timetoalign/timetoshare";
 export const BLOCK = "0000000000";
 
 /**
- * The fixtures at the top by name, then those sorted into `groups/…` and
- * `bundles/…`, without their minimal twins (`*.minimal.yaml`).
+ * The fixtures at the top by name, then those sorted into `groups/…`,
+ * `bundles/…` and `flow/…`, without their minimal twins (`*.minimal.yaml`).
  */
 export function manifestNames(): string[] {
-  return ["", "groups/", "bundles/"].flatMap((prefix) =>
+  return ["", "groups/", "bundles/", "flow/"].flatMap((prefix) =>
     readdirSync(path.join(fixturesDir, prefix))
       .filter((name) => name.endsWith(".yaml") && !name.endsWith(".minimal.yaml"))
       .map((name) => `${prefix}${name.slice(0, -5)}`)
@@ -217,10 +217,15 @@ export function build(rootId: string, length: number, ...commands: object[]): Ma
 
 /** A fixture by its path below the fixtures directory, changed by commands on its block. */
 export function edit(name: string, ...commands: object[]): Manifest {
+  return edited(loadFile(name), ...commands);
+}
+
+/** A manifest changed by commands on its block. */
+export function edited(manifest: Manifest, ...commands: object[]): Manifest {
   let view = apply(createView(), {
     type: "add",
     into: WORKSPACE,
-    block: { id: BLOCK, manifest: loadFile(name), x: 0, y: 0 },
+    block: { id: BLOCK, manifest, x: 0, y: 0 },
   });
   for (const command of commands) {
     if (isCommandError(view)) break;

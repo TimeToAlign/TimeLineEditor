@@ -281,7 +281,7 @@ export function boundsOf(element: DrawnElement, measure: TextMeasure): Bounds {
     }
     case "region":
       return boundsOfPoints(brace(element).flatMap((command) => command.points));
-    case "jump_from":
+    case "jump":
       return boundsOfPoints([
         element.start,
         element.c1,
@@ -290,7 +290,9 @@ export function boundsOf(element: DrawnElement, measure: TextMeasure): Bounds {
         element.tip,
         ...element.corners,
       ]);
-    case "flow_marker":
+    case "break":
+    case "section_break":
+    case "barline":
     case "boundary":
     case "cross_section":
       return {

@@ -200,7 +200,7 @@ function describe(resolved: ResolvedAddress): Described | null {
 /**
  * The subject the selection names: for one address, what core resolves it
  * to (the bundle, a group, a measure map, a timeline, a conversion map, a
- * region, a jump origin, a jump target, a flow marker, a timestamp, a
+ * region, a jump, a jump target, a break, a section break, a barline, a timestamp, a
  * MatchStamp or an alignment anchor), each part the
  * address appends prefixed (`Card of
  * timeline`, `Coordinate of timestamp`, `Regions band of timeline`); for

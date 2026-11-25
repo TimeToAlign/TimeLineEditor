@@ -469,7 +469,7 @@ describe("set", () => {
       [view, at("clt_1"), { length: quarters(32, 2) }],
       [view, at("clt_3"), { offset: quarters(4) }],
       [maps, at("tempo"), { map: tempo() }],
-      [flow, at("jump_to_1"), { coordinate: quarters(4, 2) }],
+      [flow, at("jump_to_1"), { name: "repeat-start" }],
     ];
     expect(cases.map(([start, target, values]) => apply(start, set(target, values)))).toEqual(
       cases.map(([, target, values]) => nothing(target, Object.keys(values)[0] as string)),
@@ -654,20 +654,18 @@ describe("regions and flow-control elements", () => {
     expect(root(changed).regions).toEqual([{ ...region, meta: {}, end: quarters(6), name: null }]);
   });
 
-  it("adds, sets and removes flow-control elements", () => {
+  it("adds, renames and rejects flow-control elements, and never removes or changes one", () => {
     const view = frozen([A, "flow_control.yaml"]);
-    const [marker, segno, jump, fine, ds] = root(view).flow_control;
-    if (!marker || !segno || !jump || !fine || !ds) {
-      throw new Error(
-        "flow_control.yaml holds two jump targets, two jump origins and a flow marker",
-      );
+    const [start, segno, repeat, fine, ds] = root(view).flow_control;
+    if (!start || !segno || !repeat || !fine || !ds) {
+      throw new Error("flow_control.yaml holds two jump targets, two jumps and a break");
     }
-    expect([marker.id, segno.id, jump.id, fine.id, ds.id]).toEqual([
-      "jump_to_1",
-      "jump_to_2",
-      "jump_from_1",
-      "flow_marker_1",
-      "jump_from_2",
+    expect([start, segno, repeat, fine, ds].map((item) => [item.id, item.role])).toEqual([
+      ["jump_to_1", "jump_target"],
+      ["jump_to_2", "jump_target"],
+      ["jump_from_1", "jump"],
+      ["flow_marker_1", "break"],
+      ["jump_from_2", "jump"],
     ]);
     const flow = (next: View) => root(next).flow_control;
     const add = (value: object) => ({
@@ -675,85 +673,122 @@ describe("regions and flow-control elements", () => {
       into: at("flow:quarters"),
       flow_control: value,
     });
-    const coda = { id: "coda_1", type: "jump_to", manifestation: "coda", coordinate: quarters(12) };
-    const retargeted = applied(
-      applied(view, add(coda)),
-      set(at("jump_from_1"), { target: "coda_1" }),
-    );
-    expect(flow(retargeted)).toEqual([
-      marker,
-      segno,
-      { ...jump, target: "coda_1" },
-      { ...coda, name: null, label: null, meta: {} },
-      fine,
-      ds,
-    ]);
-    const copy = { ...fine, id: "flow_marker_2", coordinate: quarters(3) };
-    const swapped = applied(applied(view, add(copy)), {
-      type: "remove",
-      targets: [at("flow_marker_1")],
-    });
-    expect(flow(swapped)).toEqual([marker, copy, segno, jump, ds]);
-    const unjumped = applied(view, { type: "remove", targets: [at("jump_from_1")] });
-    expect(flow(unjumped)).toEqual([marker, segno, fine, ds]);
-    const shifted = applied(view, set(at("jump_to_1"), { coordinate: quarters(2, 2) }));
-    expect(flow(shifted)).toEqual([{ ...marker, coordinate: quarters(1) }, segno, jump, fine, ds]);
-    const { target: _, ...toStart } = jump;
-    const untargeted = applied(view, set(at("jump_from_1"), { target: null }));
-    expect(flow(untargeted)).toEqual([marker, segno, toStart, fine, ds]);
-    const barline = {
-      id: "jump_from_1",
-      type: "flow_marker",
-      manifestation: "double_barline",
-      coordinate: quarters(8),
+    const coda = {
+      id: "coda_1",
+      role: "jump_target",
+      manifestation: "coda",
+      coordinate: quarters(12),
     };
-    const replaced = applied(view, set(at("jump_from_1"), { flow_control: barline }));
-    expect(flow(replaced)).toEqual([
-      marker,
+    // A jump with two destinations, given in the other order than the canonical one.
+    const volta = {
+      id: "volta_1",
+      role: "jump",
+      coordinate: quarters(6),
+      targets: [
+        { to: "coda_1", passes: [2], manifestation: "volta" },
+        { by: quarters(0), passes: [1], manifestation: "volta" },
+      ],
+    };
+    const stored = { name: null, label: null, meta: {} };
+    const destination = { determined: true, reset: true, label: null };
+    const added = applied(applied(view, add(coda)), add(volta));
+    expect(flow(added)).toEqual([
+      start,
       segno,
-      { ...barline, name: null, label: null, meta: {} },
+      {
+        ...volta,
+        ...stored,
+        targets: [
+          { by: quarters(0), passes: [1], manifestation: "volta", ...destination },
+          { to: "coda_1", passes: [2], manifestation: "volta", ...destination },
+        ],
+      },
+      repeat,
+      { ...coda, ...stored },
       fine,
       ds,
     ]);
+    const renamed = applied(view, set(at("jump_from_1"), { name: "repeat", label: null }));
+    expect(flow(renamed)).toEqual([
+      start,
+      segno,
+      { ...repeat, name: "repeat", label: null },
+      fine,
+      ds,
+    ]);
+    const provenance = [
+      {
+        method: "imported",
+        beliefs: [
+          { actor: "https://example.org/people/editor", belief: "false", date: "2026-11-25" },
+        ],
+      },
+    ];
+    const refused = applied(view, set(at("jump_from_1"), { provenance }));
+    expect(flow(refused)).toEqual([start, segno, { ...repeat, provenance }, fine, ds]);
+    const believed = applied(refused, set(at("jump_from_1"), { provenance: null }));
+    expect(flow(believed)).toEqual([start, segno, repeat, fine, ds]);
+    // A flow-control element goes with its timeline, and only with it.
+    const gone = applied(view, {
+      type: "remove",
+      targets: [at("jump_from_1"), at("flow:quarters")],
+    });
+    expect(manifest(gone).timelines).toEqual([]);
   });
 
   it("refuses with the exact code and path", () => {
     const flow = viewOf([A, "flow_control.yaml"]);
-    expect(rejected(flow, set(at("jump_from_1"), { target: "nothing" }))).toEqual({
+    for (const id of ["jump_to_1", "jump_from_1", "flow_marker_1"]) {
+      expect(rejected(flow, { type: "remove", targets: [at(id)] })).toEqual({
+        code: "not_removable",
+        path: [key(at(id))],
+      });
+    }
+    // What decides the flow, and where the element lies, is no property a `set` gives.
+    for (const property of ["flow_control", "role", "targets", "manifestation", "ends"]) {
+      expect(rejected(flow, set(at("jump_from_1"), { [property]: null }))).toEqual({
+        code: "unknown_property",
+        path: [key(at("jump_from_1")), property],
+      });
+    }
+    for (const property of ["coordinate", "meta"]) {
+      expect(rejected(flow, set(at("jump_from_1"), { [property]: null }))).toEqual({
+        code: "wrong_target_kind",
+        path: [key(at("jump_from_1")), property],
+      });
+    }
+    // Rejecting the jump a break's `ends` names leaves that break dangling.
+    const provenance = [
+      { beliefs: [{ actor: "https://example.org/a", belief: "false", date: "2026-11-25" }] },
+    ];
+    expect(rejected(flow, set(at("jump_from_2"), { provenance }))).toEqual({
       code: "schema_violation",
-      path: [...flowPath, 2, "target"],
+      path: [...flowPath, 3, "ends", "after", "jump"],
     });
-    // Removing the jump target a jump origin names leaves that origin second.
-    expect(rejected(flow, { type: "remove", targets: [at("jump_to_1")] })).toEqual({
-      code: "schema_violation",
-      path: [...flowPath, 1, "target"],
-    });
-    expect(rejected(flow, set(at("flow_marker_1"), { manifestation: "repeat_end" }))).toEqual({
-      code: "schema_violation",
-      path: [...flowPath, 3, "manifestation"],
-    });
-    expect(rejected(flow, set(at("flow_marker_1"), { repeat_count: 2 }))).toEqual({
-      code: "schema_violation",
-      path: [...flowPath, 3, "repeat_count"],
-    });
-    expect(rejected(flow, set(at("jump_from_1"), { type: "jump_to" }))).toEqual({
-      code: "unknown_property",
-      path: [key(at("jump_from_1")), "type"],
-    });
-    const other = {
-      id: "other",
-      type: "flow_marker",
-      manifestation: "fine",
-      coordinate: quarters(8),
+    // A second jump at the coordinate of one that is not rejected: `again` sorts before
+    // `jump_from_1`, which is then the second.
+    const second = {
+      type: "add",
+      into: at("flow:quarters"),
+      flow_control: { id: "again", role: "jump", coordinate: quarters(8), targets: [{}] },
     };
-    expect(rejected(flow, set(at("jump_from_1"), { flow_control: other }))).toEqual({
-      code: "id_not_settable",
-      path: [key(at("jump_from_1")), "flow_control", "id"],
+    expect(rejected(flow, second)).toEqual({
+      code: "schema_violation",
+      path: [...flowPath, 3],
     });
-    const dict = { unit: "quarters", number_type: "fraction", value: [1, 1] };
-    expect(rejected(flow, set(at("flow_marker_1"), { coordinate: dict }))).toEqual({
-      code: "invalid_coordinate",
-      path: [key(at("flow_marker_1")), "coordinate"],
+    expect(rejected(flow, set(at("jump_from_1"), { provenance: [] }))).toEqual({
+      code: "schema_violation",
+      path: [...flowPath, 2, "provenance"],
+    });
+    const earlier = {
+      type: "add",
+      into: at("flow:quarters"),
+      flow_control: { id: "old", type: "jump_to", manifestation: "coda", coordinate: quarters(8) },
+    };
+    // In canonical order `old` follows `jump_from_1` at the same coordinate.
+    expect(rejected(flow, earlier)).toEqual({
+      code: "schema_violation",
+      path: [...flowPath, 3],
     });
     const regions = viewOf([A, "with_region.yaml"]);
     expect(rejected(regions, set(at("region_1"), { end: quarters(0) }))).toEqual({
@@ -763,6 +798,11 @@ describe("regions and flow-control elements", () => {
     expect(rejected(regions, set(at("region_1"), { coordinate: quarters(0) }))).toEqual({
       code: "wrong_target_kind",
       path: [key(at("region_1")), "coordinate"],
+    });
+    const dict = { unit: "quarters", number_type: "fraction", value: [1, 1] };
+    expect(rejected(regions, set(at("region_1"), { start: dict }))).toEqual({
+      code: "invalid_coordinate",
+      path: [key(at("region_1")), "start"],
     });
     const bare = viewOf([A, "bare.yaml"]);
     expect(rejected(bare, into("region", { ...region, id: "a\u0001b" }))).toEqual({

@@ -32,7 +32,6 @@ export {
   BLOCK_KEY,
   bandKey,
   cardStamps,
-  DRAWN_FLOW,
   elementKey,
   manifestElements,
   namedTimestamps,

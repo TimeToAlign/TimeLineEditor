@@ -147,16 +147,13 @@ describe("inspectedSubject", () => {
     keyed([
       [at("map0000000", { id: "tempo" }), named("Conversion map", "Tempo")],
       [at("map0000000", { id: "ticks" }), named("Conversion map", "Ticks")],
-      [at("flow000000", { id: "flow_marker_1" }), named("Flow marker", "fine")],
-      [
-        at("flow000000", { id: "flow_marker_1", part: ["label"] }),
-        named("Label of flow marker", "fine"),
-      ],
-      [at("flow000000", { id: "jump_from_1" }), unnamed("Jump origin", "jump_from_1")],
+      [at("flow000000", { id: "flow_marker_1" }), named("Break", "fine")],
+      [at("flow000000", { id: "flow_marker_1", part: ["label"] }), named("Label of break", "fine")],
+      [at("flow000000", { id: "jump_from_1" }), unnamed("Jump", "jump_from_1")],
       [at("flow000000", { id: "jump_to_1" }), named("Jump target", "repeat-start")],
       [at("styled0000", { id: "intro" }), named("Region", "intro")],
       [at("styled0000", { id: "intro", part: ["label"] }), named("Label of region", "intro")],
-      [at("styled0000", { id: "da-capo" }), unnamed("Jump origin", "da-capo")],
+      [at("styled0000", { id: "da-capo" }), unnamed("Jump", "da-capo")],
       [at("styled0000", { id: "a" }), unnamed("Timeline", "a")],
     ]),
   )("names %s, an element of a timeline", (_key, address, subject) => {

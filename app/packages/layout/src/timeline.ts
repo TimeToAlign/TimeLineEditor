@@ -327,7 +327,7 @@ export function wholeExtent(own: Extent, children: readonly Extent[]): Extent {
 /** Merge the typed categories drawn by level zero and each band. */
 function mergeLineElements(parts: readonly Partial<LineElements>[]): LineElements {
   return {
-    flowMarkers: parts.flatMap((part) => part.flowMarkers ?? []),
+    flowLines: parts.flatMap((part) => part.flowLines ?? []),
     maps: parts.flatMap((part) => part.maps ?? []),
     regions: parts.flatMap((part) => part.regions ?? []),
     jumps: parts.flatMap((part) => part.jumps ?? []),
@@ -338,7 +338,7 @@ function mergeLineElements(parts: readonly Partial<LineElements>[]): LineElement
     segmentLabels: parts.flatMap((part) => part.segmentLabels ?? []),
     regionLabels: parts.flatMap((part) => part.regionLabels ?? []),
     jumpLabels: parts.flatMap((part) => part.jumpLabels ?? []),
-    flowMarkerLabels: parts.flatMap((part) => part.flowMarkerLabels ?? []),
+    flowLineLabels: parts.flatMap((part) => part.flowLineLabels ?? []),
     crossSections: parts.flatMap((part) => part.crossSections ?? []),
     gapLabels: parts.flatMap((part) => part.gapLabels ?? []),
     markers: parts.flatMap((part) => part.markers ?? []),
@@ -536,8 +536,8 @@ function linePosition(
     yAt: (side, outwards) => (side === "above" ? y - outwards : y + outwards),
     beyond: (side, ordinate, labelSize) =>
       side === "above" ? ordinate - scope.d(labelSize) : ordinate + scope.a(labelSize),
-    flowMarkerEnd: (side) => {
-      // The root's flow markers run to the card margin of the opposite side, inside the padding,
+    flowLineEnd: (side) => {
+      // The root's breaks, section breaks and barlines run to the card margin of the opposite side, inside the padding,
       // counted from the drawing's top.
       if (line === scope.rootEntry) {
         return side === "below" ? near : far;

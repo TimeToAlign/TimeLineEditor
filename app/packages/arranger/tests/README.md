@@ -144,8 +144,8 @@ own tests.
   284.1640625`. With `score` stated at `{y: 200}` (its shadow's bottom
   286.4296875) the block is `8 + max(286.4296875, 143.734375 + s)`: flat up
   to its knee `s = 142.6953125`, slope 1 beyond.
-- **`flow_control`**: the root `flow:quarters` with the flow marker
-  `flow_marker_1`, the jump origins `jump_from_1` and `jump_from_2` and their jump targets
+- **`flow_control`**: the root `flow:quarters` with the break
+  `flow_marker_1`, the jumps `jump_from_1` and `jump_from_2` and their jump targets
   `jump_to_1` and `jump_to_2`, which are not drawn.
   **`with_region`**: the root `clt_1` with `region_1`.
 - **IDs** are unique across a whole manifest, so every element is
@@ -154,7 +154,8 @@ own tests.
   words (`{id: "region_1", part: ["label"]}`), the title by `{part:
   ["name"]}`. A part, a card or a label stands for the element whose ID it
   carries; core removes any element, timelines and groups included, naming
-  what goes with it.
+  what goes with it, but a flow-control element, which goes only with its
+  timeline: it is rejected by a belief, never deleted.
 - **Manifests of several roots and groups** (section 8):
   - **`group_number_types`**: group `group_1` "Edition", roots (all three
     members, none with entries) `page`, `performance`, `score`. `numbers`
@@ -196,7 +197,7 @@ own tests.
   `group_2` "Facsimile" (members `excerpt`, `page`, displayed `page`,
   `excerpt`; `excerpt` is a child of the root `recording`, drawn as its
   ancestor line), then the ungrouped root `annotations`. `score` carries
-  the maps `cmap_1` and `cmap_2` and the jump origin `jump_from_1` "Repeat";
+  the maps `cmap_1` and `cmap_2` and the jump `jump_from_1` "Repeat";
   `performance` the map `cmap_3`; `page` `cmap_4`; `recording` `cmap_5`;
   `excerpt` `cmap_6`; `annotations` the regions `region_1` "Verse" and
   `region_2` "Chorus". Maps lie above their lines, jumps and
@@ -741,9 +742,22 @@ t3}`, `{A: t2, A: coda [name]}`. A segment going with its line or its
 block leaves no gap: `{A: theme, A: t2}` gives targets `[A: theme, A:
 t2]`, which removes all four, and `{A, A: t2}` `[A, A: t2]`.
 
+**A flow-control element is never deleted.** On `flow_control`, the break
+`flow_marker_1`, the jump `jump_from_1`, its label and the jump target
+`jump_to_1`, each selected alone, and `flow_marker_1` with `jump_from_2`'s
+label, are refused with `A flow-control element is not deleted; state your
+belief in it in the Properties tab to reject it.`. Selected beside
+something else it is left out: `{A: jump_from_1, A: timestamp_1, A:
+flow_marker_1 [label]}` gives the targets `[A: timestamp_1]`, and the
+five flow-control elements stay, in their order (`jump_to_1`, `jump_to_2`,
+`jump_from_1`, `flow_marker_1`, `jump_from_2`). Its timeline takes it
+along: `{A: jump_from_1, A: flow:quarters}` gives `[A: flow:quarters]`,
+which leaves no timeline.
+
 **What a deletion also takes away** is highlighted before it happens. The
 rule reads the manifest alone: the owners are the IDs the selected
-element addresses carry (the title carries none, a band is no owner); core
+element addresses carry (the title carries none, a band is no owner, nor
+is a flow-control element, which a deletion never takes alone); core
 names what removing them removes; the result is the keys (`addressKey`) of
 every drawn address of a removed element and of its parts, without the
 selected addresses and the parts of a directly selected element. A
@@ -790,9 +804,12 @@ no editor open the same selection marks `group_1`.
 `flow_control`, `with_region`, `map`, `group_child_member`,
 `bundle_mixed` or `numbers` and any selection of its element, part and
 band addresses, a selection of bands alone is refused with `A band is not
-deleted; select its elements to delete them.`; otherwise the command is
-refused exactly when core refuses a `remove` of the owners, and the IDs
-it deletes equal the owners and the manifest's IDs whose addresses
+deleted; select its elements to delete them.`, and one that names beside
+bands only flow-control elements with the hint above; otherwise the
+command is refused exactly when core refuses a `remove` of the owners that
+are no flow-control elements, and the IDs it deletes equal those owners,
+the selected flow-control elements a removed timeline takes along (core's
+`removedBy` of those owners) and the manifest's IDs whose addresses
 (`{id}`) are among the affected. The rule is compared against core's own removal, never
 against itself.
 
@@ -1434,7 +1451,7 @@ as a press reports it) and names the `{block: A, id}` picked or `null`.
   `second-half`'s start or end is drawn on it, drawing.md section 8.3).
 - **`segment_line`**: the boundary `{id: "b", part: ["start"]}` picks the
   segment `b`.
-- **`flow_control`**: the flow marker `flow_marker_1` and the jump origin
+- **`flow_control`**: the break `flow_marker_1` and the jump
   `jump_from_1` pick nothing.
 - **`with_region` with a stored elision**: after `add {into: {block: A, id:
   "clt_1"}, elision: {start: [1, 1], end: [2, 1]}}` the manifest holds
@@ -2361,7 +2378,7 @@ element; an element's bounds are its geometric bounds as layout's
 `boundsOf` gives them (the drawing specification's section 6.7, no
 stroke width counted: a line with its start circle and its end's
 arrowhead, circle, diamond or chevrons, a map with its double line, a
-region by its brace's points, a jump origin with its arrowhead, a text
+region by its brace's points, a jump with its arrowhead, a text
 from its measured width, ascent and descent), and an address drawn more
 than once is taken only when every copy lies inside. What an ancestor card draws counts only while that card is
 raised, that is while the timeline editor of its root is open (the

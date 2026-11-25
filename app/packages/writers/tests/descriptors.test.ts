@@ -398,7 +398,7 @@ describe("descriptors", () => {
 
   it("ends a jump's shaft at its filled arrowhead's base", () => {
     const drawing = synthetic({
-      type: "jump_from",
+      type: "jump",
       address: at("j"),
       style: style({ stroke: "#000000", fill: "#000000", "stroke-width": 1.5 }),
       start: [10, 20],
@@ -423,14 +423,15 @@ describe("descriptors", () => {
   for (const name of ["flow_control", "corpus_score_ms3"]) {
     it(`continues each shaft of ${name} along its head's axis`, () => {
       const manifest = loadFixture(name);
+      // Every jump of these two holds one destination, so draws one arc.
       const count = manifest.timelines
         .flatMap((timeline) => timeline.flow_control)
-        .filter((item) => item.type === "jump_from").length;
+        .filter((item) => item.role === "jump" && item.targets?.length === 1).length;
       const layers = [DEFAULT_LAYER, manifestLayer(manifest)];
       const drawing = draw(manifest, DEFAULT_PLACEMENT, layers, fontMetrics);
       const descriptors = toDescriptors(drawing);
       const paths = descriptors.filter(
-        (each) => each.tag === "path" && each.source.type === "jump_from",
+        (each) => each.tag === "path" && each.source.type === "jump",
       );
       expect(paths.length).toBe(count);
       for (const path of paths) {
@@ -748,7 +749,7 @@ describe("descriptors", () => {
   it("writes opacity last and maps dash patterns", () => {
     const line = (dash: string) =>
       synthetic({
-        type: "flow_marker",
+        type: "break",
         address: at("flow_marker_1"),
         style: style({ stroke: "#FF0000", "stroke-dasharray": dash, opacity: 0.5 }),
         x: 10,
@@ -768,7 +769,7 @@ describe("descriptors", () => {
 
   it("formats each dash number by the number rule", () => {
     const drawing = synthetic({
-      type: "flow_marker",
+      type: "break",
       address: at("flow_marker_1"),
       style: style({ stroke: "#FF0000", "stroke-dasharray": "1.50 0.00001" }),
       x: 10,
@@ -785,7 +786,7 @@ describe("descriptors", () => {
 
   it("writes no paint option for stroke none", () => {
     const drawing = synthetic({
-      type: "flow_marker",
+      type: "break",
       address: at("flow_marker_1"),
       style: style({ stroke: "none" }),
       x: 10,
@@ -820,7 +821,7 @@ describe("descriptors", () => {
 
   it("escapes attribute values and self-closes elements without text", () => {
     const drawing = synthetic({
-      type: "flow_marker",
+      type: "break",
       address: at('r/&<>",'),
       style: BLACK,
       x: 10,
@@ -834,9 +835,9 @@ describe("descriptors", () => {
 });
 
 describe("address attributes", () => {
-  /** A flow marker's line at `address`, its attributes after the address fixed. */
+  /** A break's line at `address`, its attributes after the address fixed. */
   const marker = (address: ElementAddress) =>
-    synthetic({ type: "flow_marker", address, style: BLACK, x: 10, y1: 5, y2: 25 });
+    synthetic({ type: "break", address, style: BLACK, x: 10, y1: 5, y2: 25 });
   const tail = 'x1="10" y1="5" x2="10" y2="25" stroke="#000000" stroke-width="1"/>';
 
   it("writes data-id, data-facet and data-part, each only when present, in that order", () => {

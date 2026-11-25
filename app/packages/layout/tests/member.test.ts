@@ -84,7 +84,7 @@ describe("styled__score", () => {
       cuts: [],
     },
     {
-      type: "jump_from",
+      type: "jump",
       address: at("da-capo"),
       start: [xe, y.flow],
       c1: jump.c1,

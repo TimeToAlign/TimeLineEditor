@@ -385,7 +385,7 @@ describe("segments without a line", () => {
       into: target("b1"),
       flow_control: {
         id: "b1_break",
-        type: "flow_marker",
+        role: "break",
         manifestation: "fine",
         coordinate: quarters(2),
       },
@@ -395,7 +395,7 @@ describe("segments without a line", () => {
       into: target("b1"),
       flow_control: {
         id: "b1_start",
-        type: "jump_to",
+        role: "jump_target",
         manifestation: "repeat_start",
         coordinate: quarters(1),
       },
@@ -405,11 +405,9 @@ describe("segments without a line", () => {
       into: target("b1"),
       flow_control: {
         id: "b1_jump",
-        type: "jump_from",
-        manifestation: "repeat_end",
+        role: "jump",
         coordinate: quarters(4),
-        target: "b1_start",
-        repeat_count: 2,
+        targets: [{ to: "b1_start", manifestation: "repeat_end", repeat_count: 2 }],
       },
     },
   );
@@ -437,9 +435,7 @@ describe("segments without a line", () => {
     expect(drawn.maps.map((map) => [map.address, map.xs, map.xe])).toEqual([
       [at("b1_map"), 100, 175],
     ]);
-    expect(drawn.flowMarkers.map((item) => [item.address, item.x])).toEqual([
-      [at("b1_break"), 125],
-    ]);
+    expect(drawn.flowLines.map((item) => [item.address, item.x])).toEqual([[at("b1_break"), 125]]);
     expect(drawn.jumps.map((item) => item.address)).toEqual([at("b1_jump")]);
   });
 
@@ -494,7 +490,7 @@ describe("extents", () => {
     ]);
   });
 
-  it("holds the drawn labels and the points of the flow markers", () => {
+  it("holds the drawn labels and the points of the breaks", () => {
     const root = prepared(scopeOf(load("flow_control")), "flow:quarters");
     expect(root.extent).toEqual([-7.416015625, 410.279052734375]);
     expect(root.bands.flow_control.extents).toEqual([
@@ -518,10 +514,10 @@ describe("extents", () => {
   });
 });
 
-describe("flow markers", () => {
+describe("breaks, section breaks and barlines", () => {
   it("end at the padding of the opposite side for the root", () => {
     const below = alone(prepared(scopeOf(load("flow_control")), "flow:quarters"), undefined);
-    expect(below.elements(PLACE).flowMarkers.map((item) => [item.y1, item.y2])).toEqual([
+    expect(below.elements(PLACE).flowLines.map((item) => [item.y1, item.y2])).toEqual([
       [141.453125, 8],
     ]);
     const above = alone(
@@ -541,7 +537,7 @@ describe("flow markers", () => {
       ),
       undefined,
     );
-    expect(above.elements(PLACE).flowMarkers.map((item) => [item.y1, item.y2])).toEqual([
+    expect(above.elements(PLACE).flowLines.map((item) => [item.y1, item.y2])).toEqual([
       [84.0234375, 192],
     ]);
   });
@@ -560,7 +556,7 @@ describe("flow markers", () => {
     const ends = (manifest: Manifest, size = 11) =>
       alone(prepared(scopeOf(manifest, shown), "verse"), undefined)
         .elements({ ...PLACE, size })
-        .flowMarkers.map((item) => item.y2);
+        .flowLines.map((item) => item.y2);
     expect(ends(load("child_flow_control"))).toEqual([93.59765625]);
     expect(ends(load("child_flow_control"), 40)).toEqual([76.71875]);
     expect(

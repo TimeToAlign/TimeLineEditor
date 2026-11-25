@@ -1,12 +1,13 @@
 /** The default style layer (`docs/drawing.md` in TimeToShare, section 4) and a manifest's own. */
 
 import type { Manifest } from "@timetoalign/tilie-core";
+import { FLOW_LINE_ROLES } from "@timetoalign/tilie-core";
 import type { Graphical } from "@timetoalign/timetoshare";
 
 /**
  * The opacity the defaults fade ancestor lines and what they hold to; the
  * opacity, too, of a groupstamp's drawing where it marks a position that
- * has no coordinate (section 6.6).
+ * has no coordinate (section 6.6) and of a rejected flow-control element.
  */
 export const FADED_OPACITY = 0.35;
 
@@ -49,13 +50,13 @@ export const DEFAULT_LAYER: Graphical = {
       set: { stroke: "#000000", "stroke-width": 1, "stroke-dasharray": "none" },
     },
     {
-      select: { element: "jump_from" },
+      select: { element: "jump" },
       set: { stroke: "#000000", fill: "#000000", "stroke-width": 1, "stroke-dasharray": "1 1" },
     },
-    {
-      select: { element: "flow_marker" },
+    ...FLOW_LINE_ROLES.map((element) => ({
+      select: { element },
       set: { stroke: "#FF0000", "stroke-width": 1.5, "stroke-dasharray": "2 2" },
-    },
+    })),
     {
       select: { element: "boundary" },
       set: { stroke: "#000000", "stroke-width": 1, "stroke-dasharray": "none" },

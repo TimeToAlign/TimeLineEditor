@@ -167,7 +167,7 @@ the order. Below, an element's address is written `{id: g}`, `{id: m, part:
 **Address attributes.** An element's address `{id?, facet?, part?}` is
 written as `data-id`, `data-facet` and `data-part`, in that order, each only
 when the address has that member; `data-part` holds the part words joined by
-one space. On a flow marker's line `x 10` from `y1 5` to `y2 25`, stroked
+one space. On a break's line `x 10` from `y1 5` to `y2 25`, stroked
 `#000000`: `{id: c}` writes `<line data-id="c" x1="10" …`, `{id: c, facet:
 regions}` `<line data-id="c" data-facet="regions" x1="10" …`, `{id: c, part:
 [start]}` `<line data-id="c" data-part="start" x1="10" …` and the title's
@@ -355,7 +355,8 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
   (40,-10) .. (48,6)`.
 - For every jump of `flow_control` and `corpus_score_ms3`, drawn by the
   layout at the default placement with the default layer and their own,
-  one shaft per jump origin (`jump_from`) their roots hold: the shaft's end tangent continues
+  one shaft per jump (`jump`) their roots hold, each of which holds one destination and so draws
+  one arc: the shaft's end tangent continues
   the head's axis and the base is perpendicular to it, at the written
   precision. The unit vector from `C2` to the path's last point and the one
   from that point to the tip are written alike by the number rule, the
@@ -370,7 +371,7 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
   2)` and run the corners in the same order, so the dash pattern starts at
   the same corner.
 - A segment's boundary `{id: b, part: [start]}`, `x 10` from `y1 12` to `y2 18`, stroked
-  `#000000` with width 1, is a line like a flow marker's: `<line
+  `#000000` with width 1, is a line like a break's: `<line
   data-id="b" data-part="start" x1="10" y1="12" x2="10" y2="18" stroke="#000000"
   stroke-width="1"/>`, in TikZ `\path[draw=ts000000,line width=1pt] (10,18)
   -- (10,12);`.
@@ -386,12 +387,12 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
   scale (section 8.6). The wedge with offsets ±6 is `points="10,5 4,18 16,18"`; the
   map with `spacing 4` is `points="10,18 50,18 50,22 10,22"`; the card with
   `shadowOffset 4` has its shadow at `x="12" y="8"`.
-- On a flow marker's line, opacity 0.5 is written last, as `opacity="0.5"` and
+- On a break's line, opacity 0.5 is written last, as `opacity="0.5"` and
   `opacity=0.5`. Stroke-dasharray `2` is `dash pattern=on 2pt off 2pt` and
   `1 2 3` is `dash pattern=on 1pt off 2pt on 3pt off 1pt on 2pt off 3pt`;
   each dash number is formatted by the number rule: `1.50 0.00001` is
   written `stroke-dasharray="1.5 0"` and `dash pattern=on 1.5pt off 0pt`.
-- `stroke="none"` adds no TikZ paint option: a flow marker's line `x 10`, `y1 5`,
+- `stroke="none"` adds no TikZ paint option: a break's line `x 10`, `y1 5`,
   `y2 25` stroked `none` is `<line … stroke="none" stroke-width="1"/>` and
   `\path[line width=1pt] (10,25) -- (10,5);`.
 - Escaping: SVG writes the text `a&b<c>` as `a&amp;b&lt;c&gt;`, and an
@@ -405,8 +406,8 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
 **Every kind together, and the review cases.** A hand-built drawing holds
 every kind of element: a frame and its title, a card with its shadow, an
 ancestor line running on at both sides, lines ending in the diamond, the
-open arrowhead, the end circle and the arrowhead, a map, a region, a jump origin,
-a flow marker, a boundary, a cross-section line, a wedge, a filled gap
+open arrowhead, the end circle and the arrowhead, a map, a region, a jump's arc,
+a break, a boundary, a cross-section line, a wedge, a filled gap
 with a continuation and its ellipsis, and labels; the
 frame's title holds the TeX specials, `♩`, which DejaVu Sans draws, and the
 whole note `𝅝` (U+1D15D), which only Noto Music draws. It writes 36 descriptors, in which

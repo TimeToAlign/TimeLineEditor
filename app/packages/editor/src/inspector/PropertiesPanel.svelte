@@ -8,7 +8,9 @@
  * stands right of the container size, read-only. Typed text is the
  * inspector's `PropertyDrafts`; a commit or a step is one `set`. Below, the
  * group memberships of the selected timelines or group, and the New group
- * button (`groups.ts`), each click one command.
+ * button (`groups.ts`), each click one command. One selected flow-control
+ * element shows, below its name, its read-only rows and its provenance with
+ * the user's belief (`FlowControlDetails`).
  */
 import type {
   Editing,
@@ -23,6 +25,8 @@ import { sameAddress } from "@timetoalign/tilie-core";
 import type { Attachment } from "svelte/attachments";
 import { postOf } from "../messages.svelte.ts";
 import { paneOf } from "../pane.ts";
+import FlowControlDetails from "./FlowControlDetails.svelte";
+import { flowOf } from "./flow.ts";
 import { groupsOf, membersOf, newGroupOf } from "./groups.ts";
 import type { Geometry, NameField, Shown } from "./properties.ts";
 import { bandRows, fieldLabel, geometryOf, isSize, lockOf, nameOf, shownOf } from "./properties.ts";
@@ -80,6 +84,9 @@ const geometry = $derived(
 
 /** The read-only rows of the one band selected; else `null`. */
 const band = $derived(shown === null ? null : bandRows(subjects, shown));
+
+/** The one flow-control element selected, itself or by its label; else `null`. */
+const flow = $derived(flowOf(subjects));
 
 /** The stored lock of the inspected timelines; `null` unless every subject is one. */
 const lock = $derived(block === null ? null : lockOf(subjects));
@@ -277,6 +284,8 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
       </div>
     {/each}
   </dl>
+{:else if flow !== null}
+  <FlowControlDetails {view} {store} {flow} />
 {:else if geometry === null}
   <p class="hint">{GEOMETRY_HINT}</p>
   {@render locked()}

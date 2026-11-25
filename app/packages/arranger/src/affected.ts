@@ -1,7 +1,7 @@
 /** What removing a selection takes away besides the selection itself. */
 
 import type { ElementAddress, Manifest } from "@timetoalign/tilie-core";
-import { addressKey, idAddress, removedBy } from "@timetoalign/tilie-core";
+import { addressKey, idAddress, removedBy, resolveElement } from "@timetoalign/tilie-core";
 import { manifestElements } from "@timetoalign/tilie-core/drawing";
 
 /**
@@ -25,7 +25,9 @@ function drawnAddresses(manifest: Manifest): ElementAddress[] {
  * selected card holds is affected. `selected` maps the selected element
  * addresses by their keys; they, and the parts of a selected element, are
  * left out: they show as selected. A band is never removed, so a selected
- * band takes nothing away, and draws nothing, so no band is affected.
+ * band takes nothing away, and draws nothing, so no band is affected. A
+ * flow-control element is never removed either (it is rejected), so a
+ * selected one, or a part of one, takes nothing away.
  * Neither is the element an open editor edits, `edited` (its ID in
  * `manifest`, `null` for none): Delete never removes it, so selecting it, or
  * a part of it, takes nothing away.
@@ -35,8 +37,12 @@ export function affectedBy(
   selected: ReadonlyMap<string, ElementAddress>,
   edited: string | null,
 ): ReadonlySet<string> {
+  const isFlowControl = (id: string): boolean => {
+    const resolved = resolveElement(manifest, idAddress(id));
+    return resolved?.kind === "entry" && resolved.entry === "flow_control";
+  };
   const owners = [...selected.values()].flatMap(({ id, facet }) =>
-    id === undefined || facet !== undefined || id === edited ? [] : [id],
+    id === undefined || facet !== undefined || id === edited || isFlowControl(id) ? [] : [id],
   );
   const removed = removedBy(manifest, owners);
   if (removed.size === 0) return new Set();

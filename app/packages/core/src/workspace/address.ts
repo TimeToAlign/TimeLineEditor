@@ -253,8 +253,8 @@ export interface AnchorFound extends MatchStampFound {
  * entry of a timeline's list, a conversion map another map holds (at
  * `path`, which nothing draws or addresses), a group, a MeasureMap, a
  * named timestamp or an elision (with the timeline it lies on), a named
- * MatchStamp, an alignment anchor (with its MatchStamp) or a resource
- * (which nothing draws or addresses).
+ * MatchStamp, an alignment anchor (with its MatchStamp), or a resource, a
+ * FlowMap or a virtual timeline (which nothing draws or addresses).
  */
 type Found =
   | { readonly kind: "timeline"; readonly at: Located }
@@ -266,6 +266,8 @@ type Found =
     }
   | { readonly kind: "held"; readonly path: readonly PathSegment[] }
   | { readonly kind: "resource" }
+  | { readonly kind: "flow_map" }
+  | { readonly kind: "virtual_timeline" }
   | ({ readonly kind: "elision" } & ElisionFound)
   | ({ readonly kind: "matchstamp" } & MatchStampFound)
   | ({ readonly kind: "anchor" } & AnchorFound)
@@ -297,7 +299,7 @@ function heldMaps(map: ConversionMap): readonly (readonly [PathSegment, Conversi
  * timelines (`timelinesInOrder`) and memoised by identity: per timeline in
  * pre-order its own, its entries' and, after each conversion map, the maps
  * it holds at any depth; then the groups', the MeasureMaps', the
- * resources', the named timestamps', the elisions' and the named
+ * resources', the FlowMaps', the virtual timelines', the named timestamps', the elisions' and the named
  * MatchStamps', each followed by its alignment anchors'. An ID repeated in a manifest the
  * schema refuses keeps its first finding, and a timestamp or an elision on
  * a timeline the manifest lacks, which the schema refuses too, is passed
@@ -333,6 +335,10 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
     note(map.id, { kind: "measure_map", map, index });
   });
   for (const resource of manifest.resources) note(resource.id, { kind: "resource" });
+  for (const flowMap of manifest.flow_maps ?? []) note(flowMap.id, { kind: "flow_map" });
+  for (const virtual of manifest.virtual_timelines ?? []) {
+    note(virtual.id, { kind: "virtual_timeline" });
+  }
   (manifest.graphical?.timestamps ?? []).forEach((timestamp, index) => {
     const on = found.get(timestamp.timeline);
     if (on?.kind === "timeline")
@@ -356,7 +362,7 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
  * Every ID a manifest holds, each unique across the manifest: the IDs of
  * its catalogue (its timelines at any depth, their conversion maps at any
  * depth, regions and flow-control elements, its groups, MeasureMaps,
- * resources, named timestamps, elisions, named MatchStamps and their
+ * resources, FlowMaps, virtual timelines, named timestamps, elisions, named MatchStamps and their
  * alignment anchors) and the manifest's own, which is neither drawn nor addressed.
  */
 export function manifestIds(manifest: Manifest): Set<string> {
@@ -381,6 +387,8 @@ export function idPath(manifest: Manifest, id: string): readonly PathSegment[] |
       return [...found.path, "id"];
     case undefined:
     case "resource":
+    case "flow_map":
+    case "virtual_timeline":
     case "elision":
     case "matchstamp":
     case "anchor":
@@ -399,8 +407,9 @@ export function idPath(manifest: Manifest, id: string): readonly PathSegment[] |
  * of its bands (`facet`), an entry, a named timestamp, a stored elision, a
  * named MatchStamp or an alignment anchor; with the part words that address
  * left to read, or `undefined` when it names nothing. A band or a card
- * exists only for a timeline drawn in a card; a map another map holds and a
- * resource are neither drawn nor addressed, and a MatchStamp, which is
+ * exists only for a timeline drawn in a card; a map another map holds, a
+ * resource, a FlowMap and a virtual timeline are neither drawn nor
+ * addressed, and a MatchStamp, which is
  * drawn by its anchors, has no part.
  */
 function baseOf(
@@ -428,6 +437,8 @@ function baseOf(
   switch (found.kind) {
     case "held":
     case "resource":
+    case "flow_map":
+    case "virtual_timeline":
       return undefined;
     case "matchstamp":
       return part.length > 0 ? undefined : [{ ...found }, []];
@@ -461,7 +472,7 @@ function baseOf(
  * manifest), a group's title, the name of a timeline drawn with one, the
  * wedges of a member drawing's named timestamps with their labels, a
  * segment's boundary (of every segment but the first) and label, the label
- * of a region, a flow marker or a jump origin, a named timestamp's label
+ * of a region, a break, a section break, a barline or a jump, a named timestamp's label
  * and cross-section line (`line`), a stored elision's ellipsis and labels,
  * and the cards. A named timestamp and a stored elision themselves resolve
  * with the timeline they lie on, drawn or not; a named MatchStamp and an
@@ -565,11 +576,13 @@ export function facetWord(facet: Facet): string {
   return FACET_WORDS[facet];
 }
 
-/** The word of each type of flow-control element. */
-const FLOW_WORDS: { readonly [type in FlowControlElement["type"]]: string } = {
-  jump_from: "jump origin",
-  jump_to: "jump target",
-  flow_marker: "flow marker",
+/** The word of a flow-control element of each role. */
+const FLOW_WORDS: { readonly [role in FlowControlElement["role"]]: string } = {
+  jump: "jump",
+  jump_target: "jump target",
+  break: "break",
+  section_break: "section break",
+  barline: "barline",
 };
 
 /** The word of each other kind of element a timeline holds in a list. */
@@ -580,14 +593,13 @@ const ENTRY_WORDS: { readonly [kind in Exclude<EntryKind, "flow_control">]: stri
 
 /**
  * The word of an element a timeline holds in a list, lowercase: `conversion
- * map`, `region`, or a flow-control element's by its type (`jump origin`,
- * `jump target`, `flow marker`).
+ * map`, `region`, or a flow-control element's by its role (`jump`, `jump
+ * target`, `break`, `section break`, `barline`).
  */
 export function entryWord(kind: EntryKind, element: ListedElement): string {
   if (kind !== "flow_control") return ENTRY_WORDS[kind];
-  if (!("manifestation" in element))
-    throw new Error("a flow-control entry is a flow-control element");
-  return FLOW_WORDS[element.type];
+  if (!("role" in element)) throw new Error("a flow-control entry is a flow-control element");
+  return FLOW_WORDS[element.role];
 }
 
 /** A name or an ID as a phrase quotes it. */

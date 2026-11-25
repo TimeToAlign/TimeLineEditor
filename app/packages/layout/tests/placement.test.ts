@@ -25,7 +25,7 @@ import {
 } from "./support.ts";
 
 /**
- * A jump origin at `from` with `label` as its id and its label, and the jump
+ * A jump at `from` with `label` as its id and its label, and the jump
  * target `<label>_to` at `to` that it names, added in that order.
  */
 const jump = (from: number, to: number, label: string) => [
@@ -34,7 +34,7 @@ const jump = (from: number, to: number, label: string) => [
     into: target("r"),
     flow_control: {
       id: `${label}_to`,
-      type: "jump_to",
+      role: "jump_target",
       manifestation: "repeat_start",
       coordinate: quarters(to),
     },
@@ -44,19 +44,17 @@ const jump = (from: number, to: number, label: string) => [
     into: target("r"),
     flow_control: {
       id: label,
-      type: "jump_from",
-      manifestation: "repeat_end",
+      role: "jump",
       coordinate: quarters(from),
-      target: `${label}_to`,
-      repeat_count: 2,
+      targets: [{ to: `${label}_to`, manifestation: "repeat_end", repeat_count: 2 }],
       label,
       meta: {},
     },
   },
 ];
 
-describe("jump-origin placement order and rows", () => {
-  it("places five jump origins in four exact rows and emits them in placement order", () => {
+describe("jump placement order and rows", () => {
+  it("places five jumps in four exact rows and emits them in placement order", () => {
     const manifest = build(
       "r",
       16,
@@ -67,7 +65,7 @@ describe("jump-origin placement order and rows", () => {
       ...jump(1, 13, "five"),
     );
     const drawing = draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
-    const jumps = drawing.elements.filter((item): item is JumpElement => item.type === "jump_from");
+    const jumps = drawing.elements.filter((item): item is JumpElement => item.type === "jump");
     const ids = ["one", "two", "three", "four", "five"];
     expect(jumps.map((item) => item.address)).toEqual(ids.map((id) => at(id)));
     const yf = 53.37890625;
@@ -88,21 +86,21 @@ describe("jump-origin placement order and rows", () => {
   });
 });
 
-describe("jump origins of corpus_score_ms3", () => {
+describe("jumps of corpus_score_ms3", () => {
   const drawing = drawFixture("corpus_score_ms3");
   const jump = (address: ElementAddress) => {
     const found = drawing.elements.find((item) => sameAddress(item.address, address));
-    if (found?.type !== "jump_from") throw new Error(`no jump origin ${JSON.stringify(address)}`);
+    if (found?.type !== "jump") throw new Error(`no jump ${JSON.stringify(address)}`);
     return found;
   };
 
-  it("places the jump origins on the flow row below the flow-marker label tier", () => {
+  it("places the jumps on the flow row below the label tier of the break", () => {
     expect(drawing.height).toBe(154.90625);
     expect(drawing.elements.find((item) => sameAddress(item.address, at("clt_1")))).toMatchObject({
       y: 59.5,
     });
     expect(
-      drawing.elements.filter((item) => item.type === "jump_from").map((item) => item.address),
+      drawing.elements.filter((item) => item.type === "jump").map((item) => item.address),
     ).toEqual([at("jump_from_2"), at("jump_from_1"), at("jump_from_3"), at("jump_from_4")]);
     expect(
       drawing.elements.find((item) => sameAddress(item.address, at("flow_marker_1", "label"))),
@@ -111,7 +109,7 @@ describe("jump origins of corpus_score_ms3", () => {
     });
   });
 
-  it("arrives steeply on a short jump origin", () => {
+  it("arrives steeply on a short jump", () => {
     expect(jump(at("jump_from_2"))).toMatchObject({
       start: [165.3993480785473, 75.4765625],
       c1: [157.2912399704392, 86.14322916666667],
@@ -125,7 +123,7 @@ describe("jump origins of corpus_score_ms3", () => {
     });
   });
 
-  it("arrives flatly on a long jump origin", () => {
+  it("arrives flatly on a long jump", () => {
     expect(jump(at("jump_from_4"))).toMatchObject({
       start: [468.10205078125, 75.4765625],
       c1: [368.10205078125, 140.74739583333331],

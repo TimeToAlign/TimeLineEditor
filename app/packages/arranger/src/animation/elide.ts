@@ -119,12 +119,14 @@ function extentOf(element: DrawnElement, measure: TextMeasure): readonly [number
     case "card":
     case "ancestor_card":
       return [element.x, element.x + element.width];
-    case "jump_from": {
+    case "jump": {
       const [a, b] = [element.start[0], element.tip[0]];
       return [Math.min(a, b), Math.max(a, b)];
     }
     case "wedge":
-    case "flow_marker":
+    case "break":
+    case "section_break":
+    case "barline":
     case "boundary":
     case "cross_section":
     case "ellipsis":

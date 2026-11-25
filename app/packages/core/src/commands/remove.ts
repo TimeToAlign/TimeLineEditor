@@ -5,7 +5,9 @@
  * takes along what `withoutElements` says goes with it. A segment (a child of
  * a segment line) cannot be removed unless it goes with another target
  * (`segment_not_removable`): it would leave a gap in its segment line. An
- * alignment anchor is removed only with its MatchStamp (`not_removable`).
+ * alignment anchor is removed only with its MatchStamp (`not_removable`). A
+ * flow-control element is removed only with its timeline (`not_removable`):
+ * it is rejected through its provenance, never deleted.
  */
 
 import type { CommandError } from "../errors.ts";
@@ -46,6 +48,8 @@ interface Removal {
   readonly element: string;
   /** For a segment, the segment line it lies in. */
   readonly line: string | null;
+  /** Whether it is a flow-control element, which goes only with its timeline. */
+  readonly flow: boolean;
 }
 
 /**
@@ -59,27 +63,27 @@ function removalOf(target: Target): Removal | null {
     case "anchor":
       return null;
     case "matchstamp":
-      return { element: target.matchstamp.id, line: null };
+      return { element: target.matchstamp.id, line: null, flow: false };
     case "group":
-      return { element: target.group.id, line: null };
+      return { element: target.group.id, line: null, flow: false };
     case "measure_map":
-      return { element: target.map.id, line: null };
+      return { element: target.map.id, line: null, flow: false };
     case "timestamp":
-      return { element: target.timestamp.id, line: null };
+      return { element: target.timestamp.id, line: null, flow: false };
     case "elision":
-      return { element: target.elision.id, line: null };
+      return { element: target.elision.id, line: null, flow: false };
     case "root":
     case "child": {
       const { at } = target;
       const line = isSegmentAt(at) ? (at.parent?.timeline.id ?? null) : null;
-      return { element: at.timeline.id, line };
+      return { element: at.timeline.id, line, flow: false };
     }
     case "map":
     case "region":
     case "flow_control": {
       const entry = entryAt(target.at.timeline, target.kind, target.index);
       if (entry === undefined) throw new Error(`${addressKey(target.address)} names an entry`);
-      return { element: entry.id, line: null };
+      return { element: entry.id, line: null, flow: target.kind === "flow_control" };
     }
     default:
       return assertNever(target);
@@ -118,14 +122,22 @@ export function applyRemove(
     if (blocks.has(id)) continue;
     const manifest = view.blocks[id]?.manifest;
     if (manifest === undefined) continue;
-    for (const [index, { element, line }] of list.entries()) {
-      if (line === null) continue;
+    for (const [index, { element, line, flow }] of list.entries()) {
+      if (line === null && !flow) continue;
       const others = list.filter((_, other) => other !== index).map((item) => item.element);
       if (removedBy(manifest, others).has(element)) continue;
+      const path = [addressKey(inBlock(id, idAddress(element)))];
+      if (line === null) {
+        return problem(
+          ErrorCode.notRemovable,
+          `Flow-control element '${element}' is rejected, never removed`,
+          path,
+        );
+      }
       return problem(
         ErrorCode.segmentNotRemovable,
         `Removing segment '${element}' of line '${line}' is not supported yet`,
-        [addressKey(inBlock(id, idAddress(element)))],
+        path,
       );
     }
   }

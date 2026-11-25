@@ -223,26 +223,24 @@ function flowElement(
       meta: {},
     };
   }
-  const type = pick(["jump_from", "jump_to", "flow_marker"], c);
-  // A manifestation of the element's type, sometimes another type's or none of them.
-  const manifestation = pick(
-    [
-      { jump_from: "repeat_end", jump_to: "segno", flow_marker: "fine" }[type],
-      { jump_from: "dal_segno", jump_to: "coda", flow_marker: "section_break" }[type],
-      "da_capo",
-      "nonsense",
-    ],
-    d,
-  );
-  // Mostly no target, sometimes a jump target of the timeline, sometimes none of them.
-  const target = pick(["", "", ...targets, "nothing"], b);
+  const role = pick(["jump", "jump_target", "break", "section_break", "barline"], c);
+  // A manifestation of the element's role, sometimes another role's or a word of none.
+  const manifestation = pick(["segno", "fine", "double_barline", "nonsense"], d);
+  // Mostly a destination without a place, sometimes one to a jump target of the timeline,
+  // sometimes one going on by a distance, sometimes one naming nothing.
+  const place = pick(["", "", ...targets, "by", "nothing"], b);
+  const destination = {
+    ...(place === "" ? {} : place === "by" ? { by: coordinate(axis, c, d) } : { to: place }),
+    ...(d % 3 === 0 ? { repeat_count: 1 + (d % 2) } : {}),
+    ...(d % 4 === 0 ? { passes: [1 + (c % 3)] } : {}),
+  };
   return {
     id,
-    type,
-    manifestation,
+    role,
     coordinate: at,
-    ...(target === "" ? {} : { target }),
-    ...(d % 3 === 0 ? { repeat_count: 1 + (d % 2) } : {}),
+    // A jump mostly holds destinations and no manifestation, any other role the reverse.
+    ...((role === "jump") === (d % 7 !== 0) ? { targets: [destination] } : { manifestation }),
+    ...(d % 5 === 0 ? { provenance: [{ method: "imported" }] } : {}),
     label: d % 2 === 0 ? null : "L",
     meta: {},
   };
@@ -422,7 +420,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
     [timeline.regions, timeline.flow_control].flatMap((list) => list.map((item) => item.id)),
   );
   const targets = all.flatMap(({ timeline }) =>
-    timeline.flow_control.flatMap((item) => (item.type === "jump_to" ? [item.id] : [])),
+    timeline.flow_control.flatMap((item) => (item.role === "jump_target" ? [item.id] : [])),
   );
   const known = all.map((place) => place.timeline.id);
   const groups = manifest?.groups.map((group) => group.id) ?? [];
@@ -556,26 +554,21 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
     case 10: {
       const target = pick([...elements, "ghost"], p2);
       const property = pick(
-        [
-          "name",
-          "start",
-          "end",
-          "coordinate",
-          "label",
-          "manifestation",
-          "repeat_count",
-          "meta",
-          "target",
-        ],
+        ["name", "start", "end", "coordinate", "label", "manifestation", "meta", "provenance"],
         p3,
       );
+      const believed = {
+        actor: "https://example.org/people/editor",
+        belief: pick(["true", "false", "unlikely", "perhaps"], p5),
+        date: "2026-11-25",
+      };
       const value =
         property.includes("coordinate") || property === "start" || property === "end"
           ? coordinate(axis, p4, p5)
           : property === "meta"
             ? { k: 1 }
-            : property === "target"
-              ? pick([null, ...targets, "nothing"], p4)
+            : property === "provenance"
+              ? pick([null, [{ method: "manual", beliefs: [believed] }], [], "nonsense"], p4)
               : pick(["x", null, "nonsense", 3], p4);
       return set(at(block, target), { [property]: value });
     }

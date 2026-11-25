@@ -9,6 +9,7 @@ import {
   manifestIds,
   placeAt,
   placeKeyText,
+  removedBy,
   resolveElement,
   samePlaceKey,
   WORKSPACE,
@@ -562,16 +563,36 @@ describe("affectedBy", () => {
             });
             return;
           }
+          // A flow-control element is never deleted: it is left out of the targets.
+          const isFlow = (owner: ElementAddress) => {
+            const resolved = resolveElement(manifest, owner);
+            return resolved?.kind === "entry" && resolved.entry === "flow_control";
+          };
+          const removable = owners.filter((owner) => !isFlow(owner));
+          if (removable.length === 0) {
+            expect(command).toEqual({
+              refused:
+                "A flow-control element is not deleted; state your belief in it in the Properties tab to reject it.",
+            });
+            return;
+          }
           const direct = apply(view, {
             type: "remove",
-            targets: owners.map((owner) => inBlock(A, owner)),
+            targets: removable.map((owner) => inBlock(A, owner)),
           });
           expect("refused" in command).toBe(isCommandError(direct));
           if ("refused" in command) return;
           const before = manifestIds(manifest);
           const after = manifestIds(blockIn(changed(view, command), A).manifest);
           const affected = affectedBy(manifest, local, null);
-          const ownerIds = new Set(owners.flatMap(({ id }) => (id === undefined ? [] : [id])));
+          const ids = (list: readonly ElementAddress[]) =>
+            list.flatMap(({ id }) => (id === undefined ? [] : [id]));
+          // A selected flow-control element goes only with a selected timeline holding it.
+          const withTimeline = removedBy(manifest, ids(removable));
+          const ownerIds = new Set([
+            ...ids(removable),
+            ...ids(owners).filter((id) => withTimeline.has(id)),
+          ]);
           const expected = new Set(
             [...before].filter((id) => ownerIds.has(id) || affected.has(addressKey(idAddress(id)))),
           );

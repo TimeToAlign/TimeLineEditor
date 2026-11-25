@@ -62,12 +62,23 @@ export type Statements = NonNullable<TimelineManifest["statements"]>;
 export type ProvenanceEntry = NonNullable<TimelineManifest["provenance"]>[number];
 
 /**
- * One element of a timeline's flow control, discriminated by its `type`: a
- * `jump_from` (a jump origin, naming the `jump_to` it leads to as `target`,
- * or the timeline's start without one), a `jump_to` (a jump target) or a
- * `flow_marker`.
+ * One element of a timeline's flow control, discriminated by its `role`: a
+ * `jump` (holding its destinations as `targets`), a `jump_target`, a
+ * `break` (which may state when it ends the flow, `ends`), a
+ * `section_break` or a `barline`. Each may carry `provenance`, whose
+ * entries are about the element itself.
  */
 export type FlowControlElement = ReadonlyView<CompleteFlowControlElement>;
+
+/** The role of a flow-control element. */
+export type FlowRole = FlowControlElement["role"];
+
+/**
+ * One destination of a jump: its place (`to` an element, `by` a signed
+ * distance from the jump, or neither: the start of the jump's section) and
+ * the conditions under which it is taken.
+ */
+export type JumpDestination = NonNullable<FlowControlElement["targets"]>[number];
 
 /** A conversion map, discriminated by its `type`: an abstract function of a position on its timeline's axis. */
 export type ConversionMap = ReadonlyView<CompleteConversionMap>;

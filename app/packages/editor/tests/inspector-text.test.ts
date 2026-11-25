@@ -38,15 +38,20 @@ const fixturesDirectory = path.join(
   "fixtures",
   SCHEMA_VERSION,
 );
-/** The manifest fixtures of one directory, `""`, `groups` or `bundles`, without their minimal twins. */
-function fixturesOf(kind: "" | "groups" | "bundles"): string[] {
+/** The manifest fixtures of one directory, `""`, `groups`, `bundles` or `flow`, without their minimal twins. */
+function fixturesOf(kind: "" | "groups" | "bundles" | "flow"): string[] {
   return readdirSync(path.join(fixturesDirectory, kind))
     .filter((name) => name.endsWith(".yaml") && !name.endsWith(".minimal.yaml"))
     .sort()
     .map((name) => path.join(kind, name).replace(/\.yaml$/, ""));
 }
 
-const fixtureNames = [...fixturesOf(""), ...fixturesOf("groups"), ...fixturesOf("bundles")];
+const fixtureNames = [
+  ...fixturesOf(""),
+  ...fixturesOf("groups"),
+  ...fixturesOf("bundles"),
+  ...fixturesOf("flow"),
+];
 
 function blockIn(store: Store, id: string): Block {
   const block = store.view.blocks[id];
@@ -148,12 +153,13 @@ beforeAll(async () => {
 });
 
 describe("format round trips", () => {
-  it("covers the 51, 17 and 20 fixtures of the top, groups/ and bundles/", () => {
+  it("covers the 51, 17, 20 and 10 fixtures of the top, groups/, bundles/ and flow/", () => {
     expect([
       fixturesOf("").length,
       fixturesOf("groups").length,
       fixturesOf("bundles").length,
-    ]).toEqual([51, 17, 20]);
+      fixturesOf("flow").length,
+    ]).toEqual([51, 17, 20, 10]);
   });
 
   for (const name of fixtureNames) {
@@ -218,6 +224,9 @@ describe("the TOML null rule", () => {
       MeasureMap: ["name"],
       Region: ["name"],
       FlowControlElement: ["label", "name"],
+      JumpDestination: ["label"],
+      FlowMap: ["name"],
+      VirtualTimeline: ["name"],
       MapBase: ["name", "source_unit", "target_unit"],
       Group: ["name"],
     });

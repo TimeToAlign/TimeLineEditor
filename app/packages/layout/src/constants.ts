@@ -34,8 +34,8 @@ export const MARKER_HEIGHT = 13;
 export const LABEL_GAP = 2;
 /** The brace height. */
 export const BRACE = 6;
-/** The flow-marker label offset. */
-export const FLOW_MARKER_LABEL_OFFSET = 3;
+/** The offset of the label of a break, a section break or a barline from its line. */
+export const FLOW_LINE_LABEL_OFFSET = 3;
 /** The fixed part of the row pitch `p = max(10 + S, h(s))`. */
 export const ROW_PITCH = 10;
 /** The fixed part of the first jump depth `4 + S`. */
