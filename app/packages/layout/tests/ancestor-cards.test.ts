@@ -26,6 +26,7 @@ import {
   wedgeAt,
 } from "../src/index.ts";
 import {
+  ARCS_ALONE,
   at,
   BLOCK,
   boxesOf,
@@ -37,6 +38,7 @@ import {
   loadFile,
   manifestNames,
   metrics,
+  ROOT_ARCS_ALONE,
   set,
 } from "./support.ts";
 
@@ -669,8 +671,8 @@ describe("an ancestor card and the alignment anchors", () => {
 });
 
 describe("the ancestor cards of bundle_shared_parent", () => {
-  // Drawn whole: their gaps are the subject of `elisions.test.ts`.
-  const drawing = drawFixture("bundles/bundle_shared_parent", [FULL_CARDS]);
+  // Drawn whole: their gaps are the subject of `elisions.test.ts`; `score`'s jump with its arc.
+  const drawing = drawFixture("bundles/bundle_shared_parent", [FULL_CARDS, ROOT_ARCS_ALONE]);
   const keys = [
     { item: "group_1", member: "score" },
     { item: "group_2", member: "score" },
@@ -725,7 +727,7 @@ describe("the ancestor cards of bundle_shared_parent", () => {
     const reference = draw(
       manifest,
       { ...DEFAULT_PLACEMENT, length: 1066.6666666666665 },
-      [DEFAULT_LAYER, manifestLayer(manifest)],
+      [DEFAULT_LAYER, ROOT_ARCS_ALONE, manifestLayer(manifest)],
       metrics,
     );
     const [, rootCard] = reference.boxes;
@@ -735,7 +737,10 @@ describe("the ancestor cards of bundle_shared_parent", () => {
       98.4296875,
     );
     // Its line lies on score's ancestor row in its member's card, as drawn with the hiding layer.
-    const without = drawFixture("bundles/bundle_shared_parent", [HIDDEN_ANCESTOR_CARDS]);
+    const without = drawFixture("bundles/bundle_shared_parent", [
+      HIDDEN_ANCESTOR_CARDS,
+      ROOT_ARCS_ALONE,
+    ]);
     expect(without.origin).toEqual({ x: 0, y: 0 });
     expect(
       without.elements
@@ -881,7 +886,7 @@ describe("no card overlaps another item's", () => {
   const bottomOf = (box: DrawnBox) => box.y + box.height;
 
   it("moves the item after a card reaching below its frame down by the reach", () => {
-    const drawing = drawFixture("bundles/bundle_mixed");
+    const drawing = drawFixture("bundles/bundle_mixed", [ARCS_ALONE]);
     const card = behindOf(drawing, "group_2");
     const excerpt = drawing.boxes.find(
       (box) => box.key !== null && samePlaceKey(box.key, { item: "group_2", member: "excerpt" }),
@@ -897,8 +902,8 @@ describe("no card overlaps another item's", () => {
   });
 
   it("moves nothing but the item after the card, by exactly the reach", () => {
-    const shownCard = drawFixture("bundles/bundle_mixed");
-    const whole = drawFixture("bundles/bundle_mixed", [FULL_CARDS]);
+    const shownCard = drawFixture("bundles/bundle_mixed", [ARCS_ALONE]);
+    const whole = drawFixture("bundles/bundle_mixed", [FULL_CARDS, ARCS_ALONE]);
     expect(bottomOf(behindOf(whole, "group_2")) <= bottomOf(itemOf(whole, "group_2"))).toBe(true);
     expect(itemOf(whole, "annotations").y).toBe(371.796875);
     const annotations = itemOf(shownCard, "annotations");

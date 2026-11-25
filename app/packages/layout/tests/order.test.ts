@@ -21,7 +21,18 @@ import {
   draw,
   manifestLayer,
 } from "../src/index.ts";
-import { at, bandOrder, baseOf, edit, element, load, metrics, set, unturned } from "./support.ts";
+import {
+  ARCS_ALONE,
+  at,
+  bandOrder,
+  baseOf,
+  edit,
+  element,
+  load,
+  metrics,
+  set,
+  unturned,
+} from "./support.ts";
 
 /** Draw a manifest with the default layer, `extra` and its own layer. */
 const drawn = (manifest: Manifest, ...extra: Graphical[]): Drawing =>
@@ -108,9 +119,9 @@ const CASES: readonly [Facet, ElementType, string, string, number, number][] = [
 describe("a band moved across its line", () => {
   for (const [facet, type, name, root, count, sign] of CASES) {
     it(`puts every ${type} of the ${facet} band on the other side`, () => {
-      const before = signs(load(name), drawn(load(name)), type);
+      const before = signs(load(name), drawn(load(name), ARCS_ALONE), type);
       const reordered = edit(name, set(root, { order: moved(facet) }));
-      const after = signs(reordered, drawn(reordered), type);
+      const after = signs(reordered, drawn(reordered, ARCS_ALONE), type);
       expect(before).toEqual(Array.from({ length: count }, () => sign));
       expect(after).toEqual(before.map(() => -sign));
     });
@@ -119,6 +130,7 @@ describe("a band moved across its line", () => {
   it("ends the root's break at the bottom padding when its flow control band lies above", () => {
     const drawing = drawn(
       edit("flow_control", set("flow:quarters", { order: moved("flow_control") })),
+      ARCS_ALONE,
     );
     expect(drawing.height).toBe(117.90625);
     expect(element(drawing, at("flow:quarters"))).toMatchObject({ y: 72.9296875 });
@@ -204,44 +216,5 @@ describe("a band order listing a subset of the facets", () => {
     );
     expect(subset.elements).toEqual(drawn(completed).elements);
     expect(subset.elements).not.toEqual(drawn(load("map")).elements);
-  });
-});
-
-describe("a child's break", () => {
-  const shown: Graphical = {
-    rules: [
-      {
-        select: { addresses: [{ id: "verse", facet: "flow_control" }] },
-        set: { display: "inline" },
-      },
-    ],
-  };
-
-  it("runs from its flow row across its line to max(E, h(s) / 2) beyond it", () => {
-    const drawing = drawn(load("child_flow_control"), shown);
-    expect(drawing.height).toBe(111.4296875);
-    expect(ordinates(drawing)).toEqual({ piece: 66.453125, verse: 23 });
-    expect(element(drawing, at("fine"))).toMatchObject({ y1: 38.9765625, y2: 16.59765625 });
-    expect(element(drawing, at("fine", "label"))).toMatchObject({
-      x: 258.3134765625,
-      baseline: 36.85400390625,
-    });
-  });
-
-  it("runs the other way when its flow control band lies above its line", () => {
-    const drawing = drawn(
-      edit("child_flow_control", set("verse", { order: moved("flow_control") })),
-      shown,
-    );
-    expect(drawing.height).toBe(111.4296875);
-    expect(ordinates(drawing)).toEqual({ piece: 66.453125, verse: 52.453125 });
-    expect(element(drawing, at("fine"))).toMatchObject({ y1: 36.4765625, y2: 58.85546875 });
-    expect(element(drawing, at("fine", "label"))).toMatchObject({
-      x: 258.3134765625,
-      baseline: 44.83056640625,
-    });
-    expect(element(drawing, at("da_capo_al_fine"))).toMatchObject({
-      start: [355.3134765625, 36.4765625],
-    });
   });
 });

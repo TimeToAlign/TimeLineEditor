@@ -223,6 +223,36 @@ export interface VerticalLineElement extends Addressed {
 }
 
 /**
+ * The symbol of a flow-control element (section 6.4, Symbols): the glyphs of
+ * its manifestation, or of its destinations' side by side, written as one
+ * text centred at `x` on the flow row's symbol line, `baseline` its baseline.
+ */
+export interface SymbolElement extends Addressed {
+  readonly type: "symbol";
+  readonly x: number;
+  readonly baseline: number;
+  readonly text: string;
+}
+
+/**
+ * A volta bracket (section 6.4, Brackets): its line at the ordinate `y` from
+ * `x1` to `x2`, a hook at `x1` and, where `closed`, one at `x2`, each from
+ * `y` to `yh`; its text, the passes as printed, written from `tx` on
+ * `baseline`, null for a destination without passes.
+ */
+export interface BracketElement extends Addressed {
+  readonly type: "bracket";
+  readonly x1: number;
+  readonly x2: number;
+  readonly y: number;
+  readonly yh: number;
+  readonly closed: boolean;
+  readonly tx: number;
+  readonly baseline: number;
+  readonly text: string | null;
+}
+
+/**
  * The line of an alignment anchor of a named MatchStamp, from `(x1, y1)` to
  * `(x2, y2)`: from a cross-section segment of its first timestamp to one of
  * its second (section 8.7).
@@ -340,6 +370,8 @@ export type DrawnElement =
   | RegionElement
   | JumpElement
   | VerticalLineElement
+  | SymbolElement
+  | BracketElement
   | AnchorElement
   | LeaderElement
   | MarkerElement

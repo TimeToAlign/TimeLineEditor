@@ -15,7 +15,9 @@ import {
   manifestLayer,
 } from "../src/index.ts";
 import {
+  ARCS_ALONE,
   at,
+  CHILD_REGIONS_HIDDEN,
   child,
   drawFixture,
   edit,
@@ -30,12 +32,15 @@ import {
   target,
 } from "./support.ts";
 
-/** A manifest drawn without its ancestor cards (section 8.8), the subject being its ancestor lines. */
+/**
+ * A manifest drawn without its ancestor cards (section 8.8), the subject being its ancestor lines,
+ * and with the arcs of its jumps alone (`ARCS_ALONE`), which reach as far as their places.
+ */
 const drawn = (manifest: Manifest): Drawing =>
   draw(
     manifest,
     DEFAULT_PLACEMENT,
-    [DEFAULT_LAYER, HIDDEN_ANCESTOR_CARDS, manifestLayer(manifest)],
+    [DEFAULT_LAYER, HIDDEN_ANCESTOR_CARDS, ARCS_ALONE, manifestLayer(manifest)],
     metrics,
   );
 
@@ -242,14 +247,12 @@ describe("a group member of unknown length", () => {
 
 describe("a segment line whose segments are of unknown length", () => {
   it("reaches the last segment's offset plus its own reach", () => {
-    // The defaults hide the regions band of a segment without a line of its own; shown, its
-    // regions join the segment line's regions band.
-    expect(addresses(drawFixture("unknown_length_segments"), "region")).toEqual([]);
-    const drawing = drawFixture("unknown_length_segments", [
-      {
-        rules: [{ select: { element: "band", facet: "regions" }, set: { display: "inline" } }],
-      },
-    ]);
+    // The regions band of a segment without a line of its own, hidden by a rule, adds nothing;
+    // shown, as the defaults show it, its regions join the segment line's regions band.
+    expect(
+      addresses(drawFixture("unknown_length_segments", [CHILD_REGIONS_HIDDEN]), "region"),
+    ).toEqual([]);
+    const drawing = drawFixture("unknown_length_segments");
     const region = element(drawing, at("region_2"));
     if (region.type !== "region") throw new Error("no region");
     expect([region.x1, region.x2]).toEqual([379.2520967371323, 449.84033203125]);

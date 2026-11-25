@@ -14,6 +14,7 @@ import {
 } from "../src/index.ts";
 import {
   at,
+  CHILD_REGIONS_HIDDEN,
   drawFixture,
   edit,
   element,
@@ -309,7 +310,7 @@ describe("a band's display", () => {
     draw(
       manifest,
       DEFAULT_PLACEMENT,
-      [DEFAULT_LAYER, { rules }, manifestLayer(manifest)],
+      [DEFAULT_LAYER, CHILD_REGIONS_HIDDEN, { rules }, manifestLayer(manifest)],
       metrics,
     ).elements.flatMap((item) =>
       item.type === "region" || item.type === "child" ? [item.address] : [],

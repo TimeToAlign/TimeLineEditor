@@ -23,9 +23,11 @@ import {
   manifestLayer,
 } from "../src/index.ts";
 import {
+  ARCS_ALONE,
   at,
   BLOCK,
   boxesOf,
+  CHILD_REGIONS_HIDDEN,
   drawFixture,
   drawWithoutAncestorCards,
   element,
@@ -210,7 +212,7 @@ describe("manifests of one group: an anonymous block holding its frame", () => {
 });
 
 describe("a titled manifest with two frames and an ungrouped root", () => {
-  const drawing = drawWithoutAncestorCards("bundles/bundle_mixed");
+  const drawing = drawWithoutAncestorCards("bundles/bundle_mixed", [ARCS_ALONE]);
 
   it("opens with its title, then the frames and the ungrouped card F apart", () => {
     expect(size(drawing)).toEqual([579.052001953125, 453.65234375]);
@@ -412,7 +414,10 @@ describe("hidden titles", () => {
   });
 
   it("a manifest without its title", () => {
-    const drawing = drawWithoutAncestorCards("bundles/bundle_mixed", [hide({ part: ["name"] })]);
+    const drawing = drawWithoutAncestorCards("bundles/bundle_mixed", [
+      ARCS_ALONE,
+      hide({ part: ["name"] }),
+    ]);
     expect(drawing.elements.some((item) => sameAddress(item.address, TITLE_ADDRESS))).toBe(false);
     expect(rect(drawing, at("group_1"))).toMatchObject({ y: 8 });
     expect(rect(drawing, at("annotations", "card"))).toMatchObject({ y: 350.9921875 });
@@ -476,10 +481,11 @@ describe("addresses by ID", () => {
     }
     if (isCommandError(view)) throw new Error(`${view.code}: ${view.message}`);
     const manifest = (view.blocks[BLOCK] as { readonly manifest: Manifest }).manifest;
+    // Drawn in its member's card alone: a child's regions hidden in `piece`'s ancestor card.
     const drawing = draw(
       manifest,
       DEFAULT_PLACEMENT,
-      [DEFAULT_LAYER, manifestLayer(manifest)],
+      [DEFAULT_LAYER, CHILD_REGIONS_HIDDEN, manifestLayer(manifest)],
       metrics,
     );
     expect(element(drawing, at("region_1")).type).toBe("region");

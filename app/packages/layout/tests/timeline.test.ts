@@ -13,6 +13,7 @@ import {
   Cascade,
   DEFAULT_LAYER,
   DEFAULT_PLACEMENT,
+  draw,
   manifestLayer,
   TextMeasure,
 } from "../src/index.ts";
@@ -31,6 +32,7 @@ import {
 } from "../src/timeline.ts";
 import { type Entry, type Scope, traverse } from "../src/traversal.ts";
 import {
+  ARCS_ALONE,
   at,
   bandOrder,
   edit,
@@ -419,12 +421,13 @@ describe("segments without a line", () => {
     const b = entryOf(scope, "b");
     expect(sourcesOf(scope, b).map((entry) => entry.manifest.id)).toEqual(["b", "b1", "b2"]);
     const timeline = prepareTimeline(scope, b);
+    // A segment's flow control is drawn by the root's band, never joined to its segment line's.
     expect(elements(timeline)).toEqual({
       children: 0,
       conversion_maps: 1,
       markers: 0,
       regions: 3,
-      flow_control: 2,
+      flow_control: 0,
     });
     const drawn = alone(timeline, undefined).elements(PLACE);
     expect(drawn.regions.map((item) => item.address)).toEqual([
@@ -435,16 +438,28 @@ describe("segments without a line", () => {
     expect(drawn.maps.map((map) => [map.address, map.xs, map.xe])).toEqual([
       [at("b1_map"), 100, 175],
     ]);
-    expect(drawn.flowLines.map((item) => [item.address, item.x])).toEqual([[at("b1_break"), 125]]);
-    expect(drawn.jumps.map((item) => item.address)).toEqual([at("b1_jump")]);
+    expect([drawn.flowLines, drawn.jumps, drawn.symbols]).toEqual([[], [], []]);
+    const form = prepareTimeline(scope, entryOf(scope, "form"));
+    expect(form.bands.flow_control.elements).toBe(3);
+    const root = draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics).elements;
+    expect(
+      root.flatMap((item) =>
+        ["break", "jump", "symbol"].includes(item.type) ? [[item.type, item.address]] : [],
+      ),
+    ).toEqual([
+      ["break", at("b1_break")],
+      ["symbol", at("b1_start", "symbol")],
+      ["symbol", at("b1_break", "symbol")],
+      ["symbol", at("b1_jump", "symbol")],
+    ]);
   });
 
-  it("joins nothing by default but the maps, and nothing of a hidden segment", () => {
+  it("joins the maps and the regions by default, and nothing of a hidden segment", () => {
     expect(elements(prepared(scopeOf(manifest), "b"))).toEqual({
       children: 0,
       conversion_maps: 1,
       markers: 0,
-      regions: 0,
+      regions: 3,
       flow_control: 0,
     });
     const scope = scopeOf(manifest, [show("regions", "flow_control"), hide(at("b1"))]);
@@ -491,7 +506,7 @@ describe("extents", () => {
   });
 
   it("holds the drawn labels and the points of the breaks", () => {
-    const root = prepared(scopeOf(load("flow_control")), "flow:quarters");
+    const root = prepared(scopeOf(load("flow_control"), [ARCS_ALONE]), "flow:quarters");
     expect(root.extent).toEqual([-7.416015625, 410.279052734375]);
     expect(root.bands.flow_control.extents).toEqual([
       [300, 300],
@@ -540,38 +555,5 @@ describe("breaks, section breaks and barlines", () => {
     expect(above.elements(PLACE).flowLines.map((item) => [item.y1, item.y2])).toEqual([
       [84.0234375, 192],
     ]);
-  });
-
-  it("end max(E, h(s) / 2) beyond any other timeline's line", () => {
-    const shown: Graphical[] = [
-      {
-        rules: [
-          {
-            select: { addresses: [{ id: "verse", facet: "flow_control" }] },
-            set: { display: "inline" },
-          },
-        ],
-      },
-    ];
-    const ends = (manifest: Manifest, size = 11) =>
-      alone(prepared(scopeOf(manifest, shown), "verse"), undefined)
-        .elements({ ...PLACE, size })
-        .flowLines.map((item) => item.y2);
-    expect(ends(load("child_flow_control"))).toEqual([93.59765625]);
-    expect(ends(load("child_flow_control"), 40)).toEqual([76.71875]);
-    expect(
-      ends(
-        edit(
-          "child_flow_control",
-          set("verse", {
-            order: bandOrder(
-              ["children", "conversion_maps", "flow_control"],
-              ["markers", "regions"],
-            ),
-          }),
-        ),
-      ),
-    ).toEqual([106.40234375]);
-    expect(ends(edit("child_flow_control", linearMap("verse", "verse_map")))).toEqual([93.5]);
   });
 });

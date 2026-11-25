@@ -104,6 +104,45 @@ export const FULL_CARDS: Graphical = {
 };
 
 /**
+ * An application layer showing the arcs of every jump, which the defaults
+ * hide (section 4), and hiding every symbol and bracket (section 6.4): the
+ * drawings of a test whose subject is an arc, or not flow control at all,
+ * keep the derivations made with the arcs and without symbols and brackets.
+ */
+export const ARCS_ALONE: Graphical = {
+  rules: [
+    { select: { element: "jump" }, set: { display: "inline" } },
+    { select: { element: "symbol" }, set: { display: "none" } },
+    { select: { element: "bracket" }, set: { display: "none" } },
+  ],
+};
+
+/**
+ * `ARCS_ALONE` drawn in the cards held by the block alone: the arcs of every
+ * jump in a group's frame hidden, as a member that is a child timeline draws
+ * its root's jumps on its stretch (section 6.4, Gathering): the drawings of
+ * a test whose subject is not a member's flow control keep the derivations
+ * made without them.
+ */
+export const ROOT_ARCS_ALONE: Graphical = {
+  rules: [
+    ...(ARCS_ALONE.rules ?? []),
+    { select: { element: "jump", inside: "frame" }, set: { display: "none" } },
+  ],
+};
+
+/**
+ * An application layer hiding the regions band of every timeline held by a
+ * band, which the defaults show (section 4): the drawings of a test whose
+ * subject is not a child's regions keep the derivations made without them.
+ */
+export const CHILD_REGIONS_HIDDEN: Graphical = {
+  rules: [
+    { select: { element: "band", facet: "regions", inside: "band" }, set: { display: "none" } },
+  ],
+};
+
+/**
  * Draw a fixture of any kind with the default layer, the application's
  * layers `extra` and the manifest's own layer, at a placement.
  */

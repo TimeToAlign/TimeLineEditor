@@ -11,6 +11,7 @@ import {
   type Placement,
 } from "../src/index.ts";
 import {
+  ARCS_ALONE,
   at,
   boxesOf,
   drawFixture,
@@ -25,7 +26,7 @@ import {
 
 const placedAt = (changes: Partial<Placement>): Placement => ({ ...DEFAULT_PLACEMENT, ...changes });
 const ungrouped = (places: Placement["places"]) =>
-  drawFixture("bundles/bundle_ungrouped", [], placedAt({ places }));
+  drawFixture("bundles/bundle_ungrouped", [ARCS_ALONE], placedAt({ places }));
 const member = (places: Placement["places"]) =>
   drawWithoutAncestorCards("groups/group_child_member", [], placedAt({ places }));
 
@@ -293,7 +294,11 @@ describe("spacings, each its own container's", () => {
   describe("the block's spacing 24", () => {
     it("lies between the items at their default y", () => {
       const drawing = ungrouped({});
-      const spaced = drawFixture("bundles/bundle_ungrouped", [], placedAt({ spacing: 24 }));
+      const spaced = drawFixture(
+        "bundles/bundle_ungrouped",
+        [ARCS_ALONE],
+        placedAt({ spacing: 24 }),
+      );
       expect(itemsOf(spaced).map((box) => box.item?.place.y)).toEqual([
         28.8046875, 116.2578125, 189.734375,
       ]);
@@ -307,7 +312,7 @@ describe("spacings, each its own container's", () => {
     it("keeps a stated y and lies below the largest bottom edge before an item", () => {
       const drawing = drawFixture(
         "bundles/bundle_ungrouped",
-        [],
+        [ARCS_ALONE],
         placedAt({ spacing: 24, places: { recording: { y: 40 } } }),
       );
       expect(itemsOf(drawing).map((box) => box.item?.place.y)).toEqual([

@@ -4,7 +4,7 @@ import { BUNDLE_ADDRESS } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import { describe, expect, it } from "vitest";
 import type { Drawing } from "../src/index.ts";
-import { at, drawFixture, element, unturned } from "./support.ts";
+import { ARCS_ALONE, at, drawFixture, element, unturned } from "./support.ts";
 
 /** The elements without their styles, for comparison with hand-derived geometry. */
 function geometry(drawing: Drawing): unknown[] {
@@ -159,7 +159,8 @@ describe("nested", () => {
 
 describe("flow_control", () => {
   it("draws the hand-derived geometry", () => {
-    const drawing = drawFixture("flow_control");
+    // Its arcs shown, its symbols hidden: the figure's geometry, derived with the arcs.
+    const drawing = drawFixture("flow_control", [ARCS_ALONE]);
     const x0 = 90.9775390625;
     const xe = 490.9775390625;
     const yf = 63.85546875;

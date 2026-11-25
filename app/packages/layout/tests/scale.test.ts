@@ -183,8 +183,9 @@ function counting(): { readonly font: FontMetrics; readonly reads: string[] } {
 /**
  * Every distinct text the drawing measures: the coordinate labels of the root's `origin` and
  * `length`, the region's and the break's labels, the label of the jump's arc (its destination's),
- * the root's name, the nested child's, and the names of the rows of children, each row's names
- * joined (the segment line's row ends with its own).
+ * the symbols of the jump targets, the breaks and the jump (`repeat_start`, `fine`,
+ * `repeat_end`), the root's name, the nested child's, and the names of the rows of children, each
+ * row's names joined (the segment line's row ends with its own).
  */
 const MEASURED = [
   "0 ♩",
@@ -192,11 +193,13 @@ const MEASURED = [
   "region",
   "stop",
   "jump",
+  "\u{1D106}",
+  "Fine",
+  "\u{1D107}",
   "root",
   "nested_unknown",
-  "voice, voice, voice",
-  "voice, voice, voice, voice, voice, voice",
   "voice, voice, voice, voice, voice, voice, voice",
+  "voice, voice, voice, voice, voice, voice, voice, voice",
   "voice, voice, voice, voice, voice, voice, voice, segments",
 ];
 
@@ -217,6 +220,9 @@ const codePoints = (text: string): string[] =>
 describe("redraw operation counts", () => {
   const manifest = thousandElements();
   const keys = manifestElements(manifest);
+  // The ID labels of the flow-control elements' stacks, which the stacks draw only where their
+  // `label-display` lists `id` (section 6.4, Flow labels).
+  const unresolved = keys.filter((key) => key.type === "label" && key.address.part?.[0] === "id");
   const general = counted({});
   const discriminating = [
     counted({ addresses: [at("not-in-the-manifest")] }),
@@ -246,27 +252,29 @@ describe("redraw operation counts", () => {
   // The tests each rule saw while drawing: its reads less a second ranking, draw's own cascade.
   const tests = all.map(({ reads: count }, index) => count() - 2 * (ranking[index] ?? 0));
 
-  it("styles 1,004 element keys: 1,000 and those of the root's secondary coordinates", () => {
+  it("styles 1,118 element keys: 1,114 and those of the root's secondary coordinates", () => {
     // `origin` at 0 crosses `child_0` (its reach 1) and `nested_unknown` (its reach 0), each a
     // secondary coordinate with a wedge and a coordinate label; `length` at 200 crosses no child,
     // each ending at its reach, 1 past its offset, nor the segment line, 120 to 160 (section 2).
     expect(keys.filter((key) => key.coordinates === "secondary")).toHaveLength(4);
-    expect(keys).toHaveLength(1004);
+    expect(keys).toHaveLength(1118);
   });
 
   it("tests the general rule once per element key and twice per line, so resolves each key once", () => {
     // Each timeline or child line also resolves the wedge and the cross-section line no named
-    // timestamp holds, once each.
+    // timestamp holds, once each; the ID labels of the breaks and the jump, which the
+    // `label-display` `label` leaves out of their stacks, are never resolved.
     const lines = keys.filter((key) => key.type === "timeline" || key.type === "child").length;
-    expect(tests[0]).toBe(keys.length + 2 * lines);
+    expect(unresolved).toHaveLength(27);
+    expect(tests[0]).toBe(keys.length - unresolved.length + 2 * lines);
   });
 
   it("tests a rule with addresses, a class or an element only on keys it can match", () => {
     expect(tests.slice(1, 4)).toEqual([0, 0, 0]);
     const perAddress = new Map<string, number>();
-    for (const { address } of keys) {
-      const key = addressKey(address);
-      perAddress.set(key, (perAddress.get(key) ?? 0) + 1);
+    for (const key of keys) {
+      const own = addressKey(key.address);
+      perAddress.set(own, (perAddress.get(own) ?? 0) + (unresolved.includes(key) ? 0 : 1));
     }
     expect(byAddress.map(({ address }, index) => [address, tests[4 + index]])).toEqual(
       addresses.map((address) => [address, perAddress.get(addressKey(address))]),
@@ -274,7 +282,7 @@ describe("redraw operation counts", () => {
   });
 
   it("reads the font once per distinct text measured, one read per code point", () => {
-    expect(reads).toHaveLength(203);
+    expect(reads).toHaveLength(204);
     expect([...reads].sort()).toEqual(MEASURED.flatMap(codePoints).sort());
   });
 

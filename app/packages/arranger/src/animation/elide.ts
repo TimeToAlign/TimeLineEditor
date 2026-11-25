@@ -131,8 +131,11 @@ function extentOf(element: DrawnElement, measure: TextMeasure): readonly [number
     case "cross_section":
     case "ellipsis":
       return [element.x, element.x];
+    case "bracket":
+      return [element.x1, element.x2];
     case "name":
     case "label":
+    case "symbol":
     case "alignment_anchor":
     case "leader": {
       const { left, right } = boundsOf(element, measure);

@@ -12,6 +12,7 @@ import {
   type TextElement,
 } from "../src/index.ts";
 import {
+  ARCS_ALONE,
   at,
   bandOrder,
   build,
@@ -25,7 +26,7 @@ import {
 } from "./support.ts";
 
 /**
- * A jump at `from` with `label` as its id and its label, and the jump
+ * A jump at `from` with `label` as its id and its destination's label, and the jump
  * target `<label>_to` at `to` that it names, added in that order.
  */
 const jump = (from: number, to: number, label: string) => [
@@ -46,8 +47,7 @@ const jump = (from: number, to: number, label: string) => [
       id: label,
       role: "jump",
       coordinate: quarters(from),
-      targets: [{ to: `${label}_to`, manifestation: "repeat_end", repeat_count: 2 }],
-      label,
+      targets: [{ to: `${label}_to`, manifestation: "repeat_end", repeat_count: 2, label }],
       meta: {},
     },
   },
@@ -64,7 +64,7 @@ describe("jump placement order and rows", () => {
       ...jump(2, 12, "four"),
       ...jump(1, 13, "five"),
     );
-    const drawing = draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
+    const drawing = draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, ARCS_ALONE], metrics);
     const jumps = drawing.elements.filter((item): item is JumpElement => item.type === "jump");
     const ids = ["one", "two", "three", "four", "five"];
     expect(jumps.map((item) => item.address)).toEqual(ids.map((id) => at(id)));
@@ -87,7 +87,7 @@ describe("jump placement order and rows", () => {
 });
 
 describe("jumps of corpus_score_ms3", () => {
-  const drawing = drawFixture("corpus_score_ms3");
+  const drawing = drawFixture("corpus_score_ms3", [ARCS_ALONE]);
   const jumps = drawing.elements.filter((item): item is JumpElement => item.type === "jump");
   /** The first arc drawn at `address`, the one of its smallest span. */
   const jump = (address: ElementAddress) => {

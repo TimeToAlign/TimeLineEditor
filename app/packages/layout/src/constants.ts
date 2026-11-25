@@ -34,14 +34,20 @@ export const MARKER_HEIGHT = 13;
 export const LABEL_GAP = 2;
 /** The brace height. */
 export const BRACE = 6;
-/** The offset of the label of a break, a section break or a barline from its line. */
+/** The flow label offset, from a flow-control element's `x` to its stack. */
 export const FLOW_LINE_LABEL_OFFSET = 3;
 /** The fixed part of the row pitch `p = max(10 + S, h(s))`. */
 export const ROW_PITCH = 10;
 /** The fixed part of the first jump depth `4 + S`. */
 export const JUMP_DEPTH = 4;
-/** The fixed part of the jump row pitch `pj = 6 + S + h(9)`. */
+/** The fixed part of the jump row pitch `pjk = 6 + S + Tk × h(9)`. */
 export const JUMP_PITCH = 6;
+/** What a bracket row adds to its text's line height: `hb = h(zb) + 4`. */
+export const BRACKET_ROOM = 4;
+/** The bracket text offset, from a bracket's start to its text. */
+export const BRACKET_TEXT_OFFSET = 2;
+/** The bracket hook gap, from a bracket row's inner edge to its hooks' ends. */
+export const BRACKET_HOOK_GAP = 2;
 /** The boundary half-height `k`. */
 export const BOUNDARY = 8;
 /** The standard gap of an elision: the drawn width of a gap without a `width` (section 2). */

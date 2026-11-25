@@ -34,9 +34,11 @@ import {
   type Placement,
 } from "../src/index.ts";
 import {
+  ARCS_ALONE,
   at,
   boxesOf,
   build,
+  CHILD_REGIONS_HIDDEN,
   child,
   drawFixture,
   drawWithoutAncestorCards,
@@ -140,7 +142,7 @@ describe("a root with bands on both sides (styled__score)", () => {
     const x = 89.951171875;
     const width = 416.2578125;
     const line = 62.640625;
-    expect(bandsOf(drawFixture("styled__score"))).toEqual([
+    expect(bandsOf(drawFixture("styled__score", [ARCS_ALONE]))).toEqual([
       record({ id: "score", facet: "children" }, 2, 1, line, { x, y: 16, width, height: 14 }),
       record({ id: "score", facet: "markers" }, 1, 4, line, { x, y: 34, width, height: 28.640625 }),
       record({ id: "score", facet: "conversion_maps" }, -1, 1, line, {
@@ -176,8 +178,8 @@ describe("a child's shown regions band", () => {
   };
   const root = { x: 22.6318359375, width: 414.83203125 };
 
-  it("is hidden by default and then not recorded, taking no room", () => {
-    expect(bandsOf(drawn(manifest))).toEqual([
+  it("is not recorded where a rule hides it, taking no room", () => {
+    expect(bandsOf(drawn(manifest, [CHILD_REGIONS_HIDDEN]))).toEqual([
       record({ id: "r", facet: "children" }, 1, 1, 37, { ...root, y: 16, height: 14 }),
       record({ id: "r", facet: "markers" }, -1, 4, 37, { ...root, y: 37, height: 26.9765625 }),
     ]);
@@ -267,7 +269,6 @@ describe("a present band 0 high", () => {
       flow_control: {
         id: "fine",
         role: "break",
-        manifestation: "fine",
         coordinate: quarters(4),
       },
     });
@@ -406,7 +407,7 @@ describe("a timeline in several groups (bundle_shared_member)", () => {
 
 describe("bands draw nothing", () => {
   it("adds no element for a band, and gives it an empty range at its card's end", () => {
-    const drawing = drawFixture("styled__score");
+    const drawing = drawFixture("styled__score", [ARCS_ALONE]);
     const card = boxesOf(drawing, "card")[0];
     expect(boxesOf(drawing, "band").map((band) => band.range)).toEqual(
       Array(5).fill({ start: card?.range.end, end: card?.range.end }),
@@ -437,7 +438,7 @@ describe("the axes of the drawn lines", () => {
   });
 
   it("runs a timeline's or a child's axis from Xs to Xe, from its zero to its length", () => {
-    const drawing = drawFixture("styled__score");
+    const drawing = drawFixture("styled__score", [ARCS_ALONE]);
     expect(drawing.axes.map(exact)).toEqual([
       [at("score"), "quarters", "fraction", "0", "8"],
       [at("b"), "quarters", "fraction", "0", "4"],
@@ -448,7 +449,7 @@ describe("the axes of the drawn lines", () => {
   });
 
   it("lists the maps drawn at the axis's line, each with its owner", () => {
-    const drawing = drawWithoutAncestorCards("bundles/bundle_mixed");
+    const drawing = drawWithoutAncestorCards("bundles/bundle_mixed", [ARCS_ALONE]);
     expect(
       drawing.axes.map((axis) => [axis.address, axis.maps.map((map) => [map.id, map.owner])]),
     ).toEqual([
@@ -493,7 +494,7 @@ describe("the axes of the drawn lines", () => {
     const [own] = lines(member).filter((line) => sameAddress(line.address, at("second-half")));
     expect(exact(ancestor)).toEqual([at("piece"), "quarters", "fraction", "8", "16"]);
     expect([ancestor?.xStart, ancestor?.xEnd]).toEqual([own?.xs, own?.xe]);
-    const mixed = drawWithoutAncestorCards("bundles/bundle_mixed");
+    const mixed = drawWithoutAncestorCards("bundles/bundle_mixed", [ARCS_ALONE]);
     const runsOn = mixed.axes.find((axis) => sameAddress(axis.address, at("recording")));
     expect(exact(runsOn)).toEqual([at("recording"), "samples", "int", "44100", "132300"]);
     expect([runsOn?.xStart, runsOn?.xEnd]).toEqual([126.29150390625, 526.29150390625]);

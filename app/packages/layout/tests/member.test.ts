@@ -11,7 +11,7 @@ import {
   type Placement,
   type RectElement,
 } from "../src/index.ts";
-import { at, build, drawFixture, element, metrics, unturned } from "./support.ts";
+import { ARCS_ALONE, at, build, drawFixture, element, metrics, unturned } from "./support.ts";
 
 /** The member drawing's elements in descriptor order: no block, no card, no styles. */
 function member(drawing: Drawing): unknown[] {
@@ -106,7 +106,7 @@ describe("styled__score", () => {
   ];
 
   it("draws the hand-derived member drawing", () => {
-    const drawing = drawFixture("styled__score");
+    const drawing = drawFixture("styled__score", [ARCS_ALONE]);
     expect(member(drawing)).toEqual(
       expected(
         {
@@ -137,7 +137,11 @@ describe("styled__score", () => {
   });
 
   it("sums each distance outwards whole before it becomes an ordinate (card spacing 2.63)", () => {
-    const drawing = drawFixture("styled__score", [], placedAt(400, { score: { spacing: 2.63 } }));
+    const drawing = drawFixture(
+      "styled__score",
+      [ARCS_ALONE],
+      placedAt(400, { score: { spacing: 2.63 } }),
+    );
     expect(member(drawing)).toEqual(
       expected(
         {
@@ -168,7 +172,11 @@ describe("styled__score", () => {
   });
 
   it("sums each band's width before adding its start (card spacing 0.7)", () => {
-    const drawing = drawFixture("styled__score", [], placedAt(400, { score: { spacing: 0.7 } }));
+    const drawing = drawFixture(
+      "styled__score",
+      [ARCS_ALONE],
+      placedAt(400, { score: { spacing: 0.7 } }),
+    );
     expect(member(drawing)).toEqual(
       expected(
         {

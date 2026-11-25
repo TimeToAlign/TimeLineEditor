@@ -8,7 +8,17 @@ import {
   manifestLayer,
   type Placement,
 } from "../src/index.ts";
-import { at, bandOrder, baseOf, drawFixture, edit, element, metrics, set } from "./support.ts";
+import {
+  ARCS_ALONE,
+  at,
+  bandOrder,
+  baseOf,
+  drawFixture,
+  edit,
+  element,
+  metrics,
+  set,
+} from "./support.ts";
 
 /** Each stretched fixture and the id of its one root, whose card's spacing a stretch sets. */
 const ROOTS = {
@@ -96,7 +106,7 @@ describe("the padding", () => {
   });
 
   it("ends a break's line at the padding below", () => {
-    const drawing = drawFixture("flow_control", [], spaced("flow:quarters", 8));
+    const drawing = drawFixture("flow_control", [ARCS_ALONE], spaced("flow:quarters", 8));
     expect(drawing.height).toBe(134.80859375);
     expect(element(drawing, at("flow:quarters"))).toMatchObject({ y: 22.40234375 });
     expect(drawing.elements.find((item) => item.type === "break")).toMatchObject({
@@ -114,7 +124,7 @@ describe("the padding", () => {
     const drawing = draw(
       manifest,
       spaced("flow:quarters", 8),
-      [DEFAULT_LAYER, manifestLayer(manifest)],
+      [DEFAULT_LAYER, ARCS_ALONE, manifestLayer(manifest)],
       metrics,
     );
     expect(drawing.height).toBe(129.90625);

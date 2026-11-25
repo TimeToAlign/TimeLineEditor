@@ -26,7 +26,21 @@ ancestor lines, the block, places, items, records, unknown lengths) draws a
 group with a child member with the application layer
 `HIDDEN_ANCESTOR_CARDS` (`{element: ancestor_card}` `display: none`), so
 its numbers, derived without the cards, stand; that the layer removes the
-cards and moves nothing else is proven under "Ancestor cards". The metrics table of the two fonts
+cards and moves nothing else is proven under "Ancestor cards". Likewise
+the defaults hide the arcs of jumps and draw every flow-control element's
+symbol and a jump's volta brackets (section 6.4): a test whose subject is
+an arc, or not flow control at all, of a fixture holding a jump (the
+ancestor cards, the block, places, items, member drawings, records,
+elisions, unknown lengths, the padding and band orders of `flow_control`)
+draws with `ARCS_ALONE` (`{element: jump}` `display: inline`, `symbol` and
+`bracket` `display: none`), and, where a member that is a child timeline
+would draw its root's jump on its stretch (section 6.4, Gathering), with
+`ROOT_ARCS_ALONE` (the same, and `{element: jump, inside: frame}`
+`display: none`, so that only the cards held by the block draw arcs), so
+its numbers, derived with the arcs and without symbols, stand; and a test
+whose subject is not a child's regions, which the defaults show, draws
+with `CHILD_REGIONS_HIDDEN` (`{element: band, facet: regions, inside:
+band}` `display: none`). The metrics table of the two fonts
 is the schema package's. All comparisons are exact (`toBe`, `toEqual`); no tolerance
 anywhere.
 
@@ -54,9 +68,10 @@ Every timeline drawn with a line of its own has its five bands at its own
 line (section 6.4). By the default band order (section 4) the conversion
 maps band lies above its line at level 1 and the children band beyond it,
 and the markers, regions and flow control bands lie below, in that order;
-the defaults hide the regions and flow control bands of every timeline but
-a member drawing's root, and show every markers band, which draws nothing
-but on a timeline with a named timestamp. Only a present
+the defaults hide no band, and every markers band draws nothing but on a
+timeline with a named timestamp; only the root of a member drawing lays
+out a flow control band, which draws the flow control of its whole tree
+(section 6.4, Gathering). Only a present
 band has a level and
 takes room. The band at level 1 or −1 starts at `c = 0` when it is the
 markers or the conversion maps band, and otherwise `S` beyond the larger of
@@ -119,12 +134,9 @@ faded, while
 `piece`'s ancestor card, drawn first, draws `piece`'s line, its name (black,
 11) and `second-half`'s name and its `origin` and `length` wedges and labels
 unfaded, each address so drawn twice. It
-hides exactly the regions and flow control bands of every timeline held by
-a band (`with_region`'s `clt_2` and `clt_3`, `unknown_length_segments`'
-`a`, `b` and `c`, `timestamps`' `clt_2`, and `group_child_member`'s
-`second-half` as the child row it is in `piece`'s ancestor card) and no
-band of a member drawing's root, a member that is a child included: every
-markers band is shown, so every named timestamp stays visible. It shows
+hides no band (`with_region`, `unknown_length_segments`, `timestamps`,
+`group_child_member`, `bare`): a child's regions are shown, and every
+markers band, so every named timestamp stays visible. It shows
 every ancestor card (section 8.8): no rule of it sets `display`. It cuts
 every name at 160 but the manifest's title, whose rule after the names'
 sets `max-width: none` (a change this package makes ahead of section 4,
@@ -464,9 +476,10 @@ break's point `[300, 300]` (`400 × 12/16`), its label `[300 + 3 − 1,
 in placement order, `jump_1` `[50, 200]` and `jump_2` `[100,
 400]`; the root's extent `[−7.416015625, 410.279052734375]` runs from its
 `origin`'s coordinate label (`0 − 6.416015625 − 1`) to `length`'s (`400 +
-9.279052734375 + 1`). A root's break ends at the padding of the opposite side, any other
-`max(E, h(s) / 2)` beyond its line (`child_flow_control`'s `verse` with a
-map: 93.5).
+9.279052734375 + 1`), drawn with the layer `ARCS_ALONE` (support:
+arcs shown, symbols and brackets hidden). A break ends at the padding of
+the opposite side; only the root of a member drawing has a flow control
+band, so `child_flow_control`'s `verse` lays out none of its own.
 
 ## Stacks, band orders and rows (`stacks.test.ts`, `order.test.ts`, `rows.test.ts`)
 
@@ -510,9 +523,9 @@ from sections 4 and 6.4:
   draws every element exactly as `map` does with `melody`'s entry set to
   the whole order `[children, conversion_maps, markers, line, regions,
   flow_control]`, and not as `map` draws without an entry (its markers
-  band lies above the line). A break runs from its flow row across its line, the
-  root's to the padding, a child's to `max(E, h(s) / 2)` beyond it. In
-  `flow_control` both jumps and the break move with their
+  band lies above the line). A break runs from its flow row across its line to
+  the padding. In `flow_control`, drawn with `ARCS_ALONE` (arcs shown,
+  symbols and brackets hidden), both jumps and the break move with their
   band. With the flow control band moved above the line, next to it, it
   lies at level 1 from `1.5 + 4 = 5.5` (no map, so no stack): the flow row
   `5.5 + 10.4765625 = 15.9765625` out, the band `51.4296875` wide as below
@@ -653,9 +666,11 @@ above `h(11) / 2`).
 
 **Five jumps.** Root `r`, quarters, length 16, `x(t) = x0 + 25 t`, with
 jumps 4→6 `one`, 8→10 `two`, 3→11 `three`, 2→12 `four` and 1→13 `five`,
-each a jump at its `from` with its label as its id and one destination,
-added after the jump target `<id>_to` at its `to` that the destination names; `x0 = 16 + 4.5224609375 +
-8` (the name `r`, `A = 842`). Canonical order sorts the jumps by
+each a jump at its `from` with its label as its id and one destination
+labelled with it, added after the jump target `<id>_to` at its `to` that
+the destination names, drawn with `ARCS_ALONE` (the arcs shown, no symbol;
+no jump has a label of its own, so no stack); `x0 = 16 + 4.5224609375 + 8`
+(the name `r`, `A = 842`). Canonical order sorts the jumps by
 their coordinate, `from`: `five`, `four`,
 `three`, `one`, `two`; their spans are 12, 10, 8, 2 and 2, and the stable
 sort by span gives the placement order `one`, `two`, `three`, `four`,
@@ -676,7 +691,7 @@ gives 92.57291666666666. Summed in item coordinates (the flow row at
 118.64973958333333 and 145.95182291666669 (summed from the card's top
 first, `one` and `two` would be 64.04557291666667).
 
-**`corpus_score_ms3`.** Root `clt_1` (no name), quarters, length 37, two
+**`corpus_score_ms3`**, drawn with `ARCS_ALONE`. Root `clt_1` (no name), quarters, length 37, two
 maps above (the LinearMap `cmap_1` and the MeasureRecordMap `cmap_2`; the
 measure map `cmap_2` reads, which belongs to no timeline, is not drawn);
 children `notes` and `controls`, each from 0 to 37, in rows 1 and 2. The widest name is `controls` (44.10205078125); `x0 =
@@ -787,7 +802,8 @@ The child rows and map centres of `map` do not change when a name's
 
 ## The flow fixtures (`flow.test.ts`)
 
-The fixtures of `flow/` are drawn with the default layer and their own.
+The fixtures of `flow/` are drawn with the default layer, `ARCS_ALONE`
+(the arcs shown, no symbol, no bracket) and their own.
 Each is a named manifest of one root `score`, name `Score` (`A = 1300 +
 1126 + 1253 + 842 + 1260 = 5781`, `N = 5781 × 11 / 2048 =
 31.05029296875`), `x0 = 16 + N + 8 = 55.05029296875`, `L = 400`, and no
@@ -813,44 +829,44 @@ child's offset, 0 for the timeline itself, the jump's coordinate plus its
 strictly before the jump that is not rejected, else 0; a `to` naming
 nothing, or a jump target that is rejected, is **no place**, and its
 destination draws no arc (only a rejected jump may hold one); an arc's
-**text** is its destination's `label`, else that destination's
-manifestation, never its jump's own `label` or `name`, which this version
-of the drawing draws nowhere; a **rejected** element (a belief `false` in
+**text** is its destination's `label`, never that destination's
+manifestation (its symbol shows that) nor its jump's own `label` or
+`name`, which the jump's stack draws once (its `label` by the defaults'
+`label-display`); a **rejected** element (a belief `false` in
 its provenance) and its label are drawn at opacity 0.35, the defaults'
 opacity of ancestor lines, in their rows as any other.
 
 - **`flow/sonata_exposition`** (length 24, `x(t) = x0 + 400 × u`, `u` the
-  double nearest `t / 24`): three regions in one row, so the regions band
+  double nearest `t / 24`), its atomic sections shown by the rule
+  `{element: region, class: "tts:AtomicSection"}` `display: inline`: three regions in one row, so the regions band
   lies at level −1 from 5.5, `6 + 2 + 10.4765625 = 18.4765625` wide, and
   the flow control band from `5.5 + 18.4765625 + 4 = 27.9765625`; no line
   has a label, so no tier: `yf = 43.20703125 + 27.9765625 = 71.18359375`.
   `jump_1` at 12 holds `by` 0, which draws nothing, and `to`
-  `jump_target_1` at 16: the arc 12→16, text `volta` (22.376953125 wide,
-  inside its extent `[200, 266.66666666666663]`), row 1. `jump_2` at 16
-  holds one destination without a place: no section break, so the arc
-  16→0, text `repeat_end`, extent `[0, 266.66666666666663]`, row 2. The
+  `jump_target_1` at 16: the arc 12→16, extent `[200,
+  266.66666666666663]`, row 1. `jump_2` at 16 holds one destination
+  without a place: no section break, so the arc 16→0, extent `[0,
+  266.66666666666663]`, row 2. No destination has a label, so no arc has
+  a text (row pitch `6 + 4 + 1 × h(9)` all the same). The
   break `break_1` at 16 runs at `x(16) = 321.71695963541663` from `yf` to
   36.8046875. Arc 12→16: `Xf = 255.05029296875`, `q =
   16.666666666666657`, `yc = yf + 4/3 × 8 = 81.85026041666666`, `C1 =
   (271.71695963541663, yc)`, `C2 = (305.05029296875, yc)`, `Bh =
   (318.34787403277056, 73.33980853569346)`, corners
   `(317.26976663992383, 71.65526573437046)` and `(319.4259814256173,
-  75.0243513370165)`; its label centred at `x(14) = 288.38362630208337`,
-  baseline `28.8046875 + ((14.40234375 + (27.9765625 + 8 + 2)) +
-  8.35400390625) = 89.53759765625`. Arc 16→0: `yc = yf + 4/3 × 28.4765625
+  75.0243513370165)`. Arc 16→0: `yc = yf + 4/3 × 28.4765625
   = 109.15234375`, `C1 = (255.05029296874997, yc)`, `C2 =
   (121.71695963541666, yc)`, `Bh = (58.52610278516582,
   73.16317605950557)`, corners `(57.53631163041303, 74.90108096771348)`
-  and `(59.515893939918605, 71.42527115129766)`; its label at `x(8) =
-  188.38362630208331`, baseline 110.01416015625.
+  and `(59.515893939918605, 71.42527115129766)`.
 - **`flow/repeat_end_and_dal_segno`** (length 24): no region, no labelled
   line: the band from 5.5, `yf = 48.70703125`. The one jump `jump_1` at 16
   holds two destinations, in canonical order `to` `jump_target_1` at 4
-  (text `repeat_end`) and `to` `jump_target_2` at 8 (label `D.S.`). By
+  (no label: no text) and `to` `jump_target_2` at 8 (label `D.S.`). By
   span the arc 16→8 is placed first, row 1 (`[133.33333333333331,
   266.66666666666663]`), the arc 16→4 conflicts, row 2: two `jump`
-  elements at `{id: "jump_1"}`, then two labels at its label's address, in
-  that order. Arc 16→8: `yc = 59.373697916666664`, `C1 =
+  elements at `{id: "jump_1"}`, then the one label `D.S.` at its label's
+  address. Arc 16→8: `yc = 59.373697916666664`, `C1 =
   (288.3836263020833, yc)`, `C2 = (221.71695963541663, yc)`, tip
   `(188.38362630208331, yf)`, `Bh = (192.1933228908806,
   49.92613415841514)`, corners `(191.58377143667303, 51.830982452813785)`
@@ -859,8 +875,7 @@ opacity of ancestor lines, in their rows as any other.
   86.67578125`, `C1 = (271.71695963541663, yc)`, `C2 =
   (171.71695963541666, yc)`, tip `(121.71695963541666, yf)`, `Bh =
   (124.90256731729734, 51.12610208342815)`, corners `(123.69303190058326,
-  52.71890592436849)` and `(126.11210273401142, 49.5332982424878)`; label
-  `repeat_end` at `x(10) = 221.71695963541669`, baseline 87.53759765625.
+  52.71890592436849)` and `(126.11210273401142, 49.5332982424878)`.
 - **`flow/sections`** (length 32, `x(t) = x0 + 12.5 t`): the break
   `break_1` at 8 has the label `Fine` (one tier), the section break
   `section_break_1` at 16 none: the flow row `5.5 + 10.4765625 =
@@ -868,29 +883,29 @@ opacity of ancestor lines, in their rows as any other.
   255.05029296875, `Fine` from 158.05029296875 at the baseline `yf − d(9)
   = 57.06103515625`. `jump_1` at 16 has no place: the section break at 16
   is not before it, so the arc 16→0; its destination has no label, so
-  the text is that destination's manifestation `da_capo_al_fine`, not the
-  jump's own label `D.C. al Fine`, which no element of the drawing holds;
-  `jump_2` at 32 has no place either and lands at the section break,
-  the arc 32→16, text `da_capo` (the jump's label is `D.C.`). Neither
-  text is wider than its arc, both spans are 16 and their extents `[0,
-  200]` and `[200, 400]` only touch: both in row 1, `yc =
+  the arc has no text, and the jump's own label `D.C. al Fine` is its
+  stack, from `x(16) + 3 = 258.05029296875` on the line of `Fine`
+  (baseline 57.06103515625); `jump_2` at 32 has no place either and lands
+  at the section break, the arc 32→16, no text, its stack `D.C.` from
+  458.05029296875 (the three stacks' extents do not meet: one tier). Both
+  spans are 16 and their extents `[0, 200]` and `[200, 400]` only touch:
+  both in row 1, `yc =
   69.85026041666666`, in canonical order. Arc 16→0: `C1 =
   (205.05029296875, yc)`, `C2 = (105.05029296875, yc)`, `Bh =
   (58.96226431444723, 60.01814763708208)`, corners `(58.54498737090619,
   61.97413330993069)` and `(59.37954125798827, 58.06216196423346)`; arc
-  32→16 the same 200 further right. Labels at 155.05029296875 and
-  355.05029296875, baseline 77.53759765625. With `section_break_1`
+  32→16 the same 200 further right. The labels follow the arcs: `Fine`,
+  `D.C. al Fine`, `D.C.`, none centred on an arc. With `section_break_1`
   rejected by a belief `false`, it is drawn at opacity 0.35
   and no longer starts a section: `jump_2`'s arc runs 32→0.
 - **`flow/repairs`** (length 16, `x(t) = x0 + 25 t`): the barline
   `barline_1` at 8 runs at 255.05029296875 from `yf = 48.70703125` to
   36.8046875, at opacity 1. The rejected `jump_1` (16→0, no place) and its
-  replacement `jump_2` (16→`jump_target_1` at 8) both draw, both with the
-  text `repeat_end`: by span `jump_2`'s arc first (row 1, `C1 =
+  replacement `jump_2` (16→`jump_target_1` at 8) both draw, neither with a
+  text (their destinations have no label): by span `jump_2`'s arc first (row 1, `C1 =
   (405.05029296875, 59.373697916666664)`, tip `(255.05029296875, yf)`),
   then `jump_1`'s (row 2, `C1 = (355.05029296875, 86.67578125)`, tip
-  `(x0, yf)`), then their labels in that order; `jump_1`'s arc and label
-  have opacity 0.35, `jump_2`'s 1.
+  `(x0, yf)`); `jump_1`'s arc has opacity 0.35, `jump_2`'s 1.
 - **`flow/volta_passes`**: one of its destinations is a `by` 0, and the
   drawing holds one arc fewer than its jumps hold destinations.
 - **The arcs of one jump.** No fixture holds a `by` other than 0, so a jump
@@ -909,10 +924,11 @@ opacity of ancestor lines, in their rows as any other.
   `flow/sections` at 24 with the label `Leap`, the name `Named` and three
   destinations: `by` −4 with the label `back`, `by` 4 with the
   manifestation `volta` and no label, `by` −8 with neither. It draws three
-  arcs and two labels at its label's address, in the order of first fit
-  (span 4, 4, 8): `back` centred at `x(22) = 330.05029296875`, `volta` at
-  `x(26) = 380.05029296875`, and none for the third arc. No label of the
-  drawing reads `Leap` or `Named`.
+  arcs, in the order of first fit (span 4, 4, 8), and one arc label,
+  `back` centred at `x(22) = 330.05029296875`, none for the other two (the
+  manifestation is never a text); then its stack, its own label `Leap`
+  from `x(24) + 3 = 358.05029296875`, start-anchored. No label reads
+  `Named`: the defaults' `label-display` lists `label` alone.
 - **A `to` that names no place.** `flow/repairs` gains, by commands, a
   region `gone` from 2 to 6; a jump target `struck` at 4, rejected when it
   is added; and three jumps, each rejected when it is added: `kept` at 10
@@ -926,6 +942,98 @@ opacity of ancestor lines, in their rows as any other.
   jump names it), `lost` draws nothing either, and the arcs left are, in
   the order of first fit by span, `kept` (2), `jump_2` 16→8 (8) and
   `jump_1` 16→0 (16).
+
+## Flow control over a tree: symbols, brackets and stacks (`flow.test.ts`)
+
+The rules proved (drawing.md §6.4, Gathering, Flow control, Flow labels,
+Symbols, Brackets and Arcs; §4): the root's flow control band draws the
+flow control of its **whole tree**, each element at its timeline's start
+plus its coordinate on the root's axis, and no other timeline draws a flow
+control band; the defaults **hide the arcs** (`jump` `display: none`), so
+a jump shows its symbol, its brackets and its stack alone until a rule
+shows its arcs; every element draws its **symbol** (core's `flowSymbols`)
+on the symbol row, beyond the flow row; a jump draws one **bracket** per
+`volta` destination, from its place to the first later position of a jump,
+a section break or a `volta` break of the band, else to its timeline's end,
+every bracket but the last of a run closed; the defaults colour a break
+red `#D62728`, dotted `1.5 1.5`, 1.5 wide, a section break `#4B5563`,
+dashed `4 2`, 1.5, and a barline `#6B7280`, solid, 1.
+
+- **Op. 106** (`data/op106.manifest.json`, a copy of the manifest of
+  Beethoven's Piano Sonata No. 29 in the public repository
+  `TimeToAlign/beethoven_piano_sonatas`, `sonata_29_op106/manifest.json`
+  at `7db6693`), drawn with the default layer alone at the default
+  placement: the root `clt_1` (`Op. 106`, quarters, length 15833/4) holds
+  no flow control, its four movements `clt_2` (at 0, 1644 long), `clt_3`
+  (at 1644, 516), `clt_4` (at 2160, 561) and `clt_5` (at 2721, 4949/4)
+  hold it all; every region is an atomic section, hidden. So the root's
+  band is the one flow control band of the drawing, at level −1 from `c =
+  1.5 + 4 = 5.5` below the root's line `yl` (the drawing's root line; its
+  ordinate is the children band's derivation, read from the drawing), and
+  holds no stack (every `label` is null): `f0 = 5.5`, `yf = yl + 5.5`.
+  With `x(t) = x0 + 400 × u`, `u` the double nearest `t / (15833/4)`
+  (`x0` the drawing's root line's start), the flow lines, in the band's
+  order (`clt_2` before `clt_3` before …, each in canonical order), are
+  the break `break_1` at 500 (`400u = 50.527379523779445`), red `#D62728`,
+  1.5, dashed `1.5 1.5`, and the barlines `barline_1` at 824
+  (83.26912145518854), `barline_2` at 1644 (166.13402387418682),
+  `barline_3` at 1644 + 138 = 1782 (180.07958062274994), `barline_4` at
+  2160 (218.2782795427272), `barline_5` at 2721 (274.96999936840774),
+  `barline_6` at 2721 + 75/4 (276.8647761005495), `barline_7` at 2721 +
+  269/4 (281.7659319143561) and `barline_8` at 15833/4 (400), each grey
+  `#6B7280`, 1, solid, each from `yf` to the card's top plus the padding,
+  `28.8046875 + 8 = 36.8046875` (the manifest's title above the card, as
+  in the flow fixtures). The symbols, in the band's order, at the
+  baseline `yf + a(12) = yf + 11.138671875`: 𝄇 (U+1D107) of `jump_2` at
+  500, then 𝄁 of `barline_1`, 𝄂 of `barline_2`, 𝄁 of `barline_3`, 𝄂 of
+  `barline_4`, 𝄂 of `barline_5`, 𝄁 of `barline_6` and `barline_7`, 𝄂 of
+  `barline_8`; the volta break and jump target draw none. `jump_1` at
+  953/2 holds `by` 0 (passes `[1]`) and `to` `jump_target_1` at 500
+  (passes `[2]`): one run of two brackets in bracket row 1, `Hs = h(12) =
+  13.96875`, `hb = h(9) + 4 = 14.4765625`, `b1 = 5.5 + 13.96875 =
+  19.46875`: each bracket's line at `yl + 33.9453125`, its hooks' ends at
+  `yl + 21.46875`, its text's baseline `+ a(9) = 8.35400390625` beyond
+  that. Bracket `1.` from `x(953/2)` (48.15259268616182) to `x(500)`,
+  closed; bracket `2.` from `x(500)` to `x(1644)`, open (no jump, section
+  break or volta break of the tree lies after 500, so it runs to the end
+  of `clt_2`); each text at `x1 + 2`. The band is `13.96875 + 14.4765625
+  = 28.4453125` wide and draws nothing else: no `jump` element. With the
+  rule `{element: jump} display: inline` it draws two arcs, sorted by
+  span: `jump_1`'s 953/2 → 500 (row 1), then `jump_2`'s repeat 500 → 0
+  (the start of its section, `clt_2`'s 0, the root's 0; row 2), neither
+  labelled.
+- **No band but the root's.** In `child_flow_control` (`piece` 16 long,
+  its child `verse` at 4, 8 long, holding the break `fine` at 4 and the
+  jump `da_capo_al_fine` at 8), the band records list one flow control
+  band, `piece`'s; `verse`'s break is drawn at `x(4 + 4)`, and hiding
+  `verse`'s flow control band (`{addresses: [{id: verse, facet:
+  flow_control}]}`) hides its break and the symbol `Fine` with it, while
+  hiding `piece`'s own band hides neither.
+- **A child member's band** (`groups/group_child_member`, given by
+  commands barlines on `piece` at 4, 8, 16 and a section break at 12, and
+  a barline on `second-half` at 2): `second-half`'s member card draws, on
+  its own axis (`piece` at −8), `barline_2` at 0, `section_break_1` at 4,
+  `barline_3` at 8 and its own `barline_4` at 2, in that order, and not
+  the barline at 4; `piece`'s ancestor card, drawn whole (`FULL_CARDS`),
+  draws all five.
+- **Symbols of one jump** (`flow/repeat_end_and_dal_segno`): `jump_1`'s
+  two destinations, `repeat_end` then `dal_segno`, draw one symbol `𝄇𝄉`
+  at `x(16)`; the jump targets `jump_target_1` (`repeat_start`) at 4 and
+  `jump_target_2` (`segno`) at 8 draw 𝄆 and 𝄋 at their positions, in the
+  band's order (`jump_target_1`, `jump_target_2`, `jump_1`).
+- **A run of brackets** (`flow/volta_passes`, 16 long): `jump_1` at 8
+  holds `by` 0 with passes `[1, 3]` and `to` `jump_target_1` at 12 with
+  `[2]`; the stops after 8 are `break_1` (volta) and `jump_2` at 12 and
+  `jump_3` at 16: bracket `1., 3.` from 8 to 12, closed, and bracket `2.`
+  from 12 to 16, open.
+- **Stacks** (`flow/sections`, `x(t) = x0 + 12.5 t`): with the defaults'
+  `label-display` `label`, `break_1` draws its label `Fine`, `jump_1` its
+  own label `D.C. al Fine` and `jump_2` `D.C.`, each start-anchored at
+  `x + 3`, all in tier 1 (their extents do not meet), on line 1, baseline
+  `yl + f0 − d(9)`; `section_break_1` has no label and draws no stack.
+  With `{element: break} label-display: "id label"`, `break_1`'s stack is
+  `break_1` on line 1 and `Fine` on line 2 (`h(9)` further in), and its
+  tier is two lines high.
 
 ## Row names and empty blocks (`names.test.ts`)
 
@@ -1019,7 +1127,9 @@ segment lines takes its first line's name size. A segment that is no line
 id: its segment line holds its boundary and label, so that line's id and a
 `within` the segment reach them, never the segment line's own boundary.
 The regions of segments without a line join their segment line's regions
-band when shown and are hidden by default.
+band; the defaults show them (`unknown_length_segments`' two), and the
+layer `CHILD_REGIONS_HIDDEN` (support: the regions band of every timeline
+held by a band hidden) hides them.
 
 ## Ancestor lines (`ancestors.test.ts`)
 
@@ -3401,25 +3511,35 @@ starts where `[0, 2]` starts, `[1, 3]` starts inside `[0, 2]` and where
 
 ## Redraw operation counts (`scale.test.ts`)
 
-A synthetic manifest has exactly 1,004 element keys, as core enumerates
+A synthetic manifest has exactly 1,118 element keys, as core enumerates
 them: one root with its named timestamps `origin` and `length` (a wedge and
-a coordinate label each), 60 children with maps, regions, jump targets, breaks
-and a jump, and a segment line of 40 segments; four of them
-are the secondary coordinates of `origin` (at 0) on `child_0` (its reach 1)
+a coordinate label each), 60 children with maps, regions, jump targets
+(`repeat_start`), breaks (`fine`, labelled `stop`) and a jump (`repeat_end`,
+its destination labelled `jump`), and a segment line of 40 segments; 114 of
+them are the stacks' ID labels and the symbols of the flow control (26
+breaks with an ID label and the symbol `Fine` each, the jump its ID label
+and 𝄇, the 60 jump targets 𝄆 each: `26 × 2 + 2 + 60`); four are the
+secondary coordinates of `origin` (at 0) on `child_0` (its reach 1)
 and `nested_unknown` (its reach 0), a wedge and a coordinate label each
 (`length` at 200 lies on no child, each ending at its reach, nor on the
 segment line, 120 to 160). Every count comes from the inputs a
 draw is given, never from watching the code: each rule counts reads
 of its selector, the metrics table the code points asked, the manifest listings of
 its keys. The rule with no element, class or address is tested
-exactly `1,004 + 2 × 63 = 1,130` times: each key is resolved once, and
-each of the 63 lines (the root, its 60 children, the nested child and the
+exactly `1,118 − 27 + 2 × 63 = 1,217` times: each key is resolved once but
+the 27 ID labels of the breaks and the jump, which the initial
+`label-display` `label` leaves out of their stacks and so never resolves,
+and each of the 63 lines (the root, its 60 children, the nested child and the
 segment line, the keys of type `timeline` or `child`) resolves once each
 the wedge and the cross-section line of a position no named timestamp
 holds; three whose address,
 class or element no key has, 0 times; one per address the keys carry, the
-block's `{}` included, as often as core lists keys there. The metrics table is read 203 times, the code points of the eleven distinct
-texts as a multiset; the manifest's keys are listed 0 times, so a draw
+block's `{}` included, as often as core lists keys there that are
+resolved (an ID label's address 0 times). The metrics table is read 204
+times, the code points of the thirteen distinct texts as a multiset (the
+symbols `𝄆`, `Fine` and `𝄇` among them; the children, which draw no flow
+control band of their own, fill three rows of names, of 7, 8 and 7 names
+and the segment line); the manifest's keys are listed 0 times, so a draw
 copies nothing. No count is a timing.
 
 **Work per timeline.** A draw's work grows with the number of timelines

@@ -1,18 +1,16 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import {
-  BUNDLE_ADDRESS,
-  bandAddress,
-  type ElementAddress,
-  sameAddress,
-} from "@timetoalign/tilie-core";
+import { BUNDLE_ADDRESS, type ElementAddress, sameAddress } from "@timetoalign/tilie-core";
 import { manifestElements, timelineAncestry } from "@timetoalign/tilie-core/drawing";
 import { parseJson, schema } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   BOUNDARY,
   BRACE,
+  BRACKET_HOOK_GAP,
+  BRACKET_ROOM,
+  BRACKET_TEXT_OFFSET,
   CARD_SPACING,
   ELLIPSIS_GAP,
   ELLIPSIS_RADIUS,
@@ -115,10 +113,28 @@ describe("the constants", () => {
     ["label gap (marker to label)", `${LABEL_GAP}`],
     ["label separation (horizontal, between labels)", `${right - left}`],
     ["brace height", `${BRACE}`],
-    ["region row pitch `pr`", `${BRACE} + ${LABEL_GAP} + h(9) + S`],
+    [
+      "region row pitch `prk` of row `k`, its labels filling `Tk ≥ 1` label tiers",
+      `${BRACE} + ${LABEL_GAP} + Tk × h(9) + S`,
+    ],
     ["first jump depth", `${JUMP_DEPTH} + S`],
-    ["jump row pitch `pj`", `${JUMP_PITCH} + S + h(9)`],
-    ["flow-line label offset", `${FLOW_LINE_LABEL_OFFSET}`],
+    [
+      "jump row pitch `pjk` of row `k`, its labels filling `Tk ≥ 1` label tiers",
+      `${JUMP_PITCH} + S + Tk × h(9)`,
+    ],
+    [
+      "flow label offset (from a flow-control element's `x` to its stack)",
+      `${FLOW_LINE_LABEL_OFFSET}`,
+    ],
+    [
+      "symbol row height `Hs`",
+      "h(zs), `zs` the largest font size of the drawn symbols; 0 when none is drawn",
+    ],
+    [
+      "bracket row height `hb`",
+      `h(zb) + ${BRACKET_ROOM}, \`zb\` the largest font size of the drawn brackets`,
+    ],
+    ["bracket text offset, hook gap", `${BRACKET_TEXT_OFFSET}, ${BRACKET_HOOK_GAP}`],
     ["boundary half-height `k`", `${BOUNDARY}`],
     ["group frame padding `Q`", `${Q}`],
     ["card padding `K`", `${K}`],
@@ -149,9 +165,9 @@ describe("the constants", () => {
     );
   });
 
-  it("give no wedge an initial rotation but 0, and the elision properties theirs, as section 2.5 states them", () => {
+  it("give no wedge an initial rotation but 0, and the elision and label properties theirs, as section 2.5 states them", () => {
     expect(sectionOf(specification, "### 2.5 The cascade").replace(/\s+/g, " ")).toContain(
-      "`max-width` `none`, `rotation` 0, `elision-mode` `auto`, `elision-proportion` `auto`, `elision-depths` `auto`, `elision-display` `ellipsis name`.",
+      "`max-width` `none`, `rotation` 0, `elision-mode` `auto`, `elision-proportion` `auto`, `elision-depths` `auto`, `elision-display` `ellipsis name`, `label-display` `label`.",
     );
   });
 });
@@ -237,24 +253,16 @@ describe("the default layer's bands", () => {
       .filter((key) => key.type === "band" && cascade.resolve(key, undefined).display === "none")
       .map((key) => key.address);
   };
-  const two = (id: string) => [bandAddress(id, "regions"), bandAddress(id, "flow_control")];
 
-  it("hide the regions and flow control bands of every timeline held by a band", () => {
-    expect(hidden("with_region")).toEqual([...two("clt_2"), ...two("clt_3")]);
-    expect(hidden("unknown_length_segments")).toEqual([...two("a"), ...two("b"), ...two("c")]);
-  });
-
-  it("show the markers band of every timeline, so every named timestamp stays visible", () => {
-    expect(hidden("timestamps")).toEqual([
-      bandAddress("clt_2", "regions"),
-      bandAddress("clt_2", "flow_control"),
-    ]);
-  });
-
-  it("show every band of a member drawing's root, a member that is a child included", () => {
-    // `second-half` is also a child row in `piece`'s ancestor card, where the bands of a child
-    // are hidden as anywhere else; its own card shows every band.
-    expect(hidden("groups/group_child_member")).toEqual(two("second-half"));
-    expect(hidden("bare")).toEqual([]);
+  it("hide no band, of a root or of a child, so a child's regions are shown", () => {
+    for (const name of [
+      "with_region",
+      "unknown_length_segments",
+      "timestamps",
+      "groups/group_child_member",
+      "bare",
+    ]) {
+      expect([name, hidden(name)]).toEqual([name, []]);
+    }
   });
 });

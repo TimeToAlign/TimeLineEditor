@@ -588,6 +588,7 @@ describe("the marks at any position", () => {
     "elision-proportion": "auto",
     "elision-depths": "auto",
     "elision-display": "ellipsis name",
+    "label-display": "label",
   };
 
   it("agree exactly with the named timestamps drawn", () => {

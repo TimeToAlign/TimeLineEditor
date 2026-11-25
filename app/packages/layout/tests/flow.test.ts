@@ -1,6 +1,9 @@
 /** The arcs, lines and labels of the flow fixtures, and a rejected element; derived in tests/README.md. */
 
-import type { Manifest } from "@timetoalign/tilie-core";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { isLoadError, loadManifest, type Manifest } from "@timetoalign/tilie-core";
+import type { Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,
@@ -11,7 +14,18 @@ import {
   type JumpElement,
   manifestLayer,
 } from "../src/index.ts";
-import { at, drawFixture, edit, edited, loadFile, metrics, quarters, target } from "./support.ts";
+import {
+  ARCS_ALONE,
+  at,
+  drawFixture,
+  edit,
+  edited,
+  FULL_CARDS,
+  loadFile,
+  metrics,
+  quarters,
+  target,
+} from "./support.ts";
 
 const X0 = 55.05029296875;
 /** `x0` of `flow/loop`, whose root is named `Take`. */
@@ -39,7 +53,13 @@ const styles = (drawing: Drawing, id: string): DrawnElement[] =>
 
 describe("flow/sonata_exposition", () => {
   it("draws the break, the second bracket's arc and the repeat's arc to the timeline's start", () => {
-    const drawing = drawFixture("flow/sonata_exposition");
+    // Its atomic sections shown, as the band they fill is part of the derivation.
+    const sections: Graphical = {
+      rules: [
+        { select: { element: "region", class: "tts:AtomicSection" }, set: { display: "inline" } },
+      ],
+    };
+    const drawing = drawFixture("flow/sonata_exposition", [ARCS_ALONE, sections]);
     const yf = 71.18359375;
     const x16 = 321.71695963541663;
     expect(drawing.elements.find((item) => item.type === "timeline")).toMatchObject({
@@ -75,29 +95,13 @@ describe("flow/sonata_exposition", () => {
           [59.515893939918605, 71.42527115129766],
         ],
       },
-      {
-        type: "label",
-        address: at("jump_1", "label"),
-        x: 288.38362630208337,
-        baseline: 89.53759765625,
-        anchor: "middle",
-        text: "volta",
-      },
-      {
-        type: "label",
-        address: at("jump_2", "label"),
-        x: 188.38362630208331,
-        baseline: 110.01416015625,
-        anchor: "middle",
-        text: "repeat_end",
-      },
     ]);
   });
 });
 
 describe("flow/repeat_end_and_dal_segno", () => {
   it("draws one arc per destination of the one jump, the shorter first, each with its own text", () => {
-    const drawing = drawFixture("flow/repeat_end_and_dal_segno");
+    const drawing = drawFixture("flow/repeat_end_and_dal_segno", [ARCS_ALONE]);
     const yf = 48.70703125;
     const x16 = 321.71695963541663;
     expect(flow(drawing)).toEqual([
@@ -135,21 +139,13 @@ describe("flow/repeat_end_and_dal_segno", () => {
         anchor: "middle",
         text: "D.S.",
       },
-      {
-        type: "label",
-        address: at("jump_1", "label"),
-        x: 221.71695963541669,
-        baseline: 87.53759765625,
-        anchor: "middle",
-        text: "repeat_end",
-      },
     ]);
   });
 });
 
 describe("flow/sections", () => {
   it("lands a destination without a place at the start of its jump's section", () => {
-    const drawing = drawFixture("flow/sections");
+    const drawing = drawFixture("flow/sections", [ARCS_ALONE]);
     const yf = 59.18359375;
     const yc = 69.85026041666666;
     expect(flow(drawing)).toEqual([
@@ -189,38 +185,40 @@ describe("flow/sections", () => {
       },
       {
         type: "label",
-        address: at("jump_1", "label"),
-        x: 155.05029296875,
-        baseline: 77.53759765625,
-        anchor: "middle",
-        text: "da_capo_al_fine",
-      },
-      {
-        type: "label",
-        address: at("jump_2", "label"),
-        x: 355.05029296875,
-        baseline: 77.53759765625,
-        anchor: "middle",
-        text: "da_capo",
-      },
-      {
-        type: "label",
         address: at("break_1", "label"),
         x: 158.05029296875,
         baseline: 57.06103515625,
         anchor: "start",
         text: "Fine",
       },
+      {
+        type: "label",
+        address: at("jump_1", "label"),
+        x: 258.05029296875,
+        baseline: 57.06103515625,
+        anchor: "start",
+        text: "D.C. al Fine",
+      },
+      {
+        type: "label",
+        address: at("jump_2", "label"),
+        x: 458.05029296875,
+        baseline: 57.06103515625,
+        anchor: "start",
+        text: "D.C.",
+      },
     ]);
   });
 
-  it("labels no arc with its jump's own label", () => {
+  it("labels no arc with its jump's own label, which its stack draws once", () => {
     const labels = loadFile("flow/sections").timelines[0]?.flow_control.map((item) => item.label);
     expect(labels).toEqual(["Fine", "D.C. al Fine", null, "D.C."]);
-    const texts = drawFixture("flow/sections").elements.flatMap((item) =>
-      item.type === "label" ? [item.text] : [],
-    );
-    expect(texts.filter((text) => text.startsWith("D.C."))).toEqual([]);
+    const texts = (anchor: "start" | "middle") =>
+      drawFixture("flow/sections", [ARCS_ALONE]).elements.flatMap((item) =>
+        item.type === "label" && item.anchor === anchor ? [item.text] : [],
+      );
+    expect(texts("middle")).toEqual([]);
+    expect(texts("start")).toEqual(["Fine", "D.C. al Fine", "D.C."]);
   });
 
   it("passes over a rejected section break", () => {
@@ -229,12 +227,7 @@ describe("flow/sections", () => {
       type: "set",
       changes: [{ target: target("section_break_1"), values: { belief } }],
     });
-    const drawing = draw(
-      manifest,
-      DEFAULT_PLACEMENT,
-      [DEFAULT_LAYER, manifestLayer(manifest)],
-      metrics,
-    );
+    const drawing = drawn(manifest);
     const arcs = drawing.elements.filter((item): item is JumpElement => item.type === "jump");
     // Both jumps now lie in one section, which starts at 0: the spans are 16 and 32.
     expect(arcs.map((item) => [item.address, item.start[0], item.tip[0]])).toEqual([
@@ -248,8 +241,8 @@ describe("flow/sections", () => {
 });
 
 describe("flow/repairs", () => {
-  it("draws the rejected jump and its label faded, and everything else as it is styled", () => {
-    const drawing = drawFixture("flow/repairs");
+  it("draws the rejected jump faded, and everything else as it is styled", () => {
+    const drawing = drawFixture("flow/repairs", [ARCS_ALONE]);
     const yf = 48.70703125;
     expect(
       drawing.elements
@@ -259,8 +252,6 @@ describe("flow/repairs", () => {
       ["barline", at("barline_1"), 1],
       ["jump", at("jump_2"), 1],
       ["jump", at("jump_1"), FADED_OPACITY],
-      ["label", at("jump_2", "label"), 1],
-      ["label", at("jump_1", "label"), FADED_OPACITY],
     ]);
     // The rejected jump keeps its place in the rows: the replacement in row 1, it in row 2.
     const arcs = drawing.elements.filter((item): item is JumpElement => item.type === "jump");
@@ -286,7 +277,7 @@ describe("flow/repairs", () => {
 
 /** A manifest drawn with the default layer and its own. */
 const drawn = (manifest: Manifest): Drawing =>
-  draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, manifestLayer(manifest)], metrics);
+  draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, ARCS_ALONE, manifestLayer(manifest)], metrics);
 
 /** Where each arc of the jump `id` leaves and arrives, in drawing order. */
 const arcsOf = (drawing: Drawing, id: string) =>
@@ -331,7 +322,7 @@ describe("the arcs of one jump", () => {
 });
 
 describe("the texts of one jump's arcs", () => {
-  it("are each destination's label, else its manifestation, and never the jump's", () => {
+  it("are each destination's label, never its manifestation nor the jump's", () => {
     const manifest = edit("flow/sections", {
       type: "add",
       into: target("score"),
@@ -361,9 +352,13 @@ describe("the texts of one jump's arcs", () => {
         .map((item) => [item.address, item.text, item.x]),
     ).toEqual([
       [at("jump_3", "label"), "back", 330.05029296875],
-      [at("jump_3", "label"), "volta", 380.05029296875],
+      [at("jump_3", "label"), "Leap", 358.05029296875],
     ]);
-    expect(labels.filter((item) => ["Leap", "Named"].includes(item.text))).toEqual([]);
+    // Its arc label centred on the arc, its own label in its stack, its name drawn nowhere.
+    expect(labels.filter((item) => item.text === "Leap").map((item) => item.anchor)).toEqual([
+      "start",
+    ]);
+    expect(labels.filter((item) => item.text === "Named")).toEqual([]);
   });
 });
 
@@ -443,12 +438,257 @@ describe("a to that names no place", () => {
 describe("a jump that draws no arc", () => {
   it("is not counted among its band's elements, and a band holding nothing else is absent", () => {
     // flow/volta_passes: the volta jump holds `by` 0 and a `to`; flow/loop draws its one arc.
-    const volta = drawFixture("flow/volta_passes");
+    const volta = drawFixture("flow/volta_passes", [ARCS_ALONE]);
     const jumps = volta.elements.filter((item) => item.type === "jump");
     const going = loadFile("flow/volta_passes").timelines[0]?.flow_control.flatMap((item) =>
       (item.targets ?? []).map((destination) => [item.id, Object.hasOwn(destination, "by")]),
     );
     expect(going?.filter(([, by]) => by === true).length).toBe(1);
     expect(jumps.length).toBe((going?.length ?? 0) - 1);
+  });
+});
+
+/** The elements of the given types in drawing order, without their styles. */
+function ofTypes(drawing: Drawing, ...types: string[]): object[] {
+  return drawing.elements
+    .filter((item) => types.includes(item.type))
+    .map(({ style: _, ...geometry }) => geometry);
+}
+
+/** The root's line of a drawing. */
+function rootLine(drawing: Drawing): { xs: number; y: number } {
+  const line = drawing.elements.find((item) => item.type === "timeline");
+  if (line === undefined || line.type !== "timeline") throw new Error("no root line");
+  return line;
+}
+
+describe("Op. 106 drawn with the defaults", () => {
+  const manifest = loadManifest(
+    readFileSync(path.join(import.meta.dirname, "data", "op106.manifest.json"), "utf8"),
+  );
+  if (isLoadError(manifest)) throw new Error("the Op. 106 manifest is refused");
+  const drawing = draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
+  const { xs: x0, y: yl } = rootLine(drawing);
+  const x = (offset: number) => x0 + offset;
+  const yf = yl + 5.5;
+  const at500 = 50.527379523779445;
+
+  it("draws the movements' flow lines in the root's one flow control band", () => {
+    const line = (type: string, id: string, offset: number) => ({
+      type,
+      address: at(id),
+      x: x(offset),
+      y1: yf,
+      y2: END,
+    });
+    expect(ofTypes(drawing, "break", "section_break", "barline")).toEqual([
+      line("break", "break_1", at500),
+      line("barline", "barline_1", 83.26912145518854),
+      line("barline", "barline_2", 166.13402387418682),
+      line("barline", "barline_3", 180.07958062274994),
+      line("barline", "barline_4", 218.2782795427272),
+      line("barline", "barline_5", 274.96999936840774),
+      line("barline", "barline_6", 276.8647761005495),
+      line("barline", "barline_7", 281.7659319143561),
+      line("barline", "barline_8", 400),
+    ]);
+    const stroke = (id: string) =>
+      drawing.elements
+        .filter((item) => item.address.id === id && item.address.part === undefined)
+        .map(({ style }) => [style.stroke, style["stroke-width"], style["stroke-dasharray"]]);
+    expect(stroke("break_1")).toEqual([["#D62728", 1.5, "1.5 1.5"]]);
+    expect(stroke("barline_1")).toEqual([["#6B7280", 1, "none"]]);
+    const bands = drawing.boxes.filter(
+      (box) => box.kind === "band" && box.address.facet === "flow_control",
+    );
+    expect(bands.map((box) => box.address)).toEqual([{ id: "clt_1", facet: "flow_control" }]);
+  });
+
+  it("draws the symbols on the symbol row, and no arc", () => {
+    const baseline = yf + 11.138671875;
+    const symbol = (id: string, offset: number, text: string) => ({
+      type: "symbol",
+      address: at(id, "symbol"),
+      x: x(offset),
+      baseline,
+      text,
+    });
+    const [double, final] = ["\u{1D101}", "\u{1D102}"];
+    expect(ofTypes(drawing, "symbol")).toEqual([
+      symbol("jump_2", at500, "\u{1D107}"),
+      symbol("barline_1", 83.26912145518854, double),
+      symbol("barline_2", 166.13402387418682, final),
+      symbol("barline_3", 180.07958062274994, double),
+      symbol("barline_4", 218.2782795427272, final),
+      symbol("barline_5", 274.96999936840774, final),
+      symbol("barline_6", 276.8647761005495, double),
+      symbol("barline_7", 281.7659319143561, double),
+      symbol("barline_8", 400, final),
+    ]);
+    expect(ofTypes(drawing, "jump")).toEqual([]);
+  });
+
+  it("draws the two volta brackets of the first movement's run", () => {
+    const y = yl + 33.9453125;
+    const yh = yl + 21.46875;
+    const bracket = (from: number, to: number, closed: boolean, text: string) => ({
+      type: "bracket",
+      address: at("jump_1", "bracket"),
+      x1: x(from),
+      x2: x(to),
+      y,
+      yh,
+      closed,
+      tx: x(from) + 2,
+      baseline: yh + 8.35400390625,
+      text,
+    });
+    expect(ofTypes(drawing, "bracket")).toEqual([
+      bracket(48.15259268616182, at500, true, "1."),
+      bracket(at500, 166.13402387418682, false, "2."),
+    ]);
+  });
+
+  it("draws the arcs where a rule shows them", () => {
+    const shown = draw(
+      manifest,
+      DEFAULT_PLACEMENT,
+      [DEFAULT_LAYER, { rules: [{ select: { element: "jump" }, set: { display: "inline" } }] }],
+      metrics,
+    );
+    expect(
+      ofTypes(shown, "jump").map((arc) => {
+        const { address, start, tip } = arc as JumpElement;
+        return [address, start[0], tip[0]];
+      }),
+    ).toEqual([
+      [at("jump_1"), x(48.15259268616182), x(at500)],
+      [at("jump_2"), x(at500), x0],
+    ]);
+  });
+});
+
+describe("the flow control of a tree", () => {
+  it("is drawn by the root's band alone, each element held by its own timeline's band", () => {
+    const flowBands = (drawing: Drawing) =>
+      drawing.boxes
+        .filter((box) => box.kind === "band" && box.address.facet === "flow_control")
+        .map((box) => box.address.id);
+    const drawing = drawFixture("child_flow_control");
+    expect(flowBands(drawing)).toEqual(["piece"]);
+    const ids = (shown: Drawing) =>
+      shown.elements.flatMap((item) =>
+        ["break", "symbol"].includes(item.type) ? [[item.type, item.address.id]] : [],
+      );
+    expect(ids(drawing)).toEqual([
+      ["break", "fine"],
+      ["symbol", "fine"],
+      ["symbol", "da_capo_al_fine"],
+    ]);
+    const hidden = (id: string) =>
+      drawFixture("child_flow_control", [
+        {
+          rules: [
+            { select: { addresses: [{ id, facet: "flow_control" }] }, set: { display: "none" } },
+          ],
+        },
+      ]);
+    expect(ids(hidden("verse"))).toEqual([]);
+    expect(ids(hidden("piece"))).toEqual(ids(drawing));
+  });
+
+  it("gives a child member's card the elements of its root's tree on its stretch", () => {
+    const barline = (into: string, id: string, coordinate: number, role = "barline") => ({
+      type: "add",
+      into: target(into),
+      flow_control: { id, role, coordinate: quarters(coordinate) },
+    });
+    const manifest = edit(
+      "groups/group_child_member",
+      barline("piece", "barline_1", 4),
+      barline("piece", "barline_2", 8),
+      barline("piece", "section_break_1", 12, "section_break"),
+      barline("piece", "barline_3", 16),
+      barline("second-half", "barline_4", 2),
+    );
+    // `piece`'s ancestor card drawn whole: no derived gap leaves out its barline at 4.
+    const drawing = draw(
+      manifest,
+      DEFAULT_PLACEMENT,
+      [DEFAULT_LAYER, FULL_CARDS, manifestLayer(manifest)],
+      metrics,
+    );
+    const lines = drawing.elements.flatMap((item) =>
+      item.type === "barline" || item.type === "section_break" ? [item.address.id] : [],
+    );
+    // `piece`'s ancestor card first, its whole tree; then `second-half`'s card, on its stretch.
+    expect(lines).toEqual([
+      "barline_1",
+      "barline_2",
+      "section_break_1",
+      "barline_3",
+      "barline_4",
+      "barline_2",
+      "section_break_1",
+      "barline_3",
+      "barline_4",
+    ]);
+  });
+});
+
+describe("symbols, brackets and stacks", () => {
+  it("draws a jump's symbols as one text, and its jump targets' each at its own position", () => {
+    const drawing = drawFixture("flow/repeat_end_and_dal_segno");
+    expect(
+      ofTypes(drawing, "symbol").map((item) => {
+        const { address, x, text } = item as { address: object; x: number; text: string };
+        return [address, x, text];
+      }),
+    ).toEqual([
+      [at("jump_target_1", "symbol"), X0 + 400 * (4 / 24), "\u{1D106}"],
+      [at("jump_target_2", "symbol"), X0 + 400 * (8 / 24), "\u{1D10B}"],
+      [at("jump_1", "symbol"), X0 + 400 * (16 / 24), "\u{1D107}\u{1D109}"],
+    ]);
+  });
+
+  it("closes every bracket of a run but its last", () => {
+    const drawing = drawFixture("flow/volta_passes");
+    expect(
+      ofTypes(drawing, "bracket").map((item) => {
+        const { x1, x2, closed, text } = item as {
+          x1: number;
+          x2: number;
+          closed: boolean;
+          text: string;
+        };
+        return [x1, x2, closed, text];
+      }),
+    ).toEqual([
+      [X0 + 200, X0 + 300, true, "1., 3."],
+      [X0 + 300, X0 + 400, false, "2."],
+    ]);
+  });
+
+  it("stacks an element's labels as its label-display lists them", () => {
+    const labels = (drawing: Drawing) =>
+      drawing.elements.flatMap((item) =>
+        item.type === "label" ? [[item.address, item.x, item.baseline, item.text]] : [],
+      );
+    const plain = drawFixture("flow/sections");
+    const yf = 59.18359375;
+    const line1 = yf - 2.12255859375;
+    expect(labels(plain)).toEqual([
+      [at("break_1", "label"), X0 + 100 + 3, line1, "Fine"],
+      [at("jump_1", "label"), X0 + 200 + 3, line1, "D.C. al Fine"],
+      [at("jump_2", "label"), X0 + 400 + 3, line1, "D.C."],
+    ]);
+    const both = drawFixture("flow/sections", [
+      { rules: [{ select: { element: "break" }, set: { "label-display": "id label" } }] },
+    ]);
+    const yf2 = yf + 10.4765625;
+    expect(labels(both).slice(0, 2)).toEqual([
+      [at("break_1", "id"), X0 + 100 + 3, yf2 - 2.12255859375, "break_1"],
+      [at("break_1", "label"), X0 + 100 + 3, yf2 - 10.4765625 - 2.12255859375, "Fine"],
+    ]);
   });
 });

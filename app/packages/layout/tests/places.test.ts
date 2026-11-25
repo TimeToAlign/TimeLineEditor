@@ -1,7 +1,14 @@
 import { BUNDLE_ADDRESS, type ElementAddress, TITLE_ADDRESS } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_PLACEMENT, type Drawing, type Placement } from "../src/index.ts";
-import { at, drawFixture, drawWithoutAncestorCards, element, itemsOf } from "./support.ts";
+import {
+  ARCS_ALONE,
+  at,
+  drawFixture,
+  drawWithoutAncestorCards,
+  element,
+  itemsOf,
+} from "./support.ts";
 
 const placedAt = (changes: Partial<Placement>): Placement => ({ ...DEFAULT_PLACEMENT, ...changes });
 const block = {
@@ -105,7 +112,7 @@ describe("the default top", () => {
   const tops = (drawing: Drawing) => itemsOf(drawing).map((item) => [item.key, item.item?.place.y]);
 
   it("lies F below the bottom edge of the items before it, no shadow counted", () => {
-    expect(tops(drawFixture("bundles/bundle_ungrouped"))).toEqual([
+    expect(tops(drawFixture("bundles/bundle_ungrouped", [ARCS_ALONE]))).toEqual([
       [{ item: "pages" }, 28.8046875],
       [{ item: "recording" }, 100.2578125],
       [{ item: "score" }, 157.734375],
@@ -115,7 +122,7 @@ describe("the default top", () => {
   it("follows an item's requested height", () => {
     const drawing = drawFixture(
       "bundles/bundle_ungrouped",
-      [],
+      [ARCS_ALONE],
       placedAt({ places: { pages: { height: 100 } } }),
     );
     expect(tops(drawing)).toEqual([
@@ -131,7 +138,11 @@ describe("an item left of the padding, a width request and a length of its own",
     group_2: { x: 40, y: 200, width: 700 },
     annotations: { x: -30, length: 300 },
   };
-  const drawing = drawWithoutAncestorCards("bundles/bundle_mixed", [], placedAt({ places }));
+  const drawing = drawWithoutAncestorCards(
+    "bundles/bundle_mixed",
+    [ARCS_ALONE],
+    placedAt({ places }),
+  );
 
   it("lists the items in drawing order with their places as stated", () => {
     expect(
@@ -233,7 +244,7 @@ describe("an item left of the padding, a width request and a length of its own",
 describe("an item left of and above the padding and a height request", () => {
   const drawing = drawFixture(
     "bundles/bundle_ungrouped",
-    [],
+    [ARCS_ALONE],
     placedAt({ places: { score: { x: -60, y: -150, height: 120 } } }),
   );
 
@@ -312,7 +323,7 @@ describe("an item left of and above the padding and a height request", () => {
 describe("a frame's own length and height request, a card's width request", () => {
   const drawing = drawWithoutAncestorCards(
     "bundles/bundle_mixed",
-    [],
+    [ARCS_ALONE],
     placedAt({ places: { group_1: { length: 300, height: 200 }, annotations: { width: 600 } } }),
   );
 
@@ -410,7 +421,7 @@ describe("a frame's own length and height request, a card's width request", () =
 describe("a fractional place origin: the shift is added last", () => {
   const drawing = drawFixture(
     "bundles/bundle_ungrouped",
-    [],
+    [ARCS_ALONE],
     placedAt({ places: { score: { x: -60.33, y: -150.33, height: 120 } } }),
   );
 
@@ -468,7 +479,7 @@ describe("a fractional place origin: the shift is added last", () => {
   it("sums a default top in place coordinates", () => {
     const mixed = drawWithoutAncestorCards(
       "bundles/bundle_mixed",
-      [],
+      [ARCS_ALONE],
       placedAt({ places: { group_1: { y: 10.11 }, annotations: { x: 560, y: -40.1 } } }),
     );
     expect(mixed.origin.y).toBe(68.9046875);

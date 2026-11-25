@@ -34,6 +34,7 @@ import {
   manifestNames,
   metrics,
   quarters,
+  ROOT_ARCS_ALONE,
   target,
 } from "./support.ts";
 
@@ -816,7 +817,7 @@ describe("ellipses", () => {
   });
 
   it("is none on a crossing row but the gap's middle", () => {
-    const drawing = drawn("bundles/bundle_shared_parent");
+    const drawing = drawn("bundles/bundle_shared_parent", [ROOT_ARCS_ALONE]);
     const gaps = drawing.elements.filter((element) => element.type === "elision");
     // Each of `score`'s two ancestor cards derives one gap cutting `score`'s line and its map
     // `cmap_1`; the gap keeps one ellipsis, at the middle of its card, and the name `Score` below.

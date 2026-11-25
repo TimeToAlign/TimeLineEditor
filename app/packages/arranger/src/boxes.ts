@@ -528,6 +528,8 @@ export function roleOf(descriptor: Descriptor): Role {
     case "leader":
     case "elision":
     case "ellipsis":
+    case "symbol":
+    case "bracket":
     case "name":
     case "label":
       return "element";

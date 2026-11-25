@@ -21,6 +21,7 @@ import {
   at,
   BLOCK,
   bandOrder,
+  CHILD_REGIONS_HIDDEN,
   drawFixture,
   edit,
   element,
@@ -503,7 +504,10 @@ describe("the regions of segments without a line", () => {
     ]);
   });
 
-  it("are hidden by default with the bands of every timeline held by a band", () => {
-    expect(ofType(drawFixture("unknown_length_segments"), "region")).toEqual([]);
+  it("are shown by default, as every band is, and hidden with their band", () => {
+    expect(ofType(drawFixture("unknown_length_segments"), "region").length).toBe(2);
+    expect(
+      ofType(drawFixture("unknown_length_segments", [CHILD_REGIONS_HIDDEN]), "region"),
+    ).toEqual([]);
   });
 });

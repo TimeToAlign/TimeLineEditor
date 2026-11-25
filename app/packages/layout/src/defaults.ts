@@ -1,7 +1,6 @@
 /** The default style layer (`docs/drawing.md` in TimeToShare, section 4) and a manifest's own. */
 
 import type { Manifest } from "@timetoalign/tilie-core";
-import { FLOW_LINE_ROLES } from "@timetoalign/tilie-core";
 import type { Graphical } from "@timetoalign/timetoshare";
 
 /**
@@ -49,14 +48,44 @@ export const DEFAULT_LAYER: Graphical = {
       select: { element: "region" },
       set: { stroke: "#000000", "stroke-width": 1, "stroke-dasharray": "none" },
     },
+    { select: { element: "region", class: "tts:AtomicSection" }, set: { display: "none" } },
     {
       select: { element: "jump" },
-      set: { stroke: "#000000", fill: "#000000", "stroke-width": 1, "stroke-dasharray": "1 1" },
+      set: {
+        stroke: "#000000",
+        fill: "#000000",
+        "stroke-width": 1,
+        "stroke-dasharray": "1 1",
+        display: "none",
+      },
     },
-    ...FLOW_LINE_ROLES.map((element) => ({
-      select: { element },
-      set: { stroke: "#FF0000", "stroke-width": 1.5, "stroke-dasharray": "2 2" },
-    })),
+    {
+      select: { element: "break" },
+      set: { stroke: "#D62728", "stroke-width": 1.5, "stroke-dasharray": "1.5 1.5" },
+    },
+    {
+      select: { element: "section_break" },
+      set: { stroke: "#4B5563", "stroke-width": 1.5, "stroke-dasharray": "4 2" },
+    },
+    {
+      select: { element: "barline" },
+      set: { stroke: "#6B7280", "stroke-width": 1, "stroke-dasharray": "none" },
+    },
+    { select: { element: "symbol" }, set: { fill: "#000000", "font-size": 12 } },
+    {
+      select: { element: "bracket" },
+      set: {
+        stroke: "#000000",
+        "stroke-width": 1,
+        "stroke-dasharray": "none",
+        fill: "#000000",
+        "font-size": 9,
+      },
+    },
+    {
+      select: { element: "leader" },
+      set: { stroke: "#9CA3AF", "stroke-width": 0.5, "stroke-dasharray": "none" },
+    },
     {
       select: { element: "boundary" },
       set: { stroke: "#000000", "stroke-width": 1, "stroke-dasharray": "none" },
@@ -121,14 +150,6 @@ export const DEFAULT_LAYER: Graphical = {
       set: { fill: "#6B7280", "font-size": 9, opacity: 1 },
     },
     { select: { element: "label", inside: "elision" }, set: { fill: "#6B7280" } },
-    {
-      select: { element: "band", facet: "regions", inside: "band" },
-      set: { display: "none" },
-    },
-    {
-      select: { element: "band", facet: "flow_control", inside: "band" },
-      set: { display: "none" },
-    },
     { select: { coordinates: "secondary" }, set: { display: "none", rotation: -45 } },
   ],
 };

@@ -1,0 +1,1092 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "actor": {
+      "@id": "https://timetoalign.github.io/timetoshare/ns#actor",
+      "@type": "@id"
+    },
+    "basis": {
+      "@id": "http://www.w3.org/ns/prov#hadPrimarySource",
+      "@type": "@id"
+    },
+    "belief": {
+      "@id": "https://timetoalign.github.io/timetoshare/ns#belief",
+      "@type": "@vocab"
+    },
+    "beliefs": "https://timetoalign.github.io/timetoshare/ns#beliefs",
+    "broad": "http://www.w3.org/2004/02/skos/core#broadMatch",
+    "children": "@included",
+    "close": "http://www.w3.org/2004/02/skos/core#closeMatch",
+    "date": {
+      "@id": "http://purl.org/dc/terms/date",
+      "@type": "http://www.w3.org/2001/XMLSchema#date"
+    },
+    "exact": "http://www.w3.org/2004/02/skos/core#exactMatch",
+    "false": "https://timetoalign.github.io/timetoshare/ns#False",
+    "groups": "@included",
+    "id": "@id",
+    "imported": "https://timetoalign.github.io/timetoshare/ns#Imported",
+    "inferred": "https://timetoalign.github.io/timetoshare/ns#Inferred",
+    "label": "http://www.w3.org/2000/01/rdf-schema#label",
+    "list": "@list",
+    "manual": "https://timetoalign.github.io/timetoshare/ns#Manual",
+    "match": {
+      "@id": "https://timetoalign.github.io/timetoshare/ns#match",
+      "@type": "@vocab"
+    },
+    "method": {
+      "@id": "https://timetoalign.github.io/timetoshare/ns#method",
+      "@type": "@vocab"
+    },
+    "narrow": "http://www.w3.org/2004/02/skos/core#narrowMatch",
+    "note": "http://www.w3.org/2000/01/rdf-schema#comment",
+    "property": {
+      "@id": "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",
+      "@type": "@vocab"
+    },
+    "provenance": {
+      "@reverse": "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
+    },
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "reconciled": "https://timetoalign.github.io/timetoshare/ns#Reconciled",
+    "regions": "@included",
+    "related": "http://www.w3.org/2004/02/skos/core#relatedMatch",
+    "service": {
+      "@id": "https://timetoalign.github.io/timetoshare/ns#service",
+      "@type": "@id"
+    },
+    "stated_by": {
+      "@id": "http://www.w3.org/ns/prov#wasAttributedTo",
+      "@type": "@id"
+    },
+    "statements": "@nest",
+    "timelines": "@included",
+    "true": "https://timetoalign.github.io/timetoshare/ns#True",
+    "tts": "https://timetoalign.github.io/timetoshare/ns#",
+    "type": "@type",
+    "unlikely": "https://timetoalign.github.io/timetoshare/ns#Unlikely",
+    "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"
+  },
+  "flow_maps": [
+    {
+      "chunks": ["#region_1", "#region_2", "#region_1", "#region_3"],
+      "convention": "default",
+      "id": "#flow_map_1",
+      "name": "Allegro, default",
+      "provenance": [
+        {
+          "method": "inferred"
+        }
+      ],
+      "timeline": "#clt_1"
+    },
+    {
+      "chunks": ["#region_1", "#region_3"],
+      "convention": "single",
+      "id": "#flow_map_2",
+      "name": "Allegro, single",
+      "provenance": [
+        {
+          "method": "inferred"
+        }
+      ],
+      "timeline": "#clt_1"
+    },
+    {
+      "chunks": ["#region_1", "#region_2", "#region_3"],
+      "convention": "printed",
+      "id": "#flow_map_3",
+      "name": "Allegro, printed",
+      "provenance": [
+        {
+          "method": "inferred"
+        }
+      ],
+      "timeline": "#clt_1"
+    },
+    {
+      "chunks": ["#region_4"],
+      "convention": "default",
+      "id": "#flow_map_4",
+      "name": "Scherzo. Assai vivace, default",
+      "provenance": [
+        {
+          "method": "inferred"
+        }
+      ],
+      "timeline": "#clt_1"
+    },
+    {
+      "chunks": ["#region_5"],
+      "convention": "default",
+      "id": "#flow_map_5",
+      "name": "Adagio sostenuto, default",
+      "provenance": [
+        {
+          "method": "inferred"
+        }
+      ],
+      "timeline": "#clt_1"
+    },
+    {
+      "chunks": ["#region_6"],
+      "convention": "default",
+      "id": "#flow_map_6",
+      "name": "Introduzione. Largo – Allegro risoluto, default",
+      "provenance": [
+        {
+          "method": "inferred"
+        }
+      ],
+      "timeline": "#clt_1"
+    },
+    {
+      "canonical": true,
+      "chunks": ["#clt_2", "#clt_3", "#clt_4", "#clt_5"],
+      "id": "#flow_map_7",
+      "name": "Vienna 1819 (Artaria): I–II–III–IV",
+      "provenance": [
+        {
+          "basis": ["https://imslp.org/wiki/Piano_Sonata_No.29,_Op.106_(Beethoven,_Ludwig_van)"],
+          "method": "manual"
+        }
+      ],
+      "timeline": "#clt_1"
+    },
+    {
+      "chunks": ["#clt_2", "#clt_4", "#clt_3", "#clt_5"],
+      "id": "#flow_map_8",
+      "name": "London 1819 (Regent's Harmonic Institution): I–III–II, then IV as a part of its own",
+      "provenance": [
+        {
+          "basis": ["https://imslp.org/wiki/Piano_Sonata_No.29,_Op.106_(Beethoven,_Ludwig_van)"],
+          "method": "manual"
+        }
+      ],
+      "timeline": "#clt_1"
+    }
+  ],
+  "graphical": {
+    "rules": [
+      {
+        "select": {
+          "element": "band",
+          "facet": "regions",
+          "inside": "band"
+        },
+        "set": {
+          "display": "inline"
+        }
+      },
+      {
+        "select": {
+          "element": "band",
+          "facet": "flow_control",
+          "inside": "band"
+        },
+        "set": {
+          "display": "inline"
+        }
+      }
+    ]
+  },
+  "links": [
+    {
+      "assertion": {
+        "asserted_on": "2026-11-17",
+        "based_on": ["README.md", "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284", "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"],
+        "method": "manual",
+        "status": "unconfirmed"
+      },
+      "identifiers": [
+        {
+          "scheme": "http://www.wikidata.org/entity/P839",
+          "value": "Piano_Sonata_No.29,_Op.106_(Beethoven,_Ludwig_van)"
+        },
+        {
+          "scheme": "mb_beethoven_opus",
+          "value": "op. 106"
+        }
+      ],
+      "label": "Piano Sonata No. 29 in B♭ major, Op. 106",
+      "level": "work",
+      "parts": [
+        {
+          "absent": "not_represented",
+          "label": "I. Allegro",
+          "uri": ["http://musicbrainz.org/work/80cbaf7b-a1da-3fc5-b650-6eb72a803980"]
+        },
+        {
+          "absent": "not_represented",
+          "label": "II. Scherzo. Assai vivace",
+          "uri": ["http://musicbrainz.org/work/7813c9cf-6054-3ef3-b9ed-8ae4690581c9"]
+        },
+        {
+          "absent": "not_represented",
+          "label": "III. Adagio sostenuto",
+          "uri": ["http://musicbrainz.org/work/7d110747-f011-41d4-9ce5-a1fad9abed2f"]
+        },
+        {
+          "absent": "not_represented",
+          "label": "IV. Introduzione. Largo – Allegro risoluto",
+          "uri": ["http://musicbrainz.org/work/cfa82cd6-bcb5-39dd-9beb-c98e275c7c84"]
+        }
+      ],
+      "parts_relation": "has_part",
+      "relation": "pertains_to",
+      "uri": ["http://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284", "http://www.wikidata.org/entity/Q146730", "http://viaf.org/viaf/186299955"]
+    }
+  ],
+  "measure_maps": [
+    {
+      "id": "#measuremap_1",
+      "rows": [
+        {
+          "actual_length": [1, 2],
+          "count": 1,
+          "end_repeat": false,
+          "name": "0",
+          "next": ["2"],
+          "nominal_length": [4, 1],
+          "number": 0,
+          "offset_within_measure": [7, 2],
+          "qstamp": [0, 1],
+          "start_repeat": false,
+          "time_signature": "2/2"
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 120,
+          "end_repeat": false,
+          "name": "119",
+          "next": ["121", "127"],
+          "nominal_length": [4, 1],
+          "number": 119,
+          "qstamp": [945, 2],
+          "start_repeat": false,
+          "time_signature": "2/2"
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 121,
+          "end_repeat": false,
+          "name": "120",
+          "next": ["122"],
+          "nominal_length": [4, 1],
+          "number": 120,
+          "qstamp": [953, 2],
+          "start_repeat": false,
+          "time_signature": "2/2",
+          "volta": 1
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 122,
+          "end_repeat": false,
+          "name": "121",
+          "next": ["123"],
+          "nominal_length": [4, 1],
+          "number": 121,
+          "qstamp": [961, 2],
+          "start_repeat": false,
+          "time_signature": "2/2",
+          "volta": 1
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 123,
+          "end_repeat": false,
+          "name": "122",
+          "next": ["124"],
+          "nominal_length": [4, 1],
+          "number": 122,
+          "qstamp": [969, 2],
+          "start_repeat": false,
+          "time_signature": "2/2",
+          "volta": 1
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 124,
+          "end_repeat": false,
+          "name": "123",
+          "next": ["125"],
+          "nominal_length": [4, 1],
+          "number": 123,
+          "qstamp": [977, 2],
+          "start_repeat": false,
+          "time_signature": "2/2",
+          "volta": 1
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 125,
+          "end_repeat": false,
+          "name": "124",
+          "next": ["126"],
+          "nominal_length": [4, 1],
+          "number": 124,
+          "qstamp": [985, 2],
+          "start_repeat": false,
+          "time_signature": "2/2",
+          "volta": 1
+        },
+        {
+          "actual_length": [7, 2],
+          "count": 126,
+          "end_repeat": true,
+          "name": "125",
+          "next": ["1"],
+          "nominal_length": [4, 1],
+          "number": 125,
+          "qstamp": [993, 2],
+          "start_repeat": false,
+          "time_signature": "2/2",
+          "volta": 1
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 127,
+          "end_repeat": false,
+          "name": "120",
+          "next": ["128"],
+          "nominal_length": [4, 1],
+          "number": 120,
+          "qstamp": [500, 1],
+          "start_repeat": false,
+          "time_signature": "2/2",
+          "volta": 2
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 128,
+          "end_repeat": false,
+          "name": "121",
+          "next": ["129"],
+          "nominal_length": [4, 1],
+          "number": 121,
+          "qstamp": [504, 1],
+          "start_repeat": false,
+          "time_signature": "2/2",
+          "volta": 2
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 129,
+          "end_repeat": false,
+          "name": "122",
+          "next": ["130"],
+          "nominal_length": [4, 1],
+          "number": 122,
+          "qstamp": [508, 1],
+          "start_repeat": false,
+          "time_signature": "2/2",
+          "volta": 2
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 130,
+          "end_repeat": false,
+          "name": "123",
+          "next": ["131"],
+          "nominal_length": [4, 1],
+          "number": 123,
+          "qstamp": [512, 1],
+          "start_repeat": false,
+          "time_signature": "2/2",
+          "volta": 2
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 412,
+          "end_repeat": false,
+          "name": "405",
+          "nominal_length": [4, 1],
+          "number": 405,
+          "qstamp": [1640, 1],
+          "start_repeat": false,
+          "time_signature": "2/2"
+        }
+      ]
+    },
+    {
+      "id": "#measuremap_2",
+      "rows": [
+        {
+          "actual_length": [1, 1],
+          "count": 1,
+          "end_repeat": false,
+          "name": "0",
+          "next": ["2"],
+          "nominal_length": [3, 1],
+          "number": 0,
+          "offset_within_measure": [2, 1],
+          "qstamp": [0, 1],
+          "start_repeat": false,
+          "time_signature": "3/4"
+        },
+        {
+          "actual_length": [2, 1],
+          "count": 47,
+          "end_repeat": false,
+          "name": "46",
+          "next": ["48"],
+          "nominal_length": [3, 1],
+          "number": 46,
+          "qstamp": [136, 1],
+          "start_repeat": false,
+          "time_signature": "3/4"
+        },
+        {
+          "actual_length": [1, 1],
+          "count": 48,
+          "end_repeat": false,
+          "name": "46",
+          "next": ["49"],
+          "nominal_length": [3, 1],
+          "number": 46,
+          "offset_within_measure": [2, 1],
+          "qstamp": [138, 1],
+          "start_repeat": false,
+          "time_signature": "3/4"
+        },
+        {
+          "actual_length": [2, 1],
+          "count": 83,
+          "end_repeat": false,
+          "name": "81",
+          "next": ["84"],
+          "nominal_length": [2, 1],
+          "number": 81,
+          "qstamp": [241, 1],
+          "start_repeat": false,
+          "time_signature": "2/4"
+        },
+        {
+          "actual_length": [1, 1],
+          "count": 114,
+          "end_repeat": false,
+          "name": "112",
+          "next": ["115"],
+          "nominal_length": [2, 1],
+          "number": 112,
+          "qstamp": [303, 1],
+          "start_repeat": false,
+          "time_signature": "2/4"
+        },
+        {
+          "actual_length": [19, 1],
+          "count": 115,
+          "end_repeat": false,
+          "name": "112",
+          "next": ["116"],
+          "nominal_length": [2, 1],
+          "number": 112,
+          "qstamp": [304, 1],
+          "start_repeat": false,
+          "time_signature": "2/4"
+        },
+        {
+          "actual_length": [1, 1],
+          "count": 116,
+          "end_repeat": false,
+          "name": "112",
+          "next": ["117"],
+          "nominal_length": [3, 1],
+          "number": 112,
+          "qstamp": [323, 1],
+          "start_repeat": false,
+          "time_signature": "3/4"
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 172,
+          "end_repeat": false,
+          "name": "168",
+          "next": ["173"],
+          "nominal_length": [4, 1],
+          "number": 168,
+          "qstamp": [489, 1],
+          "start_repeat": false,
+          "time_signature": "2/2"
+        },
+        {
+          "actual_length": [3, 1],
+          "count": 176,
+          "end_repeat": false,
+          "name": "172",
+          "next": ["177"],
+          "nominal_length": [3, 1],
+          "number": 172,
+          "qstamp": [505, 1],
+          "start_repeat": false,
+          "time_signature": "3/4"
+        },
+        {
+          "actual_length": [2, 1],
+          "count": 179,
+          "end_repeat": false,
+          "name": "175",
+          "nominal_length": [3, 1],
+          "number": 175,
+          "qstamp": [514, 1],
+          "start_repeat": false,
+          "time_signature": "3/4"
+        }
+      ]
+    },
+    {
+      "id": "#measuremap_3",
+      "rows": [
+        {
+          "actual_length": [3, 1],
+          "count": 1,
+          "end_repeat": false,
+          "name": "1",
+          "next": ["2"],
+          "nominal_length": [3, 1],
+          "number": 1,
+          "qstamp": [0, 1],
+          "start_repeat": false,
+          "time_signature": "6/8"
+        },
+        {
+          "actual_length": [3, 1],
+          "count": 187,
+          "end_repeat": false,
+          "name": "187",
+          "nominal_length": [3, 1],
+          "number": 187,
+          "qstamp": [558, 1],
+          "start_repeat": false,
+          "time_signature": "6/8"
+        }
+      ]
+    },
+    {
+      "id": "#measuremap_4",
+      "rows": [
+        {
+          "actual_length": [23, 4],
+          "count": 1,
+          "end_repeat": false,
+          "name": "1",
+          "next": ["2"],
+          "nominal_length": [4, 1],
+          "number": 1,
+          "qstamp": [0, 1],
+          "start_repeat": false,
+          "time_signature": "4/4"
+        },
+        {
+          "actual_length": [3, 1],
+          "count": 2,
+          "end_repeat": false,
+          "name": "1",
+          "next": ["3"],
+          "nominal_length": [4, 1],
+          "number": 1,
+          "qstamp": [23, 4],
+          "start_repeat": false,
+          "time_signature": "4/4"
+        },
+        {
+          "actual_length": [17, 8],
+          "count": 3,
+          "end_repeat": false,
+          "name": "2",
+          "next": ["4"],
+          "nominal_length": [4, 1],
+          "number": 2,
+          "qstamp": [35, 4],
+          "start_repeat": false,
+          "time_signature": "4/4"
+        },
+        {
+          "actual_length": [15, 8],
+          "count": 4,
+          "end_repeat": false,
+          "name": "2",
+          "next": ["5"],
+          "nominal_length": [4, 1],
+          "number": 2,
+          "offset_within_measure": [17, 8],
+          "qstamp": [87, 8],
+          "start_repeat": false,
+          "time_signature": "4/4"
+        },
+        {
+          "actual_length": [6, 1],
+          "count": 5,
+          "end_repeat": false,
+          "name": "2",
+          "next": ["6"],
+          "nominal_length": [4, 1],
+          "number": 2,
+          "qstamp": [51, 4],
+          "start_repeat": false,
+          "time_signature": "4/4"
+        },
+        {
+          "actual_length": [7, 2],
+          "count": 11,
+          "end_repeat": false,
+          "name": "8",
+          "next": ["12"],
+          "nominal_length": [4, 1],
+          "number": 8,
+          "qstamp": [155, 4],
+          "start_repeat": false,
+          "time_signature": "4/4"
+        },
+        {
+          "actual_length": [3, 1],
+          "count": 12,
+          "end_repeat": false,
+          "name": "9",
+          "next": ["13"],
+          "nominal_length": [4, 1],
+          "number": 9,
+          "qstamp": [169, 4],
+          "start_repeat": false,
+          "time_signature": "4/4"
+        },
+        {
+          "actual_length": [6, 1],
+          "count": 13,
+          "end_repeat": false,
+          "name": "10",
+          "next": ["14"],
+          "nominal_length": [4, 1],
+          "number": 10,
+          "qstamp": [181, 4],
+          "start_repeat": false,
+          "time_signature": "4/4"
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 14,
+          "end_repeat": false,
+          "name": "10",
+          "next": ["15"],
+          "nominal_length": [4, 1],
+          "number": 10,
+          "qstamp": [205, 4],
+          "start_repeat": false,
+          "time_signature": "4/4"
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 15,
+          "end_repeat": false,
+          "name": "10",
+          "next": ["16"],
+          "nominal_length": [4, 1],
+          "number": 10,
+          "qstamp": [221, 4],
+          "start_repeat": false,
+          "time_signature": "4/4"
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 16,
+          "end_repeat": false,
+          "name": "10",
+          "next": ["17"],
+          "nominal_length": [4, 1],
+          "number": 10,
+          "qstamp": [237, 4],
+          "start_repeat": false,
+          "time_signature": "4/4"
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 17,
+          "end_repeat": false,
+          "name": "10",
+          "next": ["18"],
+          "nominal_length": [4, 1],
+          "number": 10,
+          "qstamp": [253, 4],
+          "start_repeat": false,
+          "time_signature": "4/4"
+        },
+        {
+          "actual_length": [3, 1],
+          "count": 18,
+          "end_repeat": false,
+          "name": "11",
+          "next": ["19"],
+          "nominal_length": [3, 1],
+          "number": 11,
+          "qstamp": [269, 4],
+          "start_repeat": false,
+          "time_signature": "3/4"
+        },
+        {
+          "actual_length": [3, 1],
+          "count": 407,
+          "end_repeat": false,
+          "name": "400",
+          "nominal_length": [3, 1],
+          "number": 400,
+          "qstamp": [4937, 4],
+          "start_repeat": false,
+          "time_signature": "3/4"
+        }
+      ]
+    }
+  ],
+  "name": "Beethoven, Piano Sonata No. 29, Op. 106",
+  "schemes": [
+    {
+      "id": "mb_beethoven_opus",
+      "name": "Works of Ludwig van Beethoven by opus number",
+      "uri": ["https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"]
+    }
+  ],
+  "timelines": [
+    {
+      "children": [
+        {
+          "conversion_maps": [
+            {
+              "id": "#cmap_1",
+              "measure_map": "#measuremap_1",
+              "source_unit": "quarters",
+              "target_unit": null,
+              "type": "MeasureRecordMap"
+            },
+            {
+              "id": "#cmap_2",
+              "scalar": 480,
+              "source_unit": "quarters",
+              "target_unit": "ticks",
+              "type": "LinearMap"
+            },
+            {
+              "id": "#tmap_1",
+              "measure_map": "#measuremap_1",
+              "source_unit": "quarters",
+              "target_unit": "floating_measures",
+              "type": "FloatingMeasureMap"
+            }
+          ],
+          "flow_control": [
+            {
+              "coordinate": [953, 2],
+              "id": "#jump_1",
+              "role": "jump",
+              "targets": [
+                {
+                  "by": [0, 1],
+                  "manifestation": "volta",
+                  "passes": [1]
+                },
+                {
+                  "manifestation": "volta",
+                  "passes": [2],
+                  "to": "#jump_target_1"
+                }
+              ]
+            },
+            {
+              "coordinate": [500, 1],
+              "id": "#break_1",
+              "manifestation": "volta",
+              "role": "break"
+            },
+            {
+              "coordinate": [500, 1],
+              "id": "#jump_2",
+              "role": "jump",
+              "targets": [
+                {
+                  "manifestation": "repeat_end",
+                  "repeat_count": 1
+                }
+              ]
+            },
+            {
+              "coordinate": [500, 1],
+              "id": "#jump_target_1",
+              "manifestation": "volta",
+              "role": "jump_target"
+            },
+            {
+              "coordinate": [824, 1],
+              "id": "#barline_1",
+              "manifestation": "double_barline",
+              "role": "barline"
+            },
+            {
+              "coordinate": [1644, 1],
+              "id": "#barline_2",
+              "manifestation": "final_barline",
+              "role": "barline"
+            }
+          ],
+          "id": "#clt_2",
+          "length": [1644, 1],
+          "locked": true,
+          "name": "Allegro",
+          "offset": [0, 1],
+          "regions": [
+            {
+              "end": [953, 2],
+              "id": "#region_1",
+              "name": "A",
+              "provenance": [
+                {
+                  "method": "inferred",
+                  "property": "rdf:type",
+                  "value": {
+                    "id": "tts:AtomicSection"
+                  }
+                }
+              ],
+              "start": [0, 1],
+              "statements": {
+                "type": ["tts:AtomicSection"]
+              }
+            },
+            {
+              "end": [500, 1],
+              "id": "#region_2",
+              "name": "B",
+              "provenance": [
+                {
+                  "method": "inferred",
+                  "property": "rdf:type",
+                  "value": {
+                    "id": "tts:AtomicSection"
+                  }
+                }
+              ],
+              "start": [953, 2],
+              "statements": {
+                "type": ["tts:AtomicSection"]
+              }
+            },
+            {
+              "end": [1644, 1],
+              "id": "#region_3",
+              "name": "C",
+              "provenance": [
+                {
+                  "method": "inferred",
+                  "property": "rdf:type",
+                  "value": {
+                    "id": "tts:AtomicSection"
+                  }
+                }
+              ],
+              "start": [500, 1],
+              "statements": {
+                "type": ["tts:AtomicSection"]
+              }
+            }
+          ],
+          "unit": "quarters"
+        },
+        {
+          "conversion_maps": [
+            {
+              "id": "#cmap_3",
+              "scalar": 480,
+              "source_unit": "quarters",
+              "target_unit": "ticks",
+              "type": "LinearMap"
+            },
+            {
+              "id": "#cmap_4",
+              "measure_map": "#measuremap_2",
+              "source_unit": "quarters",
+              "target_unit": null,
+              "type": "MeasureRecordMap"
+            }
+          ],
+          "flow_control": [
+            {
+              "coordinate": [138, 1],
+              "id": "#barline_3",
+              "manifestation": "double_barline",
+              "role": "barline"
+            },
+            {
+              "coordinate": [516, 1],
+              "id": "#barline_4",
+              "manifestation": "final_barline",
+              "role": "barline"
+            }
+          ],
+          "id": "#clt_3",
+          "length": [516, 1],
+          "locked": true,
+          "name": "Scherzo. Assai vivace",
+          "offset": [1644, 1],
+          "regions": [
+            {
+              "end": [516, 1],
+              "id": "#region_4",
+              "name": "A",
+              "provenance": [
+                {
+                  "method": "inferred",
+                  "property": "rdf:type",
+                  "value": {
+                    "id": "tts:AtomicSection"
+                  }
+                }
+              ],
+              "start": [0, 1],
+              "statements": {
+                "type": ["tts:AtomicSection"]
+              }
+            }
+          ],
+          "unit": "quarters"
+        },
+        {
+          "conversion_maps": [
+            {
+              "id": "#cmap_5",
+              "scalar": 480,
+              "source_unit": "quarters",
+              "target_unit": "ticks",
+              "type": "LinearMap"
+            },
+            {
+              "id": "#cmap_6",
+              "measure_map": "#measuremap_3",
+              "source_unit": "quarters",
+              "target_unit": null,
+              "type": "MeasureRecordMap"
+            },
+            {
+              "id": "#tmap_2",
+              "measure_map": "#measuremap_3",
+              "source_unit": "quarters",
+              "target_unit": "floating_measures",
+              "type": "FloatingMeasureMap"
+            }
+          ],
+          "flow_control": [
+            {
+              "coordinate": [561, 1],
+              "id": "#barline_5",
+              "manifestation": "final_barline",
+              "role": "barline"
+            }
+          ],
+          "id": "#clt_4",
+          "length": [561, 1],
+          "locked": true,
+          "name": "Adagio sostenuto",
+          "offset": [2160, 1],
+          "regions": [
+            {
+              "end": [561, 1],
+              "id": "#region_5",
+              "name": "A",
+              "provenance": [
+                {
+                  "method": "inferred",
+                  "property": "rdf:type",
+                  "value": {
+                    "id": "tts:AtomicSection"
+                  }
+                }
+              ],
+              "start": [0, 1],
+              "statements": {
+                "type": ["tts:AtomicSection"]
+              }
+            }
+          ],
+          "unit": "quarters"
+        },
+        {
+          "conversion_maps": [
+            {
+              "id": "#cmap_7",
+              "scalar": 480,
+              "source_unit": "quarters",
+              "target_unit": "ticks",
+              "type": "LinearMap"
+            },
+            {
+              "id": "#cmap_8",
+              "measure_map": "#measuremap_4",
+              "source_unit": "quarters",
+              "target_unit": null,
+              "type": "MeasureRecordMap"
+            }
+          ],
+          "flow_control": [
+            {
+              "coordinate": [75, 4],
+              "id": "#barline_6",
+              "manifestation": "double_barline",
+              "role": "barline"
+            },
+            {
+              "coordinate": [269, 4],
+              "id": "#barline_7",
+              "manifestation": "double_barline",
+              "role": "barline"
+            },
+            {
+              "coordinate": [4949, 4],
+              "id": "#barline_8",
+              "manifestation": "final_barline",
+              "role": "barline"
+            }
+          ],
+          "id": "#clt_5",
+          "length": [4949, 4],
+          "locked": true,
+          "name": "Introduzione. Largo – Allegro risoluto",
+          "offset": [2721, 1],
+          "regions": [
+            {
+              "end": [4949, 4],
+              "id": "#region_6",
+              "name": "A",
+              "provenance": [
+                {
+                  "method": "inferred",
+                  "property": "rdf:type",
+                  "value": {
+                    "id": "tts:AtomicSection"
+                  }
+                }
+              ],
+              "start": [0, 1],
+              "statements": {
+                "type": ["tts:AtomicSection"]
+              }
+            }
+          ],
+          "unit": "quarters"
+        }
+      ],
+      "id": "#clt_1",
+      "length": [15833, 4],
+      "name": "Op. 106",
+      "unit": "quarters"
+    }
+  ],
+  "timetoshare": "0.2.0",
+  "virtual_timelines": [
+    {
+      "id": "#clt_6",
+      "length": [4241, 2],
+      "map": "#flow_map_1",
+      "name": "Allegro, as played",
+      "number_type": "fraction",
+      "timeline": "#clt_1",
+      "unit": "quarters"
+    }
+  ]
+}

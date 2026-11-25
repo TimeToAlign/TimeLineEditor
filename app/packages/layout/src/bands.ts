@@ -11,6 +11,7 @@ import { type Facet, isFacet, LINE } from "@timetoalign/tilie-core";
 import type { Real } from "@timetoalign/tilie-core/numbers";
 import type { AxisMarker, AxisTimestamp } from "./boxes.ts";
 import type {
+  BracketElement,
   Cut,
   JumpElement,
   LeaderElement,
@@ -18,6 +19,7 @@ import type {
   MapElement,
   MarkerElement,
   RegionElement,
+  SymbolElement,
   TextElement,
   VerticalLineElement,
 } from "./elements.ts";
@@ -88,12 +90,10 @@ export interface LinePosition {
   /** The baseline of a label of font size `size` beyond the ordinate `y` (section 6.6): `y − d(size)` above, `y + a(size)` below. */
   readonly beyond: (side: Side, y: number, size: number) => number;
   /**
-   * The ordinate at which a break, a section break or a barline of the line's flow control band,
-   * lying on `side`, ends (section 6.4, Flow control): for the root of the member drawing its top plus `P` when the band
-   * lies below the line and its top plus `Hc − P` when above; for every other timeline
-   * `yl − mb` when the band lies below and `yl + mb` when above, `mb = max(E, h(s) / 2)`, `E` the
-   * outer edge of the line's side opposite the band and `s` the name size of the row its line
-   * lies in.
+   * The ordinate at which a break, a section break or a barline ends (section 6.4, Flow lines),
+   * drawn by the flow control band of the root of the member drawing, lying on `side`: the
+   * drawing's top plus `P + V` when the band lies below the line and its top plus `Hc − P − V`
+   * when above.
    */
   readonly flowLineEnd: (side: Side) => number;
 }
@@ -118,7 +118,11 @@ export interface SegmentElement<T> {
  * names belong to the member drawing, not to a timeline.
  */
 export interface LineElements {
-  /** Its flow control band's breaks, section breaks and barlines: its own, then each joined segment's, each in canonical order. */
+  /**
+   * Its flow control band's breaks, section breaks and barlines: for the root of the member
+   * drawing, those of its whole tree, timeline by timeline in traversal order, each one's in
+   * canonical order; none for any other timeline.
+   */
   readonly flowLines: readonly VerticalLineElement[];
   /** Its conversion maps band's maps: its own, then each joined segment's, each in canonical order. */
   readonly maps: readonly MapElement[];
@@ -126,6 +130,10 @@ export interface LineElements {
   readonly regions: readonly RegionElement[];
   /** The arcs of its flow control band's jumps, in the order its first fit places them: sorted stably by span. */
   readonly jumps: readonly JumpElement[];
+  /** Its flow control band's volta brackets, jump by jump, each jump's by their starts. */
+  readonly brackets: readonly BracketElement[];
+  /** Its flow control band's symbols, element by element in the order of its flow lines' elements. */
+  readonly symbols: readonly SymbolElement[];
   /** Its line when displayed: a `timeline` element for the root of the member drawing, else a `child`. */
   readonly line: readonly LineElement[];
   /** The boundaries of its segments, on its line. */
@@ -149,9 +157,16 @@ export interface LineElements {
   readonly regionLabels: readonly TextElement[];
   /** The leader lines of its regions band's labels beyond their first tier, in the order of `regionLabels`. */
   readonly regionLeaders: readonly LeaderElement[];
+  /** The leader lines of its flow control band's arc labels beyond their first tier, in the order of `jumpLabels`. */
+  readonly jumpLeaders: readonly LeaderElement[];
+  /** The leader lines of its flow control band's jump stacks beyond their first tier, in the order of the stacks. */
+  readonly stackLeaders: readonly LeaderElement[];
   /** The labels of the arcs of its flow control band's jumps, in the order of `jumps`. */
   readonly jumpLabels: readonly TextElement[];
-  /** The labels of its flow control band's breaks, section breaks and barlines, in the order of `flowLines`. */
+  /**
+   * The labels of the stacks of its flow control band's breaks, section breaks, barlines and
+   * jumps, element by element (the flow lines first), each stack's from the flow row inwards.
+   */
   readonly flowLineLabels: readonly TextElement[];
   /** The cross-section lines its line holds, in the order its markers band places their timestamps. */
   readonly crossSections: readonly VerticalLineElement[];

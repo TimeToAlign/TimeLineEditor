@@ -4,6 +4,7 @@
  * TimeToShare, sections 6.6, 6.7 and 7.2), so the two never differ.
  */
 
+import type { Style } from "./cascade.ts";
 import type {
   Cut,
   DrawnElement,
@@ -242,6 +243,22 @@ function markPoints(mark: LineMark): Point[] {
   ];
 }
 
+/** The bounds of a text written from `x` on `baseline`, anchored at its start or middle. */
+function textBounds(
+  measure: TextMeasure,
+  { x, baseline, text, style }: { x: number; baseline: number; text: string; style: Style },
+  anchor: "start" | "middle",
+): Bounds {
+  const size = style["font-size"];
+  const width = measure.width(text, size);
+  return {
+    left: anchor === "start" ? x : x - width / 2,
+    top: baseline - measure.ascent(size),
+    right: anchor === "start" ? x + width : x + width / 2,
+    bottom: baseline + measure.descent(size),
+  };
+}
+
 /**
  * The geometric bounds of an element (section 6.7): its outline, no stroke
  * width counted; a brace or a jump by its points, controls included; a text
@@ -322,15 +339,24 @@ export function boundsOf(element: DrawnElement, measure: TextMeasure): Bounds {
       };
     }
     case "name":
-    case "label": {
-      const size = element.style["font-size"];
-      const width = measure.width(element.text, size);
-      const left = element.anchor === "start" ? element.x : element.x - width / 2;
+    case "label":
+      return textBounds(measure, element, element.anchor);
+    case "symbol":
+      return textBounds(measure, element, "middle");
+    case "bracket": {
+      const line = boundsOfPoints([
+        [element.x1, element.yh],
+        [element.x1, element.y],
+        [element.x2, element.y],
+      ]);
+      if (element.text === null) return line;
+      const { tx: x, baseline, text, style } = element;
+      const own = textBounds(measure, { x, baseline, text, style }, "start");
       return {
-        left,
-        top: element.baseline - measure.ascent(size),
-        right: element.anchor === "start" ? element.x + width : element.x + width / 2,
-        bottom: element.baseline + measure.descent(size),
+        left: Math.min(line.left, own.left),
+        top: Math.min(line.top, own.top),
+        right: Math.max(line.right, own.right),
+        bottom: Math.max(line.bottom, own.bottom),
       };
     }
   }

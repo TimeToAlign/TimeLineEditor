@@ -1,27 +1,65 @@
 /**
- * The flow control band: a timeline's displayed breaks, section breaks,
- * barlines and jumps and those of the segments that join it; the label
- * tiers of the lines and the flow row, where jumps leave and arrive by rows
- * and the lines end (`docs/drawing.md` in TimeToShare, sections 6.4 and
- * 6.6). A jump target draws nothing of its own.
+ * The flow control band: the flow control of a root's whole tree, each
+ * element at its position on the root's axis (`docs/drawing.md` in
+ * TimeToShare, sections 6.4 and 6.6): the breaks, section breaks and
+ * barlines (its flow lines), the arcs of the jumps, the symbols, the volta
+ * brackets and the stacks of the elements' labels; the label tiers, the
+ * flow row, the symbol row, the bracket rows and the jump rows. Only the
+ * root of a member drawing draws one: a child's flow control is drawn in
+ * its root's band, the elements kept in the child's band for the cascade.
  */
 
 import type {
+  ElementAddress,
   FlowControlElement,
   JumpDestination,
   TimelineManifest,
 } from "@timetoalign/tilie-core";
-import { FLOW_LINE_ROLES, idAddress, isRejected } from "@timetoalign/tilie-core";
+import {
+  FLOW_LINE_ROLES,
+  type FlowLineRole,
+  idAddress,
+  isRejected,
+  partAddress,
+} from "@timetoalign/tilie-core";
+import { elementKey, flowSymbols, memberFlow, passesText } from "@timetoalign/tilie-core/drawing";
 import type { Real } from "@timetoalign/tilie-core/numbers";
 import { compareReal } from "@timetoalign/tilie-core/numbers";
+import type { ElementType } from "@timetoalign/timetoshare";
 import type { PreparedBand } from "./bands.ts";
-import { FLOW_LINE_LABEL_OFFSET, JUMP_DEPTH, JUMP_PITCH, LABEL_GAP } from "./constants.ts";
+import type { Style } from "./cascade.ts";
+import {
+  BRACKET_HOOK_GAP,
+  BRACKET_ROOM,
+  BRACKET_TEXT_OFFSET,
+  FLOW_LINE_LABEL_OFFSET,
+  JUMP_DEPTH,
+  JUMP_PITCH,
+  LABEL_GAP,
+} from "./constants.ts";
 import type { Point } from "./elements.ts";
-import { type Extent, labelExtent, Rows, widen } from "./fit.ts";
+import { type Extent, labelExtent, Rows, tieredFit } from "./fit.ts";
 import { fadedStyle } from "./markers.ts";
 import { centredLabel } from "./names.ts";
-import { add, coordinateValue, exactDistance, midpoint, times, zero } from "./numbers.ts";
-import { type Entry, maxSize, type Owned, type Scope, shown } from "./traversal.ts";
+import {
+  add,
+  coordinateValue,
+  exactDistance,
+  lengthValue,
+  midpoint,
+  times,
+  zero,
+} from "./numbers.ts";
+import {
+  type Entry,
+  type Holder,
+  type Measured,
+  maxSize,
+  nth,
+  type Scope,
+  type Styled,
+  shown,
+} from "./traversal.ts";
 
 /**
  * Where a destination of `jump` lands on the own axis of `timeline`, which
@@ -70,161 +108,392 @@ function isZero(distance: NonNullable<JumpDestination["by"]>, timeline: Timeline
   return compareReal(coordinateValue(distance, number_type), zero(number_type)) === 0;
 }
 
-/** An element's style and its label's, faded where the element is rejected (`isRejected`). */
-function believed<T extends Owned>(item: T, element: FlowControlElement): T {
-  if (!isRejected(element)) return item;
-  return {
-    ...item,
-    style: fadedStyle(item.style),
-    label: { ...item.label, style: fadedStyle(item.label.style) },
+/** A drawn part of a flow-control element: its key, address and cascaded style. */
+type Part = Holder & Styled;
+
+/**
+ * One flow-control element as the band draws it: the element, the timeline
+ * stating it, where that timeline starts and where the element lies on the
+ * root's axis, the timeline's end as the band reads it, the holder of its
+ * drawings (its own key, or the band's for a jump target, which is no
+ * element), and whether it is displayed at all (its holder chain).
+ */
+interface Gathered {
+  readonly element: FlowControlElement;
+  readonly timeline: TimelineManifest;
+  readonly start: Real;
+  readonly at: Real;
+  /** Where its timeline ends on the root's axis, never past the root's end (section 6.4, Brackets). */
+  readonly end: Real;
+  readonly holder: Part;
+  /** The band holding it for the cascade: its timeline's flow control band, or the member's. */
+  readonly band: Holder;
+}
+
+/** A style faded where its element is rejected (`isRejected`). */
+const believedStyle = (style: Style, element: FlowControlElement): Style =>
+  isRejected(element) ? fadedStyle(style) : style;
+
+/**
+ * The flow-control elements the flow control band of `line` lays out
+ * (section 6.4, Flow control): none but for the root of the member drawing,
+ * whose band lays out those of every timeline of its tree in traversal
+ * order, each timeline's in the order of its `flow_control`, each at its
+ * timeline's start plus its coordinate; for a member that is a child
+ * timeline, those of its root's tree lying on `[0, λ]` of its own axis
+ * (core's `memberFlow`), an element of a timeline outside the member's tree
+ * held by the member's own flow control band. An element is laid out only
+ * where its holders display it: its band (a child's own flow control band
+ * included), and, for an element of the member's tree, its timeline's line
+ * and every band holding that (`Entry.drawn`).
+ */
+function gathered(scope: Scope, line: Entry): readonly Gathered[] {
+  const { rootEntry, cascade } = scope;
+  if (line !== rootEntry || !rootEntry.drawn) return [];
+  const keyed = (
+    type: ElementType | null,
+    at: ElementAddress,
+    timeline: TimelineManifest,
+    holder: Holder,
+  ): Part => {
+    const key = elementKey(type, at, timeline, holder.key);
+    return { key, address: at, style: cascade.resolve(key, holder.style) };
   };
+  const rootEnd = rootEntry.end;
+  const capped = (end: Real) => (compareReal(end, rootEnd) > 0 ? rootEnd : end);
+  const of = (
+    element: FlowControlElement,
+    timeline: TimelineManifest,
+    start: Real,
+    end: Real,
+    band: Holder,
+  ): Gathered => {
+    const at = add(start, coordinateValue(element.coordinate, timeline.number_type));
+    const role = element.role;
+    const type: ElementType | null = role === "jump_target" ? null : role;
+    const holder =
+      type === null
+        ? { key: band.key, address: idAddress(element.id), style: band.style }
+        : keyed(type, idAddress(element.id), timeline, band);
+    return { element, timeline, start, at, end: capped(end), holder, band };
+  };
+  const shownEntry = (entry: Entry) => entry.drawn && shown(entry.bands.flow_control.style);
+  if (scope.member.ancestors.length === 0) {
+    return scope.entries
+      .filter(shownEntry)
+      .flatMap((entry) =>
+        entry.manifest.flow_control.map((element) =>
+          of(element, entry.manifest, entry.start, entry.end, entry.bands.flow_control),
+        ),
+      );
+  }
+  const entries = new Map(scope.entries.map((entry) => [entry.manifest, entry]));
+  const own = rootEntry.bands.flow_control;
+  return memberFlow(scope.manifest, scope.member).flatMap(({ element, timeline, start }) => {
+    const entry = entries.get(timeline);
+    if (entry !== undefined) {
+      return shownEntry(entry)
+        ? [of(element, timeline, start, entry.end, entry.bands.flow_control)]
+        : [];
+    }
+    if (!shown(own.style)) return [];
+    const length = lengthValue(timeline);
+    return [of(element, timeline, start, length === null ? rootEnd : add(start, length), own)];
+  });
 }
 
 /**
- * The flow control band of the timeline drawn with the line `line` (section
- * 6.4, Flow control and Segments without a line): the displayed breaks,
- * section breaks and barlines (its lines) and the displayed jumps of each
- * timeline of `sources`, the line first and then each joined segment, each
- * one's in canonical order. A jump draws one arc per destination, in the
- * canonical order of its `targets` (as the manifest lists them: without a
- * place, then by `by`, then by `to`), from its coordinate to the
- * destination's place (`placeOf`); a destination with `by` 0, which is going
- * on and no jump, draws none, nor does one whose place resolves nowhere. An arc is
- * drawn with its destination's `label`, else that destination's
- * manifestation, else with no label; the jump's own `label` and `name`
- * label the jump, never an arc, and are not drawn. Every arc and every
- * label of a jump carries the jump's address. An element some actor
- * believes `false` (`isRejected`) is drawn faded (`fadedStyle`), with its
- * label, and takes its place in the rows as any other. The drawn labels of
- * the lines are placed in that order by first fit into the label tiers,
- * `T × h(9)` wide; the flow row lies `T × h(9)` beyond the band's start. The
- * arcs, sorted stably by span (the exact absolute difference of their to
- * and from positions), smallest first, are placed in that order by first fit
- * with the extent from the smaller to the larger of their from and to,
- * widened to their drawn label's extent, into the jump rows; row `k` has its
- * apex `f0 + (4 + S) + (k − 1) × pj` out, `pj = 6 + S + h(9)`, `S` the card
- * spacing. The band is `T × h(9) + (4 + S) + (K − 1) × pj + 2 + h(9)` wide for
- * `K ≥ 1` jump rows and
- * `T × h(9)` for none; 9 is the largest font size of its drawn arc and
- * line labels together. A line runs from the flow row to
- * `at.flowLineEnd`, its label starting at `x + 3` in its tier, tier 1
- * touching the flow row on the line's side of it. A line whose
- * coordinate lies in a gap is not drawn, nor is its label; nor is an arc
- * whose from, to or the midpoint of the two does, with its label (section
- * 6.6, Elisions).
+ * The labels of an element's stack it draws (section 6.4, Flow labels):
+ * those its cascaded `label-display` lists, of its name, its ID and its own
+ * label, in that order, those whose text is null left out, each displayed.
  */
-export function flowControlBand(scope: Scope, sources: readonly Entry[]): PreparedBand {
-  const { owned, measured, relativeX, S, h, a, d } = scope;
-  const held = sources.filter((source) => shown(source.bands.flow_control.style));
-  const own = (source: Entry, value: Real) => add(source.start, value);
-  const lines = held.flatMap((source) =>
-    source.manifest.flow_control.flatMap((item) => {
-      const role = FLOW_LINE_ROLES.find((drawn) => drawn === item.role);
-      if (role === undefined) return [];
-      const drawn = believed(owned(role, idAddress(item.id), source, "flow_control"), item);
-      if (!shown(drawn.style)) return [];
-      const at = own(source, coordinateValue(item.coordinate, source.manifest.number_type));
-      return [{ ...drawn, role, at, text: item.label }];
-    }),
-  );
-  const jumps = held.flatMap((source) =>
-    source.manifest.flow_control.flatMap((item) => {
-      if (item.role !== "jump") return [];
-      const drawn = believed(owned("jump", idAddress(item.id), source, "flow_control"), item);
-      if (!shown(drawn.style)) return [];
-      const from = own(source, coordinateValue(item.coordinate, source.manifest.number_type));
-      const arcs = (item.targets ?? []).flatMap((destination) => {
-        // `by` 0 is going on, written where the source prints it: no jump, no arc.
-        if (destination.by !== undefined && isZero(destination.by, source.manifest)) return [];
-        const place = placeOf(source.manifest, item, destination);
-        if (place === undefined) return [];
-        const to = own(source, place);
-        const text = destination.label ?? destination.manifestation ?? null;
-        return [{ ...drawn, from, to, text }];
-      });
-      return arcs.length === 0 ? [] : [arcs];
-    }),
-  );
-  const arcs = jumps.flat();
+function stackOf(scope: Scope, item: Gathered): readonly { label: Part; text: Measured }[] {
+  const words = item.holder.style["label-display"].split(" ");
+  const { element, timeline, holder } = item;
+  const texts = { name: element.name, id: element.id, label: element.label };
+  return (["name", "id", "label"] as const).flatMap((word) => {
+    const text = texts[word];
+    if (!words.includes(word) || text === null || text === undefined) return [];
+    const at = partAddress(idAddress(element.id), word);
+    const key = elementKey("label", at, timeline, holder.key);
+    const style = believedStyle(scope.cascade.resolve(key, holder.style), element);
+    if (!shown(style)) return [];
+    const label = { key, address: at, style };
+    return [{ label, text: scope.measured(label, text) }];
+  });
+}
 
-  // The drawn labels of the lines, by first fit into the label tiers.
-  const tiers = new Rows();
-  const labelledLines = lines.flatMap((item) => {
-    if (item.text === null || !shown(item.label.style)) return [];
-    const text = measured(item.label, item.text);
+/** A part of an element held by it: its symbol, its brackets or its label, faded where it is rejected. */
+function partOf(
+  scope: Scope,
+  item: Gathered,
+  type: "symbol" | "bracket" | "label",
+  word: "symbol" | "bracket" | "label",
+): Part {
+  const at = partAddress(idAddress(item.element.id), word);
+  const key = elementKey(type, at, item.timeline, item.holder.key);
+  const style = believedStyle(scope.cascade.resolve(key, item.holder.style), item.element);
+  return { key, address: at, style };
+}
+
+/** The sum of `values`, left to right, 0 for none. */
+const sum = (values: readonly number[]): number =>
+  values.reduce((total, value) => total + value, 0);
+
+/**
+ * The flow control band of the timeline drawn with the line `line` (section
+ * 6.4, Gathering, Flow control, Flow labels, Symbols, Brackets and Arcs):
+ * present only for the root of the member drawing, whose band draws the
+ * band's elements (`gathered`), in their order:
+ *
+ * - the **flow lines**, each displayed break, section break and barline;
+ * - the **stacks** (`stackOf`) of the displayed flow lines and of every
+ *   jump, placed by one first fit into the flow label tiers, each stack one
+ *   item as many lines high as it has labels, with the extent `[L × u + 3 −
+ *   1, L × u + 3 + w + 1]`, `w` its widest label; a tier is as many lines
+ *   high as its highest stack, `T` the lines of all tiers;
+ * - the **symbols** (core's `flowSymbols`), one text centred on its
+ *   element's position on the symbol row, `Hs = h(zs)` wide;
+ * - the **brackets**: of each jump, one per destination whose
+ *   `manifestation` is `volta` and whose place resolves, from its place to
+ *   the first position after it of a band element not rejected that is a
+ *   jump, a section break or a `volta` break, else to its timeline's end
+ *   (`Gathered.end`); a jump's run placed by first fit from its first
+ *   place to its last end into the `B` bracket rows, `hb = h(zb) + 4` each;
+ *   the last bracket of a run, the one with the largest place, is open;
+ * - the **arcs** of each displayed jump, one per destination not `by` 0
+ *   whose place resolves (`placeOf`), in a member's card only where its to
+ *   lies on the member's stretch; sorted stably by span and placed by first
+ *   fit, never widened by their labels, into the `K` jump rows; then each
+ *   row's labels, in the order of its arcs, by one first fit of the row
+ *   into its `Tk` label tiers (`Tk = 1` without a label), the row's pitch
+ *   `pjk = 6 + S + Tk × h(9)`.
+ *
+ * Outwards from the band's start `c`: the flow label tiers, `T × h(9)`; the
+ * flow row `f0 = c + T × h(9)`; the symbol row; the bracket rows; from `f1 =
+ * f0 + Hs + B × hb` the jump rows, row `k`'s apex `f1 + (4 + S) + (pj1 + … +
+ * pj(k − 1))`. The band is `T × h(9) + Hs + B × hb + (4 + S) + (pj1 + … +
+ * pj(K − 1)) + 2 + TK × h(9)` wide for `K ≥ 1` jump rows and `T × h(9) + Hs
+ * + B × hb` for none, summed left to right, the pitches summed first; 9 is
+ * the largest font size of its drawn arc and stack labels. A label in tier
+ * `j ≥ 2` of a jump row, and the stack of a jump whose first line is not
+ * line 1, is joined by a leader (section 6.6, Leaders). An element marking
+ * a position in a gap is not drawn (section 6.6, Elisions): a flow line
+ * with its stack, a jump's stack, a symbol, a bracket whose place or end
+ * lies in one, and an arc whose from, to or the midpoint of the two does,
+ * each with its label and its leader. A rejected element (some actor
+ * believes it `false`) is drawn faded with everything it draws.
+ */
+export function flowControlBand(scope: Scope, line: Entry): PreparedBand {
+  const { measured, relativeX, S, h, a, d } = scope;
+  const items = gathered(scope, line);
+
+  // The flow lines.
+  const lines = items.flatMap((item) => {
+    const role = FLOW_LINE_ROLES.find(
+      (drawn): drawn is FlowLineRole => drawn === item.element.role,
+    );
+    if (role === undefined) return [];
+    const style = believedStyle(item.holder.style, item.element);
+    return shown(style) ? [{ item, role, address: item.holder.address, style }] : [];
+  });
+  const drawnLines = new Set(lines.map(({ item }) => item));
+
+  // The stacks of the displayed flow lines and of every jump, by first fit into the label tiers.
+  const stacked = items.flatMap((item) => {
+    if (item.element.role !== "jump" && !drawnLines.has(item)) return [];
+    const stack = stackOf(scope, item);
+    if (stack.length === 0) return [];
     const left = relativeX(item.at) + FLOW_LINE_LABEL_OFFSET;
-    const extent: Extent = [left - 1, left + text.width + 1];
-    return [{ item, text, extent, tier: tiers.place(extent) }];
+    const width = Math.max(...stack.map(({ text }) => text.width));
+    return [{ item, stack, extent: [left - 1, left + width + 1] as Extent }];
+  });
+  const tiers = new Rows();
+  const tierOf = stacked.map(({ extent }) => tiers.place(extent));
+  const heights = tiers.rows.map(() => 0);
+  stacked.forEach(({ stack }, index) => {
+    const tier = nth(tierOf, index) - 1;
+    heights[tier] = Math.max(nth(heights, tier), stack.length);
+  });
+  const linesBefore = heights.map((_, tier) => sum(heights.slice(0, tier)));
+  const T = sum(heights);
+  const stacks = stacked.map((stack, index) => ({
+    ...stack,
+    tier: nth(tierOf, index),
+    first: nth(linesBefore, nth(tierOf, index) - 1) + 1,
+  }));
+
+  // The symbols.
+  const symbols = items.flatMap((item) => {
+    const glyphs = flowSymbols(item.element);
+    if (glyphs.length === 0) return [];
+    const part = partOf(scope, item, "symbol", "symbol");
+    return shown(part.style) ? [{ item, part, text: measured(part, glyphs.join("")) }] : [];
   });
 
-  // The arcs, sorted stably by span, then by first fit into the jump rows.
-  const rows = new Rows();
-  const placedJumps = arcs
-    .map((jump, index) => ({ jump, index, span: exactDistance(jump.to, jump.from) }))
-    .sort((left, right) => left.span.compare(right.span) || left.index - right.index)
-    .map(({ jump }) => {
-      const middle = midpoint(jump.from, jump.to);
-      const label =
-        jump.text !== null && shown(jump.label.style) ? measured(jump.label, jump.text) : undefined;
-      const xFrom = relativeX(jump.from);
-      const xTo = relativeX(jump.to);
-      let extent: Extent = [Math.min(xFrom, xTo), Math.max(xFrom, xTo)];
-      if (label !== undefined) extent = widen(extent, labelExtent(relativeX(middle), label.width));
-      return { jump, middle, label, extent, row: rows.place(extent) };
+  // The brackets, run by run.
+  const stops = items
+    .filter(
+      ({ element }) =>
+        !isRejected(element) &&
+        (element.role === "jump" ||
+          element.role === "section_break" ||
+          (element.role === "break" && element.manifestation === "volta")),
+    )
+    .map(({ at }) => at);
+  const jumps = items.filter((item) => item.element.role === "jump");
+  const runs = jumps.flatMap((item) => {
+    const volta = (item.element.targets ?? []).some(
+      (destination) => destination.manifestation === "volta",
+    );
+    if (!volta) return [];
+    const part = partOf(scope, item, "bracket", "bracket");
+    if (!shown(part.style)) return [];
+    const brackets = (item.element.targets ?? [])
+      .flatMap((destination) => {
+        if (destination.manifestation !== "volta") return [];
+        const place = placeOf(item.timeline, item.element, destination);
+        if (place === undefined) return [];
+        const from = add(item.start, place);
+        const to = stops
+          .filter((stop) => compareReal(stop, from) > 0)
+          .reduce((first, stop) => (compareReal(stop, first) < 0 ? stop : first), item.end);
+        const { passes } = destination;
+        return [
+          { from, to, text: passes === undefined ? null : measured(part, passesText(passes)) },
+        ];
+      })
+      .sort((left, right) => compareReal(left.from, right.from));
+    const first = brackets[0];
+    const last = brackets.at(-1);
+    if (first === undefined || last === undefined) return [];
+    const extent: Extent = [relativeX(first.from), relativeX(last.to)];
+    return [{ item, part, brackets, extent }];
+  });
+  const bracketRows = new Rows();
+  const placedRuns = runs.map((run) => ({ ...run, row: bracketRows.place(run.extent) }));
+
+  // The arcs of the displayed jumps; in a member's card only those arriving on its stretch.
+  const member = scope.member.ancestors.length > 0;
+  const arcs = jumps.flatMap((item) => {
+    const style = believedStyle(item.holder.style, item.element);
+    if (!shown(style)) return [];
+    const labelled = item.holder.style["label-display"].split(" ").includes("label");
+    const label = partOf(scope, item, "label", "label");
+    return (item.element.targets ?? []).flatMap((destination) => {
+      // `by` 0 is going on, written where the source prints it: no jump, no arc.
+      if (destination.by !== undefined && isZero(destination.by, item.timeline)) return [];
+      const place = placeOf(item.timeline, item.element, destination);
+      if (place === undefined) return [];
+      const to = add(item.start, place);
+      if (member && !onStretch(scope, to)) return [];
+      const text = labelled && shown(label.style) ? (destination.label ?? null) : null;
+      return [{ item, style, label, from: item.at, to, text }];
     });
+  });
+  // By span, then by first fit into the jump rows; each row's labels by one first fit of the row.
+  const sorted = arcs
+    .map((arc, index) => ({ arc, index, span: exactDistance(arc.to, arc.from) }))
+    .sort((left, right) => left.span.compare(right.span) || left.index - right.index)
+    .map(({ arc }) => {
+      const middle = midpoint(arc.from, arc.to);
+      const text = arc.text === null ? undefined : measured(arc.label, arc.text);
+      return { arc, middle, text };
+    });
+  const fitted = tieredFit(
+    sorted.map(({ arc, middle, text }) => {
+      const [xFrom, xTo] = [relativeX(arc.from), relativeX(arc.to)];
+      return {
+        extent: [Math.min(xFrom, xTo), Math.max(xFrom, xTo)] as Extent,
+        label: text === undefined ? undefined : labelExtent(relativeX(middle), text.width),
+      };
+    }),
+  );
+  const labelledArcs = sorted.map((item, index) => ({
+    ...item,
+    row: nth(fitted.row, index),
+    tier: fitted.tier[index] ?? 0,
+  }));
+  const K = fitted.tiers.length;
+  const Tk = fitted.tiers;
 
   const size = maxSize([
-    ...placedJumps.flatMap((item) => (item.label === undefined ? [] : [item.jump.label])),
-    ...labelledLines.map((item) => item.item.label),
+    ...labelledArcs.flatMap(({ arc, text }) => (text === undefined ? [] : [arc.label])),
+    ...stacks.flatMap(({ stack }) => stack.map(({ label }) => label)),
   ]);
-  const tierRoom = tiers.count * h(size);
-  // The first jump row's depth and the jump rows' pitch, each summed whole first.
+  const symbolSize = maxSize(symbols.map(({ part }) => part));
+  const Hs = symbols.length === 0 ? 0 : h(symbolSize);
+  const bracketSize = maxSize(runs.map(({ part }) => part));
+  const hb = h(bracketSize) + BRACKET_ROOM;
+  const B = bracketRows.count;
+  const pj = Tk.map((tiersOfRow) => JUMP_PITCH + S + tiersOfRow * h(size));
+  // The pitches before row k, summed first.
+  const pitchesBefore = (row: number) => sum(pj.slice(0, row - 1));
   const depth = JUMP_DEPTH + S;
-  const pj = JUMP_PITCH + S + h(size);
-  const K = rows.count;
+  const inner = T * h(size) + Hs + B * hb;
+  const width =
+    K === 0 ? inner : inner + depth + pitchesBefore(K) + LABEL_GAP + nth(Tk, K - 1) * h(size);
+
+  // The elements drawing anything, each counted once (section 6.4, What a band holds).
+  const drawing = new Set<Gathered>([
+    ...lines.map(({ item }) => item),
+    ...stacks.map(({ item }) => item),
+    ...symbols.map(({ item }) => item),
+    ...runs.map(({ item }) => item),
+    ...arcs.map(({ item }) => item),
+  ]);
   return {
     facet: "flow_control",
-    elements: lines.length + jumps.length,
-    width: K === 0 ? tierRoom : tierRoom + depth + (K - 1) * pj + LABEL_GAP + h(size),
+    elements: drawing.size,
+    width,
     extents: [
-      ...lines.map((item): Extent => [relativeX(item.at), relativeX(item.at)]),
-      ...labelledLines.map((item) => item.extent),
-      ...placedJumps.map((item) => item.extent),
+      ...lines.map(({ item }): Extent => [relativeX(item.at), relativeX(item.at)]),
+      ...stacks.map(({ extent }) => extent),
+      ...symbols.map(({ item, text }) => labelExtent(relativeX(item.at), text.width)),
+      ...placedRuns.map(({ extent }) => extent),
+      ...labelledArcs.map(({ arc }): Extent => {
+        const [xFrom, xTo] = [relativeX(arc.from), relativeX(arc.to)];
+        return [Math.min(xFrom, xTo), Math.max(xFrom, xTo)];
+      }),
     ],
-    centred: placedJumps.flatMap((item) => {
-      // An arc leaving or arriving at a position in a gap is not drawn, nor is its label (section 6.6).
-      const x = scope.drawnX(item.middle);
-      const elided = [item.jump.from, item.jump.to].some(
-        (value) => scope.drawnX(value) === undefined,
-      );
-      return item.label === undefined || x === undefined || elided
-        ? []
-        : [{ width: item.label.width, x }];
-    }),
+    centred: [
+      ...labelledArcs.flatMap(({ arc, middle, text }) => {
+        // An arc leaving or arriving at a position in a gap is not drawn, nor is its label (section 6.6).
+        const x = scope.drawnX(middle);
+        const elided = [arc.from, arc.to].some((value) => scope.drawnX(value) === undefined);
+        return text === undefined || x === undefined || elided ? [] : [{ width: text.width, x }];
+      }),
+      ...symbols.flatMap(({ item, text }) => {
+        const x = scope.drawnX(item.at);
+        return x === undefined ? [] : [{ width: text.width, x }];
+      }),
+    ],
     draw: (start, side, at) => {
       const elided = (...values: Real[]) => values.some((value) => at.gap(value) !== undefined);
-      const shownLines = lines.filter((item) => !elided(item.at));
-      const shownLabels = labelledLines.filter(({ item }) => !elided(item.at));
-      const shownJumps = placedJumps.filter(
-        ({ jump, middle }) => !elided(jump.from, jump.to, middle),
-      );
-      const f0 = start + tierRoom;
+      const f0 = start + T * h(size);
       const yf = at.yAt(side, f0);
-      const apex = (row: number) => f0 + depth + (row - 1) * pj;
+      const f1 = f0 + Hs + B * hb;
+      const apex = (row: number) => f1 + depth + pitchesBefore(row);
+      const shownArcs = labelledArcs.filter(({ arc, middle }) => !elided(arc.from, arc.to, middle));
+      const shownStacks = stacks.filter(({ item }) => !elided(item.at));
+      // The ordinate of line n of the flow label tiers, counted inwards from the flow row from 1.
+      const lineAt = (n: number) => f0 - (n - 1) * h(size);
       return {
-        flowLines: shownLines.map((item) => ({
-          type: item.role,
-          address: item.address,
-          style: item.style,
-          x: at.x(item.at),
-          y1: yf,
-          y2: at.flowLineEnd(side),
-        })),
-        jumps: shownJumps.map(({ jump, row }) => {
+        flowLines: lines
+          .filter(({ item }) => !elided(item.at))
+          .map(({ item, role, address, style }) => ({
+            type: role,
+            address,
+            style,
+            x: at.x(item.at),
+            y1: yf,
+            y2: at.flowLineEnd(side),
+          })),
+        jumps: shownArcs.map(({ arc, row }) => {
           const ya = at.yAt(side, apex(row));
-          const w = jump.style["stroke-width"];
-          const xf = at.x(jump.from);
-          const xt = at.xAfter(jump.to);
+          const w = arc.style["stroke-width"];
+          const xf = at.x(arc.from);
+          const xt = at.xAfter(arc.to);
           const q = (xt - xf) / 4;
           const yc = yf + times(4n, 3n, ya - yf);
           const cx = xt - q;
@@ -236,8 +505,8 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
           const [nx, ny] = [-uy, ux];
           return {
             type: "jump",
-            address: jump.address,
-            style: jump.style,
+            address: arc.item.holder.address,
+            style: arc.style,
             start: [xf, yf],
             c1: [xf + q, yc],
             c2: [cx, yc],
@@ -249,32 +518,117 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
             ],
           };
         }),
-        jumpLabels: shownJumps.flatMap(({ jump, middle, label, row }) =>
-          label === undefined
+        brackets: placedRuns.flatMap(({ part, brackets, row }) => {
+          const bj = f0 + Hs + (row - 1) * hb;
+          const y = at.yAt(side, bj + hb);
+          const textStart = bj + BRACKET_HOOK_GAP;
+          const yh = at.yAt(side, textStart);
+          const z = part.style["font-size"];
+          return brackets.flatMap((bracket, index) => {
+            if (elided(bracket.from, bracket.to)) return [];
+            const x1 = at.xAfter(bracket.from);
+            return [
+              {
+                type: "bracket",
+                address: part.address,
+                style: part.style,
+                x1,
+                x2: at.x(bracket.to),
+                y,
+                yh,
+                closed: index < brackets.length - 1,
+                tx: x1 + BRACKET_TEXT_OFFSET,
+                baseline: at.beyond(side, yh, z),
+                text: bracket.text?.clean ?? null,
+              },
+            ];
+          });
+        }),
+        symbols: symbols.flatMap(({ item, part, text }) =>
+          elided(item.at)
+            ? []
+            : [
+                {
+                  type: "symbol",
+                  address: part.address,
+                  style: part.style,
+                  x: at.x(item.at),
+                  baseline: at.beyond(side, yf, part.style["font-size"]),
+                  text: text.clean,
+                },
+              ],
+        ),
+        jumpLabels: shownArcs.flatMap(({ arc, middle, text, row, tier }) =>
+          text === undefined
             ? []
             : [
                 centredLabel(
-                  jump.label,
+                  arc.label,
                   at.x(middle),
-                  at.beyond(side, at.yAt(side, apex(row) + LABEL_GAP), size),
-                  label,
+                  at.beyond(side, at.yAt(side, apex(row) + LABEL_GAP + (tier - 1) * h(size)), size),
+                  text,
                 ),
               ],
         ),
-        // Tier 1 touches the flow row on the line's side; tier k lies (k − 1) h further in.
-        flowLineLabels: shownLabels.map(({ item, text, tier }) => {
-          const inwards = (tier - 1) * h(size);
-          return {
-            type: "label",
-            address: item.label.address,
-            style: item.label.style,
-            x: at.x(item.at) + FLOW_LINE_LABEL_OFFSET,
-            baseline: side === "below" ? yf - inwards - d(size) : yf + inwards + a(size),
-            anchor: "start",
-            text: text.clean,
-          };
+        // A label in tier j ≥ 2 of a jump row, from the row's apex to its label's line.
+        jumpLeaders: shownArcs.flatMap(({ arc, middle, text, row, tier }) => {
+          if (text === undefined || tier < 2) return [];
+          const leader = scope.leaderOf(arc.label);
+          if (!shown(leader.style)) return [];
+          const x = at.x(middle);
+          return [
+            {
+              type: "leader",
+              address: leader.address,
+              style: believedStyle(leader.style, arc.item.element),
+              x1: x,
+              y1: at.yAt(side, apex(row)),
+              x2: x,
+              y2: at.yAt(side, apex(row) + LABEL_GAP + (tier - 1) * h(size)),
+            },
+          ];
         }),
+        // A jump's stack whose first line is not line 1, from the flow row to that line.
+        stackLeaders: shownStacks.flatMap(({ item, stack, first }) => {
+          const [head] = stack;
+          if (item.element.role !== "jump" || first < 2 || head === undefined) return [];
+          const leader = scope.leaderOf(head.label);
+          if (!shown(leader.style)) return [];
+          const x = at.x(item.at);
+          return [
+            {
+              type: "leader",
+              address: leader.address,
+              style: believedStyle(leader.style, item.element),
+              x1: x,
+              y1: yf,
+              x2: x,
+              y2: at.yAt(side, lineAt(first)),
+            },
+          ];
+        }),
+        flowLineLabels: shownStacks.flatMap(({ item, stack, first }) =>
+          stack.map(({ label, text }, index) => {
+            const fn = lineAt(first + index);
+            return {
+              type: "label",
+              address: label.address,
+              style: label.style,
+              x: at.x(item.at) + FLOW_LINE_LABEL_OFFSET,
+              baseline: side === "below" ? at.y + fn - d(size) : at.y - fn + a(size),
+              anchor: "start",
+              text: text.clean,
+            };
+          }),
+        ),
       };
     },
   };
+}
+
+/** Whether a position on the member's axis lies on its stretch `[0, λ]` (section 6.4, Gathering). */
+function onStretch(scope: Scope, value: Real): boolean {
+  return (
+    compareReal(value, zero(scope.root.number_type)) >= 0 && compareReal(value, scope.lambda) <= 0
+  );
 }

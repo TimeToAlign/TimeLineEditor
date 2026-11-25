@@ -26,7 +26,6 @@ import {
   type LineMarker,
   type LinePosition,
   levelsOf,
-  opposite,
   type PreparedBand,
   type Side,
 } from "./bands.ts";
@@ -258,7 +257,7 @@ export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
     conversion_maps: conversionMapsBand(maps),
     markers,
     regions: regionsBand(scope, sources),
-    flow_control: flowControlBand(scope, sources),
+    flow_control: flowControlBand(scope, line),
   };
   const levels = levelsOf(order, new Set(FACETS.filter((facet) => bands[facet].elements > 0)));
   const zero = levelZero(scope, line);
@@ -331,6 +330,8 @@ function mergeLineElements(parts: readonly Partial<LineElements>[]): LineElement
     maps: parts.flatMap((part) => part.maps ?? []),
     regions: parts.flatMap((part) => part.regions ?? []),
     jumps: parts.flatMap((part) => part.jumps ?? []),
+    brackets: parts.flatMap((part) => part.brackets ?? []),
+    symbols: parts.flatMap((part) => part.symbols ?? []),
     line: parts.flatMap((part) => part.line ?? []),
     boundaries: parts.flatMap((part) => part.boundaries ?? []),
     wedges: parts.flatMap((part) => part.wedges ?? []),
@@ -338,6 +339,8 @@ function mergeLineElements(parts: readonly Partial<LineElements>[]): LineElement
     segmentLabels: parts.flatMap((part) => part.segmentLabels ?? []),
     segmentLeaders: parts.flatMap((part) => part.segmentLeaders ?? []),
     regionLeaders: parts.flatMap((part) => part.regionLeaders ?? []),
+    jumpLeaders: parts.flatMap((part) => part.jumpLeaders ?? []),
+    stackLeaders: parts.flatMap((part) => part.stackLeaders ?? []),
     regionLabels: parts.flatMap((part) => part.regionLabels ?? []),
     jumpLabels: parts.flatMap((part) => part.jumpLabels ?? []),
     flowLineLabels: parts.flatMap((part) => part.flowLineLabels ?? []),
@@ -419,7 +422,7 @@ export function layoutTimeline(
     .map((entry) => entry.manifest.id);
 
   const elements = (place: LinePlace): LineElements => {
-    const at = linePosition(prepared, edges, place);
+    const at = linePosition(prepared, place);
     // The card's span, from its top to its bottom, that every cross-section line crosses
     // (section 6.6), and where the markers band starts, present or not.
     const span = [place.top, place.bottom] as const;
@@ -488,16 +491,12 @@ function linesIn(laid: LaidChildren | undefined): Entry[] {
 }
 
 /**
- * The line of `prepared` placed at `place` (sections 3.2, 3.3 and 6.4), its
- * sides reaching `edges`: what its bands and its level 0 draw from.
+ * The line of `prepared` placed at `place` (sections 3.2, 3.3 and 6.4): what
+ * its bands and its level 0 draw from.
  */
-function linePosition(
-  prepared: PreparedTimeline,
-  edges: Readonly<Record<Side, number>>,
-  place: LinePlace,
-): LinePosition {
+function linePosition(prepared: PreparedTimeline, place: LinePlace): LinePosition {
   const { scope, line } = prepared;
-  const { x0, y, size, top, Hc } = place;
+  const { x0, y, top, Hc } = place;
   const elided = scope.axis;
   // The card margin `V` above the first row and below the last, inside the padding, counted from
   // the drawing's top.
@@ -538,14 +537,8 @@ function linePosition(
     yAt: (side, outwards) => (side === "above" ? y - outwards : y + outwards),
     beyond: (side, ordinate, labelSize) =>
       side === "above" ? ordinate - scope.d(labelSize) : ordinate + scope.a(labelSize),
-    flowLineEnd: (side) => {
-      // The root's breaks, section breaks and barlines run to the card margin of the opposite side, inside the padding,
-      // counted from the drawing's top.
-      if (line === scope.rootEntry) {
-        return side === "below" ? near : far;
-      }
-      const mb = Math.max(edges[opposite(side)], scope.h(size) / 2);
-      return side === "below" ? y - mb : y + mb;
-    },
+    // The breaks, section breaks and barlines, drawn by the root's band alone, run to the card
+    // margin of the opposite side, inside the padding, counted from the drawing's top.
+    flowLineEnd: (side) => (side === "below" ? near : far),
   };
 }
