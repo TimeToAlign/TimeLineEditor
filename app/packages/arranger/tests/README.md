@@ -2273,6 +2273,72 @@ away, is held by its timeline's card (on M `phrase`'s band by the card
 `{item: "melody"}`; on S a band of the hidden `a` by none), and no
 marquee selects one.
 
+## A child's read-only flow control band (`flow-overlay.test.ts`)
+
+Flow control holds across a root's whole tree, and only the root's flow
+control band draws it (TimeToShare's drawing specification, section 6.4,
+Gathering), so a child drawn as a line in its root's card shows none of it
+in its own row. In the timeline editor of a child timeline the canvas shows
+beside the child a read-only band of what applies there (`flowOverlays`):
+an editor overlay, like the marks, never part of the drawing, of its
+descriptors or of the manifest. What proves it:
+
+- **When it appears.** Exactly one band per drawing of the edited child's
+  line in a card that is neither the child's own member card nor an ancestor
+  card, while that card's flow control band draws an element on the
+  child's stretch; none on the arranger, in the bundle editor, in a root's
+  timeline editor (`piece` of `child_flow_control`), in the timeline
+  editor of another block, nor for a child whose root's tree states no
+  flow control (`clt_3` of `nested`). In `group_child_member`, with a
+  barline added to `piece` at 12 quarters, inside `second-half`'s stretch
+  (8 to 16), `second-half`'s timeline editor shows none: its member card
+  draws its root's flow control itself (section 6.4, Gathering), and
+  `piece`'s ancestor card is left out.
+- **What it holds** (`child_flow_control`, `verse`'s editor): `piece`
+  (16 quarters, its line at y 37 from x 55.3134765625, 400 long, so 25 a
+  quarter) holds `verse` (offset 4, 8 quarters) in its children band above
+  its line, `verse`'s line at y 23 from 155.3134765625 to 355.3134765625.
+  `piece`'s flow control band lies below its markers band, from
+  `37 + 26.9765625 + 4 = 67.9765625`, `h(9) + h(12) = 10.4765625 +
+  13.96875 = 24.4453125` wide: one flow label tier and the symbol row. It
+  draws `verse`'s break `fine` at `verse` 4 = `piece` 8 (x
+  255.3134765625; its line, its stack's label "Fine" and its symbol
+  "Fine") and its jump `da_capo_al_fine` at `verse` 8 = `piece` 12 (x
+  355.3134765625, the stretch's end, included; its symbol 𝄊, the defaults
+  hiding its arc, and no stack, its `label` being null). The band holds
+  these four elements, in drawing order, and nothing else; each written
+  with its descriptor's attributes but `data-id`, `data-facet` and
+  `data-part`, so none is read as the element; the break's line runs
+  across the band, from 67.9765625 to 92.421875, not across the card.
+- **Where it lies.** `verse` draws no band of its own, so its row ends at
+  its line: the band's rectangle starts `4` below it, at y 27, and `4`
+  left of the stretch, at x 151.3134765625; it is `200 + 2 × 4 = 208`
+  wide (the stretch, wider than its label) and `4 + h(9) + 24.4453125 + 4
+  = 42.921875` high; its label "Flow control (from Piece)" (the root's
+  name) starts at the stretch's start, baseline `27 + 4 + a(9) =
+  39.35400390625`; the band's elements move by `27 + 4 + h(9) −
+  67.9765625 = −26.5`.
+- **An element of the root on the child's stretch** (`flow/ossia`,
+  `ossia`'s editor, `ossia` at 16 of `score`'s 24 quarters): `score`'s
+  break `break_1` at 16, at the stretch's start, is shown although `ossia`
+  states nothing; `jump_target_1` at 12 lies before the stretch, and
+  `jump_2` at 24 draws nothing (an `ossia` destination has no symbol, its
+  arc is hidden and it has no stack). `score`'s band, holding a flow line
+  alone, is 0 wide, so the line runs a label line high, `h(9)`, from the
+  band's place 63.3046875 to 73.78125 (written `63.3047` and `73.7812`,
+  the SVG writer's four places), and the overlay is `4 + 2 × h(9)
+  + 4 = 28.953125` high; its label names "Score".
+- **On the canvas** (`BlockNode`): in `verse`'s editor the node draws one
+  `g.tilie-flow-overlay` (`data-flow-overlay="verse"`, `pointer-events`
+  `none`, `aria-hidden`) holding its rectangle, its label and its four
+  elements, none of them with `data-id`; the drawing's own elements are
+  unchanged in number; on the arranger the node draws none.
+
+What would be wrong: the band drawn in the root's or a member card's
+editor, an element off the stretch in it, an element of it carrying an
+address (it would be hovered, selected or read as the element), or the
+band changing the drawing or its exports.
+
 ## The editor's viewport (`focus.test.ts`)
 
 The rectangle an editor centres is its target's container on the canvas,

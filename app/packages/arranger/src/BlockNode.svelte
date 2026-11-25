@@ -36,6 +36,7 @@ import { LEVELS } from "./containers.ts";
 import { affordancesOf } from "./coordinates.ts";
 import { raisedLayers } from "./drawing.ts";
 import { addressParts, bandTimelineOf } from "./editing.ts";
+import { flowOverlays, OVERLAY_LABEL_SIZE } from "./flowOverlay.ts";
 import type { GestureOptions } from "./gesture.ts";
 import { drawingPoint, drawn, pointerGesture, sourceAt } from "./gesture.ts";
 import { bandGesture } from "./gestures/band.ts";
@@ -429,6 +430,15 @@ function isOutside(key: string): boolean {
   return !data.inside.has(key);
 }
 
+/**
+ * The read-only flow control bands shown beside a child in its timeline
+ * editor (`flowOverlays`): an overlay like the marks, drawn without
+ * addresses, letting the pointer through, never part of the drawing.
+ */
+const overlays = $derived(
+  flowOverlays(data.block, data.drawing, data.descriptors, data.editing, actions.metrics),
+);
+
 /** The timeline whose bands this block offers (`bandTimelineOf`), else `null`. */
 const bandTimeline = $derived(bandTimelineOf(data.block.id, data.editing));
 
@@ -722,6 +732,34 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         pointer-events={passes(owner) ? "none" : undefined}
         {@attach drawn(affordance)}
       />
+    {/each}
+    {#each overlays as overlay (overlay.key)}
+      <g
+        class="tilie-flow-overlay"
+        data-flow-overlay={overlay.timeline}
+        pointer-events="none"
+        aria-hidden="true"
+      >
+        <rect
+          class="tilie-flow-overlay-box"
+          x={attributeText(overlay.x)}
+          y={attributeText(overlay.y)}
+          width={attributeText(overlay.width)}
+          height={attributeText(overlay.height)}
+          rx="3"
+        />
+        <text
+          class="tilie-flow-overlay-label"
+          x={attributeText(overlay.labelX)}
+          y={attributeText(overlay.baseline)}
+          font-size={OVERLAY_LABEL_SIZE}>{overlay.label}</text
+        >
+        <g transform="translate(0 {attributeText(overlay.dy)})">
+          {#each overlay.items as item (item.index)}
+            <svelte:element this={item.tag} {...item.attributes}>{item.text}</svelte:element>
+          {/each}
+        </g>
+      </g>
     {/each}
     {#each holdingMarks as entry (entry.key)}
       <rect

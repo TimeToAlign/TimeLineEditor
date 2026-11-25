@@ -167,6 +167,22 @@
   fill: #c8c8c8;
 }
 
+/*
+ * The read-only flow control band beside a child in its timeline editor,
+ * shown on the canvas alone (never in an export).
+ */
+.tilie-canvas .tilie-block .tilie-flow-overlay-box {
+  fill: #ffffff;
+  fill-opacity: 0.92;
+  stroke: #6b7280;
+  stroke-width: 0.75;
+  stroke-dasharray: 3 2;
+}
+
+.tilie-canvas .tilie-block .tilie-flow-overlay-label {
+  fill: #595959;
+}
+
 /* A selected element, box or band. */
 .tilie-canvas .tilie-block [data-selected],
 .tilie-canvas .tilie-block rect.tilie-mark[data-mark="selection"] {
