@@ -470,12 +470,12 @@ describe("the boxes holding part of the selection", () => {
     it("draws each card's member drawing inside the other card", () => {
       const width = 561.052001953125;
       expect(rect(cardKey("annotations"))).toEqual({ x: 8, y: 60, width, height: 71.85546875 });
-      expect(rect(g1)).toEqual({ x: 8, y: 28.8046875, width, height: 162.7265625 });
+      expect(rect(g1)).toEqual({ x: 8, y: 28.8046875, width, height: 166.7265625 });
       expect(rect(cardKey("group_1", "score"))).toEqual({
         x: 16,
         y: 53.609375,
         width: 545.052001953125,
-        height: 72.4453125,
+        height: 76.4453125,
       });
       const line = element("timeline", idAddress("score")) as LineElement;
       expect([line.xs, line.xe]).toEqual([126.29150390625, 526.29150390625]);

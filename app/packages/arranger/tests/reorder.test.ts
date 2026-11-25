@@ -33,9 +33,9 @@ describe("memberOrderAt", () => {
   it.each([
     ["group_1", "score", 100, ["score", "performance"]],
     ["group_1", "score", 170, ["performance", "score"]],
-    ["group_1", "score", 165.30078125, ["performance", "score"]],
+    ["group_1", "score", 162.79296875, ["performance", "score"]],
     ["group_1", "performance", 50, ["performance", "score"]],
-    ["group_1", "performance", 93.0859375, ["score", "performance"]],
+    ["group_1", "performance", 91.83203125, ["score", "performance"]],
     ["group_2", "page", 440, ["excerpt", "page"]],
   ] as const)("%s, %s dropped at %d", (group, dragged, y, order) => {
     expect(memberOrderAt(block.manifest, drawing, group, dragged, y)).toEqual(order);

@@ -523,8 +523,8 @@ describe("a later ancestor card over an earlier one", () => {
   it("lies where layout's record puts the two cards and their lines", () => {
     const cards = drawing.boxes.filter((box) => box.ancestor !== undefined);
     expect(cards.map(({ key, x, y, width, height }) => [key, x, y, width, height])).toEqual([
-      [FIRST, 8, 39.6015625, 1410.7494303385415, 151.875],
-      [SECOND, 533.3333333333333, 91.8046875, 1370.7494303385417, 151.875],
+      [FIRST, 8, 43.6015625, 1410.7494303385415, 155.875],
+      [SECOND, 533.3333333333333, 91.8046875, 1370.7494303385417, 155.875],
     ]);
     const frames = drawing.boxes.filter((box) => box.kind === "frame");
     expect(frames.map(({ x, width }) => [x, x + width])).toEqual([
@@ -538,7 +538,7 @@ describe("a later ancestor card over an earlier one", () => {
     const score = lineIn(FIRST, "score");
     const exposition = lineIn(SECOND, "exposition");
     expect(score && [score.y, score.xStart, score.xEnd]).toEqual([
-      141.53125, 294.8037109375, 694.8037109375,
+      145.53125, 294.8037109375, 694.8037109375,
     ]);
     expect(exposition && [exposition.y, exposition.xStart, exposition.xEnd]).toEqual([
       156.2578125, 692.7469075520833, 1092.7469075520833,
@@ -552,7 +552,7 @@ describe("a later ancestor card over an earlier one", () => {
   });
 
   it.each([
-    ["the first card's score line, inside the second card", 1200, 141.53125, null],
+    ["the first card's score line, inside the second card", 1200, 145.53125, null],
     [
       "the second card's exposition row, inside the first card",
       900,
@@ -571,7 +571,7 @@ describe("a later ancestor card over an earlier one", () => {
     const at = (root: string | null) =>
       placesAt(drawing, "score", q(45, 4), root).map(({ axis, x }) => [axis.card, axis.y, x]);
     expect(at(null)).toEqual([
-      [{ item: "group_1", member: "exposition" }, 141.53125, 669.8037109375],
+      [{ item: "group_1", member: "exposition" }, 145.53125, 669.8037109375],
       [SECOND, 193.734375, 1067.7469075520833],
     ]);
     expect(at(raised)).toEqual([[SECOND, 193.734375, 1067.7469075520833]]);
@@ -991,7 +991,7 @@ describe("a timestamp named from a reading on a timeline's second place", () => 
 
   it.each([
     ["groups/group_grandchild", "score", "movement", q(8), 85.18359375],
-    ["bundles/bundle_mixed", "recording", "excerpt", q(33075), 296.8125],
+    ["bundles/bundle_mixed", "recording", "excerpt", q(33075), 300.8125],
   ])(
     "has in %s with %s's card raised one place of %s %s, the card's row at %d",
     (fixture, editor, timeline, value, y) => {
@@ -1024,7 +1024,7 @@ describe("a timestamp named from a reading on a timeline's second place", () => 
       ],
     ];
     expect(nameOnSecond("bundles/bundle_shared_parent", null, "score", q(9), [9, 1])).toEqual({
-      ordinates: [141.53125, 367.71875],
+      ordinates: [145.53125, 371.71875],
       read: [true, q(9)],
       flag: [
         exposition,
@@ -2058,11 +2058,11 @@ describe("a timestamp named on an ancestor line", () => {
     );
     expect(line && [line.card, line.y, line.xStart, line.xEnd]).toEqual([
       { item: "group_2", member: "excerpt" },
-      334.2890625,
+      338.2890625,
       xStart,
       xStart + 400,
     ]);
-    const reading = readAt(view, xStart + 200, 334.2890625);
+    const reading = readAt(view, xStart + 200, 338.2890625);
     if (reading === null) throw new Error("the ancestor line is not read");
     expect([reading.hit.axis.start, reading.hit.axis.drawnLength, reading.position]).toEqual([
       q(44100),

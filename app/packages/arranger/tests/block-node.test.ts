@@ -692,7 +692,7 @@ describe("the item move", () => {
       changes: [
         { target: inA(idAddress("group_2")), values: { place: { x: 40, y: 200 } } },
         { target: inA(idAddress("group_1")), values: { place: { x: 8, y: 28.8046875 } } },
-        { target: inA(idAddress("annotations")), values: { place: { x: 8, y: 377.265625 } } },
+        { target: inA(idAddress("annotations")), values: { place: { x: 8, y: 381.265625 } } },
       ],
     });
     expect(BOTH).toEqual({
@@ -729,29 +729,29 @@ describe("the item move", () => {
 
   it("moves an item outside the selection alone, selecting it", () => {
     const { calls, frame } = pressedWith([]);
-    pointer(frame, "pointermove", 132, 200.46875);
+    pointer(frame, "pointermove", 132, 196.46875);
     expect(svg().querySelectorAll("g.tilie-dragged").length).toBe(0);
-    pointer(frame, "pointerup", 132, 200.46875);
+    pointer(frame, "pointerup", 132, 196.46875);
     expect(calls).toEqual(stored(VIEW, ALONE, true));
     clear();
 
     const outside = pressedWith([idAddress("group_1"), cardAddress("annotations")]);
-    pointer(outside.frame, "pointermove", 132, 200.46875);
-    pointer(outside.frame, "pointerup", 132, 200.46875);
+    pointer(outside.frame, "pointermove", 132, 196.46875);
+    pointer(outside.frame, "pointerup", 132, 196.46875);
     expect(outside.calls).toEqual(stored(VIEW, ALONE, true));
   });
 
   it("moves two selected items together in one set and leaves the selection", () => {
     const { calls, frame } = pressedWith([idAddress("group_2"), cardAddress("annotations")]);
-    pointer(frame, "pointermove", 132, 200.46875);
-    pointer(frame, "pointerup", 132, 200.46875);
+    pointer(frame, "pointermove", 132, 196.46875);
+    pointer(frame, "pointerup", 132, 196.46875);
     expect(calls).toEqual(stored(VIEW, BOTH, false));
   });
 
   it("moves the one item in the selection alone and leaves the selection", () => {
     const { calls, frame } = pressedWith([idAddress("group_2"), idAddress("page")]);
-    pointer(frame, "pointermove", 132, 200.46875);
-    pointer(frame, "pointerup", 132, 200.46875);
+    pointer(frame, "pointermove", 132, 196.46875);
+    pointer(frame, "pointerup", 132, 196.46875);
     expect(calls).toEqual(stored(VIEW, ALONE, false));
   });
 
@@ -765,27 +765,27 @@ describe("the item move", () => {
       type: "set",
       changes: [
         { target: inA(idAddress("group_2")), values: { place: { x: 40, y: 200 } } },
-        { target: inA(idAddress("annotations")), values: { place: { x: 40, y: 60.46875 } } },
+        { target: inA(idAddress("annotations")), values: { place: { x: 40, y: 56.46875 } } },
       ],
     });
     const { calls, frame } = pressedWith([part("annotations", "name"), idAddress("group_2")], over);
-    pointer(frame, "pointermove", 132, 200.46875);
-    pointer(frame, "pointerup", 132, 200.46875);
+    pointer(frame, "pointermove", 132, 196.46875);
+    pointer(frame, "pointerup", 132, 196.46875);
     expect(calls).toEqual(stored(over, moved, false));
   });
 
   it("withdraws the preview on Escape, and stores nothing for a drag back to its start", () => {
     const escaped = pressedWith([idAddress("group_2"), cardAddress("annotations")]);
-    pointer(escaped.frame, "pointermove", 132, 200.46875);
+    pointer(escaped.frame, "pointermove", 132, 196.46875);
     pressEscape();
-    pointer(escaped.frame, "pointerup", 132, 200.46875);
+    pointer(escaped.frame, "pointerup", 132, 196.46875);
     expect(kinds(escaped.calls)).toEqual(["preview", "preview"]);
     expect(previewed(escaped.calls[0])).toEqual(after(VIEW, BOTH));
     expect(previewed(escaped.calls[1])).toBeNull();
     clear();
 
     const back = pressedWith([idAddress("group_2"), cardAddress("annotations")]);
-    pointer(back.frame, "pointermove", 132, 200.46875);
+    pointer(back.frame, "pointermove", 132, 196.46875);
     pointer(back.frame, "pointermove", 100, 200);
     pointer(back.frame, "pointerup", 100, 200);
     expect(kinds(back.calls)).toEqual(["preview", "preview", "preview"]);
@@ -797,7 +797,7 @@ describe("the item move", () => {
     // Zoom 2 and scale 1.25 show a drawing unit as 2.5 pixels; the identity CTM disagrees.
     const scaled = viewOf({ id: A, fixture: MIXED, x: 40, y: 80, scale: 1.25 });
     const { calls, frame } = pressedWith([], scaled, { zoom: 2 });
-    pointer(frame, "pointerup", 180, 201.171875);
+    pointer(frame, "pointerup", 180, 191.171875);
     expect(calls.at(-2)).toEqual({
       dispatch: itemMoveCommand(scaled, A, { item: "group_2" }, 40, 200, metrics),
     });

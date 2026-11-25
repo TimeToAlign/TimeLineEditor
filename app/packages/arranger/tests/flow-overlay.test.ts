@@ -92,7 +92,7 @@ describe("what the read-only band holds", () => {
     expect([line?.attributes.x1, line?.attributes.y1, line?.attributes.y2]).toEqual([
       "255.3135",
       "67.9766",
-      "92.4219",
+      "96.4219",
     ]);
   });
 
@@ -106,7 +106,7 @@ describe("what the read-only band holds", () => {
       x: 151.3134765625,
       y: 27,
       width: 208,
-      height: 42.921875,
+      height: 46.921875,
       labelX: 155.3134765625,
       baseline: 39.35400390625,
       dy: -26.5,

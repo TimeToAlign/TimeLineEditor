@@ -43,7 +43,7 @@ const full = withFullCards(view);
 
 describe("elementsInRect", () => {
   it("selects the elements wholly inside, never a box", () => {
-    const card = { x: 56, y: 133.609375, width: 547.9150390625, height: 72.4453125 };
+    const card = { x: 56, y: 133.609375, width: 547.9150390625, height: 76.4453125 };
     expect(elementsInRect(node, card, every, metrics)).toEqual(
       at(
         idAddress("cmap_1"),
