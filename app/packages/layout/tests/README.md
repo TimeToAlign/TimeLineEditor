@@ -787,8 +787,10 @@ flow row to that end, its label 3 right of it.
 
 The rules proved, beyond the geometry `flow_control` and
 `corpus_score_ms3` already prove: **one arc per destination** of a jump
-whose place is not `by` 0, in the order of its `targets`, every arc and
-every label at the jump's one address and its label's; the **place** of a
+whose `by` is not 0, in the canonical order of its `targets` (without a
+place, then by `by`, then by `to`), in whatever order they were given,
+every arc and every label at the jump's one address and its label's; the
+**place** of a
 destination is its jump target's coordinate, its region's start, its
 child's offset, 0 for the timeline itself, the jump's coordinate plus its
 `by`, and without either the coordinate of the nearest section break
@@ -869,6 +871,18 @@ of ancestor lines, in their rows as any other.
   have opacity 0.35, `jump_2`'s 1.
 - **`flow/volta_passes`**: one of its destinations is a `by` 0, and the
   drawing holds one arc fewer than its jumps hold destinations.
+- **The arcs of one jump.** No fixture holds a `by` other than 0, so a jump
+  `jump_3` is added to `flow/sections` at 24, `x(24) = 355.05029296875`.
+  With the destinations `by` 4 and `by` −4 it draws 24→20 (tip at
+  305.05029296875) before 24→28 (tip at 405.05029296875): both span 4, so
+  the stable sort by span keeps the canonical order, `by` −4 first,
+  whether the command gives `by` 4 first or last. With `by` 0 and `by` 4
+  it draws the one arc 24→28. Only a `by` that is 0 is going on: on the
+  float axis of `flow/loop` (root `Take`, `A = 1251 + 1255 + 1186 + 1260 =
+  4952`, `N = 26.59765625`, `x0 = 50.59765625`, length 10.0, `x(8.0) = x0
+  + 320`), a jump added at 8.0 with `by` 1e-17 lands at the double `8.0 +
+  1e-17 = 8.0` and still draws its arc, leaving and arriving at `x0 +
+  320`.
 
 ## Row names and empty blocks (`names.test.ts`)
 
@@ -2668,7 +2682,14 @@ removed by a command, so the manifest is given without it, and its Fine
 without the condition naming it), it draws the same flow control at
 length null as at length 30, the coordinate of the jump target `jump_to_2`,
 which draws nothing: every flow-control coordinate counts, and a measure
-map, which belongs to no timeline, does not. A child of unknown length ends at its offset plus its reach,
+map, which belongs to no timeline, does not. The place a destination
+reaches by its `by` counts too: `unknown_length` reaches 14, the end of
+`coda` (offset 10, length 4); with a jump added at 4 whose destinations
+are `by` 16 and `by` −4 its reach is 20, so `score` runs from `xs =
+53.798828125` over 400 to its chevrons, `coda` from `xs + 400 × 10 / 20 =
+xs + 200` to `xs + 400 × 14 / 20 = xs + 280`, and the jump's arcs, the
+shorter first, from `x(4) = xs + 80` to `x(0) = xs` and to `x(20) = xs +
+400`, the end of the line. A child of unknown length ends at its offset plus its reach,
 open, with room for its chevrons, `9.5w`; a group member runs on at the
 shared end; a segment ends at the next one's start, the last at its
 segment line's end. Ancestor lines run on where the member's or the

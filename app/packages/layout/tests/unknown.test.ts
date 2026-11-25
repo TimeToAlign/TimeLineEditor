@@ -2,6 +2,7 @@
 
 import { type Manifest, sameAddress } from "@timetoalign/tilie-core";
 import { reachOf } from "@timetoalign/tilie-core/drawing";
+import { Rational } from "@timetoalign/tilie-core/numbers";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,
@@ -9,6 +10,7 @@ import {
   type Drawing,
   type DrawnElement,
   draw,
+  type JumpElement,
   type LineElement,
   manifestLayer,
 } from "../src/index.ts";
@@ -159,6 +161,35 @@ describe("a root of unknown length", () => {
     );
     const open = drawn(edited(withoutLastJump, children, unlocked, set("clt_1", { length: null })));
     expect(flow(open)).toEqual(flow(at30));
+  });
+
+  it("counts the place a destination reaches by its `by`, so the arc ends on the line", () => {
+    // `unknown_length` reaches 14, the end of `coda`; a jump at 4 going on by 16 lands at 20.
+    const manifest = edit("unknown_length", {
+      type: "add",
+      into: target("score"),
+      flow_control: {
+        id: "far",
+        role: "jump",
+        coordinate: quarters(4),
+        targets: [{ by: quarters(16) }, { by: quarters(-4) }],
+      },
+    });
+    const [root] = manifest.timelines;
+    if (root === undefined) throw new Error("unknown_length has no root");
+    expect(reachOf(root, manifest)).toEqual(Rational.of(20n));
+    const drawing = drawn(manifest);
+    const xs = 53.798828125;
+    expect(line(drawing, "score")).toEqual({ xs, xe: xs + 400 + 12, end: "unknown" });
+    expect(line(drawing, "coda")).toEqual({ xs: xs + 200, xe: xs + 280, end: "diamond" });
+    expect(
+      drawing.elements
+        .filter((item): item is JumpElement => item.type === "jump")
+        .map((item) => [item.start[0], item.tip[0]]),
+    ).toEqual([
+      [xs + 80, xs],
+      [xs + 80, xs + 400],
+    ]);
   });
 });
 

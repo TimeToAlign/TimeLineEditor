@@ -63,6 +63,12 @@ function placeOf(
   return child === undefined ? undefined : own(child.offset);
 }
 
+/** Whether a distance on the own axis of `timeline` is 0, in whatever number type it is written. */
+function isZero(distance: NonNullable<JumpDestination["by"]>, timeline: TimelineManifest): boolean {
+  const { number_type } = timeline;
+  return compareReal(coordinateValue(distance, number_type), zero(number_type)) === 0;
+}
+
 /** An element's style and its label's, faded where the element is rejected (`isRejected`). */
 function believed<T extends Owned>(item: T, element: FlowControlElement): T {
   if (!isRejected(element)) return item;
@@ -79,9 +85,10 @@ function believed<T extends Owned>(item: T, element: FlowControlElement): T {
  * section breaks and barlines (its lines) and the displayed jumps of each
  * timeline of `sources`, the line first and then each joined segment, each
  * one's in canonical order. A jump draws one arc per destination, in the
- * order of its `targets`, from its coordinate to the destination's place
- * (`placeOf`); a destination whose place is `by` 0, which is going on and
- * no jump, draws none, nor does one whose place resolves nowhere. An arc is
+ * canonical order of its `targets` (as the manifest lists them: without a
+ * place, then by `by`, then by `to`), from its coordinate to the
+ * destination's place (`placeOf`); a destination with `by` 0, which is going
+ * on and no jump, draws none, nor does one whose place resolves nowhere. An arc is
  * drawn with its destination's `label`, else its jump's, else its
  * destination's manifestation, else with no label; every arc and every
  * label of a jump carries the jump's address. An element some actor
@@ -125,11 +132,11 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
       if (!shown(drawn.style)) return [];
       const from = own(source, coordinateValue(item.coordinate, source.manifest.number_type));
       const arcs = (item.targets ?? []).flatMap((destination) => {
+        // `by` 0 is going on, written where the source prints it: no jump, no arc.
+        if (destination.by !== undefined && isZero(destination.by, source.manifest)) return [];
         const place = placeOf(source.manifest, item, destination);
         if (place === undefined) return [];
         const to = own(source, place);
-        // `by` 0 is going on, written where the source prints it: no jump, no arc.
-        if (destination.by !== undefined && exactDistance(to, from).numerator === 0n) return [];
         const text = destination.label ?? item.label ?? destination.manifestation ?? null;
         return [{ ...drawn, from, to, text }];
       });

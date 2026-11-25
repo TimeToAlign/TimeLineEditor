@@ -1,5 +1,6 @@
 /** The arcs, lines and labels of the flow fixtures, and a rejected element; derived in tests/README.md. */
 
+import type { Manifest } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,
@@ -10,9 +11,11 @@ import {
   type JumpElement,
   manifestLayer,
 } from "../src/index.ts";
-import { at, drawFixture, edited, loadFile, metrics, target } from "./support.ts";
+import { at, drawFixture, edit, edited, loadFile, metrics, quarters, target } from "./support.ts";
 
 const X0 = 55.05029296875;
+/** `x0` of `flow/loop`, whose root is named `Take`. */
+const X_TAKE = 50.59765625;
 /** The opacity of a rejected element and its label: the defaults' opacity of ancestor lines. */
 const FADED_OPACITY = 0.35;
 const LINE = 43.20703125;
@@ -271,6 +274,45 @@ describe("flow/repairs", () => {
       y1: yf,
       y2: END,
     });
+  });
+});
+
+describe("the arcs of one jump", () => {
+  /** The `add` of a jump of `flow/sections` at 24 with destinations given in this order. */
+  const jump = (...targets: object[]) => ({
+    type: "add",
+    into: target("score"),
+    flow_control: { id: "jump_3", role: "jump", coordinate: quarters(24), targets },
+  });
+  const ends = (manifest: Manifest) =>
+    draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, manifestLayer(manifest)], metrics)
+      .elements.filter((item): item is JumpElement => item.type === "jump")
+      .filter((item) => item.address.id === "jump_3")
+      .map((item) => [item.start[0], item.tip[0]]);
+
+  it("follow the canonical order of its destinations, whatever order they are given in", () => {
+    // Both arcs span 4, so the stable sort by span keeps their order: `by` −4 before `by` 4.
+    const expected = [
+      [355.05029296875, 305.05029296875],
+      [355.05029296875, 405.05029296875],
+    ];
+    const back = { by: quarters(-4) };
+    const on = { by: quarters(4) };
+    expect(ends(edit("flow/sections", jump(on, back)))).toEqual(expected);
+    expect(ends(edit("flow/sections", jump(back, on)))).toEqual(expected);
+  });
+
+  it("leave out a destination whose `by` is 0 and no other, however near it lands", () => {
+    expect(ends(edit("flow/sections", jump({ by: quarters(0) }, { by: quarters(4) })))).toEqual([
+      [355.05029296875, 405.05029296875],
+    ]);
+    // On a float axis 8.0 + 1e-17 is 8.0: the arc leaves and arrives at one position.
+    const near = {
+      type: "add",
+      into: target("take"),
+      flow_control: { id: "jump_3", role: "jump", coordinate: 8.0, targets: [{ by: 1e-17 }] },
+    };
+    expect(ends(edit("flow/loop", near))).toEqual([[X_TAKE + 320, X_TAKE + 320]]);
   });
 });
 

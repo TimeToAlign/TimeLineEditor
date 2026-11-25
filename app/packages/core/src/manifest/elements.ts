@@ -689,9 +689,11 @@ function expressed(exact: Rational, numberType: TimelineManifest["number_type"])
  * number type's zero and every coordinate its content reaches, displayed or
  * not. A child counts its offset plus its length, or plus its own reach when
  * its length is not known; regions their start and end; every flow-control
- * element its coordinate; every named timestamp of it in `manifest`'s
- * `graphical` object its coordinate. Maps are not content, and a measure map
- * belongs to no timeline.
+ * element its coordinate, and a jump the place each destination with a `by`
+ * reaches, its coordinate plus that distance (every other destination lands
+ * on a coordinate counted here, a region's start, a child's offset or 0);
+ * every named timestamp of it in `manifest`'s `graphical` object its
+ * coordinate. Maps are not content, and a measure map belongs to no timeline.
  * `reaches` holds the reach of every timeline already walked, so one traversal
  * walks each subtree once.
  */
@@ -714,7 +716,13 @@ export function reachOf(
     take(own(region.start));
     take(own(region.end));
   }
-  for (const item of timeline.flow_control) take(own(item.coordinate));
+  for (const item of timeline.flow_control) {
+    const at = own(item.coordinate);
+    take(at);
+    for (const destination of item.targets ?? []) {
+      if (destination.by !== undefined) take(addReal(at, own(destination.by)));
+    }
+  }
   for (const timestamp of namedTimestamps(manifest, timeline.id)) take(own(timestamp.coordinate));
   reaches.set(timeline, reach);
   return reach;
