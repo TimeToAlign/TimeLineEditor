@@ -263,7 +263,7 @@ describe("redraw operation counts", () => {
   it("tests the general rule once per element key and twice per line, so resolves each key once", () => {
     // Each timeline or child line also resolves the wedge and the cross-section line no named
     // timestamp holds, once each; the ID labels of the breaks and the jump, which the
-    // `label-display` `label` leaves out of their stacks, are never resolved.
+    // `label-display` `name label` leaves out of their stacks, are never resolved.
     const lines = keys.filter((key) => key.type === "timeline" || key.type === "child").length;
     expect(unresolved).toHaveLength(27);
     expect(tests[0]).toBe(keys.length - unresolved.length + 2 * lines);

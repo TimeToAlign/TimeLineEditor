@@ -132,15 +132,19 @@ describe("a band moved across its line", () => {
       edit("flow_control", set("flow:quarters", { order: moved("flow_control") })),
       ARCS_ALONE,
     );
-    expect(drawing.height).toBe(117.90625);
-    expect(element(drawing, at("flow:quarters"))).toMatchObject({ y: 72.9296875 });
+    expect(drawing.height).toBe(128.3828125);
+    expect(element(drawing, at("flow:quarters"))).toMatchObject({ y: 83.40625 });
     expect(element(drawing, at("break_1"))).toMatchObject({
       y1: 56.953125,
-      y2: 99.90625,
+      y2: 110.3828125,
+    });
+    expect(element(drawing, at("break_1", "name"))).toMatchObject({
+      x: 393.9775390625,
+      baseline: 65.30712890625,
     });
     expect(element(drawing, at("break_1", "label"))).toMatchObject({
       x: 393.9775390625,
-      baseline: 65.30712890625,
+      baseline: 75.78369140625,
     });
     expect(element(drawing, at("jump_1"))).toMatchObject({
       start: [290.9775390625, 56.953125],

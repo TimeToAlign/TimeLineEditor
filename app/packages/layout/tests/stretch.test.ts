@@ -107,10 +107,10 @@ describe("the padding", () => {
 
   it("ends a break's line at the padding below", () => {
     const drawing = drawFixture("flow_control", [ARCS_ALONE], spaced("flow:quarters", 8));
-    expect(drawing.height).toBe(134.80859375);
+    expect(drawing.height).toBe(145.28515625);
     expect(element(drawing, at("flow:quarters"))).toMatchObject({ y: 22.40234375 });
     expect(drawing.elements.find((item) => item.type === "break")).toMatchObject({
-      y1: 67.85546875,
+      y1: 78.33203125,
       y2: 16,
     });
   });
@@ -127,11 +127,11 @@ describe("the padding", () => {
       [DEFAULT_LAYER, ARCS_ALONE, manifestLayer(manifest)],
       metrics,
     );
-    expect(drawing.height).toBe(129.90625);
-    expect(element(drawing, at("flow:quarters"))).toMatchObject({ y: 84.9296875 });
+    expect(drawing.height).toBe(140.3828125);
+    expect(element(drawing, at("flow:quarters"))).toMatchObject({ y: 95.40625 });
     expect(drawing.elements.find((item) => item.type === "break")).toMatchObject({
       y1: 64.953125,
-      y2: 111.90625,
+      y2: 122.3828125,
     });
   });
 });

@@ -96,8 +96,8 @@ describe("jumps of corpus_score_ms3", () => {
     return found;
   };
 
-  it("places the arcs by span in six rows beyond the flow row, no flow line carrying a label", () => {
-    expect(drawing.height).toBe(205.859375);
+  it("places the arcs by span in six rows beyond the flow row, one break carrying its name", () => {
+    expect(drawing.height).toBe(216.3359375);
     expect(drawing.elements.find((item) => sameAddress(item.address, at("clt_1")))).toMatchObject({
       y: 59.5,
     });
@@ -106,44 +106,53 @@ describe("jumps of corpus_score_ms3", () => {
         .concat(["jump_11", "jump_6", "jump_9", "jump_4", "jump_8", "jump_10"])
         .map((id) => at(id)),
     );
-    expect(jumps.map((item) => item.start[1])).toEqual(jumps.map(() => 65));
+    expect(jumps.map((item) => item.start[1])).toEqual(jumps.map(() => 75.4765625));
     const yc = [
-      75.66666666666667, 102.96875, 130.27083333333331, 157.57291666666669, 184.875,
-      212.17708333333334,
+      86.14322916666667, 113.4453125, 140.74739583333331, 168.04947916666669, 195.3515625,
+      222.65364583333334,
     ];
     const rows = [1, 1, 2, 3, 1, 1, 2, 3, 4, 4, 5, 6];
     expect(jumps.map((item) => item.c1[1])).toEqual(rows.map((row) => yc[row - 1]));
     expect(
-      drawing.elements.filter(
-        (item) => item.type === "label" && item.address.id?.startsWith("break") === true,
-      ),
-    ).toEqual([]);
+      drawing.elements
+        .filter((item) => item.type === "label" && item.address.id?.startsWith("break") === true)
+        .map(({ style: _, ...label }) => label),
+    ).toEqual([
+      {
+        type: "label",
+        address: at("break_4", "name"),
+        x: 200.83178051097974,
+        baseline: 73.35400390625,
+        anchor: "start",
+        text: "fine",
+      },
+    ]);
   });
 
   it("arrives steeply on a short jump", () => {
     expect(jump(at("jump_2"))).toMatchObject({
-      start: [143.77772645692568, 65],
-      c1: [149.1831318623311, 75.66666666666667],
-      c2: [159.99394267314187, 75.66666666666667],
-      tip: [165.3993480785473, 65],
-      base: [163.59123312957058, 68.568013499314],
+      start: [143.77772645692568, 75.4765625],
+      c1: [149.1831318623311, 86.14322916666667],
+      c2: [159.99394267314187, 86.14322916666667],
+      tip: [165.3993480785473, 75.4765625],
+      base: [163.59123312957058, 79.044575999314],
       corners: [
-        [161.80722637991357, 67.66395602482567],
-        [165.3752398792276, 69.47207097380235],
+        [161.80722637991357, 78.14051852482565],
+        [165.3752398792276, 79.94863347380236],
       ],
     });
   });
 
   it("arrives flatter on the longest jump", () => {
     expect(jump(at("jump_10"))).toMatchObject({
-      start: [468.10205078125, 65],
-      c1: [368.10205078125, 212.17708333333334],
-      c2: [168.10205078125, 212.17708333333334],
-      tip: [68.10205078125, 65],
-      base: [70.3500545434396, 68.30854637041426],
+      start: [468.10205078125, 75.4765625],
+      c1: [368.10205078125, 222.65364583333334],
+      c2: [168.10205078125, 222.65364583333334],
+      tip: [68.10205078125, 75.4765625],
+      base: [70.3500545434396, 78.78510887041426],
       corners: [
-        [68.69578135823247, 69.43254825150906],
-        [72.00432772864673, 67.18454448931946],
+        [68.69578135823247, 79.90911075150906],
+        [72.00432772864673, 77.66110698931946],
       ],
     });
   });

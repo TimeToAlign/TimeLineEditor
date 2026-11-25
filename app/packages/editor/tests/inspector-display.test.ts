@@ -120,7 +120,7 @@ describe("the toggles offered", () => {
           ["bracket", "Brackets", true],
         ],
       ],
-      LABELS("label"),
+      LABELS("name", "label"),
       ["Regions", [["atomic_sections", "Atomic sections", false]]],
     ]);
     expect(shape(bandOf(sonata, "regions"))).toEqual([
@@ -135,7 +135,7 @@ describe("the toggles offered", () => {
           ["symbol", "Symbols", true],
         ],
       ],
-      LABELS("label"),
+      LABELS("name", "label"),
     ]);
     expect(shape(bandOf(sections, "regions"))).toEqual([]);
     expect(shape(bandOf(sections, "markers"))).toEqual([]);
@@ -152,7 +152,7 @@ describe("the toggles offered", () => {
           ["symbol", "Symbol", true],
         ],
       ],
-      LABELS("label"),
+      LABELS("name", "label"),
     ]);
     expect(shape(elementOf(sections, "break_1"))).toEqual([
       [
@@ -162,7 +162,7 @@ describe("the toggles offered", () => {
           ["symbol", "Symbol", true],
         ],
       ],
-      LABELS("label"),
+      LABELS("name", "label"),
     ]);
     const sonata = shownStore("flow/sonata_exposition");
     expect(shape(elementOf(sonata, "jump_1"))).toEqual([
@@ -173,7 +173,7 @@ describe("the toggles offered", () => {
           ["bracket", "Brackets", true],
         ],
       ],
-      LABELS("label"),
+      LABELS("name", "label"),
     ]);
     expect(shape(elementOf(sonata, "jump_target_1"))).toEqual([]);
   });
@@ -237,24 +237,28 @@ describe("a press", () => {
       labelsOf(bandOf(store, "flow_control")),
       labelsOf(elementOf(store, "jump_1")),
     ];
-    expect(labels()).toEqual([["label"], ["label"]]);
-
-    expect(press(store, bandOf(store, "flow_control"), "name")).toEqual(
-      labelStyle(band, "name label"),
-    );
     expect(labels()).toEqual([
       ["name", "label"],
       ["name", "label"],
     ]);
 
-    expect(press(store, elementOf(store, "jump_1"), "label")).toEqual(labelStyle(own, "name"));
-    expect(labels()).toEqual([["name", "label"], ["name"]]);
+    expect(press(store, bandOf(store, "flow_control"), "name")).toEqual(labelStyle(band, "label"));
+    expect(labels()).toEqual([["label"], ["label"]]);
+
+    expect(press(store, elementOf(store, "jump_1"), "name")).toEqual(labelStyle(own, "name label"));
+    expect(labels()).toEqual([["label"], ["name", "label"]]);
 
     expect(press(store, bandOf(store, "flow_control"), "name")).toEqual(labelStyle(band, null));
-    expect(labels()).toEqual([["label"], ["name"]]);
+    expect(labels()).toEqual([
+      ["name", "label"],
+      ["name", "label"],
+    ]);
 
-    expect(press(store, elementOf(store, "jump_1"), "name")).toEqual(labelStyle(own, "none"));
-    expect(labels()).toEqual([["label"], []]);
+    expect(press(store, elementOf(store, "jump_1"), "name")).toEqual(labelStyle(own, "label"));
+    expect(labels()).toEqual([["name", "label"], ["label"]]);
+
+    expect(press(store, elementOf(store, "jump_1"), "label")).toEqual(labelStyle(own, "none"));
+    expect(labels()).toEqual([["name", "label"], []]);
   });
 
   it("writes and removes the rule showing the atomic sections", () => {
@@ -339,7 +343,7 @@ describe("the toggles in the Properties tab", () => {
       [
         "Labels",
         [
-          ["Name", "false"],
+          ["Name", "true"],
           ["ID", "false"],
           ["Label", "true"],
         ],

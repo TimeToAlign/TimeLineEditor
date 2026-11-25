@@ -321,6 +321,35 @@ describe("the arcs of one jump", () => {
   });
 });
 
+describe("a destination without a place", () => {
+  it("lands at the nearest section break of the tree before its jump, never before its timeline's start", () => {
+    const add = (into: string, item: object) => ({
+      type: "add",
+      into: target(into),
+      flow_control: item,
+    });
+    const sectionBreak = (into: string, id: string, coordinate: number) =>
+      add(into, { id, role: "section_break", coordinate: quarters(coordinate) });
+    const jumps = [
+      sectionBreak("piece", "section_break_a", 2),
+      add("verse", { id: "jump_x", role: "jump", coordinate: quarters(6), targets: [{}] }),
+      add("piece", { id: "jump_y", role: "jump", coordinate: quarters(14), targets: [{}] }),
+    ];
+    const ends = (manifest: Manifest) => {
+      const drawing = drawn(manifest);
+      const { xs } = rootLine(drawing);
+      return ["jump_x", "jump_y"].map((id) =>
+        arcsOf(drawing, id).map(([a, b]) => [a - xs, b - xs]),
+      );
+    };
+    // `piece` 16 long at 25 a quarter; `verse` at 4: `jump_x` at 10 on `piece`'s axis.
+    const before = edit("child_flow_control", ...jumps);
+    expect(ends(before)).toEqual([[[250, 100]], [[350, 50]]]);
+    const after = edited(before, sectionBreak("verse", "section_break_c", 2));
+    expect(ends(after)).toEqual([[[250, 150]], [[350, 150]]]);
+  });
+});
+
 describe("the texts of one jump's arcs", () => {
   it("are each destination's label, never its manifestation nor the jump's", () => {
     const manifest = edit("flow/sections", {
@@ -352,13 +381,13 @@ describe("the texts of one jump's arcs", () => {
         .map((item) => [item.address, item.text, item.x]),
     ).toEqual([
       [at("jump_3", "label"), "back", 330.05029296875],
+      [at("jump_3", "name"), "Named", 358.05029296875],
       [at("jump_3", "label"), "Leap", 358.05029296875],
     ]);
-    // Its arc label centred on the arc, its own label in its stack, its name drawn nowhere.
-    expect(labels.filter((item) => item.text === "Leap").map((item) => item.anchor)).toEqual([
-      "start",
-    ]);
-    expect(labels.filter((item) => item.text === "Named")).toEqual([]);
+    // Its arc label centred on the arc, its name and its own label in its stack.
+    expect(
+      labels.filter((item) => ["Named", "Leap"].includes(item.text)).map((item) => item.anchor),
+    ).toEqual(["start", "start"]);
   });
 });
 
@@ -545,7 +574,7 @@ describe("Op. 106 drawn with the defaults", () => {
     });
     expect(ofTypes(drawing, "bracket")).toEqual([
       bracket(48.15259268616182, at500, true, "1."),
-      bracket(at500, 166.13402387418682, false, "2."),
+      bracket(at500, 52.902166361397086, false, "2."),
     ]);
   });
 
@@ -594,7 +623,8 @@ describe("the flow control of a tree", () => {
         },
       ]);
     expect(ids(hidden("verse"))).toEqual([]);
-    expect(ids(hidden("piece"))).toEqual(ids(drawing));
+    expect(ids(hidden("piece"))).toEqual([]);
+    expect(flowBands(hidden("piece"))).toEqual([]);
   });
 
   it("gives a child member's card the elements of its root's tree on its stretch", () => {
@@ -666,6 +696,51 @@ describe("symbols, brackets and stacks", () => {
     ).toEqual([
       [X0 + 200, X0 + 300, true, "1., 3."],
       [X0 + 300, X0 + 400, false, "2."],
+    ]);
+  });
+
+  it("draws a lone bracket as long as the distance from its jump to its place, never past its cut", () => {
+    const volta = (id: string, coordinate: number, destination: object) => ({
+      type: "add",
+      into: target("score"),
+      flow_control: {
+        id,
+        role: "jump",
+        coordinate: quarters(coordinate),
+        targets: [{ manifestation: "volta", passes: [1], ...destination }],
+      },
+    });
+    const drawing = draw(
+      edit(
+        "flow/volta_passes",
+        volta("jump_4", 1, { by: quarters(0) }),
+        {
+          type: "add",
+          into: target("score"),
+          flow_control: { id: "jump_target_2", role: "jump_target", coordinate: quarters(4) },
+        },
+        volta("jump_5", 2, { to: "jump_target_2" }),
+      ),
+      DEFAULT_PLACEMENT,
+      [DEFAULT_LAYER],
+      metrics,
+    );
+    expect(
+      ofTypes(drawing, "bracket").map((item) => {
+        const { address, x1, x2, closed } = item as {
+          address: { id: string };
+          x1: number;
+          x2: number;
+          closed: boolean;
+        };
+        return [address.id, x1, x2, closed];
+      }),
+    ).toEqual([
+      // In the band's order, the canonical order of `flow_control`: by coordinate.
+      ["jump_4", X0 + 25, X0 + 25, false],
+      ["jump_5", X0 + 100, X0 + 150, false],
+      ["jump_1", X0 + 200, X0 + 300, true],
+      ["jump_1", X0 + 300, X0 + 400, false],
     ]);
   });
 

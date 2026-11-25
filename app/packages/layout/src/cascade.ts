@@ -85,7 +85,7 @@ export const INITIAL_STYLE: Style = {
   "elision-proportion": "auto",
   "elision-depths": "auto",
   "elision-display": "ellipsis name",
-  "label-display": "label",
+  "label-display": "name label",
 };
 
 type StyleValues = { -readonly [Property in keyof Style]?: Style[Property] };

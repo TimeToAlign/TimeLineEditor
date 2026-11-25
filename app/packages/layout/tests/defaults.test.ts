@@ -167,7 +167,7 @@ describe("the constants", () => {
 
   it("give no wedge an initial rotation but 0, and the elision and label properties theirs, as section 2.5 states them", () => {
     expect(sectionOf(specification, "### 2.5 The cascade").replace(/\s+/g, " ")).toContain(
-      "`max-width` `none`, `rotation` 0, `elision-mode` `auto`, `elision-proportion` `auto`, `elision-depths` `auto`, `elision-display` `ellipsis name`, `label-display` `label`.",
+      "`max-width` `none`, `rotation` 0, `elision-mode` `auto`, `elision-proportion` `auto`, `elision-depths` `auto`, `elision-display` `ellipsis name`, `label-display` `name label`.",
     );
   });
 });

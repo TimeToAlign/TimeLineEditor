@@ -13,9 +13,12 @@ import type {
   ElementAddress,
   FlowControlElement,
   JumpDestination,
+  Manifest,
   TimelineManifest,
 } from "@timetoalign/tilie-core";
 import {
+  assertNever,
+  destinationPlace,
   FLOW_LINE_ROLES,
   type FlowLineRole,
   idAddress,
@@ -24,7 +27,7 @@ import {
 } from "@timetoalign/tilie-core";
 import { elementKey, flowSymbols, memberFlow, passesText } from "@timetoalign/tilie-core/drawing";
 import type { Real } from "@timetoalign/tilie-core/numbers";
-import { compareReal } from "@timetoalign/tilie-core/numbers";
+import { compareReal, realOf } from "@timetoalign/tilie-core/numbers";
 import type { ElementType } from "@timetoalign/timetoshare";
 import type { PreparedBand } from "./bands.ts";
 import type { Style } from "./cascade.ts";
@@ -47,6 +50,7 @@ import {
   exactDistance,
   lengthValue,
   midpoint,
+  negate,
   times,
   zero,
 } from "./numbers.ts";
@@ -62,45 +66,44 @@ import {
 } from "./traversal.ts";
 
 /**
- * Where a destination of `jump` lands on the own axis of `timeline`, which
- * lists the jump: `by`, that distance from the jump's coordinate; `to`, the
- * coordinate of the jump target, the start of the region or the offset of
- * the child timeline with that ID, or 0 for the timeline itself; neither,
- * the start of the jump's section: the coordinate of the nearest section
- * break before the jump that is not rejected, else 0. `undefined` for a
- * `to` that names none of these or names a rejected jump target (a rejected
- * element is no place), which only a rejected jump may hold.
+ * Where a destination of `jump` lands on the own axis of `timeline` of
+ * `manifest`, which lists the jump (core's `destinationPlace`): `by`, that
+ * distance from the jump's coordinate; `to`, the coordinate of the jump
+ * target, the start of the region or the offset of the child timeline with
+ * that ID, or 0 for the timeline itself; neither, the start of the jump's
+ * section, found among the section breaks of its root's whole tree (section
+ * 3.1). `undefined` for a `to` that names none of these or names a rejected
+ * jump target (a rejected element is no place), which only a rejected jump
+ * may hold.
  */
 function placeOf(
+  manifest: Manifest,
   timeline: TimelineManifest,
   jump: FlowControlElement,
   destination: JumpDestination,
 ): Real | undefined {
-  const own = (value: Parameters<typeof coordinateValue>[0]) =>
-    coordinateValue(value, timeline.number_type);
-  const from = own(jump.coordinate);
-  if (destination.by !== undefined) return add(from, own(destination.by));
-  const { to } = destination;
-  if (to === undefined) {
-    return timeline.flow_control
-      .filter((item) => item.role === "section_break" && !isRejected(item))
-      .map((item) => own(item.coordinate))
-      .filter((start) => compareReal(start, from) < 0)
-      .reduce(
-        (nearest, start) => (compareReal(start, nearest) > 0 ? start : nearest),
-        zero(timeline.number_type),
-      );
+  const place = destinationPlace(manifest, timeline, jump, destination);
+  switch (place.kind) {
+    case "nowhere":
+      return undefined;
+    case "jump_target":
+      return isRejected(place.element) ? undefined : realOf(place.at);
+    case "by":
+    case "region":
+    case "timeline":
+    case "child":
+    case "section":
+      return realOf(place.at);
+    default:
+      return assertNever(place);
   }
-  if (to === timeline.id) return zero(timeline.number_type);
-  const target = timeline.flow_control.find(
-    (item) => item.role === "jump_target" && item.id === to,
-  );
-  if (target !== undefined) return isRejected(target) ? undefined : own(target.coordinate);
-  const region = timeline.regions.find((item) => item.id === to);
-  if (region !== undefined) return own(region.start);
-  const child = timeline.children.find((item) => item.id === to);
-  return child === undefined ? undefined : own(child.offset);
 }
+
+/** `left − right` as section 3.1 combines values: `left + (−right)`. */
+const difference = (left: Real, right: Real): Real => add(left, negate(right));
+
+/** The larger of two values, compared exactly; the first of two equal ones. */
+const larger = (left: Real, right: Real): Real => (compareReal(right, left) > 0 ? right : left);
 
 /** Whether a distance on the own axis of `timeline` is 0, in whatever number type it is written. */
 function isZero(distance: NonNullable<JumpDestination["by"]>, timeline: TimelineManifest): boolean {
@@ -142,14 +145,18 @@ const believedStyle = (style: Style, element: FlowControlElement): Style =>
  * timeline's start plus its coordinate; for a member that is a child
  * timeline, those of its root's tree lying on `[0, λ]` of its own axis
  * (core's `memberFlow`), an element of a timeline outside the member's tree
- * held by the member's own flow control band. An element is laid out only
- * where its holders display it: its band (a child's own flow control band
- * included), and, for an element of the member's tree, its timeline's line
- * and every band holding that (`Entry.drawn`).
+ * held by the member's own flow control band. None where the root's own flow
+ * control band is not displayed, which hides everything it lays out, the
+ * flow control of the whole tree in the card (section 2.4). Otherwise an
+ * element is laid out only where its holders display it: its band (a
+ * child's own flow control band included), and, for an element of the
+ * member's tree, its timeline's line and every band holding that
+ * (`Entry.drawn`).
  */
 function gathered(scope: Scope, line: Entry): readonly Gathered[] {
   const { rootEntry, cascade } = scope;
-  if (line !== rootEntry || !rootEntry.drawn) return [];
+  const own = rootEntry.bands.flow_control;
+  if (line !== rootEntry || !rootEntry.drawn || !shown(own.style)) return [];
   const keyed = (
     type: ElementType | null,
     at: ElementAddress,
@@ -188,7 +195,6 @@ function gathered(scope: Scope, line: Entry): readonly Gathered[] {
       );
   }
   const entries = new Map(scope.entries.map((entry) => [entry.manifest, entry]));
-  const own = rootEntry.bands.flow_control;
   return memberFlow(scope.manifest, scope.member).flatMap(({ element, timeline, start }) => {
     const entry = entries.get(timeline);
     if (entry !== undefined) {
@@ -196,7 +202,6 @@ function gathered(scope: Scope, line: Entry): readonly Gathered[] {
         ? [of(element, timeline, start, entry.end, entry.bands.flow_control)]
         : [];
     }
-    if (!shown(own.style)) return [];
     const length = lengthValue(timeline);
     return [of(element, timeline, start, length === null ? rootEnd : add(start, length), own)];
   });
@@ -255,12 +260,14 @@ const sum = (values: readonly number[]): number =>
  * - the **symbols** (core's `flowSymbols`), one text centred on its
  *   element's position on the symbol row, `Hs = h(zs)` wide;
  * - the **brackets**: of each jump, one per destination whose
- *   `manifestation` is `volta` and whose place resolves, from its place to
- *   the first position after it of a band element not rejected that is a
- *   jump, a section break or a `volta` break, else to its timeline's end
- *   (`Gathered.end`); a jump's run placed by first fit from its first
- *   place to its last end into the `B` bracket rows, `hb = h(zb) + 4` each;
- *   the last bracket of a run, the one with the largest place, is open;
+ *   `manifestation` is `volta` and whose place resolves, by their places;
+ *   each but the last from its place to its cut, the first position after
+ *   it of a band element not rejected that is a jump, a section break or a
+ *   `volta` break, else its timeline's end (`Gathered.end`); the last, open,
+ *   as long as the bracket before it, a lone one as long as the distance
+ *   from its jump to its place, ending at its cut where that lies before; a
+ *   jump's run placed by first fit from its first place to the largest end
+ *   of its brackets into the `B` bracket rows, `hb = h(zb) + 4` each;
  * - the **arcs** of each displayed jump, one per destination not `by` 0
  *   whose place resolves (`placeOf`), in a member's card only where its to
  *   lies on the member's stretch; sorted stably by span and placed by first
@@ -349,25 +356,41 @@ export function flowControlBand(scope: Scope, line: Entry): PreparedBand {
     if (!volta) return [];
     const part = partOf(scope, item, "bracket", "bracket");
     if (!shown(part.style)) return [];
-    const brackets = (item.element.targets ?? [])
+    // Each bracket from its place to its cut, by their places.
+    const cut = (from: Real) =>
+      stops
+        .filter((stop) => compareReal(stop, from) > 0)
+        .reduce((first, stop) => (compareReal(stop, first) < 0 ? stop : first), item.end);
+    const placed = (item.element.targets ?? [])
       .flatMap((destination) => {
         if (destination.manifestation !== "volta") return [];
-        const place = placeOf(item.timeline, item.element, destination);
+        const place = placeOf(scope.manifest, item.timeline, item.element, destination);
         if (place === undefined) return [];
         const from = add(item.start, place);
-        const to = stops
-          .filter((stop) => compareReal(stop, from) > 0)
-          .reduce((first, stop) => (compareReal(stop, first) < 0 ? stop : first), item.end);
         const { passes } = destination;
-        return [
-          { from, to, text: passes === undefined ? null : measured(part, passesText(passes)) },
-        ];
+        const text = passes === undefined ? null : measured(part, passesText(passes));
+        return [{ from, to: cut(from), text }];
       })
       .sort((left, right) => compareReal(left.from, right.from));
-    const first = brackets[0];
-    const last = brackets.at(-1);
-    if (first === undefined || last === undefined) return [];
-    const extent: Extent = [relativeX(first.from), relativeX(last.to)];
+    // The last bracket as long as the one before it, a lone one as long as jump → place, never
+    // beyond its cut.
+    const last = placed.at(-1);
+    if (last === undefined) return [];
+    const before = placed.at(-2);
+    const length =
+      before === undefined
+        ? larger(difference(last.from, item.at), difference(item.at, last.from))
+        : difference(before.to, before.from);
+    const reach = add(last.from, length);
+    const brackets = [
+      ...placed.slice(0, -1),
+      { ...last, to: compareReal(last.to, reach) < 0 ? last.to : reach },
+    ];
+    // From the first bracket's place to the largest end of its brackets.
+    const extent: Extent = [
+      relativeX(nth(brackets, 0).from),
+      relativeX(brackets.map(({ to }) => to).reduce(larger)),
+    ];
     return [{ item, part, brackets, extent }];
   });
   const bracketRows = new Rows();
@@ -383,7 +406,7 @@ export function flowControlBand(scope: Scope, line: Entry): PreparedBand {
     return (item.element.targets ?? []).flatMap((destination) => {
       // `by` 0 is going on, written where the source prints it: no jump, no arc.
       if (destination.by !== undefined && isZero(destination.by, item.timeline)) return [];
-      const place = placeOf(item.timeline, item.element, destination);
+      const place = placeOf(scope.manifest, item.timeline, item.element, destination);
       if (place === undefined) return [];
       const to = add(item.start, place);
       if (member && !onStretch(scope, to)) return [];

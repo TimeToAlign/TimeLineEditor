@@ -533,7 +533,7 @@ describe("breaks, section breaks and barlines", () => {
   it("end at the padding of the opposite side for the root", () => {
     const below = alone(prepared(scopeOf(load("flow_control")), "flow:quarters"), undefined);
     expect(below.elements(PLACE).flowLines.map((item) => [item.y1, item.y2])).toEqual([
-      [141.453125, 8],
+      [151.9296875, 8],
     ]);
     const above = alone(
       prepared(
@@ -553,7 +553,7 @@ describe("breaks, section breaks and barlines", () => {
       undefined,
     );
     expect(above.elements(PLACE).flowLines.map((item) => [item.y1, item.y2])).toEqual([
-      [84.0234375, 192],
+      [73.546875, 192],
     ]);
   });
 });

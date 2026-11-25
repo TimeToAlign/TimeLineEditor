@@ -175,9 +175,10 @@ Three numbers the constants hold are stated outside the table, each read
 from its sentence: the card spacing `S`'s default, 4 ("With the default `S
 = 4`", section 6.2), and the frame's, 8 ("`spacing`: 8 for a frame, 4 for a
 card", section 8.6, which states the card's 4 again); and the initial
-`rotation`, 0, and the four elision properties' initial values, the last of
-section 2.5's ("`rotation` 0, `elision-mode` `auto`, `elision-proportion`
-`auto`, `elision-depths` `auto`, `elision-display` `ellipsis name`."): no wedge
+`rotation`, 0, the four elision properties' initial values and
+`label-display`'s, the last of section 2.5's ("`rotation` 0, `elision-mode`
+`auto`, `elision-proportion` `auto`, `elision-depths` `auto`,
+`elision-display` `ellipsis name`, `label-display` `name label`."): no wedge
 has another initial rotation, a secondary coordinate's −45 being a default
 rule's (section 4). The table's last two rows are the standard gap of an
 elision, 32, and an ellipsis's dot radius 2, dot spacing 6 and narrowest
@@ -339,50 +340,53 @@ Root `flow:quarters` length 16, name `Flow control` (`N =
 66.9775390625`), `x0 = 90.9775390625`, `x(t) = x0 + 25 t`. Its flow
 control holds the jump targets `jump_target_1` at 2 and `jump_target_2` at 4, which
 draw nothing, the jump `jump_1` from 8 to `jump_target_1` (its
-destination labelled `Repeat`), the break `break_1` (label `Fine`) at 12
-and the jump `jump_2` from 16 to `jump_target_2` (labelled `D.S.`), all
-below; the line
-at 22.40234375 as in `bare`. The flow control band starts at `26.9765625 +
-4 = 30.9765625` with one break label tier, so the flow row lies
-41.453125 out, at `yf = 63.85546875`. By span, `jump_1` (6) is placed
-before `jump_2` (12); their extents `[50, 200]` and `[100, 400]` (the
-labels, `Repeat` 32.08447265625 and `D.S.` 18.36474609375 wide, lie
-inside them) conflict, so `jump_1` takes jump row 1, its apex `30.9765625
-+ 10.4765625 + 8 = 49.453125` out, and `jump_2` row 2, `pj = 6 + 4 +
-10.4765625 = 20.4765625` further, 69.9296875 out. The band is `10.4765625
-+ 8 + 20.4765625 + 2 + 10.4765625 = 51.4296875` wide, `Eb = 82.40625`,
-`Hc = 14.40234375 + 82.40625 + 8 = 104.80859375`. The break's line
-runs at x 390.9775390625 from the flow row to `8 + P = 16`; its label
-starts at 393.9775390625, baseline `yf − d(9) = 61.73291015625`.
+destination labelled `Repeat`), the break `break_1` (name `fine`, label
+`Fine`) at 12 and the jump `jump_2` from 16 to `jump_target_2` (labelled
+`D.S.`), all below; the line at 22.40234375 as in `bare`. Its arcs are
+shown and its symbols hidden (`ARCS_ALONE`). The flow control band starts
+at `26.9765625 + 4 = 30.9765625`; `break_1`'s stack holds, by the initial
+`label-display` `name label`, its name `fine` and its label `Fine`, one
+tier two lines high, `T = 2`, so the flow row lies `30.9765625 + 2 ×
+10.4765625 = 51.9296875` out, at `yf = 74.33203125`. By span, `jump_1`
+(6) is placed before `jump_2` (12); their extents `[50, 200]` and `[100,
+400]` (the labels, `Repeat` 32.08447265625 and `D.S.` 18.36474609375
+wide, lie inside them) conflict, so `jump_1` takes jump row 1, its apex
+`51.9296875 + 8 = 59.9296875` out, and `jump_2` row 2, `pj = 6 + 4 +
+10.4765625 = 20.4765625` further, 80.40625 out. The band is `20.953125 +
+8 + 20.4765625 + 2 + 10.4765625 = 61.90625` wide, `Eb = 92.8828125`, `Hc
+= 14.40234375 + 92.8828125 + 8 = 115.28515625`. The break's line runs at
+x 390.9775390625 from the flow row to `8 + P = 16`; its stack starts at
+393.9775390625, `fine` on line 1, baseline `yf − d(9) = 72.20947265625`,
+`Fine` on line 2, `h(9)` further in, baseline 61.73291015625.
 
 Each jump has `w = 1`: the head 4 long and 2 half-wide. The head is
 computed in item coordinates and drawn `8 +` each.
 
 - `jump_1`: `Xf = 290.9775390625`, `Xt = 140.9775390625`, `q = (Xt − Xf) /
-  4 = −37.5`; `ya = 71.85546875`; `yc = yf + 4/3 × (ya − yf) =
-  74.52213541666667`, `C1 = (253.4775390625, yc)`, `C2 =
+  4 = −37.5`; `ya = 82.33203125`; `yc = yf + 4/3 × (ya − yf) =
+  84.99869791666667`, `C1 = (253.4775390625, yc)`, `C2 =
   (178.4775390625, yc)`; the head's axis `u = (−0.9618459163232351,
   −0.2735917273097203)` from `Xt − Cx = −37.5` and `yf − yc =
-  −10.666666666666671`. `Bh = (144.82492272779294, 64.94983565923889)`,
-  corners `(144.2777392731735, 66.87352749188534)` and
-  `(145.37210618241238, 63.02614382659241)` (summed from the card's top
-  first, their `y` would be 66.87352749188535 and 63.02614382659242). The
-  label is centred at `x(5) = 215.9775390625`, baseline `8 + ((14.40234375
-  + (49.453125 + 2)) + 8.35400390625) = 82.20947265625`.
+  −10.666666666666671`. `Bh = (144.82492272779294, 75.42639815923889)`,
+  corners `(144.2777392731735, 77.35008999188535)` and
+  `(145.37210618241238, 73.50270632659242)`. The label is centred at
+  `x(5) = 215.9775390625`, baseline `8 + ((14.40234375 + (59.9296875 +
+  2)) + 8.35400390625) = 92.68603515625`.
 - `jump_2`: `Xf = 490.9775390625`, `Xt = 190.9775390625`, `q = −75`; `ya =
-  92.33203125`; `yc = 63.85546875 + 4/3 × 28.4765625 = 101.82421875`,
+  102.80859375`; `yc = 74.33203125 + 4/3 × 28.4765625 = 112.30078125`,
   `C1 = (415.9775390625, yc)`, `C2 = (265.9775390625, yc)`; `u =
   (−0.8921856025539521, −0.4516689612929382)` from `Xt − Cx = −75` and `yf
   − yc = −37.96875`, `ℓ = 84.06322606563764`. `Bh = (194.5462814727158,
-  65.66214459517175)`, corners `(193.64294355012993, 67.44651580027966)`
-  and `(195.44961939530168, 63.87777339006385)`. The label is centred at
-  `x(10) = 340.9775390625`, baseline `8 + ((14.40234375 + (69.9296875 +
-  2)) + 8.35400390625) = 102.68603515625`.
+  76.13870709517175)`, corners `(193.64294355012993, 77.92307830027966)`
+  and `(195.44961939530168, 74.35433589006385)`. The label is centred at
+  `x(10) = 340.9775390625`, baseline `8 + ((14.40234375 + (80.40625 +
+  2)) + 8.35400390625) = 113.16259765625`.
 
 The shaft of each runs `(Xf, yf)`, `C1`, `C2` to `Bh`; the jumps and
-their labels follow the order of first fit, `jump_1` before `jump_2`. The
+their labels follow the order of first fit, `jump_1` before `jump_2`, and
+the stack's labels follow the arcs' labels, name before label. The
 `16 ♩` label reaches `R = 500.256591796875`: `W = 518.256591796875`, `H =
-8 + (8 + 104.80859375 + 2) = 122.80859375`.
+8 + (8 + 115.28515625 + 2) = 133.28515625`.
 
 ### `map`
 
@@ -471,15 +475,21 @@ line with boundaries reaches `k` both ways, its segment labels above only
 displayed bands to their segment line's, after its own, in its band order.
 An open end runs on `9.5w`; an extent holds the drawn labels and the
 breaks' points. In `flow_control` the flow control band's extents are the
-break's point `[300, 300]` (`400 × 12/16`), its label `[300 + 3 − 1,
-300 + 3 + 18.91845703125 + 1] = [302, 322.91845703125]`, and the jumps
+break's point `[300, 300]` (`400 × 12/16`), its stack (its name `fine`
+and its label `Fine`, as wide as the wider, `Fine`) `[300 + 3 − 1, 300 +
+3 + 18.91845703125 + 1] = [302, 322.91845703125]`, and the jumps
 in placement order, `jump_1` `[50, 200]` and `jump_2` `[100,
 400]`; the root's extent `[−7.416015625, 410.279052734375]` runs from its
 `origin`'s coordinate label (`0 − 6.416015625 − 1`) to `length`'s (`400 +
 9.279052734375 + 1`), drawn with the layer `ARCS_ALONE` (support:
 arcs shown, symbols and brackets hidden). A break ends at the padding of
-the opposite side; only the root of a member drawing has a flow control
-band, so `child_flow_control`'s `verse` lays out none of its own.
+the opposite side: laid out alone with its line at 100 in a drawing 200
+high (top 0), `flow_control`'s break runs from its flow row `30.9765625 +
+2 × 10.4765625 = 51.9296875` below (its stack two lines, one tier) to the
+padding 8, and with its band moved above, next to the line from `5.5`,
+from `100 − 26.453125 = 73.546875` to `200 − 8 = 192`; only the root of a
+member drawing has a flow control band, so `child_flow_control`'s `verse`
+lays out none of its own.
 
 ## Stacks, band orders and rows (`stacks.test.ts`, `order.test.ts`, `rows.test.ts`)
 
@@ -527,16 +537,18 @@ from sections 4 and 6.4:
   the padding. In `flow_control`, drawn with `ARCS_ALONE` (arcs shown,
   symbols and brackets hidden), both jumps and the break move with their
   band. With the flow control band moved above the line, next to it, it
-  lies at level 1 from `1.5 + 4 = 5.5` (no map, so no stack): the flow row
-  `5.5 + 10.4765625 = 15.9765625` out, the band `51.4296875` wide as below
-  the line (two jump rows), `Ea = 56.9296875`, `y_root = 64.9296875`, `Hc =
-  64.9296875 + 26.9765625 + 8 = 99.90625` and `H = 8 + (8 + 99.90625 + 2)
-  = 117.90625`. Drawn `8 +` each: the root's line at 72.9296875, the flow
-  row at `8 + (64.9296875 − 15.9765625) = 56.953125`, where `jump_1`
-  starts at `x(8) = 290.9775390625`; the break from there down to the
-  bottom padding `8 + (Hc − P) = 99.90625`, its label at 393.9775390625
-  with its baseline `yf + a(9)`, `8 + (48.953125 + 8.35400390625) =
-  65.30712890625`.
+  lies at level 1 from `1.5 + 4 = 5.5` (no map, so no stack): its break's
+  stack (`fine`, `Fine`) one tier two lines high, the flow row `5.5 + 2 ×
+  10.4765625 = 26.453125` out, the band `61.90625` wide as below the line
+  (two jump rows), `Ea = 67.40625`, `y_root = 75.40625`, `Hc = 75.40625 +
+  26.9765625 + 8 = 110.3828125` and `H = 8 + (8 + 110.3828125 + 2) =
+  128.3828125`. Drawn `8 +` each: the root's line at 83.40625, the flow
+  row at `8 + (75.40625 − 26.453125) = 56.953125`, where `jump_1` starts
+  at `x(8) = 290.9775390625`; the break from there down to the bottom
+  padding `8 + (Hc − P) = 110.3828125`, its stack at 393.9775390625, `fine`
+  on line 1 with its baseline `yf + a(9)`, `8 + (48.953125 +
+  8.35400390625) = 65.30712890625`, `Fine` on line 2, `h(9)` nearer the
+  line, `8 + (59.4296875 + 8.35400390625) = 75.78369140625`.
 - **Rows.** In `joint_rows` the children bands of each row's lines are laid
   out together at two depths, one name per row, at the size of the
   hand-derived figure. A row takes the room of the children bands on both
@@ -700,9 +712,13 @@ Above: the two-map stack (`1.5 + 2 × 5 = 11.5`), the children band from
 `11.5 + 4 = 15.5`, two rows of 14, `Ea = 15.5 + 28 = 43.5`, `y_root =
 51.5`, the root's line at 59.5. Below: a corpus fixture names no
 timestamp, so no markers band is present, and the flow control band lies
-at level −1 from `1.5 + 4 = 5.5`. Its breaks and barlines carry no label,
-so no label tier: the flow row lies at the band's start, `yf = 8 + 51.5 +
-5.5 = 65`.
+at level −1 from `1.5 + 4 = 5.5`. Of its breaks and barlines only
+`break_4` at 12 has a name, `fine`, and none a label, so by the initial
+`label-display` `name label` its stack is `fine` alone, one tier one line
+high: the flow row lies `5.5 + 10.4765625 = 15.9765625` out, `yf = 8 +
+51.5 + 15.9765625 = 75.4765625`, and `fine` starts at `x(12) + 3 =
+200.83178051097974` (`400 × u = 129.72972972972974`), its baseline `yf −
+d(9) = 73.35400390625`.
 The arcs, each labelled with its destination's manifestation (the score
 loader writes no label; the To Coda's destination is labelled `coda`),
 widths at 9 by the advance sums `volta` 5092 → 22.376953125, `repeat_end`
@@ -726,13 +742,14 @@ meets row 1, row 2; `jump_3` `[54.59, 107.57]` (label) meets rows 1 and
 `jump_4` `[0, 172.97]` meets rows 1 to 3 and only touches `jump_9`, row
 4; `jump_8` `[0, 367.57]`, row 5; `jump_10` `[0, 400]`, row 6. With `pj =
 6 + 4 + 10.4765625 = 20.4765625` the apexes lie `8 + (k − 1) × pj` beyond
-the flow row, `yc = 65 + 4/3 × that` (the factor formed first):
-75.66666666666667, 102.96875, 130.27083333333331, 157.57291666666669,
-184.875 and 212.17708333333334 for rows 1 to 6. The band is `0 + 8 + 5 ×
-20.4765625 + 2 + 10.4765625 = 122.859375` wide, `Eb = 5.5 + 122.859375 =
-128.359375`, `Hc = 51.5 + 128.359375 + 8 = 187.859375`, `H = 205.859375`.
-No break label is drawn. No `x` depends on the maps above or on the band's
-ordinates.
+the flow row, `yc = yf + 4/3 × that` (the factor formed first, in item
+coordinates, the flow row at 67.4765625, then drawn `8 +`):
+86.14322916666667, 113.4453125, 140.74739583333331, 168.04947916666669,
+195.3515625 and 222.65364583333334 for rows 1 to 6. The band is
+`10.4765625 + 8 + 5 × 20.4765625 + 2 + 10.4765625 = 133.3359375` wide,
+`Eb = 5.5 + 133.3359375 = 138.8359375`, `Hc = 51.5 + 138.8359375 + 8 =
+198.3359375`, `H = 216.3359375`. No `x` depends on the maps above or on
+the band's ordinates.
 
 The head is computed in item coordinates (8 left of and 8 above the drawn
 ones), `q = (Xt − Xf) / 4`, `C1 = (Xf + q, yc)`, `C2 = (Xt − q, yc)`, `u`
@@ -740,19 +757,17 @@ the unit vector from `C2` to the tip, `Bh = tip − 4u`, the corners `Bh ∓ 2n`
 with `n = (−u_y, u_x)`, then drawn 8 right and 8 down.
 
 - **Short jump** (`jump_2`, `7→9`, row 1): `Xf = 143.77772645692568`,
-  `Xt = 165.3993480785473`, `C1 = (149.1831318623311, 75.66666666666667)`,
-  `C2 = (159.99394267314187, 75.66666666666667)`, `u =
+  `Xt = 165.3993480785473`, `C1 = (149.1831318623311, 86.14322916666667)`,
+  `C2 = (159.99394267314187, 86.14322916666667)`, `u =
   (0.4520287372441742, −0.8920033748285021)`, `Bh = (163.59123312957058,
-  68.568013499314)`, corners `(161.80722637991357, 67.66395602482567)`
-  and `(165.3752398792276, 69.47207097380235)`: it arrives steeply.
-  Summed in drawn coordinates, the corners' `y` would be
-  67.66395602482565 and 69.47207097380236.
+  79.044575999314)`, corners `(161.80722637991357, 78.14051852482565)`
+  and `(165.3752398792276, 79.94863347380236)`: it arrives steeply.
 - **Longest jump** (`jump_10`, `37→0`, row 6): `Xf = 468.10205078125`,
-  `Xt = 68.10205078125`, `C1 = (368.10205078125, 212.17708333333334)`,
-  `C2 = (168.10205078125, 212.17708333333334)`, `u =
+  `Xt = 68.10205078125`, `C1 = (368.10205078125, 222.65364583333334)`,
+  `C2 = (168.10205078125, 222.65364583333334)`, `u =
   (−0.5620009405474009, −0.8271365926035654)`, `Bh = (70.3500545434396,
-  68.30854637041426)`, corners `(68.69578135823247, 69.43254825150906)`
-  and `(72.00432772864673, 67.18454448931946)`: it arrives flatter.
+  78.78510887041426)`, corners `(68.69578135823247, 79.90911075150906)`
+  and `(72.00432772864673, 77.66110698931946)`: it arrives flatter.
 
 **Float axis.** `continuous_physical`: root `cpt_1`, seconds, `float`,
 length 12.5; children `cpt_2` at 0.5, length 4.25, and `cpt_3` at 6.0,
@@ -926,9 +941,10 @@ opacity of ancestor lines, in their rows as any other.
   manifestation `volta` and no label, `by` −8 with neither. It draws three
   arcs, in the order of first fit (span 4, 4, 8), and one arc label,
   `back` centred at `x(22) = 330.05029296875`, none for the other two (the
-  manifestation is never a text); then its stack, its own label `Leap`
-  from `x(24) + 3 = 358.05029296875`, start-anchored. No label reads
-  `Named`: the defaults' `label-display` lists `label` alone.
+  manifestation is never a text); then its stack, by the initial
+  `label-display` `name label` its name `Named` and its own label `Leap`
+  (`{id: jump_3, part: [name]}` and `[label]`), each from `x(24) + 3 =
+  358.05029296875`, start-anchored.
 - **A `to` that names no place.** `flow/repairs` gains, by commands, a
   region `gone` from 2 to 6; a jump target `struck` at 4, rejected when it
   is added; and three jumps, each rejected when it is added: `kept` at 10
@@ -953,9 +969,13 @@ control band; the defaults **hide the arcs** (`jump` `display: none`), so
 a jump shows its symbol, its brackets and its stack alone until a rule
 shows its arcs; every element draws its **symbol** (core's `flowSymbols`)
 on the symbol row, beyond the flow row; a jump draws one **bracket** per
-`volta` destination, from its place to the first later position of a jump,
-a section break or a `volta` break of the band, else to its timeline's end,
-every bracket but the last of a run closed; the defaults colour a break
+`volta` destination, by their places, each but the last from its place to
+its **cut**, the first later position of a jump, a section break or a
+`volta` break of the band, else its timeline's end; the **last**, open,
+is as long as the bracket before it, a lone one as long as the distance
+from its jump to its place, and ends at its cut where that lies before;
+hiding the root's flow control band hides the flow control of its whole
+tree, the band then absent (§2.4); the defaults colour a break
 red `#D62728`, dotted `1.5 1.5`, 1.5 wide, a section break `#4B5563`,
 dashed `4 2`, 1.5, and a barline `#6B7280`, solid, 1.
 
@@ -994,9 +1014,11 @@ dashed `4 2`, 1.5, and a barline `#6B7280`, solid, 1.
   19.46875`: each bracket's line at `yl + 33.9453125`, its hooks' ends at
   `yl + 21.46875`, its text's baseline `+ a(9) = 8.35400390625` beyond
   that. Bracket `1.` from `x(953/2)` (48.15259268616182) to `x(500)`,
-  closed; bracket `2.` from `x(500)` to `x(1644)`, open (no jump, section
-  break or volta break of the tree lies after 500, so it runs to the end
-  of `clt_2`); each text at `x1 + 2`. The band is `13.96875 + 14.4765625
+  closed; bracket `2.`, the last, from `x(500)`, open, as long as bracket
+  `1.`, 500 − 953/2 = 47/2, so to 500 + 47/2 = 1047/2 (`400u =
+  52.902166361397086`, `u` the double nearest 2094/15833), before its cut
+  1644 (no jump, section break or volta break of the tree lies after 500,
+  so its cut is the end of `clt_2`); each text at `x1 + 2`. The band is `13.96875 + 14.4765625
   = 28.4453125` wide and draws nothing else: no `jump` element. With the
   rule `{element: jump} display: inline` it draws two arcs, sorted by
   span: `jump_1`'s 953/2 → 500 (row 1), then `jump_2`'s repeat 500 → 0
@@ -1007,8 +1029,9 @@ dashed `4 2`, 1.5, and a barline `#6B7280`, solid, 1.
   jump `da_capo_al_fine` at 8), the band records list one flow control
   band, `piece`'s; `verse`'s break is drawn at `x(4 + 4)`, and hiding
   `verse`'s flow control band (`{addresses: [{id: verse, facet:
-  flow_control}]}`) hides its break and the symbol `Fine` with it, while
-  hiding `piece`'s own band hides neither.
+  flow_control}]}`) hides its break and the symbol `Fine` with it, and
+  hiding `piece`'s own band hides the flow control of the whole tree, the
+  break and both symbols, and leaves no flow control band record.
 - **A child member's band** (`groups/group_child_member`, given by
   commands barlines on `piece` at 4, 8, 16 and a section break at 12, and
   a barline on `second-half` at 2): `second-half`'s member card draws, on
@@ -1021,13 +1044,29 @@ dashed `4 2`, 1.5, and a barline `#6B7280`, solid, 1.
   at `x(16)`; the jump targets `jump_target_1` (`repeat_start`) at 4 and
   `jump_target_2` (`segno`) at 8 draw 𝄆 and 𝄋 at their positions, in the
   band's order (`jump_target_1`, `jump_target_2`, `jump_1`).
-- **A run of brackets** (`flow/volta_passes`, 16 long): `jump_1` at 8
-  holds `by` 0 with passes `[1, 3]` and `to` `jump_target_1` at 12 with
-  `[2]`; the stops after 8 are `break_1` (volta) and `jump_2` at 12 and
-  `jump_3` at 16: bracket `1., 3.` from 8 to 12, closed, and bracket `2.`
-  from 12 to 16, open.
-- **Stacks** (`flow/sections`, `x(t) = x0 + 12.5 t`): with the defaults'
-  `label-display` `label`, `break_1` draws its label `Fine`, `jump_1` its
+- **A run of brackets** (`flow/volta_passes`, 16 long, `x(t) = x0 +
+  25 t`): `jump_1` at 8 holds `by` 0 with passes `[1, 3]` and `to`
+  `jump_target_1` at 12 with `[2]`; the stops after 8 are `break_1`
+  (volta) and `jump_2` at 12 and `jump_3` at 16: bracket `1., 3.` from 8
+  to its cut 12, closed, and bracket `2.`, the last, from 12, open, as
+  long as `1., 3.`, 4, to 16, its cut too. Added by commands, a jump
+  `jump_4` at 1 with one destination `by` 0 (volta, passes `[1]`) draws a
+  lone bracket as long as the distance from its jump to its place, 0: from
+  `x(1)` to `x(1)`; a jump target `jump_target_2` at 4 and a jump
+  `jump_5` at 2 with one destination `to` `jump_target_2` (volta) draw a
+  lone bracket from 4, `|4 − 2| = 2` long, to 6, before its cut, `jump_1`
+  at 8; each open.
+- **A destination without a place** (`child_flow_control`, `x(t) = x0 +
+  25 t` on `piece`'s axis, arcs shown): given by commands a section break
+  `section_break_a` of `piece` at 2, a jump `jump_x` of `verse` at 6 (10
+  on `piece`'s axis) and a jump `jump_y` of `piece` at 14, each with one
+  destination without a place, `jump_x`'s arc runs from `x(10)` to
+  `verse`'s start `x(4)` (`section_break_a` lies before it) and
+  `jump_y`'s from `x(14)` to `x(2)`; a section break `section_break_c` of
+  `verse` at 2, 6 on `piece`'s axis, takes both: `x(10) → x(6)` and
+  `x(14) → x(6)` (core's `destinationPlace`, section 3.1).
+- **Stacks** (`flow/sections`, `x(t) = x0 + 12.5 t`): with the initial
+  `label-display` `name label` (no element of it has a name), `break_1` draws its label `Fine`, `jump_1` its
   own label `D.C. al Fine` and `jump_2` `D.C.`, each start-anchored at
   `x + 3`, all in tier 1 (their extents do not meet), on line 1, baseline
   `yl + f0 − d(9)`; `section_break_1` has no label and draws no stack.
@@ -1089,19 +1128,20 @@ from the member drawing's top or `Hc − P` below it. `H = Hc + 18`.
   its line), draws the same at card spacings 0 and 8: the line at
   22.40234375, `W = 476.5771484375`, `H = 67.37890625`.
 - `flow_control` at card spacing 8: the flow control band from `26.9765625
-  + 8 = 34.9765625`, one break label tier, so the flow row 45.453125 out,
-  `yf = 8 + (14.40234375 + 45.453125) = 67.85546875`; two jump rows with
-  `pj = 6 + 8 + 10.4765625 = 24.4765625` make the band `10.4765625 + (4 +
-  8) + 24.4765625 + 2 + 10.4765625 = 59.4296875` wide, `Eb = 94.40625`,
-  `Hc = 14.40234375 + 94.40625 + 8 = 116.80859375`, `H = 134.80859375`;
-  the break's line from `yf` to `8 + 8 = 16`. With `[flow_control,
-  children, conversion_maps] | [markers, regions]` the band lies alone
-  above, from `1.5 + 8 = 9.5`, its flow row `9.5 + 10.4765625 =
-  19.9765625` out, `Ea = 9.5 + 59.4296875 = 68.9296875`, `y_root =
-  76.9296875`, the line at 84.9296875, `yf = 8 + (76.9296875 − 19.9765625)
-  = 64.953125`, `Hc = 76.9296875 + 26.9765625 + 8 = 111.90625`, `H =
-  129.90625`; the break's line runs to the padding below, `8 + (Hc −
-  8) = 111.90625`.
+  + 8 = 34.9765625`, its break's stack (`fine`, `Fine`) one tier two lines
+  high, so the flow row `34.9765625 + 2 × 10.4765625 = 55.9296875` out,
+  `yf = 8 + (14.40234375 + 55.9296875) = 78.33203125`; two jump rows with
+  `pj = 6 + 8 + 10.4765625 = 24.4765625` make the band `20.953125 + (4 +
+  8) + 24.4765625 + 2 + 10.4765625 = 69.90625` wide, `Eb = 104.8828125`,
+  `Hc = 14.40234375 + 104.8828125 + 8 = 127.28515625`, `H =
+  145.28515625`; the break's line from `yf` to `8 + 8 = 16`. With
+  `[flow_control, children, conversion_maps] | [markers, regions]` the
+  band lies alone above, from `1.5 + 8 = 9.5`, its flow row `9.5 +
+  20.953125 = 30.453125` out, `Ea = 9.5 + 69.90625 = 79.40625`, `y_root =
+  87.40625`, the line at 95.40625, `yf = 8 + (87.40625 − 30.453125) =
+  64.953125`, `Hc = 87.40625 + 26.9765625 + 8 = 122.3828125`, `H =
+  140.3828125`; the break's line runs to the padding below, `8 + (Hc −
+  8) = 122.3828125`.
 
 **Block size.** With `width` and `height` 120 and 60 above the natural block,
 every element but the block is identical to the natural drawing and `W =
@@ -3528,7 +3568,7 @@ of its selector, the metrics table the code points asked, the manifest listings 
 its keys. The rule with no element, class or address is tested
 exactly `1,118 − 27 + 2 × 63 = 1,217` times: each key is resolved once but
 the 27 ID labels of the breaks and the jump, which the initial
-`label-display` `label` leaves out of their stacks and so never resolves,
+`label-display` `name label` leaves out of their stacks and so never resolves,
 and each of the 63 lines (the root, its 60 children, the nested child and the
 segment line, the keys of type `timeline` or `child`) resolves once each
 the wedge and the cross-section line of a position no named timestamp

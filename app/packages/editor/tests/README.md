@@ -1184,21 +1184,23 @@ break `break_1`, section break `section_break_1`, all on `score`) and
      `{element: "symbol", within: "score"}` `{display: "none"}`, then not
      pressed, and `jump_2`'s Symbol not pressed either.
 4. **Labels compose a flow-control element's stack** from the words of
-   its cascaded `label-display` (initial `label`, which no default rule
-   sets), as a named timestamp's `display` composes its labels. On
-   `sections` the band's Labels are Name, ID, Label with Label alone
+   its cascaded `label-display` (initial `name label`, which no default
+   rule sets), as a named timestamp's `display` composes its labels. On
+   `sections` the band's Labels are Name, ID, Label with Name and Label
    pressed, and so are `jump_1`'s. In order:
    - the band's Name → `{select: {within: "score"}, set:
-     {"label-display": "name label"}}`; then the band and `jump_1` show
-     Name and Label pressed;
-   - `jump_1`'s Label → `{element: "jump", addresses: [{id: "jump_1"}]}`
-     `{"label-display": "name"}`; then `jump_1` Name alone, the band
-     still Name and Label;
+     {"label-display": "label"}}`; then the band and `jump_1` show Label
+     alone;
+   - `jump_1`'s Name → `{element: "jump", addresses: [{id: "jump_1"}]}`
+     `{"label-display": "name label"}`; then `jump_1` Name and Label, the
+     band still Label alone;
    - the band's Name → `{"label-display": null}`, since without the
-     band's rule every element draws `label` again; the band Label
-     alone, `jump_1` still Name alone;
-   - `jump_1`'s Name → `{"label-display": "none"}`, since without its own
-     rule it would draw `label`; then none of its words pressed.
+     band's rule every element draws `name label` again; the band and
+     `jump_1` Name and Label;
+   - `jump_1`'s Name → `{"label-display": "label"}`, since without its
+     own rule it would draw `name label`; then `jump_1` Label alone;
+   - `jump_1`'s Label → `{"label-display": "none"}`; then none of its
+     words pressed, the band still Name and Label.
 5. **Atomic sections** is the rule `{element: "region", class:
    "tts:AtomicSection"}` of the specification's section 2.3: not pressed
    while the manifest states no `display` `inline` for it; a press on
@@ -1210,7 +1212,7 @@ break `break_1`, section break `section_break_1`, all on `score`) and
    setting rule given), the band's rows stand above
    `[data-testid="display-toggles"]`: the keys Display and Labels, each
    naming its group, Display holding Arcs (pressed) and Symbols, Labels
-   Name, ID and Label (Label pressed). A click on Arcs journals the one
+   Name, ID and Label (Name and Label pressed). A click on Arcs journals the one
    `style` of item 3 and leaves Arcs not pressed; nothing is posted. With
    `jump_2` selected, its Display group holds Arcs and Symbol, its Labels
    group Name, ID and Label.
