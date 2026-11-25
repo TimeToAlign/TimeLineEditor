@@ -84,7 +84,10 @@ const VIEW = viewOf({ id: A, fixture: MIXED, x: 40, y: 80 }, { id: B, fixture: "
 const inA = (element: ElementAddress): Address => inBlock(A, element);
 
 /** The address of the part `words` of the element `id`. */
-const part = (id: string, ...words: ("start" | "end" | "name" | "label")[]): ElementAddress =>
+const part = (
+  id: string,
+  ...words: ("start" | "end" | "name" | "label" | "symbol")[]
+): ElementAddress =>
   words.reduce<OwnerAddress>((owner, word) => partAddress(owner, word), idAddress(id));
 
 const BUNDLE: Editing = { target: { block: A }, kind: "bundle" };
@@ -99,9 +102,10 @@ const tagged = (tag: string, address: ElementAddress): string => `${tag} ${addre
  * the jumps `jumps` and the named timestamps `stamps` (its `origin` and
  * `length`, each drawing its wedge and its coordinate label), as `<tag>
  * <address key>` in drawing order: the card's shadow and card, the maps,
- * each jump's shaft and arrowhead, the line, its start dot and arrowhead,
- * the timestamps' wedges, the name, the timestamps' labels and the jumps'
- * labels.
+ * the line, its start dot and arrowhead, the timestamps' wedges, the name,
+ * the timestamps' labels and the jumps' symbols (the defaults hide a jump's
+ * arcs and with them its arc labels, drawing.md section 4; its
+ * destination's `repeat_end` draws 𝄇, section 6.4, Symbols).
  */
 function memberElements(
   member: string,
@@ -114,17 +118,13 @@ function memberElements(
     tagged("rect", cardAddress(member)),
     tagged("rect", cardAddress(member)),
     ...maps.map((map) => tagged("polygon", idAddress(map))),
-    ...jumps.flatMap((jump) => [
-      tagged("path", idAddress(jump)),
-      tagged("polygon", idAddress(jump)),
-    ]),
     tagged("line", line),
     tagged("circle", line),
     tagged("polygon", line),
     ...stamps.map((stamp) => tagged("polygon", idAddress(stamp))),
     tagged("text", part(member, "name")),
     ...stamps.map((stamp) => tagged("text", partAddress(idAddress(stamp), "coordinate"))),
-    ...jumps.map((jump) => tagged("text", part(jump, "label"))),
+    ...jumps.map((jump) => tagged("text", part(jump, "symbol"))),
   ];
 }
 
@@ -293,7 +293,7 @@ describe("data-outside", () => {
       ...PERFORMANCE,
     ];
     expect(marked(svg, "data-outside", false)).toEqual(inside);
-    expect(marked(svg, "data-outside").length).toBe(drawn(svg).length - 28);
+    expect(marked(svg, "data-outside").length).toBe(drawn(svg).length - 26);
     expect(drawn(svg)[0]?.hasAttribute("data-outside")).toBe(true);
   });
 
@@ -692,7 +692,7 @@ describe("the item move", () => {
       changes: [
         { target: inA(idAddress("group_2")), values: { place: { x: 40, y: 200 } } },
         { target: inA(idAddress("group_1")), values: { place: { x: 8, y: 28.8046875 } } },
-        { target: inA(idAddress("annotations")), values: { place: { x: 8, y: 383.7734375 } } },
+        { target: inA(idAddress("annotations")), values: { place: { x: 8, y: 377.265625 } } },
       ],
     });
     expect(BOTH).toEqual({
@@ -729,29 +729,29 @@ describe("the item move", () => {
 
   it("moves an item outside the selection alone, selecting it", () => {
     const { calls, frame } = pressedWith([]);
-    pointer(frame, "pointermove", 132, 193.9609375);
+    pointer(frame, "pointermove", 132, 200.46875);
     expect(svg().querySelectorAll("g.tilie-dragged").length).toBe(0);
-    pointer(frame, "pointerup", 132, 193.9609375);
+    pointer(frame, "pointerup", 132, 200.46875);
     expect(calls).toEqual(stored(VIEW, ALONE, true));
     clear();
 
     const outside = pressedWith([idAddress("group_1"), cardAddress("annotations")]);
-    pointer(outside.frame, "pointermove", 132, 193.9609375);
-    pointer(outside.frame, "pointerup", 132, 193.9609375);
+    pointer(outside.frame, "pointermove", 132, 200.46875);
+    pointer(outside.frame, "pointerup", 132, 200.46875);
     expect(outside.calls).toEqual(stored(VIEW, ALONE, true));
   });
 
   it("moves two selected items together in one set and leaves the selection", () => {
     const { calls, frame } = pressedWith([idAddress("group_2"), cardAddress("annotations")]);
-    pointer(frame, "pointermove", 132, 193.9609375);
-    pointer(frame, "pointerup", 132, 193.9609375);
+    pointer(frame, "pointermove", 132, 200.46875);
+    pointer(frame, "pointerup", 132, 200.46875);
     expect(calls).toEqual(stored(VIEW, BOTH, false));
   });
 
   it("moves the one item in the selection alone and leaves the selection", () => {
     const { calls, frame } = pressedWith([idAddress("group_2"), idAddress("page")]);
-    pointer(frame, "pointermove", 132, 193.9609375);
-    pointer(frame, "pointerup", 132, 193.9609375);
+    pointer(frame, "pointermove", 132, 200.46875);
+    pointer(frame, "pointerup", 132, 200.46875);
     expect(calls).toEqual(stored(VIEW, ALONE, false));
   });
 
@@ -765,27 +765,27 @@ describe("the item move", () => {
       type: "set",
       changes: [
         { target: inA(idAddress("group_2")), values: { place: { x: 40, y: 200 } } },
-        { target: inA(idAddress("annotations")), values: { place: { x: 40, y: 53.9609375 } } },
+        { target: inA(idAddress("annotations")), values: { place: { x: 40, y: 60.46875 } } },
       ],
     });
     const { calls, frame } = pressedWith([part("annotations", "name"), idAddress("group_2")], over);
-    pointer(frame, "pointermove", 132, 193.9609375);
-    pointer(frame, "pointerup", 132, 193.9609375);
+    pointer(frame, "pointermove", 132, 200.46875);
+    pointer(frame, "pointerup", 132, 200.46875);
     expect(calls).toEqual(stored(over, moved, false));
   });
 
   it("withdraws the preview on Escape, and stores nothing for a drag back to its start", () => {
     const escaped = pressedWith([idAddress("group_2"), cardAddress("annotations")]);
-    pointer(escaped.frame, "pointermove", 132, 193.9609375);
+    pointer(escaped.frame, "pointermove", 132, 200.46875);
     pressEscape();
-    pointer(escaped.frame, "pointerup", 132, 193.9609375);
+    pointer(escaped.frame, "pointerup", 132, 200.46875);
     expect(kinds(escaped.calls)).toEqual(["preview", "preview"]);
     expect(previewed(escaped.calls[0])).toEqual(after(VIEW, BOTH));
     expect(previewed(escaped.calls[1])).toBeNull();
     clear();
 
     const back = pressedWith([idAddress("group_2"), cardAddress("annotations")]);
-    pointer(back.frame, "pointermove", 132, 193.9609375);
+    pointer(back.frame, "pointermove", 132, 200.46875);
     pointer(back.frame, "pointermove", 100, 200);
     pointer(back.frame, "pointerup", 100, 200);
     expect(kinds(back.calls)).toEqual(["preview", "preview", "preview"]);
@@ -797,7 +797,7 @@ describe("the item move", () => {
     // Zoom 2 and scale 1.25 show a drawing unit as 2.5 pixels; the identity CTM disagrees.
     const scaled = viewOf({ id: A, fixture: MIXED, x: 40, y: 80, scale: 1.25 });
     const { calls, frame } = pressedWith([], scaled, { zoom: 2 });
-    pointer(frame, "pointerup", 180, 184.90234375);
+    pointer(frame, "pointerup", 180, 201.171875);
     expect(calls.at(-2)).toEqual({
       dispatch: itemMoveCommand(scaled, A, { item: "group_2" }, 40, 200, metrics),
     });

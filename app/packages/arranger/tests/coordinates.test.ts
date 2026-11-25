@@ -523,8 +523,8 @@ describe("a later ancestor card over an earlier one", () => {
   it("lies where layout's record puts the two cards and their lines", () => {
     const cards = drawing.boxes.filter((box) => box.ancestor !== undefined);
     expect(cards.map(({ key, x, y, width, height }) => [key, x, y, width, height])).toEqual([
-      [FIRST, 8, 28.8046875, 1410.7494303385415, 154.8828125],
-      [SECOND, 533.3333333333333, 98.9765625, 1370.7494303385417, 154.8828125],
+      [FIRST, 8, 43.1015625, 1410.7494303385415, 148.375],
+      [SECOND, 533.3333333333333, 95.3046875, 1370.7494303385417, 148.375],
     ]);
     const frames = drawing.boxes.filter((box) => box.kind === "frame");
     expect(frames.map(({ x, width }) => [x, x + width])).toEqual([
@@ -538,10 +538,10 @@ describe("a later ancestor card over an earlier one", () => {
     const score = lineIn(FIRST, "score");
     const exposition = lineIn(SECOND, "exposition");
     expect(score && [score.y, score.xStart, score.xEnd]).toEqual([
-      127.234375, 294.8037109375, 694.8037109375,
+      141.53125, 294.8037109375, 694.8037109375,
     ]);
     expect(exposition && [exposition.y, exposition.xStart, exposition.xEnd]).toEqual([
-      159.9296875, 692.7469075520833, 1092.7469075520833,
+      156.2578125, 692.7469075520833, 1092.7469075520833,
     ]);
   });
 
@@ -552,16 +552,17 @@ describe("a later ancestor card over an earlier one", () => {
   });
 
   it.each([
-    ["the first card's score line, inside the second card", 127.234375, null],
+    ["the first card's score line, inside the second card", 1200, 141.53125, null],
     [
       "the second card's exposition row, inside the first card",
-      159.9296875,
+      900,
+      156.2578125,
       ["exposition", SECOND],
     ],
-  ])("at x 900 on %s reads %j, the cards raised or not", (_, y, expected) => {
+  ])("on %s at (%d, %d) reads %j, the cards raised or not", (_, x, y, expected) => {
     expect(raised).toBe("score");
     for (const root of [null, raised]) {
-      const hit = lineAt(axesOf(drawing), { x: 900, y }, 8, stackingOf(drawing, root).covered);
+      const hit = lineAt(axesOf(drawing), { x, y }, 8, stackingOf(drawing, root).covered);
       expect(hit === null ? null : [hit.axis.timeline, hit.axis.card]).toEqual(expected);
     }
   });
@@ -570,10 +571,10 @@ describe("a later ancestor card over an earlier one", () => {
     const at = (root: string | null) =>
       placesAt(drawing, "score", q(45, 4), root).map(({ axis, x }) => [axis.card, axis.y, x]);
     expect(at(null)).toEqual([
-      [{ item: "group_1", member: "exposition" }, 127.234375, 669.8037109375],
-      [SECOND, 197.40625, 1067.7469075520833],
+      [{ item: "group_1", member: "exposition" }, 141.53125, 669.8037109375],
+      [SECOND, 193.734375, 1067.7469075520833],
     ]);
-    expect(at(raised)).toEqual([[SECOND, 197.40625, 1067.7469075520833]]);
+    expect(at(raised)).toEqual([[SECOND, 193.734375, 1067.7469075520833]]);
   });
 });
 
@@ -990,7 +991,7 @@ describe("a timestamp named from a reading on a timeline's second place", () => 
 
   it.each([
     ["groups/group_grandchild", "score", "movement", q(8), 85.18359375],
-    ["bundles/bundle_mixed", "recording", "excerpt", q(33075), 303.3203125],
+    ["bundles/bundle_mixed", "recording", "excerpt", q(33075), 296.8125],
   ])(
     "has in %s with %s's card raised one place of %s %s, the card's row at %d",
     (fixture, editor, timeline, value, y) => {
@@ -1023,7 +1024,7 @@ describe("a timestamp named from a reading on a timeline's second place", () => 
       ],
     ];
     expect(nameOnSecond("bundles/bundle_shared_parent", null, "score", q(9), [9, 1])).toEqual({
-      ordinates: [127.234375, 353.421875],
+      ordinates: [141.53125, 367.71875],
       read: [true, q(9)],
       flag: [
         exposition,
@@ -2057,11 +2058,11 @@ describe("a timestamp named on an ancestor line", () => {
     );
     expect(line && [line.card, line.y, line.xStart, line.xEnd]).toEqual([
       { item: "group_2", member: "excerpt" },
-      340.796875,
+      334.2890625,
       xStart,
       xStart + 400,
     ]);
-    const reading = readAt(view, xStart + 200, 340.796875);
+    const reading = readAt(view, xStart + 200, 334.2890625);
     if (reading === null) throw new Error("the ancestor line is not read");
     expect([reading.hit.axis.start, reading.hit.axis.drawnLength, reading.position]).toEqual([
       q(44100),

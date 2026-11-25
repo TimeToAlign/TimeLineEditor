@@ -64,8 +64,8 @@ const SCORE: PlaceKey = { item: "group_1", member: "score" };
  */
 const DRAWN = {
   group_1: { x: 8, y: 28.8046875 },
-  group_2: { x: 8, y: 206.0390625 },
-  annotations: { x: 8, y: 383.7734375 },
+  group_2: { x: 8, y: 199.53125 },
+  annotations: { x: 8, y: 377.265625 },
 };
 
 function placeOf(of: View, key: PlaceKey): ItemBox["item"]["place"] {
@@ -108,7 +108,7 @@ describe("itemMoveCommand", () => {
     expect(itemMoveCommand(view, A, FRAME_2, 40.0001, 200, metrics)).toEqual(
       itemMoveCommand(view, A, FRAME_2, 40, 200, metrics),
     );
-    expect(itemMoveCommand(view, A, FRAME_2, 8, 206.0390625, metrics)).toBeNull();
+    expect(itemMoveCommand(view, A, FRAME_2, 8, 199.53125, metrics)).toBeNull();
     expect(() => itemMoveCommand(view, A, { item: "score" }, 0, 0, metrics)).toThrow(RangeError);
   });
 
@@ -134,18 +134,18 @@ describe("itemMoveCommand", () => {
       type: "set",
       changes: [
         { target: at("group_2"), values: { place: { x: 40, y: 200 } } },
-        { target: at("group_1"), values: { place: { x: 40, y: 22.765625 } } },
+        { target: at("group_1"), values: { place: { x: 40, y: 29.2734375 } } },
         { target: at("annotations"), values: { place: { x: 40, y: 377.734375 } } },
       ],
     });
     const after = changed(view, command);
     expect(placeOf(after, FRAME_2)).toMatchObject({ x: 40, y: 200 });
-    expect(placeOf(after, FRAME_1)).toMatchObject({ x: 40, y: 22.765625 });
+    expect(placeOf(after, FRAME_1)).toMatchObject({ x: 40, y: 29.2734375 });
     expect(placeOf(after, ANNOTATIONS)).toMatchObject({ x: 40, y: 377.734375 });
   });
 
   it("gives null when no item travels, and refuses a key of together that is no item", () => {
-    expect(itemMoveCommand(view, A, FRAME_2, 8, 206.0390625, metrics, [ANNOTATIONS])).toBeNull();
+    expect(itemMoveCommand(view, A, FRAME_2, 8, 199.53125, metrics, [ANNOTATIONS])).toBeNull();
     expect(() => itemMoveCommand(view, A, FRAME_2, 40, 200, metrics, [{ item: "score" }])).toThrow(
       RangeError,
     );
@@ -208,7 +208,7 @@ describe("itemsMovedWith", () => {
       x: 8,
       y: 28.8046875,
       width,
-      height: 169.234375,
+      height: 162.7265625,
     });
     const block = blockIn(over, A);
     const overDrawing = drawingOf(block, over.graphical, metrics);
@@ -405,7 +405,7 @@ function one(key: PlaceKey, place: PlaceValues): PlaceChanges {
 describe("itemResizeValues, scale", () => {
   it.each([
     [view, "bottom-right", 40, 20, { scale: 1.2783203125 }],
-    [view, "top-left", -40, -20, { scale: 1.2783203125, x: -148.15234375, y: 363.7744140625 }],
+    [view, "top-left", -40, -20, { scale: 1.2783203125, x: -148.15234375, y: 357.2666015625 }],
     [view, "bottom-right", -1000, -1000, { scale: 0.125 }],
     [doubled(view), "bottom-right", 80, 40, { scale: 1.2783203125 }],
     [
@@ -423,7 +423,7 @@ describe("itemResizeValues, scale", () => {
 
   it("scales a member's group from the frame's top left to the card's bottom right corner", () => {
     expect(values(view, "arranger", PERFORMANCE, "scale", "bottom-right", 40, 20)).toStrictEqual(
-      byPlace([FRAME_1, { scale: 1.1240234375 }]),
+      byPlace([FRAME_1, { scale: 1.12939453125 }]),
     );
   });
 
@@ -446,7 +446,7 @@ describe("itemResizeValues, box", () => {
     ["left", -21, 0, { width: 601, x: -13 }],
     ["left", 100, 0, { width: null, x: 26.9482421875 }],
     ["bottom", 0, 10.5, { height: 168.2578125 }],
-    ["top", 0, -16, { height: 173.7578125, y: 190.0390625 }],
+    ["top", 0, -16, { height: 173.7578125, y: 183.53125 }],
   ] as const)("group_2 %s by (%d, %d)", (handle, dx, dy, expected) => {
     expect(values(wide, "bundle", FRAME_2, "box", handle, dx, dy)).toStrictEqual(
       byPlace([FRAME_2, expected]),
@@ -470,7 +470,7 @@ describe("itemResizeValues, box", () => {
     expect((node?.position.x ?? 0) + 21 + place.x + place.width).toBe(628);
     expect(placeOf(after, FRAME_1)).toMatchObject(DRAWN.group_1);
     // With the card hidden, `annotations` lies 8 below `group_2`'s frame (README's table).
-    expect(placeOf(after, ANNOTATIONS)).toMatchObject({ x: 8, y: 371.796875 });
+    expect(placeOf(after, ANNOTATIONS)).toMatchObject({ x: 8, y: 365.2890625 });
   });
 
   it("sizes a member's own card, in item coordinates under its group's scale", () => {
@@ -496,9 +496,9 @@ const TWICE_ANNOTATIONS = 143.7109375;
 /** Twice the height of `performance`'s card, `2 Hp`. */
 const TWICE_PERFORMANCE = 98.953125;
 /** Twice the height of `score`'s card at its default spacing, `2 Hs(4)`. */
-const TWICE_SCORE = 157.90625;
+const TWICE_SCORE = 144.890625;
 /** Twice `group_1`'s frame height at the default spacings, `2 H(8)`. */
-const TWICE_FRAME = 338.46875;
+const TWICE_FRAME = 325.453125;
 
 describe("itemResizeValues, stretch", () => {
   const wide = placed(view, A, "annotations", { width: TWICE_ITEM });
@@ -509,7 +509,7 @@ describe("itemResizeValues, stretch", () => {
     [view, "left", -21, 0, { length: 421, x: -13 }],
     [view, "right", -500, 0, { length: 8 }],
     [view, "bottom", 0, 20, { spacing: 24 }],
-    [view, "top", 0, -20, { spacing: 24, y: 363.7734375 }],
+    [view, "top", 0, -20, { spacing: 24, y: 357.265625 }],
     [view, "bottom-right", 20, 20, { length: 420, spacing: 24 }],
     [view, "bottom", 0, -2, { spacing: 2 }],
     [view, "bottom", 0, -40, { spacing: 0 }],
@@ -543,23 +543,23 @@ describe("itemResizeValues, stretch", () => {
 
   it.each([
     [view, SCORE, "right", 20, 0, byPlace([FRAME_1, { length: 420 }])],
-    [view, SCORE, "bottom", 0, 16, byPlace([SCORE, { spacing: 12 }])],
+    [view, SCORE, "bottom", 0, 16, byPlace([SCORE, { spacing: 20 }])],
     [
       view,
       SCORE,
       "bottom-right",
       20,
       16,
-      byPlace([FRAME_1, { length: 420 }], [SCORE, { spacing: 12 }]),
+      byPlace([FRAME_1, { length: 420 }], [SCORE, { spacing: 20 }]),
     ],
-    [tallScore, SCORE, "bottom", 0, 32, byPlace([SCORE, { spacing: 12, height: 189.90625 }])],
+    [tallScore, SCORE, "bottom", 0, 32, byPlace([SCORE, { spacing: 20, height: 176.890625 }])],
     [
       tallFrame,
       SCORE,
       "bottom",
       0,
       16,
-      byPlace([SCORE, { spacing: 12 }], [FRAME_1, { height: 370.46875 }]),
+      byPlace([SCORE, { spacing: 20 }], [FRAME_1, { height: 357.453125 }]),
     ],
     [framed, SCORE, "right", 30, 0, byPlace([FRAME_1, { length: 415, width: 1152.10400390625 }])],
     [
@@ -638,9 +638,9 @@ describe("itemResizeValues, stretch", () => {
     }
     expect(values(bare, "arranger", PERFORMANCE, "stretch", "bottom", 0, -40)).toStrictEqual({});
     expect(resizeOf(bare, "arranger", PERFORMANCE, "stretch", "bottom", 0, -40)).toBeNull();
-    const tall = placed(bare, A, "group_1", { height: 297.125 });
+    const tall = placed(bare, A, "group_1", { height: 284.109375 });
     expect(values(tall, "arranger", PERFORMANCE, "stretch", "bottom", 0, 16)).toStrictEqual(
-      byPlace([PERFORMANCE, { margin: 8 }], [FRAME_1, { height: 329.125 }]),
+      byPlace([PERFORMANCE, { margin: 8 }], [FRAME_1, { height: 316.109375 }]),
     );
     const after = changed(
       bare,
@@ -875,10 +875,10 @@ describe("Stretch, its changes", () => {
       byPlace([FRAME_1, { spacing: 16 }]),
     );
     expect(stretchedTo(tallFrame, "bundle", FRAME_1, "spacing", 16)).toStrictEqual(
-      byPlace([FRAME_1, { spacing: 16, height: 354.46875 }]),
+      byPlace([FRAME_1, { spacing: 16, height: 341.453125 }]),
     );
     expect(stretchedTo(tallScore, "bundle", SCORE, "spacing", 12)).toStrictEqual(
-      byPlace([SCORE, { spacing: 12, height: 189.90625 }]),
+      byPlace([SCORE, { spacing: 12, height: 160.890625 }]),
     );
     const card = new Stretch(
       tallFrame,
@@ -890,7 +890,7 @@ describe("Stretch, its changes", () => {
     ).changes(12);
     expect([...card.values()]).toStrictEqual([
       { key: SCORE, values: { spacing: 12 } },
-      { key: FRAME_1, values: { height: 370.46875 } },
+      { key: FRAME_1, values: { height: 341.453125 } },
     ]);
   });
 

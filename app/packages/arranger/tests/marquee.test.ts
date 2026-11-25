@@ -20,7 +20,10 @@ const node = nodeOf(view, null);
 const { manifest } = blockIn(view, A);
 const every = insideOf(manifest, node.data.drawing, null);
 const at = (...elements: ElementAddress[]) => elements.map((element) => inBlock(A, element));
-const part = (id: string, ...words: ("start" | "end" | "name" | "label")[]): ElementAddress =>
+const part = (
+  id: string,
+  ...words: ("start" | "end" | "name" | "label" | "symbol")[]
+): ElementAddress =>
   words.reduce<OwnerAddress>((owner, word) => partAddress(owner, word), idAddress(id));
 const bottom = { x: 40, y: 370, width: 600, height: 84 };
 /** `recording`'s timeline editor: the one editor raising its ancestor card. */
@@ -40,17 +43,16 @@ const full = withFullCards(view);
 
 describe("elementsInRect", () => {
   it("selects the elements wholly inside, never a box", () => {
-    const card = { x: 56, y: 133.609375, width: 547.9150390625, height: 78.953125 };
+    const card = { x: 56, y: 133.609375, width: 547.9150390625, height: 72.4453125 };
     expect(elementsInRect(node, card, every, metrics)).toEqual(
       at(
         idAddress("cmap_1"),
         idAddress("cmap_2"),
-        idAddress("jump_1"),
         idAddress("score"),
         idAddress("timestamp_9"),
         idAddress("timestamp_10"),
         part("score", "name"),
-        part("jump_1", "label"),
+        part("jump_1", "symbol"),
       ),
     );
   });
@@ -141,10 +143,13 @@ describe("elementsInRect", () => {
     expect(elementsInRect(node, strip, every, metrics)).toEqual([]);
     const behind = [
       idAddress("cmap_6"),
+      idAddress("cmap_7"),
       idAddress("region_3"),
       idAddress("recording"),
       idAddress("excerpt"),
+      idAddress("dlt_1"),
       part("recording", "name"),
+      part("dlt_1", "name"),
       part("excerpt", "name"),
       part("region_3", "label"),
     ];
@@ -156,11 +161,14 @@ describe("elementsInRect", () => {
       at(
         idAddress("cmap_5"),
         idAddress("cmap_6"),
+        idAddress("cmap_7"),
+        idAddress("region_3"),
         idAddress("recording"),
         idAddress("excerpt"),
+        idAddress("dlt_1"),
+        part("dlt_1", "name"),
         part("excerpt", "name"),
         part("recording", "name"),
-        idAddress("region_3"),
         part("region_3", "label"),
       ),
     );

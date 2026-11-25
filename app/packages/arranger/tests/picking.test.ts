@@ -122,7 +122,7 @@ describe("what a press picks", () => {
   it("picks no flow-control element", () => {
     const flow = blockOf("flow_control");
     expect(pick(flow, idAddress("break_1"), "break")).toBeNull();
-    expect(pick(flow, idAddress("jump_1"), "jump")).toBeNull();
+    expect(pick(flow, partAddress(idAddress("jump_1"), "symbol"), "symbol")).toBeNull();
   });
 });
 

@@ -39,17 +39,17 @@ describe("targetBounds", () => {
       x: 40,
       y: 80,
       width: 579.052001953125,
-      height: 471.65234375,
+      height: 465.14453125,
     });
     expect(targetBounds(node, at("group_1"), metrics)).toEqual({
       x: 48,
       y: 108.8046875,
       width: 561.052001953125,
-      height: 169.234375,
+      height: 162.7265625,
     });
     expect(targetBounds(node, at("annotations"), metrics)).toEqual({
       x: 48,
-      y: 469.796875,
+      y: 463.2890625,
       width: 561.052001953125,
       height: 71.85546875,
     });
@@ -58,7 +58,7 @@ describe("targetBounds", () => {
   it("spans a child's drawn elements, its line and its name", () => {
     expect(targetBounds(node, at("dlt_1"), metrics)).toEqual({
       x: 64,
-      y: 376.91796875,
+      y: 370.41015625,
       width: 306.79150390625,
       height: 12.8046875,
     });
@@ -70,7 +70,7 @@ describe("targetBounds", () => {
     if (shown === undefined) throw new Error("no node");
     expect(targetBounds(shown, at("dlt_1"), metrics)).toEqual({
       x: 64,
-      y: 376.91796875,
+      y: 370.41015625,
       width: 306.79150390625,
       height: 12.8046875,
     });
@@ -82,7 +82,7 @@ describe("targetBounds", () => {
     if (raised === undefined) throw new Error("no node");
     expect(targetBounds(raised, recording, metrics)).toEqual({
       x: -215.70361328125,
-      y: 310.84375,
+      y: 304.3359375,
       width: 2233.755615234375,
       height: 142.953125,
     });
@@ -93,7 +93,7 @@ describe("targetBounds", () => {
       x: 56,
       y: 137.609375,
       width: 1122.10400390625,
-      height: 338.46875,
+      height: 325.453125,
     });
   });
 

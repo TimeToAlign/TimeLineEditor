@@ -249,14 +249,14 @@ describe("the node of a block placed by its place origin", () => {
     const [only] = project(moved, NOTHING_SELECTED, [], metrics, null);
     expect(only?.data.drawing.origin).toEqual({ x: 38, y: 48.8046875 });
     expect(only?.position).toEqual({ x: 2, y: 31.1953125 });
-    expect([only?.width, only?.height]).toEqual([615.052001953125, 420.6015625]);
+    expect([only?.width, only?.height]).toEqual([615.052001953125, 414.09375]);
     const doubled = changed(moved, {
       type: "set",
       changes: [{ target: { block: A }, values: { scale: 2 } }],
     });
     const [large] = project(doubled, NOTHING_SELECTED, [], metrics, null);
     expect(large?.position).toEqual({ x: -36, y: -17.609375 });
-    expect([large?.width, large?.height]).toEqual([1230.10400390625, 841.203125]);
+    expect([large?.width, large?.height]).toEqual([1230.10400390625, 828.1875]);
     const block = blockIn(doubled, A);
     expect(nodePosition(block, drawingOf(block, doubled.graphical, metrics))).toEqual({
       x: -36,
@@ -315,10 +315,9 @@ describe("the projection under an editor", () => {
         cardAddress("score"),
         at("cmap_1"),
         at("cmap_2"),
-        at("jump_1"),
         at("score"),
         ...markers("score", "timestamp_9", "timestamp_10"),
-        at("jump_1", "label"),
+        at("jump_1", "symbol"),
         cardAddress("performance"),
         at("cmap_3"),
         at("performance"),
