@@ -122,15 +122,15 @@ describe("a band moved across its line", () => {
     );
     expect(drawing.height).toBe(117.90625);
     expect(element(drawing, at("flow:quarters"))).toMatchObject({ y: 72.9296875 });
-    expect(element(drawing, at("flow_marker_1"))).toMatchObject({
+    expect(element(drawing, at("break_1"))).toMatchObject({
       y1: 56.953125,
       y2: 99.90625,
     });
-    expect(element(drawing, at("flow_marker_1", "label"))).toMatchObject({
+    expect(element(drawing, at("break_1", "label"))).toMatchObject({
       x: 393.9775390625,
       baseline: 65.30712890625,
     });
-    expect(element(drawing, at("jump_from_1"))).toMatchObject({
+    expect(element(drawing, at("jump_1"))).toMatchObject({
       start: [290.9775390625, 56.953125],
     });
   });

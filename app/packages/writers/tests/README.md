@@ -355,8 +355,10 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
   (40,-10) .. (48,6)`.
 - For every jump of `flow_control` and `corpus_score_ms3`, drawn by the
   layout at the default placement with the default layer and their own,
-  one shaft per jump (`jump`) their roots hold, each of which holds one destination and so draws
-  one arc: the shaft's end tangent continues
+  one shaft per destination of a jump (`jump`) their roots hold, but for a
+  destination going on (`by` 0), which draws no arc (12 in
+  `corpus_score_ms3`, whose two voltas each go on once): the shaft's end
+  tangent continues
   the head's axis and the base is perpendicular to it, at the written
   precision. The unit vector from `C2` to the path's last point and the one
   from that point to the tip are written alike by the number rule, the

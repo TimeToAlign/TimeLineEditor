@@ -282,7 +282,7 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
     const indexOf = (address: ElementAddress) =>
       addresses.findIndex((item) => sameAddress(item, address));
     const opening: [string, ElementAddress[]][] = [
-      ["score", [at("cmap_1"), at("cmap_2"), at("jump_from_1"), at("score")]],
+      ["score", [at("cmap_1"), at("cmap_2"), at("jump_1"), at("score")]],
       ["performance", [at("cmap_3"), at("performance")]],
       ["page", [at("cmap_4"), at("page")]],
       ["excerpt", [at("cmap_6"), at("recording"), at("excerpt")]],

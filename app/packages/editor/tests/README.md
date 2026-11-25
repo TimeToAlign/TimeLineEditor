@@ -906,7 +906,7 @@ ancestor, has no card).
    (`Mixed`, target the block `{block}`), `group_1` (`Performance`),
    `score`, its card and its start the timeline's (`Score`, target `{block,
    id: "score"}`), the conversion map `cmap_4` of `page` (empty, its name
-   null; target `{block, id: "cmap_4"}`), the jump `jump_from_1`
+   null; target `{block, id: "cmap_4"}`), the jump `jump_1`
    likewise (every flow-control element has the schema's nullable `name`),
    and a measure map `bars` added to the block (empty; target `{block, id:
    "bars"}`). In the MatchStamps store (see "Words"): `matchstamp_1` its

@@ -423,10 +423,12 @@ describe("descriptors", () => {
   for (const name of ["flow_control", "corpus_score_ms3"]) {
     it(`continues each shaft of ${name} along its head's axis`, () => {
       const manifest = loadFixture(name);
-      // Every jump of these two holds one destination, so draws one arc.
+      // One arc per destination of a jump, but for a destination going on (`by` 0, both fixtures
+      // on rational quarters), which draws none; every other destination of these two has a place.
       const count = manifest.timelines
         .flatMap((timeline) => timeline.flow_control)
-        .filter((item) => item.role === "jump" && item.targets?.length === 1).length;
+        .flatMap((item) => (item.role === "jump" ? (item.targets ?? []) : []))
+        .filter(({ by }) => by === undefined || (Array.isArray(by) && by[0] !== 0)).length;
       const layers = [DEFAULT_LAYER, manifestLayer(manifest)];
       const drawing = draw(manifest, DEFAULT_PLACEMENT, layers, fontMetrics);
       const descriptors = toDescriptors(drawing);

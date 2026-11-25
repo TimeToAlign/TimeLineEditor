@@ -125,15 +125,17 @@ describe("a root of unknown length", () => {
     // The fixture states the lock its loader set: the reach is read on the unlocked timeline,
     // whose length a command sets and whose known end is an arrowhead.
     const unlocked = set("clt_1", { locked: false });
-    // A flow-control element is never removed: the manifest is given without its last jump,
-    // and its Fine without the condition that names that jump.
+    // A flow-control element is never removed: the manifest is given without the elements after
+    // 30 but the jump target `jump_target_6` at 34, and its Fine without the condition that names
+    // the last jump.
     const corpus = loadFile("corpus_score_ms3");
-    const withoutLastJump: Manifest = {
+    const dropped = new Set(["jump_7", "break_3", "jump_8", "jump_10"]);
+    const toTheTarget: Manifest = {
       ...corpus,
       timelines: corpus.timelines.map((root) => ({
         ...root,
         flow_control: root.flow_control
-          .filter((item) => item.id !== "jump_from_4")
+          .filter((item) => !dropped.has(item.id))
           .map(({ ends: _, ...item }) => item),
       })),
     };
@@ -144,23 +146,20 @@ describe("a root of unknown length", () => {
       edit("corpus_score_ms3", children, unlocked, set("clt_1", { length: null })),
     );
     expect(flow(unknown)).toEqual(flow(known));
-    expect(flow(unknown).map((item) => item.address)).toEqual([
-      at("flow_marker_1"),
-      at("jump_from_2"),
-      at("jump_from_1"),
-      at("jump_from_3"),
-      at("jump_from_4"),
-    ]);
+    expect(flow(unknown).map((item) => item.address)).toEqual(
+      ["break_1", "break_2", "break_4", "break_3", "jump_2", "jump_7", "jump_2", "jump_3"]
+        .concat(["jump_5", "jump_1", "jump_11", "jump_6", "jump_9", "jump_4", "jump_8", "jump_10"])
+        .map((id) => at(id)),
+    );
     const x0 = line(known, "clt_1").xs;
     expect(line(known, "clt_1")).toEqual({ xs: x0, xe: x0 + 400, end: "arrowhead" });
     expect(line(unknown, "clt_1")).toEqual({ xs: x0, xe: x0 + 400 + 12, end: "unknown" });
-    // Without `jump_from_4` (at 37) the farthest coordinate is the jump target `jump_to_2` at 30,
-    // which draws nothing; the measure map's rows, reaching past it, are no content.
-    const at30 = drawn(
-      edited(withoutLastJump, children, unlocked, set("clt_1", { length: [30, 1] })),
-    );
-    const open = drawn(edited(withoutLastJump, children, unlocked, set("clt_1", { length: null })));
-    expect(flow(open)).toEqual(flow(at30));
+    // Without them the farthest coordinate is the jump target `jump_target_6` at 34, which draws
+    // nothing; the measure map's rows, reaching past it, are no content.
+    const at34 = drawn(edited(toTheTarget, children, unlocked, set("clt_1", { length: [34, 1] })));
+    const open = drawn(edited(toTheTarget, children, unlocked, set("clt_1", { length: null })));
+    expect(flow(open)).toEqual(flow(at34));
+    expect(flow(open)).not.toEqual(flow(unknown));
   });
 
   it("counts the place a destination reaches by its `by`, so the arc ends on the line", () => {

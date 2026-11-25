@@ -45,11 +45,12 @@ function thousandElements(): Manifest {
   ) {
     throw new Error("operation-count fixtures are incomplete");
   }
-  // The jump leads to the timeline's start: its one destination names no place.
+  // The jump leads to the timeline's start: its one destination names no place, and its arc
+  // is labelled with the destination's label.
   const [destination] = jump.targets ?? [];
   if (destination === undefined) throw new Error("operation-count fixtures are incomplete");
   const { to: _, ...placeless } = destination;
-  const toStart = { ...jump, targets: [placeless] as const };
+  const toStart = { ...jump, targets: [{ ...placeless, label: "jump" }] as const };
 
   const richChildren: ChildTimeline[] = Array.from({ length: 60 }, (_, index) => ({
     ...template,
@@ -81,9 +82,7 @@ function thousandElements(): Manifest {
       ...(index < 26
         ? [{ ...stop, id: `break_${index}`, coordinate: q(1, 2), label: "stop", name: null }]
         : []),
-      ...(index === 26
-        ? [{ ...toStart, id: `jump_${index}`, coordinate: q(1), label: "jump" }]
-        : []),
+      ...(index === 26 ? [{ ...toStart, id: `jump_${index}`, coordinate: q(1) }] : []),
       { ...marker, id: `marker_${index}`, coordinate: q(0) },
     ],
   }));
@@ -183,9 +182,9 @@ function counting(): { readonly font: FontMetrics; readonly reads: string[] } {
 
 /**
  * Every distinct text the drawing measures: the coordinate labels of the root's `origin` and
- * `length`, the region's,
- * break's and jump's labels, the root's name, the nested child's, and the names
- * of the rows of children, each row's names joined (the segment line's row ends with its own).
+ * `length`, the region's and the break's labels, the label of the jump's arc (its destination's),
+ * the root's name, the nested child's, and the names of the rows of children, each row's names
+ * joined (the segment line's row ends with its own).
  */
 const MEASURED = [
   "0 ♩",

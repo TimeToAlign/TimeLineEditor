@@ -145,8 +145,8 @@ own tests.
   286.4296875) the block is `8 + max(286.4296875, 143.734375 + s)`: flat up
   to its knee `s = 142.6953125`, slope 1 beyond.
 - **`flow_control`**: the root `flow:quarters` with the break
-  `flow_marker_1`, the jumps `jump_from_1` and `jump_from_2` and their jump targets
-  `jump_to_1` and `jump_to_2`, which are not drawn.
+  `break_1`, the jumps `jump_1` and `jump_2` and their jump targets
+  `jump_target_1` and `jump_target_2`, which are not drawn.
   **`with_region`**: the root `clt_1` with `region_1`.
 - **IDs** are unique across a whole manifest, so every element is
   addressed by its own ID wherever it lies (`{id: "tempo"}`,
@@ -197,7 +197,7 @@ own tests.
   `group_2` "Facsimile" (members `excerpt`, `page`, displayed `page`,
   `excerpt`; `excerpt` is a child of the root `recording`, drawn as its
   ancestor line), then the ungrouped root `annotations`. `score` carries
-  the maps `cmap_1` and `cmap_2` and the jump `jump_from_1` "Repeat";
+  the maps `cmap_1` and `cmap_2` and the jump `jump_1`, its destination labelled "Repeat";
   `performance` the map `cmap_3`; `page` `cmap_4`; `recording` `cmap_5`;
   `excerpt` `cmap_6`; `annotations` the regions `region_1` "Verse" and
   `region_2` "Chorus". Maps lie above their lines, jumps and
@@ -743,15 +743,15 @@ block leaves no gap: `{A: theme, A: t2}` gives targets `[A: theme, A:
 t2]`, which removes all four, and `{A, A: t2}` `[A, A: t2]`.
 
 **A flow-control element is never deleted.** On `flow_control`, the break
-`flow_marker_1`, the jump `jump_from_1`, its label and the jump target
-`jump_to_1`, each selected alone, and `flow_marker_1` with `jump_from_2`'s
+`break_1`, the jump `jump_1`, its label and the jump target
+`jump_target_1`, each selected alone, and `break_1` with `jump_2`'s
 label, are refused with `A flow-control element is not deleted; state your
 belief in it in the Properties tab to reject it.`. Selected beside
-something else it is left out: `{A: jump_from_1, A: timestamp_1, A:
-flow_marker_1 [label]}` gives the targets `[A: timestamp_1]`, and the
-five flow-control elements stay, in their order (`jump_to_1`, `jump_to_2`,
-`jump_from_1`, `flow_marker_1`, `jump_from_2`). Its timeline takes it
-along: `{A: jump_from_1, A: flow:quarters}` gives `[A: flow:quarters]`,
+something else it is left out: `{A: jump_1, A: timestamp_1, A:
+break_1 [label]}` gives the targets `[A: timestamp_1]`, and the
+five flow-control elements stay, in their order (`jump_target_1`, `jump_target_2`,
+`jump_1`, `break_1`, `jump_2`). Its timeline takes it
+along: `{A: jump_1, A: flow:quarters}` gives `[A: flow:quarters]`,
 which leaves no timeline.
 
 **What a deletion also takes away** is highlighted before it happens. The
@@ -1451,8 +1451,8 @@ as a press reports it) and names the `{block: A, id}` picked or `null`.
   `second-half`'s start or end is drawn on it, drawing.md section 8.3).
 - **`segment_line`**: the boundary `{id: "b", part: ["start"]}` picks the
   segment `b`.
-- **`flow_control`**: the break `flow_marker_1` and the jump
-  `jump_from_1` pick nothing.
+- **`flow_control`**: the break `break_1` and the jump
+  `jump_1` pick nothing.
 - **`with_region` with a stored elision**: after `add {into: {block: A, id:
   "clt_1"}, elision: {start: [1, 1], end: [2, 1]}}` the manifest holds
   `elision_1` on `clt_1`, which core resolves to the kind `elision`; a press
@@ -2406,11 +2406,11 @@ canvas rectangles below are the ones of the drawing without the card),
 each result an address in block A, written below by its element address:
 
 - The rectangle of `score`'s card gives, in drawing order, `{id:
-  "cmap_1"}`, `{id: "cmap_2"}`, `{id: "jump_from_1"}`, `{id: "score"}`,
+  "cmap_1"}`, `{id: "cmap_2"}`, `{id: "jump_1"}`, `{id: "score"}`,
   `score`'s named timestamps `{id: "timestamp_9"}` and `{id:
   "timestamp_10"}` (`origin`, `length`: each its wedge and its coordinate
   label, which stand for the timestamp), `{id: "score", part: ["name"]}`
-  and `{id: "jump_from_1", part: ["label"]}`, never the card. Every part of
+  and `{id: "jump_1", part: ["label"]}`, never the card. Every part of
   a named timestamp (its wedge, its labels, its line) stands for the
   timestamp, taken where its first part is drawn, and only when every
   part lies inside.

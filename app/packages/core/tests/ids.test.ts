@@ -75,7 +75,7 @@ describe("IDs in a file and in memory", () => {
       ["timestamp_6", "score"],
     ]);
     const [, , score] = manifest.timelines;
-    expect(score?.flow_control.map(({ id }) => id)).toEqual(["jump_from_1"]);
+    expect(score?.flow_control.map(({ id }) => id)).toEqual(["jump_1"]);
     expect(score?.regions.map(({ id }) => id)).toEqual(["region_1"]);
     expect(score?.conversion_maps.map(({ id }) => id)).toEqual(["cmap_1"]);
   });

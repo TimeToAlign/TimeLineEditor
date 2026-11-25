@@ -283,7 +283,7 @@ describe("resolving an address", () => {
     ],
     [inA({ id: "region_2" }), ["entry", "annotations", "region", 1, "region_2"]],
     [inA({ id: "cmap_6" }), ["entry", "excerpt", "map", 0, "cmap_6"]],
-    [inA({ id: "jump_from_1" }), ["entry", "score", "flow_control", 0, "jump_from_1"]],
+    [inA({ id: "jump_1" }), ["entry", "score", "flow_control", 0, "jump_1"]],
     [
       inA({ id: "region_1", part: ["label"] }),
       ["part", "label", ["entry", "annotations", "region", 0, "region_1"]],
@@ -389,10 +389,7 @@ describe("resolving an address", () => {
     [inA({ id: "excerpt", part: ["end"] }), "the end of timeline 'Excerpt' in bundle 'Mixed'"],
     [inA({ id: "score", part: ["label"] }), "the label of timeline 'Score' in bundle 'Mixed'"],
     [inA({ id: "region_1", part: ["name"] }), "the name of region 'Verse' in bundle 'Mixed'"],
-    [
-      inA({ id: "jump_from_1", part: ["name"] }),
-      "the name of jump 'jump_from_1' in bundle 'Mixed'",
-    ],
+    [inA({ id: "jump_1", part: ["name"] }), "the name of jump 'jump_1' in bundle 'Mixed'"],
     [
       inA({ id: "cmap_1", part: ["label"] }),
       "the label of conversion map 'cmap_1' in bundle 'Mixed'",
@@ -449,7 +446,7 @@ describe("the words of an address", () => {
     ],
     [inA({ id: "region_2" }), "region 'Chorus' in bundle 'Mixed'"],
     [inA({ id: "cmap_6" }), "conversion map 'cmap_6' in bundle 'Mixed'"],
-    [inA({ id: "jump_from_1" }), "jump 'jump_from_1' in bundle 'Mixed'"],
+    [inA({ id: "jump_1" }), "jump 'jump_1' in bundle 'Mixed'"],
     [{ block: B, id: "tempo" }, "conversion map 'Tempo' in the anonymous bundle"],
     [inA({ id: "gone" }), "'gone' in bundle 'Mixed'"],
     [

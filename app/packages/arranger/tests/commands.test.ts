@@ -218,27 +218,27 @@ describe("removeCommand", () => {
     };
     // A break, a jump, the label of either, and a jump target, which is selected by no drawing.
     for (const address of [
-      at("flow_marker_1"),
-      at("jump_from_1"),
-      at("jump_from_1", "label"),
-      at("jump_to_1"),
+      at("break_1"),
+      at("jump_1"),
+      at("jump_1", "label"),
+      at("jump_target_1"),
     ]) {
       expect(removeCommand(flow, selectionOf([address]), null)).toEqual(hint);
     }
-    expect(
-      removeCommand(flow, selectionOf([at("flow_marker_1"), at("jump_from_2", "label")]), null),
-    ).toEqual(hint);
+    expect(removeCommand(flow, selectionOf([at("break_1"), at("jump_2", "label")]), null)).toEqual(
+      hint,
+    );
     const mixed = removeCommand(
       flow,
-      selectionOf([at("jump_from_1"), at("timestamp_1"), at("flow_marker_1", "label")]),
+      selectionOf([at("jump_1"), at("timestamp_1"), at("break_1", "label")]),
       null,
     );
     expect(mixed).toEqual(removing(at("timestamp_1")));
     expect(
       blockIn(changed(flow, mixed), A).manifest.timelines[0]?.flow_control.map(({ id }) => id),
-    ).toEqual(["jump_to_1", "jump_to_2", "jump_from_1", "flow_marker_1", "jump_from_2"]);
+    ).toEqual(["jump_target_1", "jump_target_2", "jump_1", "break_1", "jump_2"]);
     // Its timeline takes it along.
-    const whole = removeCommand(flow, selectionOf([at("jump_from_1"), at("flow:quarters")]), null);
+    const whole = removeCommand(flow, selectionOf([at("jump_1"), at("flow:quarters")]), null);
     expect(whole).toEqual(removing(at("flow:quarters")));
     expect(blockIn(changed(flow, whole), A).manifest.timelines).toEqual([]);
   });

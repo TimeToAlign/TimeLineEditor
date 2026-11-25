@@ -63,7 +63,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (45d76023)"
+          "generator": "timetoalign 1.2.0 (aa91d4d5)"
         },
         "name": null,
         "resources": [],
@@ -187,7 +187,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (45d76023)"
+          "generator": "timetoalign 1.2.0 (aa91d4d5)"
         },
         "name": null,
         "resources": [],
@@ -363,7 +363,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (45d76023)"
+          "generator": "timetoalign 1.2.0 (aa91d4d5)"
         },
         "name": null,
         "resources": [],
@@ -620,7 +620,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (40161e42)"
+          "generator": "timetoalign 1.2.0 (aa91d4d5)"
         },
         "name": null,
         "resources": [],
@@ -689,18 +689,19 @@
             "flow_control": [
               {
                 "coordinate": [8, 1],
-                "id": "jump_from_1",
-                "label": "Repeat",
+                "id": "jump_1",
+                "label": null,
                 "meta": {},
                 "name": null,
                 "role": "jump",
                 "targets": [
                   {
                     "determined": true,
-                    "label": null,
+                    "label": "Repeat",
                     "manifestation": "repeat_end",
                     "repeat_count": 1,
-                    "reset": true
+                    "reset": true,
+                    "to": "score"
                   }
                 ]
               }
@@ -803,7 +804,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (45d76023)"
+              "generator": "timetoalign 1.2.0 (aa91d4d5)"
             },
             "name": null,
             "resources": [],
@@ -932,7 +933,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (45d76023)"
+              "generator": "timetoalign 1.2.0 (aa91d4d5)"
             },
             "name": null,
             "resources": [],
@@ -1113,7 +1114,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (45d76023)"
+              "generator": "timetoalign 1.2.0 (aa91d4d5)"
             },
             "name": null,
             "resources": [],
@@ -1375,7 +1376,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (40161e42)"
+              "generator": "timetoalign 1.2.0 (aa91d4d5)"
             },
             "name": null,
             "resources": [],
@@ -1444,18 +1445,19 @@
                 "flow_control": [
                   {
                     "coordinate": [8, 1],
-                    "id": "jump_from_1",
-                    "label": "Repeat",
+                    "id": "jump_1",
+                    "label": null,
                     "meta": {},
                     "name": null,
                     "role": "jump",
                     "targets": [
                       {
                         "determined": true,
-                        "label": null,
+                        "label": "Repeat",
                         "manifestation": "repeat_end",
                         "repeat_count": 1,
-                        "reset": true
+                        "reset": true,
+                        "to": "score"
                       }
                     ]
                   }

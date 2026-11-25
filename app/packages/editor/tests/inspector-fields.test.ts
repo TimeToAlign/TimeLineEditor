@@ -98,7 +98,7 @@ describe("the name field", () => {
     [[{ id: "score", part: ["card"] }], { id: "score" }, "Score"],
     [[{ id: "score", part: ["name"] }], { id: "score" }, "Score"],
     [[{ id: "cmap_4" }], { id: "cmap_4" }, null],
-    [[{ id: "jump_from_1" }], { id: "jump_from_1" }, null],
+    [[{ id: "jump_1" }], { id: "jump_1" }, null],
   ])("names %j by %j, %j", (elements, element, name) => {
     const target = { block: M, ...element };
     const store = storeOf();

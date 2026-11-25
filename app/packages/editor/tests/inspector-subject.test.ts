@@ -147,10 +147,10 @@ describe("inspectedSubject", () => {
     keyed([
       [at("map0000000", { id: "tempo" }), named("Conversion map", "Tempo")],
       [at("map0000000", { id: "ticks" }), named("Conversion map", "Ticks")],
-      [at("flow000000", { id: "flow_marker_1" }), named("Break", "fine")],
-      [at("flow000000", { id: "flow_marker_1", part: ["label"] }), named("Label of break", "fine")],
-      [at("flow000000", { id: "jump_from_1" }), unnamed("Jump", "jump_from_1")],
-      [at("flow000000", { id: "jump_to_1" }), named("Jump target", "repeat-start")],
+      [at("flow000000", { id: "break_1" }), named("Break", "fine")],
+      [at("flow000000", { id: "break_1", part: ["label"] }), named("Label of break", "fine")],
+      [at("flow000000", { id: "jump_1" }), unnamed("Jump", "jump_1")],
+      [at("flow000000", { id: "jump_target_1" }), named("Jump target", "repeat-start")],
       [at("styled0000", { id: "intro" }), named("Region", "intro")],
       [at("styled0000", { id: "intro", part: ["label"] }), named("Label of region", "intro")],
       [at("styled0000", { id: "da-capo" }), unnamed("Jump", "da-capo")],
@@ -241,7 +241,7 @@ describe("inspectedSubject", () => {
     ["a band with a part", [at(MIXED, { id: "score", facet: "regions", part: ["label"] })]],
     ["the card of a timeline drawn in none", [at("styled0000", { id: "a", part: ["card"] })]],
     ["a band of a group", [at(MIXED, { id: "group_1", facet: "regions" })]],
-    ["a band of a jump", [at(MIXED, { id: "jump_from_1", facet: "flow_control" })]],
+    ["a band of a jump", [at(MIXED, { id: "jump_1", facet: "flow_control" })]],
   ] as const)("gives null for %s", (_case, addresses) => {
     expect(inspectedSubject(bundles, selected(...addresses))).toBe(null);
   });

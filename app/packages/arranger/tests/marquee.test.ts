@@ -45,12 +45,12 @@ describe("elementsInRect", () => {
       at(
         idAddress("cmap_1"),
         idAddress("cmap_2"),
-        idAddress("jump_from_1"),
+        idAddress("jump_1"),
         idAddress("score"),
         idAddress("timestamp_9"),
         idAddress("timestamp_10"),
         part("score", "name"),
-        part("jump_from_1", "label"),
+        part("jump_1", "label"),
       ),
     );
   });

@@ -131,7 +131,7 @@ function memberElements(
 const SCORE = memberElements(
   "score",
   ["cmap_1", "cmap_2"],
-  ["jump_from_1"],
+  ["jump_1"],
   ["timestamp_9", "timestamp_10"],
 );
 const PERFORMANCE = memberElements("performance", ["cmap_3"], [], ["timestamp_7", "timestamp_8"]);

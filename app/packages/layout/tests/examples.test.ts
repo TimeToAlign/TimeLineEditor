@@ -174,14 +174,14 @@ describe("flow_control", () => {
       ),
       {
         type: "break",
-        address: at("flow_marker_1"),
+        address: at("break_1"),
         x: 390.9775390625,
         y1: yf,
         y2: 16,
       },
       {
         type: "jump",
-        address: at("jump_from_1"),
+        address: at("jump_1"),
         start: [290.9775390625, yf],
         c1: [253.4775390625, yc],
         c2: [178.4775390625, yc],
@@ -194,7 +194,7 @@ describe("flow_control", () => {
       },
       {
         type: "jump",
-        address: at("jump_from_2"),
+        address: at("jump_2"),
         start: [490.9775390625, yf],
         c1: [415.9775390625, 101.82421875],
         c2: [265.9775390625, 101.82421875],
@@ -235,7 +235,7 @@ describe("flow_control", () => {
       },
       {
         type: "label",
-        address: at("jump_from_1", "label"),
+        address: at("jump_1", "label"),
         x: 215.9775390625,
         baseline: 82.20947265625,
         anchor: "middle",
@@ -243,7 +243,7 @@ describe("flow_control", () => {
       },
       {
         type: "label",
-        address: at("jump_from_2", "label"),
+        address: at("jump_2", "label"),
         x: 340.9775390625,
         baseline: 102.68603515625,
         anchor: "middle",
@@ -251,14 +251,14 @@ describe("flow_control", () => {
       },
       {
         type: "label",
-        address: at("flow_marker_1", "label"),
+        address: at("break_1", "label"),
         x: 393.9775390625,
         baseline: 61.73291015625,
         anchor: "start",
         text: "Fine",
       },
     ]);
-    expect(element(drawing, at("jump_from_1")).style).toMatchObject({
+    expect(element(drawing, at("jump_1")).style).toMatchObject({
       stroke: "#000000",
       fill: "#000000",
       "stroke-width": 1,

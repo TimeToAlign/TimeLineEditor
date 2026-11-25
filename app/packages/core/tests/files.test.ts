@@ -395,7 +395,7 @@ describe("the elements of a named manifest with two groups", () => {
       id("score", "card"),
       ...drawn("score", 9, {
         maps: [id("cmap_1"), id("cmap_2")],
-        flow: [id("jump_from_1"), id("jump_from_1", "label")],
+        flow: [id("jump_1"), id("jump_1", "label")],
       }),
       id("performance", "card"),
       ...drawn("performance", 7, { maps: [id("cmap_3")] }),
@@ -580,7 +580,7 @@ describe("addresses in a block of several roots", () => {
     expect(findEntry(maps, id("ticks"))?.entry).toBe(melody?.children[0]?.conversion_maps[0]);
     const flow = load("flow_control.yaml");
     const control = flow.timelines[0]?.flow_control ?? [];
-    for (const item of ["flow_marker_1", "jump_from_1", "jump_to_1"]) {
+    for (const item of ["break_1", "jump_1", "jump_target_1"]) {
       const found = findEntry(flow, id(item));
       expect(found?.kind).toBe("flow_control");
       expect(found?.entry).toBe(control.find((entry) => entry.id === item));
