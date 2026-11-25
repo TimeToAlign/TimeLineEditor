@@ -1001,7 +1001,7 @@ itself or by its label, the Properties tab shows its name field, its
 read-only rows and its provenance; nothing else is a field. The oracles
 are TimeToShare's `flow/` fixtures, each held alone in block
 `0000000000`, the store (what it accepts, refuses and journals) and
-core's `isRejected` and `statedBy`. The user is the
+core's `isRejected`, `flowReading` and `statedBy`. The user is the
 default user, who states as `statedBy(DEFAULT_USER)`; the day is
 2026-11-26 (the clock is set to noon UTC).
 
@@ -1025,16 +1025,28 @@ default user, who states as `statedBy(DEFAULT_USER)`; the day is
    break states `ends` (its `passes`, "on pass 2", "on passes 1 and 3",
    "from pass n on", and its `after`, "after jump 'J' took its
    destination", followed by that destination's place, `to 'X'` or `by`
-   the pretty distance, where the reference states one), and Status where
-   the element is rejected. A jump's destinations are no rows of these
+   the pretty distance, where the reference states one), and Status under
+   the user's reading (`readingOf`, core's `flowReading` of the user's IRI
+   and the block's belief filter; for the default user and filter
+   `{believer: statedBy(DEFAULT_USER), beliefs: ["true", "undecided",
+   "unlikely"]}`): "rejected by you: no flow reads it" where the user
+   believes it `false`, "left out by the belief filter: no flow reads it"
+   where they hold no belief and the filter leaves out `undecided`,
+   "rejected by another actor: your flows read it" where it is read and
+   someone else believes it `false` (the drawing fades it, as the format
+   reads a rejection), none otherwise. A jump's destinations are no rows of these
    (item 7). Pinned whole: `sonata_exposition`'s `jump_1` (jump, `12 ♩`)
    and its `break_1` (break, `16 ♩`, Manifestation volta); `loop`'s jump
    at 6 seconds (`6″`); `sections`' Fine (break, `8 ♩`, fine, Ends the
    flow "after jump 'jump_1' took its destination") and its section break
    (two rows); `repairs`' barline and jump target (three rows each,
-   `double_barline` and `repeat_start`), its rejected `jump_1` with the
-   last row Status "rejected: no flow reads it", and its `jump_2` without
-   that row.
+   `double_barline` and `repeat_start`), its `jump_1`, which the editor
+   rejects and the default user does not, with the last row Status
+   "rejected by another actor: your flows read it", and its `jump_2`
+   without that row. With the block's belief filter `true` alone,
+   `barline_1` (no one's belief) gains the last row Status "left out by
+   the belief filter: no flow reads it", and `jump_2`, which the user
+   holds no belief in, the same.
 3. **The provenance** (`flowProvenance`): one line per entry of the
    element (`lineOf`, the reader of both other tabs), and one line holding
    the beliefs of all entries, each actor once. `repairs`' `jump_1`: one
@@ -1048,7 +1060,7 @@ default user, who states as `statedBy(DEFAULT_USER)`; the day is
    `unlikely`.
 4. **The panel.** On `repairs` with `jump_1` selected: the name field
    (empty: the jump has no name) is the only input; the rows are the three
-   of item 2; its one destination is a button (item 7); the provenance shows `method` `imported`, the one belief
+   of item 2 (Status "rejected by another actor: your flows read it"); its one destination is a button (item 7); the provenance shows `method` `imported`, the one belief
    "https://example.org/people/editor believes it false (2026-11-25): The
    repeat begins at the double barline.", and the three belief buttons
    True, Unlikely, False, none pressed, their group named "Your belief in
@@ -1062,7 +1074,8 @@ default user, who states as `statedBy(DEFAULT_USER)`; the day is
    editor never sends a provenance), nothing posted; the element's one
    entry then holds its paradata as before and the beliefs the editor's
    `true` and then the user's `false`; the element is rejected (core's
-   `isRejected`), False is pressed and the last row is Status. False
+   `isRejected`), False is pressed and the last row is Status "rejected
+   by you: no flow reads it". False
    again journals nothing.
    True journals a second `set`, replaces the user's belief in place and
    the element is read again, True pressed.

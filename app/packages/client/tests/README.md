@@ -250,10 +250,12 @@ call or the exact result.
     little-endian 32-bit integer, the parameters as JSON, then the
     manifest's text as UTF-8, unchanged (a manifest with a non-ASCII
     character is the case). The parameters are `{"timeline"}`, then
-    `"convention"` and `"believer"` in that order where the options give
-    them; `withFlowMaps` takes no `convention` and, after `believer`,
-    `"actor"` and `"date"` (who asks for the flows to be written again,
-    and on which day). An option not given is not sent.
+    `"convention"`, then the reading's `"believer"` and `"beliefs"` (core's
+    reading: the editor's user and the states read, here `true` and
+    `unlikely`, sent as the list it holds), in that order where the
+    options give them; `withFlowMaps` takes no `convention` and, after the
+    reading, `"actor"` and `"date"` (who asks for the flows to be written
+    again, and on which day). An option not given is not sent.
 
     The answers' oracle is the server's (its tests README, "Flows"), whose
     own oracle is the flows TimeToShare states for its flow fixtures; the

@@ -6,7 +6,14 @@
 
 import type { Selection } from "@timetoalign/tilie-arranger";
 import { liveStore, resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
-import type { Address, ElementAddress, FlowControlElement, Store } from "@timetoalign/tilie-core";
+import type {
+  Address,
+  BeliefState,
+  Block,
+  ElementAddress,
+  FlowControlElement,
+  Store,
+} from "@timetoalign/tilie-core";
 import { DEFAULT_USER, isRejected, statedBy } from "@timetoalign/tilie-core";
 import { defaultCatalogue, fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
@@ -17,6 +24,7 @@ import {
   flowOf,
   flowProvenance,
   flowRows,
+  readingOf,
 } from "../src/inspector/flow.ts";
 import PropertiesPanel from "../src/inspector/PropertiesPanel.svelte";
 import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
@@ -37,11 +45,18 @@ function flowIn(store: Store, ...elements: ElementAddress[]) {
   return flowOf(resolveSelection(store.view, selected(...elements), null, fontMetrics));
 }
 
-/** The rows of the element `id` of `fixture`, label to value. */
-function rows(fixture: string, id: string): [string, string][] {
-  const flow = flowIn(storeOf(fixture), { id });
+/** The rows of the element `id` of `fixture`, label to value, for the default user; under `kept`, the block's belief filter. */
+function rows(fixture: string, id: string, kept?: readonly BeliefState[]): [string, string][] {
+  const store = storeOf(fixture);
+  if (kept !== undefined) {
+    expect(
+      store.configure({ matchClaimFilters: { [A]: { timelines: null, beliefs: kept } } }),
+    ).toBeNull();
+  }
+  const flow = flowIn(store, { id });
   if (flow === null) throw new Error(`${fixture} holds no flow-control element ${id}`);
-  return flowRows(flow).map((row) => [row.label, row.value]);
+  const reading = readingOf(store.view, flow.block, DEFAULT_USER);
+  return flowRows(flow, reading).map((row) => [row.label, row.value]);
 }
 
 function elementIn(store: Store, id: string): FlowControlElement {
@@ -129,13 +144,25 @@ describe("the rows of a flow-control element", () => {
     ]);
   });
 
-  it("say that a rejected element is rejected", () => {
+  it("say whether the user's flows read the element", () => {
     expect(rows("flow/repairs", "jump_1")).toEqual([
       ["Role", "jump"],
       ["Coordinate", "16 ♩"],
-      ["Status", "rejected: no flow reads it"],
+      ["Status", "rejected by another actor: your flows read it"],
     ]);
     expect(rows("flow/repairs", "jump_2").map(([label]) => label)).toEqual(["Role", "Coordinate"]);
+    const leftOut = ["Status", "left out by the belief filter: no flow reads it"];
+    expect(rows("flow/repairs", "barline_1", ["true"]).at(-1)).toEqual(leftOut);
+    expect(rows("flow/repairs", "jump_2", ["true"]).at(-1)).toEqual(leftOut);
+  });
+
+  it("read for the user under the block's belief filter", () => {
+    const store = storeOf("flow/repairs");
+    const block = store.view.blocks[A] as Block;
+    expect(readingOf(store.view, block, DEFAULT_USER)).toEqual({
+      believer: statedBy(DEFAULT_USER),
+      beliefs: ["true", "undecided", "unlikely"],
+    });
   });
 });
 
@@ -421,7 +448,7 @@ describe("the Properties tab on a flow-control element", () => {
     expect(texts('[data-testid="flow-rows"] dd')).toEqual([
       "jump",
       "16 ♩",
-      "rejected: no flow reads it",
+      "rejected by another actor: your flows read it",
     ]);
     expect(spoken('[data-testid="flow-destinations"] li button .place')).toEqual([
       "start of its section at 0 ♩",
@@ -488,7 +515,7 @@ describe("the Properties tab on a flow-control element", () => {
     ]);
     expect(isRejected(elementIn(store, "jump_2"))).toBe(true);
     expect(pressed()).toEqual(["False"]);
-    expect(texts('[data-testid="flow-rows"] dt').at(-1)).toBe("Status");
+    expect(texts('[data-testid="flow-rows"] dd').at(-1)).toBe("rejected by you: no flow reads it");
     // The belief held already is left as it is: no command, no message.
     button("False").click();
     flushSync();

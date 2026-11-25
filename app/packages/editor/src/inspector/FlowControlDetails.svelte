@@ -1,7 +1,8 @@
 <script lang="ts">
 /**
  * One selected flow-control element in the Properties tab: its read-only
- * rows (`flowRows`: its role, its coordinate, how it is notated), its
+ * rows (`flowRows`: its role, its coordinate, how it is notated, its
+ * status under the user's reading, `readingOf`), its
  * display toggles (`elementToggles`), a jump's destinations, one button
  * each (`destinationRows`: the place it leads to by the kind, name, ID and
  * coordinate of what stands there, its conditions, how it is notated),
@@ -25,7 +26,7 @@ import { userOf } from "../user.svelte.ts";
 import DisplayGroups from "./DisplayGroups.svelte";
 import { elementToggles } from "./display.ts";
 import type { DestinationRow, FlowSubject } from "./flow.ts";
-import { beliefCommand, destinationRows, flowProvenance, flowRows } from "./flow.ts";
+import { beliefCommand, destinationRows, flowProvenance, flowRows, readingOf } from "./flow.ts";
 import { dayOf } from "./metadata/edits.ts";
 import ProvenanceDetails from "./ProvenanceDetails.svelte";
 
@@ -51,7 +52,9 @@ const post = postOf();
 const user = userOf();
 const profiles = profilesOf();
 
-const rows = $derived(flowRows(flow));
+/** Which elements the user's flows read: their belief, else the block's belief filter. */
+const reading = $derived(readingOf(view, flow.block, user.state.user));
+const rows = $derived(flowRows(flow, reading));
 const toggles = $derived(elementToggles(view, flow));
 const destinations = $derived(destinationRows(flow));
 

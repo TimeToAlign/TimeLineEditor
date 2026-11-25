@@ -97,8 +97,16 @@ export type {
   ElementBelief,
   ElementProvenance,
   FlowLineRole,
+  FlowReading,
 } from "./manifest/flow.ts";
-export { destinationPlace, FLOW_LINE_ROLES, isRejected } from "./manifest/flow.ts";
+export {
+  beliefStateOf,
+  destinationPlace,
+  FLOW_LINE_ROLES,
+  flowReading,
+  isRead,
+  isRejected,
+} from "./manifest/flow.ts";
 export type { ReadManifestFile } from "./manifest/io.ts";
 export {
   idFormPath,

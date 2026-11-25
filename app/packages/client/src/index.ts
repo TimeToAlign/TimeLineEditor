@@ -489,7 +489,7 @@ export function connect({ url, token }: ConnectOptions): Server {
         MALFORMED_FLOWS,
       );
     },
-    async withFlowMaps(manifest, timeline, { believer, actor, date } = {}) {
+    async withFlowMaps(manifest, timeline, { reading, actor, date } = {}) {
       const response = await request(
         "flows/flow-maps",
         {
@@ -498,7 +498,7 @@ export function connect({ url, token }: ConnectOptions): Server {
           body: flowsRequest(
             timeline,
             {
-              ...(believer === undefined ? {} : { believer }),
+              ...(reading === undefined ? {} : { reading }),
               ...(actor === undefined ? {} : { actor }),
               ...(date === undefined ? {} : { date }),
             },

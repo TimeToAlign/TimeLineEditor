@@ -6,6 +6,7 @@
  * manifest's text.
  */
 
+import type { FlowReading } from "@timetoalign/tilie-core";
 import { isRecord, member } from "./claimProvenance.ts";
 
 /** How flow control is played: as written, once through, or the axis as it stands. */
@@ -79,14 +80,16 @@ export interface FlowOptions {
   /** The one convention to answer; all three without it. */
   readonly convention?: FlowConvention;
   /**
-   * The actor whose beliefs decide which flow-control elements are read;
-   * without it the elements no actor rejects.
+   * Which flow-control elements are read: those whose state for the
+   * reading's believer is one of its states (core's `flowReading`, the
+   * editor's user under the block's belief filter); without it the
+   * elements no actor rejects.
    */
-  readonly believer?: string;
+  readonly reading?: FlowReading;
 }
 
 /** What `withFlowMaps` may be asked besides the timeline. */
-export interface WrittenFlowOptions extends Pick<FlowOptions, "believer"> {
+export interface WrittenFlowOptions extends Pick<FlowOptions, "reading"> {
   /**
    * Who asks: the actor whose belief `false` rejects an atomic section
    * written before whose stretch is none any more. The server refuses to
@@ -116,19 +119,20 @@ const FINDING_KINDS: readonly FlowFindingKind[] = [
 
 /**
  * A request of the flow routes: the parameters' UTF-8 length (little-endian),
- * the parameters as JSON (`timeline`, then `convention`, `believer`, `actor`
- * and `date` where given), then the manifest's text.
+ * the parameters as JSON (`timeline`, then `convention`, the reading's
+ * `believer` and `beliefs`, `actor` and `date` where given), then the
+ * manifest's text.
  */
 export function flowsRequest(
   timeline: string,
   options: FlowOptions & WrittenFlowOptions,
   manifest: string,
 ): Blob {
-  const { convention, believer, actor, date } = options;
+  const { convention, reading, actor, date } = options;
   const parameters = {
     timeline,
     ...(convention === undefined ? {} : { convention }),
-    ...(believer === undefined ? {} : { believer }),
+    ...(reading === undefined ? {} : { believer: reading.believer, beliefs: reading.beliefs }),
     ...(actor === undefined ? {} : { actor }),
     ...(date === undefined ? {} : { date }),
   };

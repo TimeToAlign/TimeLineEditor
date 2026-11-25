@@ -8,6 +8,10 @@ const manifest = "name: Café\n";
 const MALFORMED = "the flows answer is not the flows of the timeline asked for";
 const NO_MANIFEST = "the flow-maps answer is not a manifest";
 const EDITOR = "https://example.org/people/editor";
+/** The editor's reading under the belief filter that keeps `true` alone. */
+const READING = { believer: EDITOR, beliefs: ["true", "unlikely"] } as const;
+/** The reading's parameters as sent. */
+const READ = `"believer":"${EDITOR}","beliefs":["true","unlikely"]`;
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -148,11 +152,11 @@ describe("flows", () => {
     const stub = stubFetch(async () =>
       Response.json({ ...SONATA, conventions: { single: SONATA.conventions.single } }),
     );
-    await server().flows(manifest, "score", { believer: EDITOR, convention: "single" });
+    await server().flows(manifest, "score", { reading: READING, convention: "single" });
     await server().flows(manifest, "score", { convention: "single" });
     const bodies = await Promise.all(stub.mock.calls.map(([, init]) => sent(init as RequestInit)));
     expect(bodies).toEqual([
-      expectedBody(`{"timeline":"score","convention":"single","believer":"${EDITOR}"}`),
+      expectedBody(`{"timeline":"score","convention":"single",${READ}}`),
       expectedBody('{"timeline":"score","convention":"single"}'),
     ]);
   });
@@ -358,11 +362,11 @@ describe("withFlowMaps", () => {
   it("posts the timeline, then the manifest's text", async () => {
     const stub = stubFetch(async () => Response.json({ timelines: [] }));
     await server().withFlowMaps(manifest, "score");
-    await server().withFlowMaps(manifest, "score", { believer: EDITOR });
+    await server().withFlowMaps(manifest, "score", { reading: READING });
     await server().withFlowMaps(manifest, "score", { date: "2026-11-26", actor: EDITOR });
     await server().withFlowMaps(manifest, "score", {
       actor: EDITOR,
-      believer: EDITOR,
+      reading: READING,
       date: "2026-11-26",
     });
     expect(stub.mock.calls.length).toBe(4);
@@ -374,18 +378,14 @@ describe("withFlowMaps", () => {
     ]);
     expect(await sent(init)).toEqual(expectedBody('{"timeline":"score"}'));
     const [, believed] = stub.mock.calls[1] as [string, RequestInit];
-    expect(await sent(believed)).toEqual(
-      expectedBody(`{"timeline":"score","believer":"${EDITOR}"}`),
-    );
+    expect(await sent(believed)).toEqual(expectedBody(`{"timeline":"score",${READ}}`));
     const [, asked] = stub.mock.calls[2] as [string, RequestInit];
     expect(await sent(asked)).toEqual(
       expectedBody(`{"timeline":"score","actor":"${EDITOR}","date":"2026-11-26"}`),
     );
     const [, all] = stub.mock.calls[3] as [string, RequestInit];
     expect(await sent(all)).toEqual(
-      expectedBody(
-        `{"timeline":"score","believer":"${EDITOR}","actor":"${EDITOR}","date":"2026-11-26"}`,
-      ),
+      expectedBody(`{"timeline":"score",${READ},"actor":"${EDITOR}","date":"2026-11-26"}`),
     );
   });
 

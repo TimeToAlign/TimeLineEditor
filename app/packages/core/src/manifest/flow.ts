@@ -10,7 +10,7 @@
 
 import type { Belief } from "@timetoalign/timetoshare";
 import { expressAs } from "../maps/express.ts";
-import { actorIri } from "../matches/beliefs.ts";
+import { actorIri, BELIEF_STATES, type BeliefState } from "../matches/beliefs.ts";
 import type { Coordinate } from "../number/coordinate.ts";
 import { addCoordinates, axisCoordinate } from "../number/coordinate.ts";
 import { Rational } from "../number/rational.ts";
@@ -53,6 +53,75 @@ export function isRejected(element: Pick<FlowControlElement, "provenance">): boo
   return (element.provenance ?? []).some((entry) =>
     (entry.beliefs ?? []).some((held) => held.belief === "false"),
   );
+}
+
+/**
+ * Whose beliefs decide which flow-control elements are read: the
+ * `believer`'s state in each element (`believer`'s belief, the most
+ * critical of several, `undecided` where the believer holds none) is read
+ * when it is one of `beliefs`, as timetoalign's flow engine reads the
+ * elements for a believer and the states it keeps.
+ */
+export interface FlowReading {
+  readonly believer: string;
+  /** The states read, each once, in the order of `BELIEF_STATES`. */
+  readonly beliefs: readonly BeliefState[];
+}
+
+/** The states of a belief recorded that read an element: every belief but `false`. */
+const READ_WHERE_RECORDED: readonly BeliefState[] = ["true", "unlikely"];
+
+/**
+ * The reading of the flow-control elements for the user `believer` under
+ * the belief filter `kept` (the states a block's MatchClaim filter keeps):
+ * where the user recorded a belief in an element, that belief decides, so
+ * the element is read unless it is `false`; where they recorded none, the
+ * filter decides as it does for a MatchClaim the user holds no belief in,
+ * so the element is read when the filter keeps `undecided`.
+ */
+export function flowReading(believer: string, kept: readonly BeliefState[]): FlowReading {
+  const read = (state: BeliefState) =>
+    READ_WHERE_RECORDED.includes(state) || (state === "undecided" && kept.includes(state));
+  return { believer, beliefs: BELIEF_STATES.filter(read) };
+}
+
+/** The beliefs from the most critical on: `false`, then `unlikely`, then `true`. */
+const CRITICAL_FIRST: readonly Belief[] = ["false", "unlikely", "true"];
+
+/**
+ * The state of `believer` in a flow-control element: their belief, the
+ * most critical where they hold several (two entries, or two actors that
+ * stand for their IRI under `context`, the manifest's `@context`);
+ * `undecided` where they hold none.
+ */
+export function beliefStateOf(
+  element: Pick<FlowControlElement, "provenance">,
+  believer: string,
+  context: unknown,
+): BeliefState {
+  const wanted = actorIri(context, believer);
+  const held = new Set(
+    (element.provenance ?? []).flatMap((entry) =>
+      (entry.beliefs ?? [])
+        .filter((belief) => actorIri(context, belief.actor) === wanted)
+        .map((belief) => belief.belief),
+    ),
+  );
+  return CRITICAL_FIRST.find((belief) => held.has(belief)) ?? "undecided";
+}
+
+/**
+ * Whether a flow played under `reading` reads the element: without a
+ * reading, unless it is rejected (`isRejected`); with one, when the
+ * believer's state in it (`beliefStateOf`) is one of the reading's states.
+ */
+export function isRead(
+  element: Pick<FlowControlElement, "provenance">,
+  reading: FlowReading | null,
+  context: unknown,
+): boolean {
+  if (reading === null) return !isRejected(element);
+  return reading.beliefs.includes(beliefStateOf(element, reading.believer, context));
 }
 
 /** An actor's belief to record: who, what, and the day (`YYYY-MM-DD`). */

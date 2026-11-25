@@ -6,9 +6,12 @@ import { idAddress } from "../src/manifest/address.ts";
 import { manifestElements, memberFlow } from "../src/manifest/elements.ts";
 import { memberDrawings } from "../src/manifest/files.ts";
 import {
+  beliefStateOf,
   destinationPlace,
   FLOW_LINE_ROLES,
+  flowReading,
   flowSymbols,
+  isRead,
   isRejected,
   passesText,
   withElementBelief,
@@ -297,6 +300,46 @@ describe("a rejected element", () => {
         ],
       }),
     ).toBe(true);
+  });
+});
+
+describe("the elements read for a user", () => {
+  const EDITOR = "https://example.org/people/editor";
+  const OTHER = "https://example.org/people/other";
+  const IDS = ["barline_1", "jump_target_1", "jump_1", "jump_2"];
+  const DEFAULT = ["true", "undecided", "unlikely"] as const;
+  const readFor = (reading: ReturnType<typeof flowReading> | null) =>
+    IDS.map((id) => isRead(element("flow/repairs.yaml", id), reading, null));
+
+  it("derives the states read from the belief filter", () => {
+    expect(flowReading(EDITOR, DEFAULT)).toEqual({ believer: EDITOR, beliefs: DEFAULT });
+    expect(flowReading(EDITOR, ["true"]).beliefs).toEqual(["true", "unlikely"]);
+    expect(flowReading(EDITOR, ["false"]).beliefs).toEqual(["true", "unlikely"]);
+  });
+
+  it("reads by the user's belief where recorded, else by the filter", () => {
+    expect(readFor(flowReading(EDITOR, DEFAULT))).toEqual([true, true, false, true]);
+    expect(readFor(flowReading(EDITOR, ["true"]))).toEqual([false, true, false, true]);
+    expect(readFor(flowReading(OTHER, DEFAULT))).toEqual([true, true, true, true]);
+    expect(readFor(flowReading(OTHER, ["true"]))).toEqual([false, false, false, false]);
+    expect(readFor(null)).toEqual([true, true, false, true]);
+  });
+
+  it("takes the believer's most critical belief, the actor compared as its IRI", () => {
+    const held = (actor: string, belief: "true" | "false" | "unlikely") => ({
+      beliefs: [{ actor, belief, date: "2026-11-25" }] as const,
+    });
+    const twice = { provenance: [held(EDITOR, "true"), held("ex:editor", "false")] } as const;
+    const context = { ex: "https://example.org/people/" };
+    expect(beliefStateOf(twice, EDITOR, context)).toBe("false");
+    expect(beliefStateOf(twice, EDITOR, null)).toBe("true");
+    expect(beliefStateOf({ provenance: [held(EDITOR, "unlikely")] as const }, EDITOR, null)).toBe(
+      "unlikely",
+    );
+    expect(beliefStateOf({}, EDITOR, null)).toBe("undecided");
+    expect(beliefStateOf({ provenance: [held(OTHER, "false")] as const }, EDITOR, null)).toBe(
+      "undecided",
+    );
   });
 });
 

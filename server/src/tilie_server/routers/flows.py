@@ -47,10 +47,10 @@ router = APIRouter()
 REQUIRED_PARAMETERS = ("timeline",)
 """The parameter both routes require."""
 
-FLOWS_PARAMETERS = ("convention", "believer")
+FLOWS_PARAMETERS = ("convention", "believer", "beliefs")
 """The parameters the computing route takes besides, each optional."""
 
-WRITING_PARAMETERS = ("believer", "actor", "date")
+WRITING_PARAMETERS = ("believer", "beliefs", "actor", "date")
 """The parameters the writing route takes besides, each optional."""
 
 MANIFEST_MEDIA_TYPE = "application/json"
@@ -74,21 +74,47 @@ def flow_engine() -> tuple[Callable[..., Any], Callable[..., Any]]:
     return play, atomic_sections
 
 
-def asked_believer(parameters: Mapping[str, Any]) -> str | None:
-    """The actor whose beliefs decide which elements are read, if one is named.
+def asked_reading(parameters: Mapping[str, Any]) -> dict[str, Any]:
+    """Whose beliefs decide which elements are read, where a request says so.
 
-    The actor is compared as timetoalign's engine compares it, with the
-    actors of the elements' beliefs as the manifest writes them.
+    ``believer`` is an actor, compared as timetoalign's engine compares it
+    with the actors of the elements' beliefs as the manifest writes them;
+    ``beliefs`` the belief states read for it (``true``, ``undecided``,
+    ``unlikely``, ``false``), every state but ``false`` without it. An
+    element is read when the believer's state in it, ``undecided`` where
+    they hold no belief, is one of them; without a believer, when no actor
+    rejects it.
+
+    Returns:
+        The keyword arguments of timetoalign's ``play``,
+        ``atomic_sections`` and ``create_flow_maps_from_flow_control`` that
+        say so: none without a believer.
 
     Raises:
-        Refusal: 422 at ``["believer"]`` if the parameter is no string.
+        Refusal: 422 at ``["believer"]`` if the believer is no string; at
+            ``["beliefs"]`` if the states are no list of belief states, or
+            are given without a believer.
     """
-    if "believer" not in parameters:
-        return None
-    believer = parameters["believer"]
-    if not isinstance(believer, str):
-        raise Refusal(["believer"], "the parameter 'believer' is no actor")
-    return believer
+    from timetoshare import BELIEF_STATES
+
+    reading: dict[str, Any] = {}
+    if "believer" in parameters:
+        believer = parameters["believer"]
+        if not isinstance(believer, str):
+            raise Refusal(["believer"], "the parameter 'believer' is no actor")
+        reading["believer"] = believer
+    if "beliefs" in parameters:
+        if "believer" not in reading:
+            raise Refusal(["beliefs"], "the parameter 'beliefs' needs a 'believer'")
+        beliefs = parameters["beliefs"]
+        if not isinstance(beliefs, list) or not all(
+            isinstance(state, str) and state in BELIEF_STATES for state in beliefs
+        ):
+            raise Refusal(
+                ["beliefs"], "the parameter 'beliefs' is no list of belief states"
+            )
+        reading["beliefs"] = frozenset(beliefs)
+    return reading
 
 
 def asked_rejection(parameters: Mapping[str, Any]) -> tuple[str | None, str | None]:
@@ -201,7 +227,7 @@ def flows_answer(body: bytes) -> dict[str, Any]:
 
     Raises:
         Refusal: 501 as :func:`flow_engine`; 422 as :func:`read_request`,
-            :func:`asked_conventions`, :func:`asked_believer` and
+            :func:`asked_conventions`, :func:`asked_reading` and
             :func:`asked_timeline`; 422 at ``["timeline"]`` with timetoalign's
             message if the timeline's length is unknown or its flow control
             cannot be played.
@@ -212,7 +238,7 @@ def flows_answer(body: bytes) -> dict[str, Any]:
 
     parameters, manifest, bare = read_request(body, FLOWS_PARAMETERS)
     conventions = asked_conventions(parameters)
-    believer = asked_believer(parameters)
+    reading = asked_reading(parameters)
     _, timeline = asked_timeline(parameters, manifest, bare)
 
     def on_axis(coordinate: Any) -> Any:
@@ -223,9 +249,9 @@ def flows_answer(body: bytes) -> dict[str, Any]:
         if timeline.length is None:
             raise UnknownLengthError(timeline.id, "play its flow control")
         registry, length = timeline.flow_control, timeline.length
-        sections = atomic_sections(registry, length, believer=believer)
+        sections = atomic_sections(registry, length, **reading)
         flows = {
-            convention: play(registry, length, convention=convention, believer=believer)
+            convention: play(registry, length, convention=convention, **reading)
             for convention in conventions
         }
     except ValueError as error:
@@ -291,7 +317,7 @@ def written_manifest(body: bytes) -> str:
 
     Raises:
         Refusal: 501 as :func:`flow_engine`; 422 as :func:`read_request`,
-            :func:`asked_believer`, :func:`asked_rejection` and
+            :func:`asked_reading`, :func:`asked_rejection` and
             :func:`asked_timeline`; 422 at ``["timeline"]`` with
             timetoalign's message if it does not write the flows: the
             timeline's length is unknown, its flow control
@@ -302,13 +328,11 @@ def written_manifest(body: bytes) -> str:
     from timetoshare import dumps
 
     parameters, manifest, bare = read_request(body, WRITING_PARAMETERS)
-    believer = asked_believer(parameters)
+    reading = asked_reading(parameters)
     actor, date = asked_rejection(parameters)
     bundle, timeline = asked_timeline(parameters, manifest, bare)
     try:
-        timeline.create_flow_maps_from_flow_control(
-            believer=believer, actor=actor, date=date
-        )
+        timeline.create_flow_maps_from_flow_control(actor=actor, date=date, **reading)
     except ValueError as error:
         raise Refusal(["timeline"], str(error)) from error
     return dumps(bundle.to_dict(), "json")
@@ -320,8 +344,11 @@ def flows(body: PostedBody) -> Response:
 
     The body is the parameters' length in bytes (a little-endian 32-bit
     integer), the parameters ``{"timeline": <bare ID>, "convention"?:
-    "default" | "single" | "printed", "believer"?: <actor>}`` as JSON, then
-    the manifest file's text. The answer is JSON (:func:`flows_answer`),
+    "default" | "single" | "printed", "believer"?: <actor>, "beliefs"?:
+    [<belief state>, …]}`` as JSON, then the manifest file's text: the
+    elements read are those whose state for ``believer`` is one of
+    ``beliefs`` (every state but ``false`` without it), or, without a
+    believer, those no actor rejects. The answer is JSON (:func:`flows_answer`),
     with all three conventions where none is named. A request that cannot
     be answered is answered 422 with ``{"detail": {"path", "message"}}``, a
     parameter's at its name; a timetoalign that cannot play flow control,
@@ -340,12 +367,13 @@ def flow_maps(body: PostedBody) -> Response:
 
     The body is the parameters' length in bytes (a little-endian 32-bit
     integer), the parameters ``{"timeline": <bare ID>, "believer"?:
-    <actor>, "actor"?: <actor>, "date"?: "YYYY-MM-DD"}`` as JSON, then the
-    manifest file's text. ``actor`` is who asks: the one whose belief
-    rejects an atomic section written before that is none any more, on
-    ``date``. The answer is a manifest file in JSON
-    (:func:`written_manifest`); nothing is stored. Refusals answer as the
-    computing route's.
+    <actor>, "beliefs"?: [<belief state>, …], "actor"?: <actor>, "date"?:
+    "YYYY-MM-DD"}`` as JSON, then the manifest file's text; ``believer``
+    and ``beliefs`` read the elements as the computing route does.
+    ``actor`` is who asks: the one whose belief rejects an atomic section
+    written before that is none any more, on ``date``. The answer is a
+    manifest file in JSON (:func:`written_manifest`); nothing is stored.
+    Refusals answer as the computing route's.
     """
     try:
         text = written_manifest(body)

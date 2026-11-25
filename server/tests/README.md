@@ -426,9 +426,13 @@ Both bodies are the parameters behind their length, as the MatchClaim
 provenance routes take them (a little-endian 32-bit length, then a JSON
 object), then the manifest file's text to the end of the body, in any
 serialization. The parameters: `timeline`, the bare ID of a timeline of the
-manifest at any depth, required; `believer`, an actor, optional (the
-elements that actor does not reject are read; without it the elements no
-actor rejects); for `POST /api/flows` alone, `convention`, one of
+manifest at any depth, required; `believer`, an actor, and `beliefs`,
+the belief states read for it, both optional, `beliefs` only with
+`believer` (an element is read when the believer's state in it,
+`undecided` where they hold no belief, is one of `beliefs`, every state
+but `false` without them; without a believer the elements no actor
+rejects; the editor sends its user and the states its belief filter
+derives); for `POST /api/flows` alone, `convention`, one of
 `default`, `single` and `printed`, optional (all three without it); and,
 for `POST /api/flows/flow-maps` alone, `actor`, who asks, and `date`, the
 day (`YYYY-MM-DD`), both optional: the actor whose belief `false`, on that
@@ -504,6 +508,8 @@ unchanged.
 | `child_jumps`, the child `verse` (8 quarters at offset 4 in `piece`; a jump target at 2, a jump at 4 going back to the start twice, a jump at 8 to the target once, without `reset`), derived by hand: three times to 4, on to 8, back to 2, on to 8 | 200: sections A `[0, 1]`–`[2, 1]`, B –`[4, 1]`, C –`[8, 1]`, on the child's axis (not 4 to 12); `default` runs `[0, 4]`, `[0, 4]`, `[0, 8]`, `[2, 8]`, sections A B, A B, A B C, B C, no finding; `single` and `printed` one run `[0, 8]`, sections A B C |
 | `flow/repairs` with `believer` `https://example.org/people/editor`, who rejects the imported jump `jump_1` | 200, the answer without a believer: the file's flows |
 | `flow/repairs` with `believer` `https://example.org/people/other`, who rejects nothing, so two jumps are read at 16 | 422 at `["timeline"]`, timetoalign's words, of which `'jump_1'`, `'jump_2'` and `16` are asserted |
+| `flow/repairs` with `believer` `https://example.org/people/editor` and `beliefs` `true`, `unlikely` (the editor's `true` in `jump_target_1` and `jump_2` read, their `false` in `jump_1` not, the undecided `barline_1` not, which divides no section) | 200, the answer without a believer: the file's flows |
+| `flow/repairs` with `believer` `https://example.org/people/other` and `beliefs` `true`, `unlikely` (the other holds no belief, so no element is read) | 200: one section A `[0, 1]` to `[16, 1]`; each convention one run over it, sections A; `default` findings `[]` |
 
 **Refusals.** Each answers 422 `{"detail": {"path", "message"}}`; the
 server's own words are exact, a library's are asserted by the substrings
@@ -517,6 +523,8 @@ naming what is refused.
 | `timeline` `nothing`; `#score` (the file form of an ID the manifest holds); `virtual_1` (a virtual timeline of `flow/sonata_exposition`) | `["timeline"]`, `the manifest has no timeline '<the ID asked>'` |
 | `convention` `twice`; `convention` `7` | `["convention"]`, `the parameter 'convention' is none of 'default', 'single', 'printed'` |
 | `believer` `7` | `["believer"]`, `the parameter 'believer' is no actor` |
+| `beliefs` `["true"]` without `believer` | `["beliefs"]`, `the parameter 'beliefs' needs a 'believer'` |
+| with `believer`, `beliefs` `"true"`; `["maybe"]`; `[1]` | `["beliefs"]`, `the parameter 'beliefs' is no list of belief states` |
 | a body of two bytes; a prefix stating 100 bytes before 10; parameters `[1]`; parameters `{` | `[]`, the words of the MatchClaim provenance routes' parameters |
 | a manifest that is no UTF-8 (the byte `0xff`); a JSON list | `[]`, `the manifest is not UTF-8 text`; `the manifest is not an object` |
 

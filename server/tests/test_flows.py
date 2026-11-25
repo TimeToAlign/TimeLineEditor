@@ -311,6 +311,31 @@ def test_a_believer_who_rejects_as_the_fixture_does_answers_its_flows(
     assert believed.content == plain.content
 
 
+def test_the_states_read_for_a_believer_decide_what_is_played(
+    server: TestClient,
+) -> None:
+    plain = ask(server, fixture("flow/repairs"), "score")
+    kept = ["true", "unlikely"]
+    believed = ask(
+        server, fixture("flow/repairs"), "score", believer=EDITOR, beliefs=kept
+    )
+    assert believed.status_code == 200
+    assert believed.content == plain.content
+    unread = ask(server, fixture("flow/repairs"), "score", believer=OTHER, beliefs=kept)
+    assert unread.status_code == 200
+    whole = {"runs": [[[0, 1], [16, 1]]], "sections": ["A"]}
+    assert unread.json() == {
+        "timeline": "score",
+        "number_type": "fraction",
+        "atomic_sections": [{"name": "A", "start": [0, 1], "end": [16, 1]}],
+        "conventions": {
+            "default": {**whole, "findings": []},
+            "single": whole,
+            "printed": whole,
+        },
+    }
+
+
 @pytest.mark.parametrize("route", [FLOWS, FLOW_MAPS])
 def test_a_believer_who_rejects_nothing_reads_two_jumps_at_one_place(
     server: TestClient, route: str
@@ -368,6 +393,26 @@ def test_two_requests_answer_the_same(server: TestClient) -> None:
             ["believer"],
             "the parameter 'believer' is no actor",
         ),
+        (
+            {"timeline": "score", "beliefs": ["true"]},
+            ["beliefs"],
+            "the parameter 'beliefs' needs a 'believer'",
+        ),
+        (
+            {"timeline": "score", "believer": "a:b", "beliefs": "true"},
+            ["beliefs"],
+            "the parameter 'beliefs' is no list of belief states",
+        ),
+        (
+            {"timeline": "score", "believer": "a:b", "beliefs": ["maybe"]},
+            ["beliefs"],
+            "the parameter 'beliefs' is no list of belief states",
+        ),
+        (
+            {"timeline": "score", "believer": "a:b", "beliefs": [1]},
+            ["beliefs"],
+            "the parameter 'beliefs' is no list of belief states",
+        ),
     ],
     ids=[
         "no timeline",
@@ -379,6 +424,10 @@ def test_two_requests_answer_the_same(server: TestClient) -> None:
         "unknown convention",
         "convention no string",
         "believer no string",
+        "beliefs without believer",
+        "beliefs a string",
+        "beliefs unknown state",
+        "beliefs no string",
     ],
 )
 def test_a_parameter_is_refused_at_its_name(

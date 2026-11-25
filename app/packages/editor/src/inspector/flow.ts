@@ -6,7 +6,8 @@
  * entries of its provenance as both other tabs show an entry (`lineOf`),
  * and the one `set` recording the user's belief in it. The editor never
  * changes a flow-control element beyond its name: an element is rejected
- * by a belief `false`, and the drawing fades it.
+ * by a belief `false`, and the drawing fades it. Which elements the flows
+ * read is the user's reading (`readingOf`).
  */
 
 import type { Subject } from "@timetoalign/tilie-arranger";
@@ -15,20 +16,26 @@ import type {
   Block,
   ElementBelief,
   FlowControlElement,
+  FlowReading,
   JumpDestination,
   ResolvedAddress,
   SetCommand,
   TimelineManifest,
   User,
+  View,
 } from "@timetoalign/tilie-core";
 import {
   addressKey,
   assertNever,
+  beliefStateOf,
   destinationPlace,
   entryWord,
+  flowReading,
   idAddress,
   inBlock,
+  isRead,
   isRejected,
+  matchClaimFilterOf,
   prettyText,
   statedBy,
 } from "@timetoalign/tilie-core";
@@ -226,12 +233,43 @@ export function destinationRows(flow: FlowSubject): DestinationRow[] {
 }
 
 /**
+ * Which flow-control elements of `block` the flows played for `user` read
+ * (core's `flowReading`): the user's belief where they recorded one, else
+ * the block's belief filter, its MatchClaim filter's belief states. The
+ * one reading the editor derives, which the Properties tab's status shows
+ * and the client's flow routes take.
+ */
+export function readingOf(view: View, block: Block, user: User): FlowReading {
+  return flowReading(statedBy(user), matchClaimFilterOf(view.settings, block.id).beliefs);
+}
+
+/**
+ * The status of a flow-control element under `reading`: not read where
+ * the user rejects it or, holding no belief in it, the belief filter
+ * leaves it out; read although another actor rejects it (the drawing
+ * fades it, as the format reads a rejection); `null` for an element read
+ * and rejected by no one.
+ */
+function statusOf({ element, block }: FlowSubject, reading: FlowReading): string | null {
+  const context = block.manifest["@context"];
+  if (!isRead(element, reading, context)) {
+    return beliefStateOf(element, reading.believer, context) === "false"
+      ? "rejected by you: no flow reads it"
+      : "left out by the belief filter: no flow reads it";
+  }
+  return isRejected(element) ? "rejected by another actor: your flows read it" : null;
+}
+
+/**
  * The read-only rows of a flow-control element, in order: its role, its
  * coordinate, its manifestation where it states one, when a break ends the
- * flow where it states that (`ends`), and its status where it is rejected.
- * A jump's destinations are rows of their own (`destinationRows`).
+ * flow where it states that (`ends`), and its status under `reading`
+ * (`readingOf`) where it is not read or rejected by someone. A jump's
+ * destinations are rows of their own (`destinationRows`).
  */
-export function flowRows({ element, timeline }: FlowSubject): FlowRow[] {
+export function flowRows(flow: FlowSubject, reading: FlowReading): FlowRow[] {
+  const { element, timeline } = flow;
+  const status = statusOf(flow, reading);
   const role = entryWord("flow_control", element);
   const { ends } = element;
   const conditions =
@@ -248,7 +286,7 @@ export function flowRows({ element, timeline }: FlowSubject): FlowRow[] {
       ? []
       : [{ label: "Manifestation", value: element.manifestation }]),
     ...(ends === undefined ? [] : [{ label: "Ends the flow", value: conditions.join("; ") }]),
-    ...(isRejected(element) ? [{ label: "Status", value: "rejected: no flow reads it" }] : []),
+    ...(status === null ? [] : [{ label: "Status", value: status }]),
   ];
 }
 

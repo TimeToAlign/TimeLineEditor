@@ -969,6 +969,32 @@ ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
    only `jump_1` is; an element without provenance is not, nor one whose
    beliefs are `true` and `unlikely`; one actor's `false` beside another's
    `true` rejects.
+
+   **Read for a user** (`flowReading`, `isRead`, `beliefStateOf`): which
+   elements a flow reads is decided by the user's belief where they
+   recorded one (read unless `false`), else by the belief filter, which
+   reads an element the user holds no belief in when it keeps
+   `undecided`, as a MatchClaim the user holds no belief in is kept. The
+   reading is a believer and the states read, the form timetoalign's flow
+   engine takes, so the states are derived, never the filter's own: the
+   filter `true`, `undecided`, `unlikely` (the default) gives `true`,
+   `undecided`, `unlikely`; `true` alone gives `true`, `unlikely`; `false`
+   alone gives `true`, `unlikely` (the filter never reads what the user
+   rejects). On `flow/repairs` the editor
+   (`https://example.org/people/editor`) holds no belief in `barline_1`,
+   `true` in `jump_target_1` and `jump_2`, `false` in `jump_1`; so of
+   `barline_1`, `jump_target_1`, `jump_1`, `jump_2`, read for the editor
+   under the default: true, true, false, true; under `true` alone: false,
+   true, false, true; read for another actor
+   (`https://example.org/people/other`), who holds no belief, under the
+   default all four (the editor's rejection is not theirs), under `true`
+   alone none; without a reading, as `isRejected` says: true, true, false,
+   true. A believer's state is the most critical of their beliefs
+   (`false` over `unlikely` over `true`; `true` and `false` of one actor in
+   two entries give `false`), `undecided` without one, the actor compared
+   as the IRI it stands for (`ex:editor` under the prefix `ex:
+   https://example.org/people/` is the editor; without it, another
+   actor).
 6. **A belief recorded** (`withElementBelief`), for the actor
    `https://example.org/people/editor`, `false` on 2026-11-26: an element
    without provenance gains the one entry `{beliefs: [that belief]}`;
