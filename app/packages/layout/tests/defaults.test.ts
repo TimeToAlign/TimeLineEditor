@@ -135,13 +135,13 @@ describe("the constants", () => {
       `${SYMBOL_GAP} + h(zs) + ${SYMBOL_GAP}, \`zs\` the largest font size of the drawn symbols; 0 when none is drawn`,
     ],
     [
-      "fork: stem length, branch length, angle step, largest angle",
+      "fork: stem length, branch length, largest angle step, largest angle",
       `${FORK_STEM}, ${FORK_BRANCH}, ${FORK_ANGLE}°, ${FORK_LARGEST_ANGLE}°`,
     ],
     ["fork text offset (from a branch's tip to the start of its text)", `${FORK_TEXT_OFFSET}`],
     [
       "fork row height `Hf`",
-      `(h(zf) / 2 + ${FORK_BRANCH} × sM) + h(zf) / 2, \`zf\` the largest font size of the drawn forks, \`sM\` the \`sk\` of \`min(N − 1, 2)\` (section 6.4, Forks) and \`N\` the most branches a drawn fork has; 0 when none is drawn`,
+      `(h(zf) / 2 + ${FORK_BRANCH} × sM) + h(zf) / 2, \`zf\` the largest font size of the drawn forks, \`N\` the most branches a drawn fork has and \`sM\` the \`sk\` of the last branch of a fork of \`N\` branches (section 6.4, Forks); 0 when none is drawn`,
     ],
     ["boundary half-height `k`", `${BOUNDARY}`],
     ["group frame padding `Q`", `${Q}`],

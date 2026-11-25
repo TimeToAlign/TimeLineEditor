@@ -9,6 +9,7 @@ import {
   beliefStateOf,
   destinationPlace,
   FLOW_LINE_ROLES,
+  type FlowReading,
   flowReading,
   flowSymbols,
   isRead,
@@ -699,6 +700,30 @@ describe("where a destination leads", () => {
       ["section", "section_break_1", quarters(16), "score"],
     ]);
     expect(placesOf(sections, "jump_1")).toEqual([["section", null, quarters(0), null]]);
+  });
+
+  it("starts a section only at a section break the reading reads", () => {
+    const sections = viewOf([A, "flow/sections.yaml"]);
+    const timeline = scoreOf(sections);
+    const jump = timeline.flow_control.find((item) => item.id === "jump_2");
+    const destination = jump?.targets?.[0];
+    if (jump === undefined || destination === undefined)
+      throw new Error("jump_2 has a destination");
+    const landing = (reading: FlowReading | null) => {
+      const place = destinationPlace(manifestOf(sections), timeline, jump, destination, reading);
+      return place.kind === "section" ? [place.start?.id ?? null, place.at] : place.kind;
+    };
+    const other = "https://example.org/b";
+    // No belief recorded: read where `undecided` is kept, passed over where it is not.
+    expect(landing({ believer: other, beliefs: ["true", "unlikely", "undecided"] })).toEqual([
+      "section_break_1",
+      quarters(16),
+    ]);
+    expect(landing({ believer: other, beliefs: ["true", "unlikely"] })).toEqual([
+      null,
+      quarters(0),
+    ]);
+    expect(landing(null)).toEqual(["section_break_1", quarters(16)]);
   });
 
   it("finds the section break among the whole tree's, never before the start of the timeline listing the jump", () => {

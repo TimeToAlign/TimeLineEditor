@@ -13,7 +13,6 @@ import type {
   ElementAddress,
   FlowControlElement,
   JumpDestination,
-  Manifest,
   TimelineManifest,
 } from "@timetoalign/tilie-core";
 import {
@@ -23,7 +22,6 @@ import {
   type FlowLineRole,
   idAddress,
   isRead,
-  isRejected,
   partAddress,
 } from "@timetoalign/tilie-core";
 import { elementKey, flowSymbols, memberFlow, passesText } from "@timetoalign/tilie-core/drawing";
@@ -34,8 +32,9 @@ import type { LinePosition, PreparedBand, Side } from "./bands.ts";
 import type { Style } from "./cascade.ts";
 import {
   FLOW_LINE_LABEL_OFFSET,
+  FORK_ANGLE,
   FORK_BRANCH,
-  FORK_DIRECTIONS,
+  FORK_LARGEST_ANGLE,
   FORK_STEM,
   FORK_TEXT_OFFSET,
   JUMP_DEPTH,
@@ -61,28 +60,31 @@ import {
 } from "./traversal.ts";
 
 /**
- * Where a destination of `jump` lands on the own axis of `timeline` of
- * `manifest`, which lists the jump (core's `destinationPlace`): `by`, that
- * distance from the jump's coordinate; `to`, the coordinate of the jump
+ * Where a destination of `jump` lands on the own axis of `timeline` of the
+ * scope's manifest, which lists the jump (core's `destinationPlace`): `by`,
+ * that distance from the jump's coordinate; `to`, the coordinate of the jump
  * target, the start of the region or the offset of the child timeline with
  * that ID, or 0 for the timeline itself; neither, the start of the jump's
- * section, found among the section breaks of its root's whole tree (section
- * 3.1). `undefined` for a `to` that names none of these or names a rejected
- * jump target (a rejected element is no place), which only a rejected jump
- * may hold.
+ * section, found among the section breaks of its root's whole tree that the
+ * reading in force reads (section 3.1). `undefined` for a `to` that names
+ * none of these or names an unread jump target (an unread element is no
+ * place): without a reading only a rejected jump may hold one, under a
+ * reading any jump.
  */
 function placeOf(
-  manifest: Manifest,
+  scope: Context,
   timeline: TimelineManifest,
   jump: FlowControlElement,
   destination: JumpDestination,
 ): Real | undefined {
-  const place = destinationPlace(manifest, timeline, jump, destination);
+  const { manifest, reading } = scope;
+  const context = manifest["@context"];
+  const place = destinationPlace(manifest, timeline, jump, destination, reading, context);
   switch (place.kind) {
     case "nowhere":
       return undefined;
     case "jump_target":
-      return isRejected(place.element) ? undefined : realOf(place.at);
+      return isRead(place.element, reading, context) ? realOf(place.at) : undefined;
     case "by":
     case "region":
     case "timeline":
@@ -326,7 +328,7 @@ export function flowControlBand(scope: Scope, line: Entry): PreparedBand {
     const placed = (item.element.targets ?? [])
       .flatMap((destination) => {
         if (destination.manifestation !== "volta") return [];
-        const place = placeOf(scope.manifest, item.timeline, item.element, destination);
+        const place = placeOf(scope, item.timeline, item.element, destination);
         return place === undefined ? [] : [{ place: add(item.start, place), destination }];
       })
       // Stable: branches of one place keep the canonical order of `targets`.
@@ -352,7 +354,7 @@ export function flowControlBand(scope: Scope, line: Entry): PreparedBand {
       if (destination.by !== undefined && isZero(destination.by, item.timeline)) return [];
       // A volta destination is a branch of its jump's fork, which shows it.
       if (destination.manifestation === "volta") return [];
-      const place = placeOf(scope.manifest, item.timeline, item.element, destination);
+      const place = placeOf(scope, item.timeline, item.element, destination);
       if (place === undefined) return [];
       const to = add(item.start, place);
       if (member && !onStretch(scope, to)) return [];
@@ -395,7 +397,7 @@ export function flowControlBand(scope: Scope, line: Entry): PreparedBand {
   const forkSize = maxSize(forks.map(({ part }) => part));
   const N = Math.max(0, ...forks.map(({ branches }) => branches.length));
   // The lowest tip's distance beyond the row's start, plus half a text height.
-  const sM = forks.length === 0 ? 0 : nth(FORK_DIRECTIONS, Math.min(N - 1, 2))[1];
+  const sM = forks.length === 0 ? 0 : nth(forkDirections(N), N - 1)[1];
   const Hf = forks.length === 0 ? 0 : h(forkSize) / 2 + FORK_BRANCH * sM + h(forkSize) / 2;
   const pj = Tk.map((tiersOfRow) => JUMP_PITCH + S + tiersOfRow * h(size));
   // The pitches before row k, summed first.
@@ -507,8 +509,17 @@ export function flowControlBand(scope: Scope, line: Entry): PreparedBand {
               style: part.style,
               stem: [X - FORK_STEM, yb],
               point: [X, yb],
-              branches: branches.map(({ text }, index) =>
-                forkBranch(at, side, X, e, part.style, index, text?.clean ?? null, h),
+              branches: forkDirections(branches.length).map((direction, index) =>
+                forkBranch(
+                  at,
+                  side,
+                  X,
+                  e,
+                  part.style,
+                  direction,
+                  nth(branches, index).text?.clean ?? null,
+                  h,
+                ),
               ),
             },
           ];
@@ -603,9 +614,9 @@ function onStretch(scope: Scope, value: Real): boolean {
 }
 
 /**
- * Branch `index` (from 0) of a fork whose branch point lies at `X` and the distance `e` from the
- * root's line (section 6.4, Forks): its arrow, 18 long in the direction of its row of
- * `FORK_DIRECTIONS`, its arrowhead `4w` long and `2w` wide each side, and its text starting 3
+ * A branch of a fork whose branch point lies at `X` and the distance `e` from the root's line
+ * (section 6.4, Forks): its arrow, 18 long in its direction `(ck, sk)` (`forkDirections`), its
+ * arrowhead `4w` long and `2w` wide each side, and its text starting 3
  * right of its tip, its line centred on the tip, starting at `(e + 18 × sk) − h(z) / 2`; each
  * product formed as written, each distance summed whole before it becomes an ordinate.
  */
@@ -615,11 +626,10 @@ function forkBranch(
   X: number,
   e: number,
   style: Style,
-  index: number,
+  [ck, sk]: readonly [number, number],
   text: string | null,
   h: (size: number) => number,
 ): ForkBranch {
-  const [ck, sk] = nth(FORK_DIRECTIONS, Math.min(index, FORK_DIRECTIONS.length - 1));
   const w = style["stroke-width"];
   const z = style["font-size"];
   const a = FORK_BRANCH - 4 * w;
@@ -639,4 +649,26 @@ function forkBranch(
     baseline: at.beyond(side, at.yAt(side, t), z),
     text,
   };
+}
+
+/**
+ * A number rounded to ten decimal places and read as the double nearest that decimal: `toFixed`
+ * rounds the double's exact value, and the decimal it prints parses to the nearest double.
+ */
+const tenPlaces = (value: number): number => Number(value.toFixed(10));
+
+/**
+ * The directions `(ck, sk)` of the `N` branches of a fork, along the axis and away from the root's
+ * line (section 6.4, Forks): branch `k` (from 1) bends by `θk = min(35, 70 / (N − 1)) × (k − 1)`
+ * degrees, 0 for one branch, and `(ck, sk)` are the cosine and sine of `(θk × π) / 180`, each
+ * rounded to ten decimal places. For every `N` up to 200 no such cosine or sine lies within
+ * 4e-15 of a halfway point between two decimals of ten places, so no tie is broken and an engine
+ * whose `Math.sin` errs by a few units in the last place rounds every one alike.
+ */
+function forkDirections(N: number): readonly (readonly [number, number])[] {
+  const step = N <= 1 ? 0 : Math.min(FORK_ANGLE, FORK_LARGEST_ANGLE / (N - 1));
+  return Array.from({ length: N }, (_, index) => {
+    const radians = (step * index * Math.PI) / 180;
+    return [tenPlaces(Math.cos(radians)), tenPlaces(Math.sin(radians))] as const;
+  });
 }

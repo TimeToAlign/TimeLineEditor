@@ -70,9 +70,10 @@ import type { Context, Holder } from "./traversal.ts";
  * timelines' ancestry and its containers are read from core's index of the
  * manifest, memoised by identity, so drawing one manifest again reuses them.
  *
- * `reading` is the reading in force of flow control (section 1): a
- * flow-control element it does not read is faded (section 6.4); `null`, the
- * default, fades those some actor believes `false`. It fades and nothing more.
+ * `reading` is the reading in force of flow control (section 1); `null`, the
+ * default, reads what no actor believes `false`. A flow-control element it
+ * does not read is faded, starts no section and is no place a destination
+ * lands on (sections 3.1, 6.4).
  */
 export function draw(
   manifest: Manifest,

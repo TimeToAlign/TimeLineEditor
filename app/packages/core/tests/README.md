@@ -1067,6 +1067,11 @@ ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
    4 = 3 on `verse`'s axis, held by `piece`; adding `section_break_c` of
    `verse` at 5, 9 on `piece`'s axis, moves `jump_x` to it, 5, and `jump_y`
    too, 9 on `piece`'s axis, held by `verse`.
+   Under a reading (drawing.md §1) a section break starts a section only
+   where the reading reads it (`isRead`): in `flow/sections`, nobody
+   holding a belief in `section_break_1`, `jump_2` lands at it (16) for a
+   reader keeping `undecided` and without a reading, and at 0 with no
+   start element for a reader keeping `true` and `unlikely` alone.
    `flow/ossia`: `jump_1`'s `to` `ossia` is the child timeline `ossia`
    at its offset 16. `flow/repairs`: `jump_2`'s `to` `jump_target_1` is
    that jump target at 8. A jump added to

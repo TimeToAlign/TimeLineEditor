@@ -48,9 +48,9 @@ export const SYMBOL_GAP = 2;
 export const FORK_STEM = 8;
 /** The length of each arrow of a volta fork, from its branch point to its tip. */
 export const FORK_BRANCH = 18;
-/** The angle step of a volta fork's branches, in degrees. */
+/** The largest angle step of a volta fork's branches, in degrees, kept up to three branches. */
 export const FORK_ANGLE = 35;
-/** The largest angle of a volta fork's branch, in degrees, shared from the third branch on. */
+/** The largest angle of a volta fork's branch, in degrees: its last branch's from three branches on. */
 export const FORK_LARGEST_ANGLE = 70;
 /** The fork text offset, from a branch's tip to the start of its text. */
 export const FORK_TEXT_OFFSET = 3;
@@ -64,12 +64,3 @@ export const ELLIPSIS_RADIUS = 2;
 export const ELLIPSIS_SPACING = 6;
 /** The narrowest gap that draws an ellipsis. */
 export const ELLIPSIS_GAP = 20;
-/**
- * The directions `(ck, sk)` of a volta fork's branches by `min(k − 1, 2)`, along the axis and away
- * from the root's line: 0°, 35° and 70°, the specification's decimals read as doubles.
- */
-export const FORK_DIRECTIONS: readonly (readonly [number, number])[] = [
-  [1, 0],
-  [0.8191520443, 0.5735764364],
-  [0.3420201433, 0.9396926208],
-];

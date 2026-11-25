@@ -1108,8 +1108,8 @@ default user, who states as `statedBy(DEFAULT_USER)`; the day is
    believes it `false`, "left out by the belief filter: no flow reads it"
    where they hold no belief and the filter leaves out `undecided`,
    "rejected by another actor: your flows read it" where it is read and
-   someone else believes it `false` (the drawing fades it, as the format
-   reads a rejection), none otherwise. A jump's destinations are no rows of these
+   someone else believes it `false` (the editor's drawing, under the same
+   reading, does not fade it), none otherwise. A jump's destinations are no rows of these
    (item 7). Pinned whole: `sonata_exposition`'s `jump_1` (jump, `12 ♩`)
    and its `break_1` (break, `16 ♩`, Manifestation volta); `loop`'s jump
    at 6 seconds (`6″`); `sections`' Fine (break, `8 ♩`, fine, Ends the

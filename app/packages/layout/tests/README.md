@@ -925,8 +925,28 @@ opacity of ancestor lines, in their rows as any other.
   0.35 (undecided), `jump_2` 1, `jump_1` 0.35. Read for another actor with
   `true`, `unlikely`, `undecided`: all three at 1, `jump_1` included,
   and the arcs (from, apex control, tip) exactly those drawn without a
-  reading, since the reading fades and nothing more. Without a reading
-  (`null`): `jump_1` alone at 0.35, as above.
+  reading, since in `flow/repairs` every destination's place is read
+  under both readings. Without a reading (`null`): `jump_1` alone at
+  0.35, as above.
+- **The reading decides the places** (drawing.md §1, §3.1, §6.4 Arcs;
+  `flow/sections`, arcs shown). `section_break_1` (at 16, `x =
+  255.05029296875`) rejected by `https://example.org/a`, read by
+  `https://example.org/b` with `true`, `unlikely`, `undecided`: `b` holds
+  no belief, so the break is read and starts `jump_2`'s section, its arc
+  455.05029296875 → 255.05029296875, as in the fixture without the
+  rejection; `jump_1`, at the break's own position, lands at 0 (`x0`).
+  The fixture unchanged, read by `b` with `true`, `unlikely` only: the
+  break is unread, so both jumps land at 0, as where it is rejected
+  without a reading.
+- **The reading decides what a `to` names** (the jumps `kept`, `lost`,
+  `stray` of "A `to` that names no place" below, `struck` rejected by `a`):
+  read by `b` with `undecided`, `struck` and the three rejected jumps are
+  read, so `stray` draws its arc 14→4 (405.05029296875 to
+  155.05029296875) and all three are at opacity 1. With `struck` not
+  rejected, read by `b` without `undecided`: neither `struck` nor
+  `jump_target_1` is read, so `stray`, `kept` and `jump_2` name nothing
+  and draw no arc; `lost` (to the region `gone`, no flow-control element)
+  draws 12→2 and `jump_1` 16→0 (no section break), both faded.
 - **`flow/volta_passes`**: the two destinations of `jump_1`, `by` 0 and
   `to` `jump_target_1`, are `volta`, branches of its fork, and draw no
   arc with the arcs shown; the drawing holds the two arcs of the other
@@ -982,14 +1002,17 @@ the flow row, the row `Hs = 2 + h(zs) + 2` wide, so that no glyph meets
 the flow lines ending at the flow row; a jump with `volta` destinations
 whose places resolve (its **branches**) draws one **fork** on the fork
 row beyond the symbol row, `Hf = (h(zf) / 2 + 18 × sM) + h(zf) / 2`
-wide, `sM` the `sk` of `min(N − 1, 2)`: its stem from `X − 8` to its
-branch point `X` at the distance `e = (f0 + Hs) + h(zf) / 2`, then per
-branch, in the order of the branches' places (ties in the canonical
-order of `targets`), an arrow 18 long, the first straight on and branch
-`k` at the angle `35° × min(k − 1, 2)` away from the root's line, its
-direction `(ck, sk)` the specification's table of decimals (0°: `(1,
-0)`, 35°: `(0.8191520443, 0.5735764364)`, 70°: `(0.3420201433,
-0.9396926208)`), ending in an arrowhead of length `4w` and half-width
+wide, `sM` the `sk` of the last branch of a fork of `N` branches: its
+stem from `X − 8` to its branch point `X` at the distance `e = (f0 + Hs)
++ h(zf) / 2`, then per branch, in the order of the branches' places
+(ties in the canonical order of `targets`), an arrow 18 long, the first
+straight on and, of a fork of `N` branches, branch `k` at the angle
+`min(35°, 70° / (N − 1)) × (k − 1)` away from the root's line, its
+direction `(ck, sk)` the cosine and sine of that angle rounded to ten
+decimal places (the specification's examples: 0°: `(1, 0)`, 35°:
+`(0.8191520443, 0.5735764364)`, 70°: `(0.3420201433, 0.9396926208)`;
+for four branches `(0.9182161069, 0.396079766)` at 70°/3 and
+`(0.6862416379, 0.7273736416)` at 140°/3), ending in an arrowhead of length `4w` and half-width
 `2w` (`a = 18 − 4w`: tip `(X + 18 × ck, e + 18 × sk)`, base centre `(X +
 a × ck, e + a × sk)`, corners `((X + a × ck) ± (2 × w) × sk, (e + a ×
 sk) ∓ (2 × w) × ck)`), and its passes as printed at its own tip, from
@@ -1097,14 +1120,21 @@ solid, 1, and a fork black, 1 wide, its texts at the font size 9.
   `X = x(8)`, `x0 + 200` and `x0 + 400`, with the same ordinates, its
   stem from `X − 8`, its tips at `X + 18` and `X + 18 × 0.8191520443`,
   its texts 3 right of them, in both.
-- **Bending capped at 70°.** A jump `jump_6` at 1 added to
+- **Five branches share 70°.** A jump `jump_6` at 1 added to
   `flow/volta_passes` with five `volta` destinations `by` 0, 1, 2, 3 and 4,
-  passes `[1]` … `[5]`: its five branches take the directions 0°, 35°,
-  70°, 70° and 70° (the third to fifth tips alike), `N = 5`, `sM = s(70°)
-  = 0.9396926208`, so `Hf = (10.4765625 / 2 + 18 × 0.9396926208) +
+  passes `[1]` … `[5]`: the step is `min(35°, 70° / 4) = 17.5°`, so its
+  five branches take 0°, 17.5°, 35°, 52.5° and 70°, the directions `(1,
+  0)`, `(0.9537169507, 0.3007057995)`, `(0.8191520443, 0.5735764364)`,
+  `(0.608761429, 0.7933533403)` and `(0.3420201433, 0.9396926208)` (the
+  cosines and sines at 20 digits, `bc -l`, rounded to ten places), no two tips alike; `N = 5`, `sM =
+  s(70°) = 0.9396926208`, so `Hf = (10.4765625 / 2 + 18 × 0.9396926208) +
   10.4765625 / 2` and its fifth text's line starts at `t5 = (28.70703125
   + 18 × 0.9396926208) − 5.23828125 = 40.3832171744`; the band, no stack,
   is `0 + 17.96875 + Hf` wide.
+- **Four branches.** The same jump with four destinations `by` 0 to 3:
+  the step is `70° / 3`, and the four tips lie at `(X + 18 × ck, e + 18
+  × sk)` for the specification's four directions of `N = 4` (above),
+  each text from 3 right of its tip.
 - **One branch.** A jump `jump_7` at 1 with one destination `by` 0
   (volta, passes `[1]`) added to `flow/sections` (no fork else, no other
   volta): `N = 1`, `sM = 0`, `Hf = (10.4765625 / 2 + 0) + 10.4765625 / 2

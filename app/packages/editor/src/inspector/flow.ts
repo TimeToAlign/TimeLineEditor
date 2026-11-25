@@ -246,8 +246,8 @@ export function readingOf(view: View, block: Block, user: User): FlowReading {
 /**
  * The status of a flow-control element under `reading`: not read where
  * the user rejects it or, holding no belief in it, the belief filter
- * leaves it out; read although another actor rejects it (the drawing
- * fades it, as the format reads a rejection); `null` for an element read
+ * leaves it out; read although another actor rejects it (the editor's
+ * drawing, under the same reading, does not fade it); `null` for an element read
  * and rejected by no one.
  */
 function statusOf({ element, block }: FlowSubject, reading: FlowReading): string | null {

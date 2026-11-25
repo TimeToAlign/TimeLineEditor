@@ -233,6 +233,41 @@ describe("flow/sections", () => {
   });
 });
 
+describe("a section break under a reading", () => {
+  const belief = { actor: "https://example.org/a", belief: "false", date: "2026-11-25" };
+  /** Where each jump of `flow/sections` leaves and arrives, drawn under `reading`. */
+  const landings = (manifest: Manifest, reading: FlowReading) =>
+    drawn(manifest, reading)
+      .elements.filter((item): item is JumpElement => item.type === "jump")
+      .map((item) => [item.address, item.start[0], item.tip[0]]);
+
+  it("starts a section where the reading reads the break, although another actor rejects it", () => {
+    const manifest = edited(loadFile("flow/sections"), {
+      type: "set",
+      changes: [{ target: target("section_break_1"), values: { belief } }],
+    });
+    const reading: FlowReading = {
+      believer: "https://example.org/b",
+      beliefs: ["true", "unlikely", "undecided"],
+    };
+    expect(landings(manifest, reading)).toEqual([
+      [at("jump_1"), 255.05029296875, X0],
+      [at("jump_2"), 455.05029296875, 255.05029296875],
+    ]);
+  });
+
+  it("passes over a break the reading does not read, although no actor rejects it", () => {
+    const reading: FlowReading = {
+      believer: "https://example.org/b",
+      beliefs: ["true", "unlikely"],
+    };
+    expect(landings(loadFile("flow/sections"), reading)).toEqual([
+      [at("jump_1"), 255.05029296875, X0],
+      [at("jump_2"), 455.05029296875, X0],
+    ]);
+  });
+});
+
 describe("flow/repairs", () => {
   it("draws the rejected jump faded, and everything else as it is styled", () => {
     const drawing = drawFixture("flow/repairs", [ARCS_ALONE]);
@@ -320,9 +355,15 @@ describe("the reading in force", () => {
   });
 });
 
-/** A manifest drawn with the default layer and its own. */
-const drawn = (manifest: Manifest): Drawing =>
-  draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, ARCS_ALONE, manifestLayer(manifest)], metrics);
+/** A manifest drawn with the default layer, the arcs shown and its own layer, under `reading`. */
+const drawn = (manifest: Manifest, reading: FlowReading | null = null): Drawing =>
+  draw(
+    manifest,
+    DEFAULT_PLACEMENT,
+    [DEFAULT_LAYER, ARCS_ALONE, manifestLayer(manifest)],
+    metrics,
+    reading,
+  );
 
 /** Where each arc of the jump `id` leaves and arrives, in drawing order. */
 const arcsOf = (drawing: Drawing, id: string) =>
@@ -486,6 +527,33 @@ describe("a to that names no place", () => {
       ["kept", 305.05029296875, 255.05029296875, FADED_OPACITY],
       ["lost", 355.05029296875, 105.05029296875, FADED_OPACITY],
       ["stray", 405.05029296875, 155.05029296875, FADED_OPACITY],
+    ]);
+  });
+
+  it("under a reading, draws an arc to a target the reading reads and none to one it does not", () => {
+    // Another actor holding no belief, `undecided` kept: `struck` and the rejected jumps are read.
+    const kept = drawn(edit("flow/repairs", ...commands({ ...struck, provenance: REJECTED })), {
+      believer: "https://example.org/b",
+      beliefs: ["true", "unlikely", "undecided"],
+    });
+    expect(arcs(kept)).toEqual([
+      ["kept", 305.05029296875, 255.05029296875, 1],
+      ["lost", 355.05029296875, 105.05029296875, 1],
+      ["stray", 405.05029296875, 155.05029296875, 1],
+    ]);
+    // `undecided` dropped: neither `struck` nor `jump_target_1` is read, so `stray`, `kept` and
+    // `jump_2` name nothing and draw no arc; `lost` still reaches the region `gone`, faded.
+    const dropped = drawn(edit("flow/repairs", ...commands(struck)), {
+      believer: "https://example.org/b",
+      beliefs: ["true", "unlikely"],
+    });
+    expect(
+      dropped.elements
+        .filter((item): item is JumpElement => item.type === "jump")
+        .map((item) => [item.address.id, item.start[0], item.tip[0], item.style.opacity]),
+    ).toEqual([
+      ["lost", 355.05029296875, 105.05029296875, FADED_OPACITY],
+      ["jump_1", 455.05029296875, X0, FADED_OPACITY],
     ]);
   });
 
@@ -818,7 +886,7 @@ describe("symbols, forks and stacks", () => {
     }
   });
 
-  it("bends the second branch by 35° and every further one by 70°, and makes room for all its texts", () => {
+  it("shares the 70° of the last branch evenly among five branches, and makes room for all its texts", () => {
     const drawing = draw(
       edit("flow/volta_passes", {
         type: "add",
@@ -841,12 +909,14 @@ describe("symbols, forks and stacks", () => {
     const fork = forksOf(drawing).find((item) => item.address.id === "jump_6");
     const X = X0 + 25;
     const e = 28.70703125;
+    // Steps of min(35°, 70° / 4) = 17.5°: the cosines and sines of 0°, 17.5°, 35°, 52.5° and 70°,
+    // each rounded to ten decimal places.
     expect(fork?.branches.map(({ tip }) => tip)).toEqual(
       [
         [1, 0],
+        [0.9537169507, 0.3007057995],
         [0.8191520443, 0.5735764364],
-        [0.3420201433, 0.9396926208],
-        [0.3420201433, 0.9396926208],
+        [0.608761429, 0.7933533403],
         [0.3420201433, 0.9396926208],
       ].map(([ck = 0, sk = 0]) => [X + 18 * ck, LINE + (e + 18 * sk)]),
     );
@@ -857,6 +927,39 @@ describe("symbols, forks and stacks", () => {
     // The fork row reaches the lowest tip plus half a text height: Hf = (h(9) / 2 + 18 × s3) + h(9) / 2.
     const Hf = 10.4765625 / 2 + 18 * 0.9396926208 + 10.4765625 / 2;
     expect(flowBandWidth(drawing)).toBe(0 + 17.96875 + Hf);
+  });
+
+  it("bends four branches by steps of 70° / 3, as the specification's example lists them", () => {
+    const drawing = draw(
+      edit("flow/volta_passes", {
+        type: "add",
+        into: target("score"),
+        flow_control: {
+          id: "jump_6",
+          role: "jump",
+          coordinate: quarters(1),
+          targets: [0, 1, 2, 3].map((by) => ({
+            by: quarters(by),
+            manifestation: "volta",
+            passes: [by + 1],
+          })),
+        },
+      }),
+      DEFAULT_PLACEMENT,
+      [DEFAULT_LAYER],
+      metrics,
+    );
+    const fork = forksOf(drawing).find((item) => item.address.id === "jump_6");
+    const X = X0 + 25;
+    const e = 28.70703125;
+    expect(fork?.branches.map(({ tip, tx }) => [...tip, tx])).toEqual(
+      [
+        [1, 0],
+        [0.9182161069, 0.396079766],
+        [0.6862416379, 0.7273736416],
+        [0.3420201433, 0.9396926208],
+      ].map(([ck = 0, sk = 0]) => [X + 18 * ck, LINE + (e + 18 * sk), X + 18 * ck + 3]),
+    );
   });
 
   it("gives a fork of one branch the room of one text line", () => {

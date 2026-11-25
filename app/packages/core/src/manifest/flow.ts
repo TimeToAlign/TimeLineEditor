@@ -237,8 +237,8 @@ export function passesText(passes: NonNullable<JumpDestination["passes"]>): stri
  * (rejected or not: a rejected target is still what the destination names),
  * the region (its start), the timeline itself (0) or the child timeline (its
  * offset) with that ID; neither, the start of the jump's section
- * (`sectionStart`): the nearest section break before the jump, not rejected,
- * among those of the root's whole tree, never before the start of the
+ * (`sectionStart`): the nearest section break before the jump that the
+ * reading in force reads (`isRead`), among those of the root's whole tree, never before the start of the
  * timeline listing the jump (`start`, held by `holder`), else that start, 0,
  * with `start` and `holder` null. `nowhere` for a `to` naming none of these,
  * which a valid manifest never holds.
@@ -274,7 +274,9 @@ function originOf(timeline: TimelineManifest): Coordinate {
  * that is not rejected, of that root or of any of its descendants, the
  * first in the tree's order (each timeline's elements in the order of its
  * `flow_control` before its children's, in `children` order) where two lie
- * at one position; else `S`, which counts as a section boundary for it. The
+ * at one position; else `S`, which counts as a section boundary for it.
+ * "Not rejected" is the reading `reading` under `context`, the manifest's
+ * `@context` (`isRead`; `null`, no actor believes it `false`). The
  * coordinate it reaches is `p − S` on the own axis of `timeline`, written in
  * its number type, 0 for `S`.
  */
@@ -282,6 +284,8 @@ function sectionStart(
   manifest: Roots,
   timeline: TimelineManifest,
   jump: FlowControlElement,
+  reading: FlowReading | null,
+  context: unknown,
 ): DestinationPlace {
   const exact = (raw: unknown, on: TimelineManifest) => toRational(axisCoordinate(raw, on).value);
   // The root above `timeline` and the start of `timeline` on the root's axis.
@@ -302,7 +306,7 @@ function sectionStart(
   for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
     const [each, from] = next;
     for (const item of each.flow_control) {
-      if (item.role !== "section_break" || isRejected(item)) continue;
+      if (item.role !== "section_break" || !isRead(item, reading, context)) continue;
       const at = from.add(exact(item.coordinate, each));
       if (at.compare(start) < 0 || at.compare(end) >= 0) continue;
       if (found === null || at.compare(found.at) > 0) found = { start: item, holder: each, at };
@@ -324,20 +328,25 @@ function sectionStart(
 
 /**
  * The place the destination `destination` of the jump `jump`, listed by
- * `timeline` of `manifest`, names (`DestinationPlace`).
+ * `timeline` of `manifest`, names (`DestinationPlace`), a destination
+ * without a place landing at a section break that `reading` reads under
+ * `context`, the manifest's `@context` (`isRead`; without a reading, one
+ * no actor believes `false`).
  */
 export function destinationPlace(
   manifest: Roots,
   timeline: TimelineManifest,
   jump: FlowControlElement,
   destination: JumpDestination,
+  reading: FlowReading | null = null,
+  context: unknown = undefined,
 ): DestinationPlace {
   const from = axisCoordinate(jump.coordinate, timeline);
   if (destination.by !== undefined) {
     return { kind: "by", at: addCoordinates(from, axisCoordinate(destination.by, timeline)) };
   }
   const { to } = destination;
-  if (to === undefined) return sectionStart(manifest, timeline, jump);
+  if (to === undefined) return sectionStart(manifest, timeline, jump, reading, context);
   if (to === timeline.id) return { kind: "timeline", timeline, at: originOf(timeline) };
   const element = timeline.flow_control.find(
     (item) => item.role === "jump_target" && item.id === to,
