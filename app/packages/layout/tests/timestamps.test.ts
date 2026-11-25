@@ -402,7 +402,7 @@ describe("named timestamps in the layout", () => {
   const wedgeOnB = [
     { id: "timestamp_1", timeline: "b", coordinate: [0, 1], name: "B", display: ["wedge"] },
   ] as const;
-  const turned = (rotation: number) => [
+  const turned = (rotation: number): Rule[] => [
     { select: { addresses: [at("timestamp_1")] }, set: { rotation } },
   ];
   const lines = (drawing: Drawing) => [lineY(drawing, "piece"), lineY(drawing, "b")];

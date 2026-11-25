@@ -523,8 +523,8 @@ describe("a later ancestor card over an earlier one", () => {
   it("lies where layout's record puts the two cards and their lines", () => {
     const cards = drawing.boxes.filter((box) => box.ancestor !== undefined);
     expect(cards.map(({ key, x, y, width, height }) => [key, x, y, width, height])).toEqual([
-      [FIRST, 8, 43.1015625, 1410.7494303385415, 148.375],
-      [SECOND, 533.3333333333333, 95.3046875, 1370.7494303385417, 148.375],
+      [FIRST, 8, 39.6015625, 1410.7494303385415, 151.875],
+      [SECOND, 533.3333333333333, 91.8046875, 1370.7494303385417, 151.875],
     ]);
     const frames = drawing.boxes.filter((box) => box.kind === "frame");
     expect(frames.map(({ x, width }) => [x, x + width])).toEqual([

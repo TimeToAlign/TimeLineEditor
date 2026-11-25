@@ -248,10 +248,17 @@ describe("a row of one band order", () => {
       region("b", "rb", "Coda", quarters(0), quarters(2)),
       ...more,
     );
-  const lineY = (drawing: Drawing, id: string) =>
-    (find(drawing, (item) => item.type === "child" && item.address.id === id) as LineElement).y;
+  const lineOf = (drawing: Drawing, type: "timeline" | "child", id?: string): LineElement => {
+    const found = drawing.elements.find(
+      (item): item is LineElement =>
+        item.type === type && (id === undefined || item.address.id === id),
+    );
+    if (found === undefined) throw new Error(`no ${type} line`);
+    return found;
+  };
+  const lineY = (drawing: Drawing, id: string) => lineOf(drawing, "child", id).y;
   const labelOf = (drawing: Drawing, id: string) =>
-    find(drawing, (item) => item.type === "label" && sameAddress(item.address, at(id, "label")));
+    find(drawing, (item) => sameAddress(item.address, at(id, "label")));
   const leaders = (drawing: Drawing) =>
     drawing.elements.filter((item): item is LeaderElement => item.type === "leader");
 
@@ -259,7 +266,7 @@ describe("a row of one band order", () => {
     const drawing = drawn(rowOfTwo());
     const [ya, yb] = [lineY(drawing, "a"), lineY(drawing, "b")];
     expect(ya).toBe(yb);
-    const x0 = (find(drawing, (item) => item.type === "timeline") as LineElement).xs;
+    const x0 = lineOf(drawing, "timeline").xs;
     expect([labelOf(drawing, "ra").x, labelOf(drawing, "ra").baseline]).toEqual([
       x0 + 175,
       ya + 21.85400390625,
@@ -289,9 +296,11 @@ describe("a row of one band order", () => {
   });
 });
 
-/** The first element of a drawing that `test` holds for. */
-function find(drawing: Drawing, test: (item: DrawnElement) => boolean): DrawnElement & TextElement {
-  const found = drawing.elements.find(test);
+/** The first text element of a drawing that `test` holds for. */
+function find(drawing: Drawing, test: (item: TextElement) => boolean): TextElement {
+  const found = drawing.elements.find(
+    (item): item is TextElement => item.type === "label" && test(item),
+  );
   if (found === undefined) throw new Error("no such element");
-  return found as DrawnElement & TextElement;
+  return found;
 }

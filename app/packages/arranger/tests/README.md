@@ -2893,28 +2893,30 @@ set to the place (1200, 70), so that the two cards overlap, drawn in the
 Full view (`withFullCards`, "Whole ancestor cards" in the fixture facts; the subject is the
 cards' stacking, not their elision), layout's
 record, the oracle: `score`'s card behind `group_1`'s frame (`{item:
-group_1, member: score}`) from (8, 43.1015625), 1410.7494303385415 ×
-148.375 (its bottom 191.4765625), recorded first: its `score` line lies on
+group_1, member: score}`) from (8, 39.6015625), 1410.7494303385415 ×
+151.875 (its bottom 191.4765625), recorded first: its `score` line lies on
 `score`'s ancestor row in `exposition`'s member card, at 141.53125, and
-the card's top 98.4296875 above that row, below the frame's top 28.8046875,
+the card's top 101.9296875 above that row (`score` drawn alone, whose
+children `exposition` and `recapitulation` form a row of one band order:
+layout's README, "Ancestor cards", point 11), below the frame's top 28.8046875,
 so the card reaches above nothing and the origin's ordinate is 0
 (`exposition`'s card draws, below its line, the flow control band of
 `score`'s tree on its stretch, the symbol 𝄇 of `score`'s `jump_1` at 12,
 drawing.md section 6.4, Gathering, which puts its ancestor row 17.96875
 lower; the card itself draws `score`'s flow control band as the symbol row
 alone, the defaults hiding the arc); the one behind `group_2`'s (`{item:
-group_2, member: score}`) from (533.3333333333333, 95.3046875),
-1370.7494303385417 × 148.375: `group_2`'s frame at 70,
+group_2, member: score}`) from (533.3333333333333, 91.8046875),
+1370.7494303385417 × 151.875: `group_2`'s frame at 70,
 `recapitulation`'s card 24.8046875 below (`Q`, the title and its gap),
 its line `8 + 52.953125` below that, `score`'s ancestor row 37.9765625
-further at 193.734375, and the card's top 98.4296875 above that row;
+further at 193.734375, and the card's top 101.9296875 above that row;
 `group_1`'s frame from x 167.41357421875 to 734.8037109375, `group_2`'s
 from 1359.41357421875 to 1926.8037109375 (each frame's room: `exposition`
 starts where `score` starts, so the first card's `score` line starts
 under its frame and runs in two runs, 294.8037109375 to 694.8037109375,
 0 to 12, then from the frame's right border on); the first card's
-`score` line at `43.1015625 + 98.4296875 = 141.53125`, the second
-card's `exposition` row at `95.3046875 + 60.953125 = 156.2578125`
+`score` line at `39.6015625 + 101.9296875 = 141.53125`, the second
+card's `exposition` row at `91.8046875 + 64.453125 = 156.2578125`
 (692.7469075520833 to 1092.7469075520833). Inside both cards and in no
 frame or member card: at x 1200 (right of the second card's `exposition`
 row, whose map's zone reaches within 8 of the `score` line at x 900) the
@@ -3747,8 +3749,8 @@ raised card behind `group_2`'s frame; `take_1`, `take_1_first` and
 draws `score`'s flow control on its stretch (drawing.md section 6.4,
 Gathering), so `take_1`'s card lies lower in `group_1`'s frame than
 `score`'s raised card reaches, its line at 193.0078125 below the card's
-bottom at 191.4765625 (layout's records, the card from 43.1015625,
-148.375 high): 99 × 2 × 2 + 9 × 2 + 9 + 27 × 2 = 477. Cards hidden (nothing raised), a value is
+bottom at 191.4765625 (layout's records, the card from 39.6015625,
+151.875 high): 99 × 2 × 2 + 9 × 2 + 9 + 27 × 2 = 477. Cards hidden (nothing raised), a value is
 seen on the lines of its member cards, or nowhere where no member card
 draws it at that value (`piece`'s values left or right of its member's
 span, `score`'s outside its members'): 23, 23, 27, 23, 23, 25, 47, 47 and

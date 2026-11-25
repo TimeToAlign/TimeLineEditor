@@ -339,7 +339,7 @@ describe("a destination without a place", () => {
       const drawing = drawn(manifest);
       const { xs } = rootLine(drawing);
       return ["jump_x", "jump_y"].map((id) =>
-        arcsOf(drawing, id).map(([a, b]) => [a - xs, b - xs]),
+        arcsOf(drawing, id).map(([a = 0, b = 0]) => [a - xs, b - xs]),
       );
     };
     // `piece` 16 long at 25 a quarter; `verse` at 4: `jump_x` at 10 on `piece`'s axis.
