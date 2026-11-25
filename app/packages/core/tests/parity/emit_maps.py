@@ -56,6 +56,35 @@ BARS = {
     ],
 }
 
+SPLIT = {
+    "id": "split",
+    "name": None,
+    "meta": {},
+    "rows": [
+        {
+            "count": 1,
+            "number": 1,
+            "time_signature": "4/4",
+            "actual_length": [23, 4],
+            "next": [2],
+        },
+        {"count": 2, "number": 1, "actual_length": 3, "next": [3]},
+        {"count": 3, "number": 2, "actual_length": [17, 8], "next": [4]},
+        {
+            "count": 4,
+            "number": 2,
+            "actual_length": [15, 8],
+            "offset_within_measure": [17, 8],
+            "next": [5],
+        },
+        {"count": 5, "number": 2, "actual_length": 6, "next": [6]},
+        {"count": 6, "number": 3, "actual_length": 4},
+    ],
+}
+"""The opening of Op. 106/IV: one measure number over two rows, then three."""
+
+MEASURE_MAPS = [BARS, SPLIT]
+
 
 def base(kind: str, map_id: str, source: str | None, target: str | None) -> dict[str, Any]:
     """The members every map carries."""
@@ -84,8 +113,8 @@ def table(
     }
 
 
-def view(kind: str, map_id: str, target: str | None) -> dict[str, Any]:
-    return {**base(kind, map_id, "quarters", target), "measure_map": "bars"}
+def view(kind: str, map_id: str, target: str | None, measure_map: str = "bars") -> dict[str, Any]:
+    return {**base(kind, map_id, "quarters", target), "measure_map": measure_map}
 
 
 F = Fraction
@@ -204,6 +233,10 @@ QUARTERS = [
     (view("MeasureNumberMap", "q_number", None), SPREAD),
     (view("MeasureBeatMap", "q_beat", None), SPREAD),
     (view("FloatingMeasureMap", "q_floating", "floating_measures"), [*SPREAD, F(1, 4)]),
+    (
+        view("FloatingMeasureMap", "q_floating_split", "floating_measures", "split"),
+        [F(0), F(23, 4), F(35, 4), F(87, 8), F(51, 4), F(75, 4), F(91, 4), -1, 30, 10.875],
+    ),
 ]
 
 TICKS = [
@@ -268,21 +301,21 @@ def pair(value: Any) -> list[int] | None:
 
 
 def knots() -> list[dict[str, Any]]:
-    """The MeasureMap's expanded rows as the server's measure-maps route answers them."""
-    rows = MeasureMap.expand_rows(BARS["rows"], keep_unknown_keys=True)
+    """The MeasureMaps' expanded rows as the server's measure-maps route answers them."""
     return [
         {
-            "id": BARS["id"],
+            "id": entry["id"],
             "rows": [
                 {m: pair(row[m]) if m in QUARTER_MEMBERS else row[m] for m in ROW_MEMBERS}
-                for row in rows
+                for row in MeasureMap.expand_rows(entry["rows"], keep_unknown_keys=True)
             ],
         }
+        for entry in MEASURE_MAPS
     ]
 
 
 def main() -> None:
-    measure_maps = {"bars": MeasureMap.from_dict(BARS)}
+    measure_maps = {entry["id"]: MeasureMap.from_dict(entry) for entry in MEASURE_MAPS}
     roots = [
         ("quarters_root", "quarters", QUARTERS),
         ("ticks_root", "ticks", TICKS),
@@ -313,7 +346,7 @@ def main() -> None:
                 }
             )
     table = {
-        "manifest": {"timetoshare": "0.2.0", "timelines": timelines, "measure_maps": [BARS]},
+        "manifest": {"timetoshare": "0.2.0", "timelines": timelines, "measure_maps": MEASURE_MAPS},
         "knots": knots(),
         "cases": cases,
     }

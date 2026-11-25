@@ -4921,6 +4921,12 @@ a Fraction, a `number` a float.
      int, `MeasureBeatMap` the number and the exact beat (a float position
      read as its exact value), `FloatingMeasureMap` the floating measure
      truncated to three decimals (0.833 at 0, 50.25 at 100).
+   - **A floating measure of several rows**, over a second MeasureMap,
+     `split`: the opening of the fourth movement of Beethoven's Op. 106
+     (4/4; bar 1 in two rows, bar 2 in three rows of ten quarters together,
+     bar 3), each row naming the next in its `next`. Each run of rows with
+     one number is one floating measure with one knot (item 7): 23/4 reads
+     1.657, 87/8 reads 2.212.
 2. **Hand values** (the parity table's arithmetic, stated without the
    library): the PiecewiseMap with breaks 0, 4, 16 and the pieces `1/2·x`
    and `3/5·x − 2/5` (both exact LinearMaps, quarters to seconds) gives at
@@ -4947,6 +4953,35 @@ a Fraction, a `number` a float.
 6. **Outputs one by one.** A CombinationMap's evaluator lists one
    evaluator per output, in the manifest's key order, each with its own
    target unit, so each output can be expressed on its own axis.
+7. **Compound floating measures** (hand values, the same as timetoalign's
+   `tests/maps/test_floating_measures.py`, whose README derives them). A
+   floating measure is a run of consecutive rows with one `number`, each
+   naming the following row's count in its `next`; the run places one knot,
+   at its first row's nominal downbeat (qstamp minus offset), and ordinals
+   count runs, from 0 when the first run is an anacrusis (its first row
+   offset, its rows together shorter than that row's nominal length). The
+   rows are written out by hand, as the server answers them:
+   - Op. 106/II up to bar 47 (3/4): count 1 the anacrusis (number 0, qstamp
+     0, actual 1, offset 2: ordinal 0); counts 2–46, numbers 1–45, at
+     `1 + 3(count − 2)`; counts 47 (qstamp 136, actual 2) and 48 (qstamp
+     138, actual 1, offset 2) both number 46, 47 naming 48: one measure,
+     ordinal 46, knot 136; count 49, number 47, at 139. Readings: 0 → 0.666,
+     136 → 46.0, 137 → 46.333, 138 → 46.666, 139 → 47.0, 142 → 48.0. Before
+     runs joined, the knots 136 and 138 − 2 coincided and nothing was read.
+   - Op. 106/IV rows 1–6 (4/4): bar 1 is rows 1 (actual 23/4) and 2
+     (actual 3), bar 2 rows 3 (actual 17/8), 4 (actual 15/8, offset 17/8)
+     and 5 (actual 6), bar 3 row 6: knots 0, 35/4, 75/4 and 91/4. Readings:
+     0 → 1.0, 23/4 → 1.657, 35/4 → 2.0, 87/8 → 2.212, 51/4 → 2.4,
+     75/4 → 3.0.
+   - Fourteen 4/4 bars and the volta pair 15a, 15b (both number 15): with
+     15a's next naming count 1 they are two measures (56 → 15.0,
+     60 → 16.0, 64 → 17.0); with its next naming 15b, one (56 → 15.0,
+     60 → 15.5, 64 → 16.0).
+   - Two rows at one nominal downbeat 0 (1/2 of a 2/4 bar, then 3/2 at
+     offset 1/2): numbered 5 and 6, numbered 5 and 5 with the first's next
+     naming itself, or without numbers, the knots do not increase and the
+     map is `undefined` everywhere; numbered 5 and 5, the first naming the
+     second, one 2/4 bar: 0 → 1.0, 1 → 1.5, 2 → 2.0.
 
 ## Picking a value (`grid.test.ts`)
 

@@ -302,32 +302,46 @@ function measureView(type: ConversionMap["type"], rows: readonly MeasureKnot[]):
 }
 
 /**
- * Floating measures: one knot per row at its nominal downbeat (its qstamp
- * minus its offset within the measure) carrying its ordinal, and one at the
- * end of the last row; linear between and beyond the knots in exact
- * arithmetic, truncated to three decimals.
+ * Whether `following`, the row after `row`, continues the floating measure
+ * of `row`: both carry one measure number and `row`'s next names it.
+ */
+function continues(row: MeasureKnot, following: MeasureKnot): boolean {
+  return (
+    row.number !== null && row.number === following.number && row.next.includes(following.count)
+  );
+}
+
+/**
+ * Floating measures. A floating measure is a run of consecutive rows with
+ * one measure number, each naming the row after it in its next (a single
+ * row is a run of one), so the rows of a split bar read as that one bar.
+ * One knot per run at its first row's nominal downbeat (its qstamp minus
+ * its offset within the measure) carrying the run's ordinal, and one at the
+ * end of the last row; the first run is ordinal 0 when it is an anacrusis.
+ * Linear between and beyond the knots in exact arithmetic, truncated to
+ * three decimals; knots that do not increase give no floating measures.
  */
 function floatingMeasures(rows: readonly MeasureKnot[]): Evaluate {
-  const first = nth(rows, 0);
-  const firstOffset = exactPair(first.offset_within_measure);
-  const anacrusis =
-    firstOffset.compare(Rational.of(0)) > 0 &&
-    first.actual_length !== null &&
-    first.nominal_length !== null &&
-    exactPair(first.actual_length).compare(exactPair(first.nominal_length)) < 0;
-  let ordinal = anacrusis ? 0n : 1n;
   const xs: Rational[] = [];
-  const ys: Rational[] = [];
-  for (const row of rows) {
+  let firstExtent = Rational.of(0);
+  for (const [i, row] of rows.entries()) {
     if (row.qstamp === null || row.actual_length === null) return NOTHING;
-    xs.push(exactPair(row.qstamp).subtract(exactPair(row.offset_within_measure)));
-    ys.push(Rational.fromParts(ordinal, 1n));
-    ordinal += 1n;
+    const joins = i > 0 && continues(nth(rows, i - 1), row);
+    if (!joins) {
+      xs.push(exactPair(row.qstamp).subtract(exactPair(row.offset_within_measure)));
+    }
+    if (xs.length === 1) firstExtent = firstExtent.add(exactPair(row.actual_length));
   }
+  const first = nth(rows, 0);
+  const anacrusis =
+    exactPair(first.offset_within_measure).compare(Rational.of(0)) > 0 &&
+    first.nominal_length !== null &&
+    firstExtent.compare(exactPair(first.nominal_length)) < 0;
   const last = nth(rows, rows.length - 1);
   if (last.qstamp === null || last.actual_length === null) return NOTHING;
   xs.push(exactPair(last.qstamp).add(exactPair(last.actual_length)));
-  ys.push(Rational.fromParts(ordinal, 1n));
+  const firstOrdinal = anacrusis ? 0n : 1n;
+  const ys = xs.map((_, i) => Rational.fromParts(firstOrdinal + BigInt(i), 1n));
   for (let i = 1; i < xs.length; i += 1) {
     if (nth(xs, i).compare(nth(xs, i - 1)) <= 0) return NOTHING;
   }

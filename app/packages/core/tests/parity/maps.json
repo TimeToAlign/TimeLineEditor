@@ -291,6 +291,14 @@
             "source_unit": "quarters",
             "target_unit": "floating_measures",
             "measure_map": "bars"
+          },
+          {
+            "type": "FloatingMeasureMap",
+            "id": "q_floating_split",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "floating_measures",
+            "measure_map": "split"
           }
         ]
       },
@@ -370,6 +378,50 @@
             "count": 4
           }
         ]
+      },
+      {
+        "id": "split",
+        "name": null,
+        "meta": {},
+        "rows": [
+          {
+            "count": 1,
+            "number": 1,
+            "time_signature": "4/4",
+            "actual_length": [23, 4],
+            "next": [2]
+          },
+          {
+            "count": 2,
+            "number": 1,
+            "actual_length": 3,
+            "next": [3]
+          },
+          {
+            "count": 3,
+            "number": 2,
+            "actual_length": [17, 8],
+            "next": [4]
+          },
+          {
+            "count": 4,
+            "number": 2,
+            "actual_length": [15, 8],
+            "offset_within_measure": [17, 8],
+            "next": [5]
+          },
+          {
+            "count": 5,
+            "number": 2,
+            "actual_length": 6,
+            "next": [6]
+          },
+          {
+            "count": 6,
+            "number": 3,
+            "actual_length": 4
+          }
+        ]
       }
     ]
   },
@@ -431,6 +483,101 @@
           "time_signature": "2/4",
           "nominal_length": [2, 1],
           "actual_length": [2, 1],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [],
+          "volta": null,
+          "offset_within_measure": [0, 1]
+        }
+      ]
+    },
+    {
+      "id": "split",
+      "rows": [
+        {
+          "ID": "1",
+          "count": 1,
+          "qstamp": [0, 1],
+          "number": 1,
+          "name": "1",
+          "time_signature": "4/4",
+          "nominal_length": [4, 1],
+          "actual_length": [23, 4],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [2],
+          "volta": null,
+          "offset_within_measure": [0, 1]
+        },
+        {
+          "ID": "2",
+          "count": 2,
+          "qstamp": [23, 4],
+          "number": 1,
+          "name": "1",
+          "time_signature": "4/4",
+          "nominal_length": [4, 1],
+          "actual_length": [3, 1],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [3],
+          "volta": null,
+          "offset_within_measure": [0, 1]
+        },
+        {
+          "ID": "3",
+          "count": 3,
+          "qstamp": [35, 4],
+          "number": 2,
+          "name": "2",
+          "time_signature": "4/4",
+          "nominal_length": [4, 1],
+          "actual_length": [17, 8],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [4],
+          "volta": null,
+          "offset_within_measure": [0, 1]
+        },
+        {
+          "ID": "4",
+          "count": 4,
+          "qstamp": [87, 8],
+          "number": 2,
+          "name": "2",
+          "time_signature": "4/4",
+          "nominal_length": [4, 1],
+          "actual_length": [15, 8],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [5],
+          "volta": null,
+          "offset_within_measure": [17, 8]
+        },
+        {
+          "ID": "5",
+          "count": 5,
+          "qstamp": [51, 4],
+          "number": 2,
+          "name": "2",
+          "time_signature": "4/4",
+          "nominal_length": [4, 1],
+          "actual_length": [6, 1],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [6],
+          "volta": null,
+          "offset_within_measure": [0, 1]
+        },
+        {
+          "ID": "6",
+          "count": 6,
+          "qstamp": [75, 4],
+          "number": 3,
+          "name": "3",
+          "time_signature": "4/4",
+          "nominal_length": [4, 1],
+          "actual_length": [4, 1],
           "start_repeat": false,
           "end_repeat": false,
           "next": [],
@@ -1690,6 +1837,111 @@
           "result": {
             "type": "float",
             "value": 0.916
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_floating_split",
+      "points": [
+        {
+          "x": {
+            "type": "fraction",
+            "value": [0, 1]
+          },
+          "result": {
+            "type": "float",
+            "value": 1.0
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [23, 4]
+          },
+          "result": {
+            "type": "float",
+            "value": 1.657
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [35, 4]
+          },
+          "result": {
+            "type": "float",
+            "value": 2.0
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [87, 8]
+          },
+          "result": {
+            "type": "float",
+            "value": 2.212
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [51, 4]
+          },
+          "result": {
+            "type": "float",
+            "value": 2.4
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [75, 4]
+          },
+          "result": {
+            "type": "float",
+            "value": 3.0
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [91, 4]
+          },
+          "result": {
+            "type": "float",
+            "value": 4.0
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": -1
+          },
+          "result": {
+            "type": "float",
+            "value": 0.885
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 30
+          },
+          "result": {
+            "type": "float",
+            "value": 5.812
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 10.875
+          },
+          "result": {
+            "type": "float",
+            "value": 2.212
           }
         }
       ]

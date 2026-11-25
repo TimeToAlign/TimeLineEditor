@@ -7,7 +7,7 @@ import type { ConversionMap, TimelineManifest } from "../src/manifest/types.ts";
 import { compileMap } from "../src/maps/compile.ts";
 import type { Expressed } from "../src/maps/express.ts";
 import { express } from "../src/maps/express.ts";
-import type { MapInput, MeasureKnots } from "../src/maps/values.ts";
+import type { MapInput, MeasureKnot, MeasureKnots } from "../src/maps/values.ts";
 import { Rational } from "../src/number/rational.ts";
 
 const TABLE = new URL("./parity/maps.json", import.meta.url);
@@ -117,6 +117,7 @@ function knotsOf(value: unknown): readonly MeasureKnots[] {
         qstamp: pair(member(row, "qstamp")),
         nominal_length: pair(member(row, "nominal_length")),
         actual_length: pair(member(row, "actual_length")),
+        next: list(member(row, "next")).map((count) => Number(integer(count))),
         offset_within_measure: offset,
       };
     }),
@@ -253,6 +254,7 @@ describe("express", () => {
         qstamp: [0, 1] as const,
         nominal_length: null,
         actual_length: null,
+        next: [],
         offset_within_measure: [0, 1] as const,
       },
     };
@@ -313,5 +315,97 @@ describe("outputs one by one", () => {
       null,
     ]);
     expect(compileMap(pieces, {}).outputs).toBeNull();
+  });
+});
+
+describe("compound floating measures", () => {
+  type Pair = readonly [number, number];
+  /** One expanded row; `number` null for a row without one, `next` counts. */
+  const row = (
+    count: number,
+    number: number | null,
+    qstamp: Pair,
+    nominal: Pair,
+    actual: Pair,
+    next: readonly number[],
+    offset: Pair = [0, 1],
+  ): MeasureKnot => ({
+    ID: String(count),
+    name: String(number ?? count),
+    count,
+    number,
+    qstamp,
+    nominal_length: nominal,
+    actual_length: actual,
+    next,
+    offset_within_measure: offset,
+  });
+  const floating: ConversionMap = {
+    type: "FloatingMeasureMap",
+    id: "floating",
+    name: null,
+    source_unit: "quarters",
+    target_unit: "floating_measures",
+    measure_map: "rows",
+  };
+  const reader = (rows: readonly MeasureKnot[]) => {
+    const evaluator = compileMap(floating, { knots: [{ id: "rows", rows }] });
+    return (x: MapInput) => evaluator.evaluate(x);
+  };
+  const three: Pair = [3, 1];
+  const four: Pair = [4, 1];
+
+  it("reads a split bar after an anacrusis as one bar (Op. 106/II)", () => {
+    const rows = [row(1, 0, [0, 1], three, [1, 1], [2], [2, 1])];
+    for (let count = 2; count <= 46; count += 1) {
+      rows.push(row(count, count - 1, [1 + 3 * (count - 2), 1], three, three, [count + 1]));
+    }
+    rows.push(row(47, 46, [136, 1], three, [2, 1], [48]));
+    rows.push(row(48, 46, [138, 1], three, [1, 1], [49], [2, 1]));
+    rows.push(row(49, 47, [139, 1], three, three, []));
+    const read = reader(rows);
+    expect([0n, 136n, 137n, 138n, 139n, 142n].map(read)).toEqual([
+      0.666, 46, 46.333, 46.666, 47, 48,
+    ]);
+  });
+
+  it("reads three rows of one number as one measure of ten quarters (Op. 106/IV)", () => {
+    const read = reader([
+      row(1, 1, [0, 1], four, [23, 4], [2]),
+      row(2, 1, [23, 4], four, [3, 1], [3]),
+      row(3, 2, [35, 4], four, [17, 8], [4]),
+      row(4, 2, [87, 8], four, [15, 8], [5], [17, 8]),
+      row(5, 2, [51, 4], four, [6, 1], [6]),
+      row(6, 3, [75, 4], four, four, []),
+    ]);
+    expect([0n, q(23, 4), q(35, 4), q(87, 8), q(51, 4), q(75, 4)].map(read)).toEqual([
+      1, 1.657, 2, 2.212, 2.4, 3,
+    ]);
+  });
+
+  it("keeps a volta pair left by a jump apart, and joins it when it continues", () => {
+    const bars = (fifteenNext: readonly number[]) => {
+      const rows: MeasureKnot[] = [];
+      for (let count = 1; count <= 14; count += 1) {
+        rows.push(row(count, count, [4 * (count - 1), 1], four, four, [count + 1]));
+      }
+      rows.push(row(15, 15, [56, 1], four, four, fifteenNext));
+      rows.push(row(16, 15, [60, 1], four, four, []));
+      return reader(rows);
+    };
+    expect([56n, 60n, 64n].map(bars([1]))).toEqual([15, 16, 17]);
+    expect([56n, 60n, 64n].map(bars([16]))).toEqual([15, 15.5, 16]);
+  });
+
+  it("reads nothing where knots of different measures coincide", () => {
+    const pair = (first: number | null, second: number | null, firstNext: readonly number[]) =>
+      reader([
+        row(1, first, [0, 1], [2, 1], [1, 2], firstNext),
+        row(2, second, [1, 2], [2, 1], [3, 2], [], [1, 2]),
+      ]);
+    for (const read of [pair(5, 6, [2]), pair(5, 5, [1]), pair(null, null, [2])]) {
+      expect([0n, 1n, 2n].map(read)).toEqual([undefined, undefined, undefined]);
+    }
+    expect([0n, 1n, 2n].map(pair(5, 5, [2]))).toEqual([1, 1.5, 2]);
   });
 });
