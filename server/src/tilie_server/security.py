@@ -117,7 +117,11 @@ class BodyLimit:
                 break
 
         async def replay() -> Message:
-            """The messages already received, in order, then the next ones."""
+            """The next message.
+
+            The first one not yet replayed of those already received, else
+            the next from ``receive``.
+            """
             return chunks.pop(0) if chunks else await receive()
 
         await self._app(scope, replay, send)
