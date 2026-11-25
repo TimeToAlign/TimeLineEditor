@@ -1561,6 +1561,7 @@ requires-dist = [
     { name = "hypothesis", marker = "extra == 'testing'", specifier = ">=6.100" },
     { name = "jupyter", marker = "extra == 'tutorial'", specifier = ">=1.0" },
     { name = "jupytext", marker = "extra == 'tutorial'", specifier = ">=1.16" },
+    { name = "lxml", marker = "extra == 'mpm'", specifier = ">=4.9" },
     { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3.5" },
     { name = "mido", marker = "extra == 'midi'", specifier = ">=1.3" },
     { name = "ms3", marker = "extra == 'ms3'", specifier = ">=2.6.0" },
@@ -1587,20 +1588,21 @@ requires-dist = [
     { name = "soundfile", marker = "extra == 'audio'", specifier = ">=0.12" },
     { name = "timetoalign", extras = ["all", "examples"], marker = "extra == 'testing'" },
     { name = "timetoalign", extras = ["loaders", "plot", "examples"], marker = "extra == 'tutorial'" },
-    { name = "timetoalign", extras = ["midi", "scores", "audio", "graphical", "rdf"], marker = "extra == 'loaders'" },
+    { name = "timetoalign", extras = ["midi", "scores", "audio", "graphical", "rdf", "mpm"], marker = "extra == 'loaders'" },
     { name = "timetoalign", extras = ["partitura", "music21", "ms3", "verovio"], marker = "extra == 'scores'" },
     { name = "timetoalign", extras = ["testing", "docs"], marker = "extra == 'dev'" },
     { name = "timetoalign", extras = ["tutorial"], marker = "extra == 'docs'" },
     { name = "timetoalign", extras = ["tutorial", "delta", "rdf"], marker = "extra == 'all'" },
     { name = "timetoshare", git = "https://github.com/TimeToAlign/TimeToShare.git?subdirectory=python&rev=main" },
     { name = "tox", marker = "extra == 'dev'", specifier = ">=4.0" },
-    { name = "typing-extensions", specifier = ">=4.0" },
+    { name = "typing-extensions", specifier = ">=4.11" },
     { name = "verovio", marker = "extra == 'verovio'", specifier = ">=4.4" },
 ]
-provides-extras = ["midi", "partitura", "music21", "ms3", "verovio", "audio", "graphical", "plot", "delta", "rdf", "examples", "scores", "loaders", "tutorial", "docs", "all", "testing", "dev"]
+provides-extras = ["midi", "partitura", "music21", "ms3", "verovio", "audio", "graphical", "plot", "delta", "rdf", "mpm", "examples", "scores", "loaders", "tutorial", "docs", "all", "testing", "dev"]
 
 [package.metadata.requires-dev]
 conformance = [{ name = "pymeasuremap", git = "https://github.com/measure-map/pyMeasureMap.git?rev=ddcfec3" }]
+typing = [{ name = "pyarrow-stubs", specifier = ">=20" }]
 
 [[package]]
 name = "timetoshare"

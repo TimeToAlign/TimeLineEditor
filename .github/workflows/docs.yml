@@ -86,7 +86,7 @@ jobs:
           repository: TimeToAlign/timetoalign
           # the timetoalign commit server/uv.lock was locked against; ci.yml,
           # release.yml and docs.yml name the same commit
-          ref: 3337db21974e7583506b133e213ca77119cef952
+          ref: a4a3d1977450b459a6f4c2d8603cbb2b151711f0
           path: timetoalign
       - uses: ./TimeLineEditor/.github/actions/install-app
       - uses: astral-sh/setup-uv@v10.2.0
