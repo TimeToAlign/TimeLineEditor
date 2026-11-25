@@ -13,7 +13,7 @@ import type { LineElement } from "./elements.ts";
 import { type Extent, labelExtent, labelTiers, Rows } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { midpoint } from "./numbers.ts";
-import { type Entry, endOf, known, maxSize, type Scope, shown } from "./traversal.ts";
+import { type Entry, endOf, known, maxSize, nth, type Scope, shown } from "./traversal.ts";
 
 /** A timeline's line and its segments' boundaries and labels, before any distance is known. */
 export interface LevelZero {
@@ -49,6 +49,51 @@ export interface LevelZero {
 }
 
 /**
+ * The segment-label tiers of a line (section 6.4, Segment lines): the tier of
+ * each of its segment labels, from 1, the number of tiers, whether the
+ * distance `m` counts `k`, and the largest font size of the labels. Its own
+ * first fit alone, or for the segment lines of a row of one band order one
+ * first fit over all of them, with one `m` and one count.
+ */
+export interface SegmentTiers {
+  readonly tier: readonly number[];
+  readonly count: number;
+  readonly bounded: boolean;
+  readonly size: number;
+}
+
+/**
+ * Level 0 of a timeline before its segment labels are tiered: its line's
+ * extent, each label's centre and width, in canonical order; whether its line draws a boundary;
+ * the largest font size of its labels; whether it is a displayed segment
+ * line; and level 0 once its labels lie in `tiers`.
+ */
+export interface StagedZero {
+  /**
+   * The line's own extent (section 6.4, Children), from `L × u` of its start to `L × u` of its
+   * end, or for an open end to `L × u + 9.5w`, summed as written, `w` its stroke width.
+   */
+  readonly lineExtent: Extent;
+  readonly labels: readonly { readonly x: number; readonly width: number }[];
+  readonly bounded: boolean;
+  readonly size: number;
+  readonly segmentLine: boolean;
+  zero(tiers: SegmentTiers): LevelZero;
+}
+
+/** The segment-label tiers of `staged` by its own first fit alone (`labelTiers`). */
+export function ownTiers(staged: StagedZero): SegmentTiers {
+  const rows = new Rows();
+  const tiers = labelTiers(staged.labels, (label) => label.x, rows);
+  return {
+    tier: staged.labels.map((label) => known(tiers, label)),
+    count: rows.count,
+    bounded: staged.bounded,
+    size: staged.size,
+  };
+}
+
+/**
  * Level 0 of the timeline drawn with the line `line` (sections 6.1, 6.4 and
  * 6.6): its segments are its children when it is a segment line, every one
  * of them, with a line of its own or not; their labels are placed by one
@@ -56,7 +101,7 @@ export interface LevelZero {
  * line. A segment's boundary and label are held by its segment line,
  * directly and in no band (section 2.1), and drawn only with that line.
  */
-export function levelZero(scope: Scope, line: Entry): LevelZero {
+export function levelZero(scope: Scope, line: Entry): StagedZero {
   const { index, rootEntry, member, styled, measured, relativeX, relativeEnd, h, d } = scope;
   const drawn = shown(line.style);
   const segments =
@@ -90,73 +135,82 @@ export function levelZero(scope: Scope, line: Entry): LevelZero {
       },
     ];
   });
-  const tiers = new Rows();
-  const tier = labelTiers(labels, (item) => relativeX(item.at), tiers);
-  const size = maxSize(labels.map((item) => item.label));
   const w = line.style["stroke-width"];
   const end = relativeEnd(line);
-  const m = (against: number) => Math.max(against, bounded ? BOUNDARY : 0);
+  const lineExtent: Extent = [relativeX(line.start), line.open ? end + 9.5 * w : end];
 
   return {
-    extents: [
-      [relativeX(line.start), line.open ? end + 9.5 * w : end],
-      ...labels.map((item) => labelExtent(relativeX(item.at), item.width)),
-    ],
-    centred: labels.flatMap((item) => {
-      const x = scope.drawnX(item.at);
-      return x === undefined ? [] : [{ width: item.width, x }];
-    }),
-    reach: (side, against) => {
-      if (side === "below" || tiers.count === 0) return m(against);
-      return m(against) + LABEL_GAP + tiers.count * h(size);
-    },
-    draw: (at, against) => ({
-      line: drawn ? drawnLine(at) : [],
-      boundaries: boundaries
-        .filter(({ segment }) => at.gap(segment.start) === undefined)
-        .map(({ segment, address, style }) => ({
-          segment,
-          element: {
-            type: "boundary",
-            address,
-            style,
-            x: at.x(segment.start),
-            y1: at.y - BOUNDARY,
-            y2: at.y + BOUNDARY,
-          },
-        })),
-      segmentLabels: labels
-        .filter((item) => at.gap(item.at) === undefined)
-        .map((item) => {
-          const outwards = m(against) + LABEL_GAP + (known(tier, item) - 1) * h(size);
-          return {
-            segment: item.segment,
-            element: centredLabel(item.label, at.x(item.at), at.y - outwards - d(size), item),
-          };
-        }),
-      // A label beyond its first tier is joined to the line by its leader (section 6.6, Leaders).
-      segmentLeaders: labels
-        .filter((item) => known(tier, item) > 1 && at.gap(item.at) === undefined)
-        // Only a label beyond its first tier has a leader to cascade.
-        .map((item) => ({ item, leader: scope.leaderOf(item.label) }))
-        .filter(({ leader }) => shown(leader.style))
-        .map(({ item, leader }) => {
-          const x = at.x(item.at);
-          const outwards = m(against) + LABEL_GAP + (known(tier, item) - 1) * h(size);
-          return {
-            segment: item.segment,
-            element: {
-              type: "leader",
-              ...leader,
-              x1: x,
-              y1: at.y - m(against),
-              x2: x,
-              y2: at.y - outwards,
-            },
-          };
-        }),
-    }),
+    lineExtent,
+    labels: labels.map((item) => ({ x: relativeX(item.at), width: item.width })),
+    bounded,
+    size: maxSize(labels.map((item) => item.label)),
+    segmentLine: drawn && line.manifest.is_segment_line,
+    zero: placedZero,
   };
+
+  function placedZero(placed: SegmentTiers): LevelZero {
+    const { count, size } = placed;
+    const tier = new Map(labels.map((item, index) => [item, nth(placed.tier, index)]));
+    const m = (against: number) => Math.max(against, placed.bounded ? BOUNDARY : 0);
+
+    return {
+      extents: [lineExtent, ...labels.map((item) => labelExtent(relativeX(item.at), item.width))],
+      centred: labels.flatMap((item) => {
+        const x = scope.drawnX(item.at);
+        return x === undefined ? [] : [{ width: item.width, x }];
+      }),
+      reach: (side, against) => {
+        if (side === "below" || count === 0) return m(against);
+        return m(against) + LABEL_GAP + count * h(size);
+      },
+      draw: (at, against) => ({
+        line: drawn ? drawnLine(at) : [],
+        boundaries: boundaries
+          .filter(({ segment }) => at.gap(segment.start) === undefined)
+          .map(({ segment, address, style }) => ({
+            segment,
+            element: {
+              type: "boundary",
+              address,
+              style,
+              x: at.x(segment.start),
+              y1: at.y - BOUNDARY,
+              y2: at.y + BOUNDARY,
+            },
+          })),
+        segmentLabels: labels
+          .filter((item) => at.gap(item.at) === undefined)
+          .map((item) => {
+            const outwards = m(against) + LABEL_GAP + (known(tier, item) - 1) * h(size);
+            return {
+              segment: item.segment,
+              element: centredLabel(item.label, at.x(item.at), at.y - outwards - d(size), item),
+            };
+          }),
+        // A label beyond its first tier is joined to the line by its leader (section 6.6, Leaders).
+        segmentLeaders: labels
+          .filter((item) => known(tier, item) > 1 && at.gap(item.at) === undefined)
+          // Only a label beyond its first tier has a leader to cascade.
+          .map((item) => ({ item, leader: scope.leaderOf(item.label) }))
+          .filter(({ leader }) => shown(leader.style))
+          .map(({ item, leader }) => {
+            const x = at.x(item.at);
+            const outwards = m(against) + LABEL_GAP + (known(tier, item) - 1) * h(size);
+            return {
+              segment: item.segment,
+              element: {
+                type: "leader",
+                ...leader,
+                x1: x,
+                y1: at.y - m(against),
+                x2: x,
+                y2: at.y - outwards,
+              },
+            };
+          }),
+      }),
+    };
+  }
 
   /**
    * The line at `at`: from `Xs`, or from the right edge of the gap its start lies in, without

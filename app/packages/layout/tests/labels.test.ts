@@ -235,3 +235,63 @@ describe("Op. 106's regions and movements", () => {
     expect(ofType<LineElement>(drawing, "timeline")[0]?.xs).toBe(16 + (29003 * 11) / 2048 + 8);
   });
 });
+
+describe("a row of one band order", () => {
+  // `piece` 16 long, `x(t) = x0 + 25 t`; `a` [0, 8] and `b` [8, 16] share a row.
+  const rowOfTwo = (...more: object[]) =>
+    build(
+      "piece",
+      16,
+      child("piece", "a", 0, 8),
+      child("piece", "b", 8, 8),
+      region("a", "ra", "Development section", quarters(6), quarters(8)),
+      region("b", "rb", "Coda", quarters(0), quarters(2)),
+      ...more,
+    );
+  const lineY = (drawing: Drawing, id: string) =>
+    (find(drawing, (item) => item.type === "child" && item.address.id === id) as LineElement).y;
+  const labelOf = (drawing: Drawing, id: string) =>
+    find(drawing, (item) => item.type === "label" && sameAddress(item.address, at(id, "label")));
+  const leaders = (drawing: Drawing) =>
+    drawing.elements.filter((item): item is LeaderElement => item.type === "leader");
+
+  it("places the region labels of its lines by one first fit, a later tier with a leader", () => {
+    const drawing = drawn(rowOfTwo());
+    const [ya, yb] = [lineY(drawing, "a"), lineY(drawing, "b")];
+    expect(ya).toBe(yb);
+    const x0 = (find(drawing, (item) => item.type === "timeline") as LineElement).xs;
+    expect([labelOf(drawing, "ra").x, labelOf(drawing, "ra").baseline]).toEqual([
+      x0 + 175,
+      ya + 21.85400390625,
+    ]);
+    expect([labelOf(drawing, "rb").x, labelOf(drawing, "rb").baseline]).toEqual([
+      x0 + 225,
+      yb + 32.33056640625,
+    ]);
+    expect(leaders(drawing).map(({ x1, y1, x2, y2 }) => [x1, y1, x2, y2])).toEqual([
+      [x0 + 225, yb + 11.5, x0 + 225, yb + 23.9765625],
+    ]);
+    const heights = drawing.boxes
+      .filter((box) => box.kind === "band" && box.address.facet === "regions")
+      .map((box) => [box.address.id, box.height]);
+    expect(heights).toEqual([
+      ["a", 28.953125],
+      ["b", 28.953125],
+    ]);
+  });
+
+  it("is not formed where the children follow two band orders: each line places its own", () => {
+    const drawing = drawn(rowOfTwo(set("a", { order: ["regions", "line"] })));
+    const yb = lineY(drawing, "b");
+    expect(lineY(drawing, "a")).not.toBe(yb);
+    expect(labelOf(drawing, "rb").baseline).toBe(yb + 21.85400390625);
+    expect(leaders(drawing)).toEqual([]);
+  });
+});
+
+/** The first element of a drawing that `test` holds for. */
+function find(drawing: Drawing, test: (item: DrawnElement) => boolean): DrawnElement & TextElement {
+  const found = drawing.elements.find(test);
+  if (found === undefined) throw new Error("no such element");
+  return found as DrawnElement & TextElement;
+}

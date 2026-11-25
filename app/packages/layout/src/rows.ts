@@ -8,8 +8,9 @@
  * down.
  */
 
-import { type BandSpan, opposite, type Side } from "./bands.ts";
-import type { Fitted } from "./children.ts";
+import type { Facet } from "@timetoalign/tilie-core";
+import { type BandSpan, bandStart, fillSide, opposite, type Side } from "./bands.ts";
+import { type ChildrenFit, type Fitted, fitChildren, type Unplaced } from "./children.ts";
 import type { Slots } from "./maps.ts";
 import { lineNames } from "./names.ts";
 import {
@@ -17,6 +18,8 @@ import {
   type LinePlace,
   layoutTimeline,
   ownStart,
+  prepareRow,
+  reachOf,
   type TimelineDrawing,
 } from "./timeline.ts";
 import { type Entry, known, nth, rowPitch, type Scope } from "./traversal.ts";
@@ -36,6 +39,11 @@ export interface Row {
   readonly size: number;
   /** Its pitch: `p0 = max(10 + S, h(s))` for the root's row, else the pitch `p` of its joint layout. */
   readonly pitch: number;
+  /**
+   * Whether aligned children bands place its lines (section 6.4, Children), so that they lay
+   * out their bands together, facet by facet (Rows of one band order); false for the root's row.
+   */
+  readonly aligned: boolean;
   /**
    * The present children bands of its lines on each side, laid out together; `undefined` for a
    * side where none of its lines has a present children band.
@@ -85,47 +93,90 @@ function countedSize(lines: readonly Entry[]): number {
   return Math.max(...counted.map((name) => name.style["font-size"]));
 }
 
+/** The first pass of a member drawing (section 6.4): its root's row and every line fitted. */
+export interface FirstPass {
+  readonly root: Row;
+  readonly fitted: ReadonlyMap<Entry, Fitted>;
+}
+
 /**
  * The first pass's rows (section 6.4, Children): the root's row of the
  * member drawing and, top-down, every joint layout below it, with every
- * row's name size and pitch, from the first fits of `fitted` alone.
+ * row's name size and pitch, from the lines `lines` prepared alone. The
+ * children bands of a joint are **aligned** when every child they place has
+ * one band order; each band places its children by first fit
+ * (`fitChildren`), by their line-only extents where aligned and their whole
+ * extents otherwise. The lines of a row placed by aligned bands are prepared
+ * together (`prepareRow`); every other line keeps its own preparation.
  */
-export function rowsOf(scope: Scope, fitted: ReadonlyMap<Entry, Fitted>): Row {
+export function rowsOf(scope: Scope, lines: ReadonlyMap<Entry, Unplaced>): FirstPass {
+  const fitted = new Map<Entry, Fitted>();
+  const fits = new Map<Entry, ChildrenFit>();
+  const alone = (line: Entry) => known(lines, line).prepared;
   /** The joint of the lines of a row whose present children band lies on `side`. */
-  const jointOf = (lines: readonly Entry[], side: Side): Joint | undefined => {
-    const holding = lines.filter((line) => {
-      const { prepared, fit } = known(fitted, line);
-      return fit.count > 0 && prepared.sides.children === side;
+  const jointOf = (rowLines: readonly Entry[], side: Side): Joint | undefined => {
+    const holding = rowLines.filter((line) => {
+      const prepared = alone(line);
+      return prepared.children.length > 0 && prepared.sides.children === side;
     });
     if (holding.length === 0) return undefined;
+    const placed = holding.flatMap((line) => alone(line).children);
+    const orders = new Set(placed.map((child) => alone(child).order.join(" ")));
+    const aligned = orders.size === 1;
+    const extentOf = (child: Entry) =>
+      aligned ? known(lines, child).lineOnly : known(lines, child).whole;
     // Row k holds every child that any of the bands places in its row k.
-    const rowLines: Entry[][] = [];
+    const children: Entry[][] = [];
     for (const line of holding) {
-      for (const [child, row] of known(fitted, line).fit.row) {
-        while (rowLines.length < row) rowLines.push([]);
-        nth(rowLines, row - 1).push(child);
+      const fit = fitChildren(alone(line).children, extentOf);
+      fits.set(line, fit);
+      for (const [child, row] of fit.row) {
+        while (children.length < row) children.push([]);
+        nth(children, row - 1).push(child);
       }
     }
-    for (const children of rowLines) children.sort(scope.byTraversal);
-    const size = Math.max(...rowLines.map(countedSize));
+    for (const each of children) each.sort(scope.byTraversal);
+    const size = Math.max(...children.map(countedSize));
     const pitch = rowPitch(scope, size);
     return {
       side,
       lines: holding,
-      rows: rowLines.map((children) => rowOf(children, size, pitch)),
+      rows: children.map((each) => rowOf(each, size, pitch, aligned)),
       size,
       pitch,
     };
   };
-  const rowOf = (lines: readonly Entry[], size: number, pitch: number): Row => ({
-    lines,
-    size,
-    pitch,
-    joints: { above: jointOf(lines, "above"), below: jointOf(lines, "below") },
-  });
+  const rowOf = (
+    rowLines: readonly Entry[],
+    size: number,
+    pitch: number,
+    aligned: boolean,
+  ): Row => {
+    const prepared = aligned ? prepareRow(rowLines.map(alone)) : rowLines.map(alone);
+    rowLines.forEach((line, index) => {
+      fitted.set(line, {
+        prepared: nth(prepared, index),
+        extent: aligned ? known(lines, line).lineOnly : known(lines, line).whole,
+        fit: { row: new Map(), count: 0 },
+      });
+    });
+    const row = {
+      lines: rowLines,
+      size,
+      pitch,
+      aligned,
+      joints: { above: jointOf(rowLines, "above"), below: jointOf(rowLines, "below") },
+    };
+    for (const line of rowLines) {
+      const fit = fits.get(line);
+      if (fit !== undefined) fitted.set(line, { ...known(fitted, line), fit });
+    }
+    return row;
+  };
   // The root's row counts on its own: its pitch `p0` takes the root's name size alone.
   const size = scope.rootEntry.name.style["font-size"];
-  return rowOf([scope.rootEntry], size, rowPitch(scope, size));
+  const root = rowOf([scope.rootEntry], size, rowPitch(scope, size), false);
+  return { root, fitted };
 }
 
 /** Every row of a member drawing, the root's first, then each joint's rows, at every depth. */
@@ -139,7 +190,7 @@ export function rowsBelow(row: Row): Row[] {
 }
 
 /** The spans of a line's bands laid out together with other lines' bands, as they are found. */
-type Spans = Partial<Record<"children" | "conversion_maps", BandSpan>>;
+type Spans = Partial<Record<Facet, BandSpan>>;
 
 /**
  * Bands of the lines of one row on one side laid out together (section 6.4,
@@ -202,6 +253,56 @@ function resolveStarts(
 }
 
 /**
+ * The spans of every band of the lines of `row`, a row of one band order, on
+ * `side` (section 6.4, Rows of one band order): their bands have one band
+ * order and one set of present facets, so lie at the same levels; level by
+ * level outwards, the bands of a facet start at one distance `c0`, the
+ * largest of their own starts (`bandStart` after the bands below them, as
+ * laid out so far; for a children band at least half the row's pitch), and
+ * each is as wide as the widest of them: a children band by the halves of
+ * its rows (`widths`, 0 for a line placing no child there), a conversion
+ * maps band by its slots, any other by its first fits.
+ */
+function alignStarts(
+  row: Row,
+  side: Side,
+  fitted: ReadonlyMap<Entry, Fitted>,
+  slots: ReadonlyMap<Entry, Slots>,
+  widths: ReadonlyMap<Entry, number> | undefined,
+  spans: Map<Entry, Spans>,
+): void {
+  const spansOf = (line: Entry): Spans => {
+    const found = spans.get(line);
+    if (found !== undefined) return found;
+    const created: Spans = {};
+    spans.set(line, created);
+    return created;
+  };
+  const facets = known(fitted, nth(row.lines, 0)).prepared.levels[side];
+  facets.forEach((facet, level) => {
+    const lower = facets.slice(0, level);
+    const starts = row.lines.map((line) => {
+      const { prepared } = known(fitted, line);
+      const { S } = prepared.scope;
+      const reach = reachOf(prepared, slots.get(line))[side];
+      const w = prepared.line.style["stroke-width"];
+      const bands = lower.map((each) => prepared.bands[each]);
+      const before = fillSide(side, bands, reach, S, w, spansOf(line));
+      const start = bandStart(facet, level === 0 ? undefined : before.edge, reach, w, S);
+      return facet === "children" ? Math.max(start, row.pitch / 2) : start;
+    });
+    const widthOf = (line: Entry): number => {
+      if (facet === "children") return widths?.get(line) ?? 0;
+      if (facet === "conversion_maps") return slots.get(line)?.width ?? 0;
+      return known(fitted, line).prepared.bands[facet].width;
+    };
+    const start = Math.max(...starts);
+    const width = Math.max(...row.lines.map(widthOf));
+    for (const line of row.lines) spansOf(line)[facet] = { start, width };
+  });
+}
+
+/**
  * The second pass for the lines of `row` (section 6.4, Children: "the
  * distances, from the deepest rows up"), `slots` the slots of every present
  * conversion maps band (`rowSlots`): for each side, the rows of the joint
@@ -248,7 +349,11 @@ export function layoutRow(
     for (const each of shared) {
       sets.push({ facet: "conversion_maps", lines: each.lines, width: () => each.width });
     }
-    resolveStarts(sets, side, row.pitch, fitted, slots, spans);
+    if (row.aligned && row.lines.length > 1) {
+      alignStarts(row, side, fitted, slots, halves?.widths, spans);
+    } else {
+      resolveStarts(sets, side, row.pitch, fitted, slots, spans);
+    }
     if (joint !== undefined && halves !== undefined && drawings !== undefined) {
       for (const [line, children] of placeChildren(joint, halves, fitted, drawings, spans)) {
         laid.set(line, children);
@@ -261,7 +366,8 @@ export function layoutRow(
       const start = spans.get(line)?.conversion_maps?.start;
       const maps =
         lineSlots === undefined || start === undefined ? undefined : { slots: lineSlots, start };
-      return [line, layoutTimeline(known(fitted, line).prepared, laid.get(line), maps)];
+      const aligned = row.aligned && row.lines.length > 1 ? spans.get(line) : undefined;
+      return [line, layoutTimeline(known(fitted, line).prepared, laid.get(line), maps, aligned)];
     }),
   );
 }

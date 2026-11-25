@@ -31,18 +31,37 @@ import {
 } from "./bands.ts";
 import { P } from "./constants.ts";
 import type { Cut } from "./elements.ts";
-import { type Extent, widen } from "./fit.ts";
+import { type Extent, labelTiers, Rows, tieredFit, widen } from "./fit.ts";
 import { flowControlBand } from "./flow.ts";
-import { type LevelZero, levelZero } from "./line.ts";
+import { type LevelZero, levelZero, ownTiers, type StagedZero } from "./line.ts";
 import { conversionMapsBand, drawMaps, type MapMember, mapMembers, type Slots } from "./maps.ts";
-import { type MarkersBand, markersBand, wedgeElement } from "./markers.ts";
-import { regionsBand } from "./regions.ts";
-import { gapOf } from "./stacks.ts";
-import { type Entry, type Scope, shown } from "./traversal.ts";
+import { type MarkersBand, markersBand, type StagedMarkers, wedgeElement } from "./markers.ts";
+import { regionsAlone, regionsBand, type StagedRegions } from "./regions.ts";
+import { gapOf, tiersOf } from "./stacks.ts";
+import { type Entry, known, nth, type Scope, shown } from "./traversal.ts";
+
+/**
+ * The bands of a timeline as its modules prepare them, those with a first fit
+ * of their own before it is placed: the markers band's stacks, the regions
+ * band's regions and level 0's segment labels (section 6.4, Rows of one band
+ * order); the children, conversion maps and flow control bands as they are.
+ */
+export interface Stages {
+  readonly markers: StagedMarkers;
+  readonly regions: StagedRegions;
+  readonly zero: StagedZero;
+  readonly children: PreparedBand;
+  readonly conversion_maps: PreparedBand;
+  readonly flow_control: PreparedBand;
+}
 
 /** One timeline once every first fit of its own bands is done (section 6.4, the first pass). */
 export interface PreparedTimeline {
   readonly scope: Scope;
+  /** Its bands before their first fits are placed, so that a row of one band order places them together. */
+  readonly stages: Stages;
+  /** Its line's own extent, its labels and its children's left out (section 6.4, Children). */
+  readonly lineExtent: Extent;
   /** Its entry: a timeline drawn with a line of its own. */
   readonly line: Entry;
   /** Its band order (core's `bandOrderOf`): `line` and its five facets, top to bottom. */
@@ -237,9 +256,11 @@ export function reachOf(
  * its band order (core's `bandOrderOf` over the scope's manifest), the side
  * of each band, each band prepared by its module from `sourcesOf` (markers,
  * conversion maps, regions, flow control; the children band from
- * `children`), the present bands' levels, its maps, its level 0, its own
- * extent and its centred labels. Uses no distance and no other line's
- * layout, so every line of a member drawing can be prepared first.
+ * `children`), its markers stacks, regions and segment labels placed by its
+ * own first fits alone, the present bands' levels, its maps, its level 0,
+ * its own extent and its centred labels. Uses no distance and no other
+ * line's layout, so every line of a member drawing can be prepared first;
+ * `prepareRow` places the first fits of a row of one band order together.
  */
 export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
   const id = line.manifest.id;
@@ -251,33 +272,152 @@ export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
     ),
   );
   const maps = mapMembers(scope, sources);
-  const markers = markersBand(scope, line, sources);
-  const bands: Record<Facet, PreparedBand> = {
+  const stages: Stages = {
+    markers: markersBand(scope, line, sources),
+    regions: regionsBand(scope, sources),
+    zero: levelZero(scope, line),
     children: childrenBand(children),
     conversion_maps: conversionMapsBand(maps),
-    markers,
-    regions: regionsBand(scope, sources),
     flow_control: flowControlBand(scope, line),
   };
-  const levels = levelsOf(order, new Set(FACETS.filter((facet) => bands[facet].elements > 0)));
-  const zero = levelZero(scope, line);
+  return assembled(
+    { scope, line, order, children, maps, stages },
+    stages.markers.band(tiersOf(stages.markers.stacks)),
+    regionsAlone(stages.regions),
+    stages.zero.zero(ownTiers(stages.zero)),
+  );
+}
+
+/** What a line's preparation keeps before its first fits are placed. */
+interface Unfitted {
+  readonly scope: Scope;
+  readonly line: Entry;
+  readonly order: readonly string[];
+  readonly children: readonly Entry[];
+  readonly maps: readonly MapMember[];
+  readonly stages: Stages;
+}
+
+/**
+ * A line prepared from `base` with its markers band, regions band and level 0
+ * placed: its present bands' levels (those drawing an element, or the facets
+ * `present` lists in a row of one band order), its extent and its centred
+ * labels.
+ */
+function assembled(
+  base: Unfitted,
+  markers: MarkersBand,
+  regions: PreparedBand,
+  zero: LevelZero,
+  present?: ReadonlySet<Facet>,
+): PreparedTimeline {
+  const { stages, order } = base;
+  const bands: Record<Facet, PreparedBand> = {
+    children: stages.children,
+    conversion_maps: stages.conversion_maps,
+    markers,
+    regions,
+    flow_control: stages.flow_control,
+  };
+  const levels = levelsOf(
+    order,
+    present ?? new Set(FACETS.filter((facet) => bands[facet].elements > 0)),
+  );
   const own = [...zero.extents, ...FACETS.flatMap((facet) => bands[facet].extents)];
   const [firstExtent, ...otherExtents] = own;
   if (firstExtent === undefined) throw new Error("a timeline has no extent");
   return {
-    scope,
-    line,
-    order,
+    ...base,
     sides: bandSides(order),
     bands,
     markers,
     levels,
-    children,
-    maps,
     levelZero: zero,
+    lineExtent: stages.zero.lineExtent,
     extent: wholeExtent(firstExtent, otherExtents),
     centred: [...zero.centred, ...FACETS.flatMap((facet) => bands[facet].centred)],
   };
+}
+
+/**
+ * The lines of a row of one band order prepared together (section 6.4, Rows
+ * of one band order), `lines` in traversal order, each prepared alone
+ * (`prepareTimeline`): the stacks of all their markers bands placed by one
+ * first fit into one set of tiers, line after line; the regions of all their
+ * regions bands by one tiered first fit, line after line, so that their
+ * rows, label tiers and pitches are one, at the largest font size of their
+ * drawn labels; the segment labels of their segment lines by one first fit
+ * into one set of segment-label tiers, at one `m`, which counts `k` when any
+ * of them draws a boundary. On each side the band of a facet is present for
+ * every line when it is present for one, and the markers and regions bands
+ * of each facet are as wide as the widest of them; the children and
+ * conversion maps bands take their spans where the row's bands are laid out
+ * (`rows.ts`).
+ */
+export function prepareRow(lines: readonly PreparedTimeline[]): PreparedTimeline[] {
+  if (lines.length < 2) return [...lines];
+  const slices = <T>(all: readonly T[], counts: readonly number[]): T[][] => {
+    let offset = 0;
+    return counts.map((count) => {
+      const slice = all.slice(offset, offset + count);
+      offset += count;
+      return slice;
+    });
+  };
+  const markers = tiersOf(lines.flatMap((line) => line.stages.markers.stacks));
+  const firsts = slices(
+    markers.first,
+    lines.map((line) => line.stages.markers.stacks.length),
+  );
+  const regions = tieredFit(lines.flatMap((line) => line.stages.regions.items));
+  const regionCounts = lines.map((line) => line.stages.regions.items.length);
+  const [rows, tiers] = [slices(regions.row, regionCounts), slices(regions.tier, regionCounts)];
+  const regionSize = Math.max(...lines.map((line) => line.stages.regions.size));
+  const segmentLines = lines.filter((line) => line.stages.zero.segmentLine);
+  const segmentRows = new Rows();
+  const segmentLabels = segmentLines.flatMap((line) => line.stages.zero.labels);
+  const segmentTier = labelTiers(segmentLabels, (label) => label.x, segmentRows);
+  const shared = {
+    count: segmentRows.count,
+    bounded: segmentLines.some((line) => line.stages.zero.bounded),
+    size: Math.max(...segmentLines.map((line) => line.stages.zero.size)),
+  };
+  const fitted = lines.map((line, index) => {
+    const { zero } = line.stages;
+    return {
+      line,
+      markers: line.stages.markers.band({ first: nth(firsts, index), lines: markers.lines }),
+      regions: line.stages.regions.band(
+        { row: nth(rows, index), tier: nth(tiers, index), tiers: regions.tiers },
+        regionSize,
+      ),
+      zero: zero.zero(
+        zero.segmentLine
+          ? { ...shared, tier: zero.labels.map((label) => known(segmentTier, label)) }
+          : ownTiers(zero),
+      ),
+    };
+  });
+  const present = new Set(
+    fitted.flatMap(({ line, markers: band, regions: band2 }) =>
+      FACETS.filter((facet) => {
+        const own = facet === "markers" ? band : facet === "regions" ? band2 : line.bands[facet];
+        return own.elements > 0;
+      }),
+    ),
+  );
+  const widest = (facet: "markers" | "regions") =>
+    Math.max(...fitted.map((each) => each[facet].width));
+  const [markersWidth, regionsWidth] = [widest("markers"), widest("regions")];
+  return fitted.map(({ line, markers: band, regions: band2, zero }) =>
+    assembled(
+      line,
+      { ...band, width: markersWidth },
+      { ...band2, width: regionsWidth },
+      zero,
+      present,
+    ),
+  );
 }
 
 /**
@@ -383,19 +523,21 @@ function markersStart(
  * its reach by its slots (`reachOf`), each side filled by `fillSide` from
  * its present bands in level order, the children band at `children.start`
  * and `children.width` wide, the conversion maps band at `maps.start` and as
- * wide as its slots make it; its outer edges; and its elements once its
+ * wide as its slots make it, or every band where `aligned` gives the spans
+ * of a row of one band order; its outer edges; and its elements once its
  * line's place is known.
  */
 export function layoutTimeline(
   prepared: PreparedTimeline,
   children: LaidChildren | undefined,
   maps: LaidMaps | undefined,
+  aligned?: JointSpans,
 ): TimelineDrawing {
   const { scope, line, levels, bands } = prepared;
   const slots = maps?.slots;
   const reach = reachOf(prepared, slots);
   const w = line.style["stroke-width"];
-  const spans: JointSpans = {
+  const spans: JointSpans = aligned ?? {
     ...(children === undefined
       ? {}
       : { children: { start: children.start, width: children.width } }),

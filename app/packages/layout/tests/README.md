@@ -1638,8 +1638,19 @@ the chevrons of the ancestor line running on to the right, but in
      card laid out with its own frame's proportions.
    Vertically each card is `score` as the one ungrouped root of a block
    holding nothing else (the fixture after core's `remove` of both groups,
-   both takes and `page`, at `L = LA`): `154.8828125` high, its line
-   `98.4296875` below its top; its line lies on `score`'s ancestor row in
+   both takes and `page`, at `L = LA`): `158.3828125` high, its line
+   `101.9296875` below its top. Its children `exposition` and
+   `recapitulation` share one row and one band order, so they lay out their
+   bands together (section 6.4, Rows of one band order): `recapitulation`,
+   which holds no map, has a conversion maps band all the same, at level 1
+   with `exposition`'s slots, `e = 1.5 + 2 × 5 = 11.5`, so its segment
+   labels lie at `m = max(11.5, k) = 11.5` (the row's one `m`) rather than
+   `k = 8`, its line reaching `11.5 + 2 + 10.4765625 = 23.9765625` above as
+   `exposition`'s does, and both children bands start at `c0 = 23.9765625 +
+   4 = 27.9765625` (`24.4765625` before), each `28.4765625` wide (an empty
+   one `exposition`'s, as wide as the other): the row's outer half and so
+   `score`'s children band and card 3.5 more than `score` laid out line by
+   line would give; its line lies on `score`'s ancestor row in
    its member's card, below the member's line, at `123.5625`
    (`exposition`'s card) and `369.7265625` (`recapitulation`'s), the
    ordinates of the drawing with the hiding layer, whose place origin is
@@ -1648,14 +1659,14 @@ the chevrons of the ancestor line running on to the right, but in
    above, 23.9765625 and 52.953125) plus 37.9765625 (its markers band below
    holds one label tier; the ancestor row holds nothing, `7 + 7`, so the
    cards are 84.953125 and 113.9296875 high); so `score`'s line lies at
-   `123.5625` and `349.75`, and the tops at `25.1328125` and
-   `251.3203125`. The block grows left to the
+   `123.5625` and `349.75`, and the tops at `123.5625 − 101.9296875 =
+   21.6328125` and `247.8203125`. The block grows left to the
    second card, `Xl = −698.6901041666667 − OL = −826.0802408854167` (`OL
    = x0 = 127.39013671875`, `OR = 40`), and up to the first, `Yt =
-   25.1328125 − Pt = −3.671875` with `Pt = 28.8046875`, the first frame's
+   21.6328125 − Pt = −7.171875` with `Pt = 28.8046875`, the first frame's
    top in the drawing with the hiding layer: origin `(826.0802408854167,
-   3.671875)`, `W = (8 + (−24.0234375 − OL + 1243.3592936197915 + OL + OR
-   + 2)) − Xl = 2095.416097005208`, `H = 497.5078125 + 3.671875 = 501.1796875` (the
+   7.171875)`, `W = (8 + (−24.0234375 − OL + 1243.3592936197915 + OL + OR
+   + 2)) − Xl = 2095.416097005208`, `H = 497.5078125 + 7.171875 = 504.6796875` (the
    hiding layer's height, its bottom unchanged). Records: two cards, both
    addressed `{id: score, part: [card]}`, keyed `{item: group_1, member:
    score}` at `(674.6666666666667, 28.8046875)`, `OL + OR` wider,
@@ -1664,10 +1675,10 @@ the chevrons of the ancestor line running on to the right, but in
    1370.7494303385417, carrying `ancestor {group: group_1, member:
    exposition}` and `{group: group_2, member: recapitulation}`.
    `lineAxes` lists `score`'s line in each, keyed by its card, cut at the
-   seams: at `127.234375` from `8 + xs + OL` plus the origin,
+   seams: at `123.5625 + 7.171875 = 130.734375` from `8 + xs + OL` plus the origin,
    `961.4703776041667`, to `+ 400 = 1361.4703776041667` (0 to 12) and
    from `+ OR = 1401.4703776041667` to `2068.137044270833` (12 to 32);
-   at `353.421875` from `167.41357421875` to the frame's left edge,
+   at `356.921875` from `167.41357421875` to the frame's left edge,
    `834.0802408854167` (0 to 20), and from `+ OL = 961.4703776041667` to
    `1361.4703776041667` (20 to 32); drawn lengths 12, 20, 20 and 12.
 12. **The hover readers answer for a card's line.** `crossSection`,
@@ -2017,8 +2028,8 @@ elision without `display` draws `["ellipsis", "name"]`.
    elements are drawn in its own coordinates and moved, so its middles are
    the moved ones: its gaps are covered by points 1, 3, 16 and 18. In `bundle_shared_parent` each of
    `score`'s two ancestor cards derives one gap cutting `score`'s map
-   `cmap_1` and its line (121.734375 and 127.234375, 347.921875 and
-   353.421875): its one ellipsis lies at the middle of its card, not on a
+   `cmap_1` and its line (125.234375 and 130.734375, 351.421875 and
+   356.921875): its one ellipsis lies at the middle of its card, not on a
    row, its name `Score` below it.
 15. **The frame's room** ("Ancestor cards", The frame's room). In
    `group_elided_inside` (`r` and the gaps of point 1), the ancestor card
@@ -2267,6 +2278,35 @@ changes nothing once the default layer holds them.
    so `x0 = 16 + 155.77783203125 + 8 = 179.77783203125`, where the root's
    line starts.
 
+
+**A row of one band order** (section 6.4, Children and Rows of one band
+order). Children bands laid out together are aligned when every child they
+place has one band order; such a band places each child by its line's
+extent and its own children's alone, and the lines of each of its rows lay
+out their bands together: their region labels by one first fit, so a
+label reaching over another line's span takes a later tier there, with a
+leader, instead of moving that line to another row. `piece` built by
+commands, 16 long (`x(t) = x0 + 25 t`), its children `a` at 0 and `b` at
+8, each 8 long (the bare template, no band order of their own, no named
+timestamp), `a` holding the region `ra` from 6 to 8 named `Development
+section` (95.8623046875 wide at 9) and `b` the region `rb` from 0 to 2 of
+its axis (8 to 10 on `piece`'s) named `Coda` (23.0185546875): `a` and `b`
+lie in one row (their lines `[0, 200]` and `[200, 400]` meet); the regions
+`[150, 200]` and `[200, 250]` share regions row 1, and the label extents
+`[175 − 47.93115234375 − 1, …]` reaching `223.93115234375` and `[225 −
+11.50927734375 − 1, …]` from `212.49072265625` conflict, so `ra`'s label
+lies in tier 1 and `rb`'s in tier 2. Each child's regions band lies at
+level −1 from `max(0, 1.5) + 4 = 5.5` (no markers band, no map), row 1's
+arms at 5.5 and its tip at 11.5: `ra`'s label centred at `x0 + 175`, its
+baseline `5.5 + 6 + 2 + a(9) = 21.85400390625` below `a`'s line; `rb`'s at
+`x0 + 225`, `(5.5 + 6 + 2 + 10.4765625) + a(9) = 32.33056640625` below
+`b`'s line, with one leader at `x0 + 225` from `11.5` to `23.9765625`
+below it. Both regions bands are `6 + 2 + 2 × 10.4765625 + 4 − 4 =
+28.953125` high in their records, `a`'s with its one tier of labels as
+tall as `b`'s. With `a` given its own band order `[regions, line]` the
+band is not aligned: `a`'s extent holds its label, which reaches over
+`b`'s line, so `b` takes the next row, its label lies in its own tier 1
+(`21.85400390625` below its line) and no leader is drawn.
 ## Region braces cut at gaps (`region-cuts.test.ts`)
 
 Sections 3.2 (the elided axis), 6.6 (Regions, Elisions) and 7.2 (the
@@ -2484,24 +2524,36 @@ wide (its record 58.40625 high, holding 2 wedges and 6 labels), `Hc =
 `(22.40234375 + 47.9296875) + 8.35400390625 = 78.68603515625` (`Late`),
 the labels in the order of their timestamps, each stack's in its order.
 
-**A child's extent counts its wedges.** `contiguous` (root `piece`, length
-8, children `a` [0, 3], `c` [1, 3], `b` [3, 8], none named, every pitch
-14): `a` takes row 1, `c` row 2, `b` row 1 (it starts where `a` ends), so
-the children band, from 7, is `7 + 7 + 7 + 7 = 28` wide, `Ea = 35`, the
-root's line at `8 + (8 + 35) = 51` and `b`'s at `51 − 14 = 37`. With
-`timestamp_1` at 0 on `b` drawing its wedge alone, `b`'s extent holds the
-wedge's `[150 − 3, 150 + 3]`, which conflicts with `a` (`[0, 150]`) in row 1
-and `c` (`[50, 150]`) in row 2, so `b` takes row 3, whose inner half is
-`max(7, 1.5 + 13) = 14.5` (`b`'s markers band, no label): `l3 = ((7 + 7) +
-(7 + 7)) + (7 + 14.5) = 49.5`, the band `49.5 + 7 = 56.5` wide from 7, the
-root's line at `8 + (8 + 56.5) = 72.5` and `b`'s at `72.5 − 49.5 = 23`.
-With a rule turning that wedge 90 (`{addresses: [{id: timestamp_1}]}`), its
-extent is `[150, 163]`, within `b`'s own `[150, 400]`, so `b` takes row 1
-again, whose inner half is now `max(7, 1.5 + 13) = 14.5`: `l1 = 7 + 14.5 =
-21.5`, `l2 = (7 + 14.5) + (7 + 7) = 35.5`, the band `35.5 + 7 = 42.5` wide
-from 7, the root's line at `8 + (8 + 42.5) = 58.5` and `b`'s at `58.5 −
-21.5 = 37`; turned −90, its extent `[137, 150]` conflicts with `a` and `c`
-as before, so the lines lie at 72.5 and 23.
+**A child's extent counts its wedges where its band is not aligned.**
+`contiguous` (root `piece`, length 8, children `a` [0, 3], `c` [1, 3], `b`
+[3, 8], none named, every pitch 14), with `c` given by command its own band
+order `[regions, line]` (completed `[children, conversion_maps, regions,
+line, markers, flow_control]`, so `piece`'s children band is not aligned;
+`c` has no regions, so it draws as before): `a` takes row 1, `c` row 2,
+`b` row 1 (it starts where `a` ends), so the children band, from 7, is `7
++ 7 + 7 + 7 = 28` wide, `Ea = 35`, the root's line at `8 + (8 + 35) = 51`
+and `b`'s at `51 − 14 = 37`. With `timestamp_1` at 0 on `b` drawing its
+wedge alone, `b`'s extent holds the wedge's `[150 − 3, 150 + 3]`, which
+conflicts with `a` (`[0, 150]`) in row 1 and `c` (`[50, 150]`) in row 2, so
+`b` takes row 3, whose inner half is `max(7, 1.5 + 13) = 14.5` (`b`'s
+markers band, no label): `l3 = ((7 + 7) + (7 + 7)) + (7 + 14.5) = 49.5`,
+the band `49.5 + 7 = 56.5` wide from 7, the root's line at `8 + (8 + 56.5)
+= 72.5` and `b`'s at `72.5 − 49.5 = 23`. With a rule turning that wedge 90
+(`{addresses: [{id: timestamp_1}]}`), its extent is `[150, 163]`, within
+`b`'s own `[150, 400]`, so `b` takes row 1 again, whose inner half is now
+`max(7, 1.5 + 13) = 14.5`: `l1 = 7 + 14.5 = 21.5`, `l2 = (7 + 14.5) + (7 +
+7) = 35.5`, the band `35.5 + 7 = 42.5` wide from 7, the root's line at `8 +
+(8 + 42.5) = 58.5` and `b`'s at `58.5 − 21.5 = 37`; turned −90, its extent
+`[137, 150]` conflicts with `a` and `c` as before, so the lines lie at 72.5
+and 23.
+
+**A child keeps its row where its band is aligned.** `contiguous` as it is
+(its children follow one band order): the extents are the lines alone, so
+`b` takes row 1 beside `a` whatever its wedge (section 6.4, Children); with
+the wedge, at every rotation (none, 90, −90), `b`'s markers band is present
+below its line, and so is `a`'s, both `1.5 + 13 = 14.5` wide (Rows of one
+band order), so row 1's inner half is 14.5 and the lines lie at 58.5 and 37
+as above; without it, at 51 and 37.
 
 **Segments without a line.** `segment_line` with `timestamp_1` at 2 on the
 segment `b1` (at 0 in `b`, at 8 in `form`, so at 10 on `form`'s axis): its
@@ -3566,21 +3618,34 @@ segment line, 120 to 160). Every count comes from the inputs a
 draw is given, never from watching the code: each rule counts reads
 of its selector, the metrics table the code points asked, the manifest listings of
 its keys. The rule with no element, class or address is tested
-exactly `1,118 − 27 + 2 × 63 = 1,217` times: each key is resolved once but
-the 27 ID labels of the breaks and the jump, which the initial
+exactly `1,118 − 27 + 2 × 63 + 39 = 1,256` times: each key is resolved once
+but the 27 ID labels of the breaks and the jump, which the initial
 `label-display` `name label` leaves out of their stacks and so never resolves,
 and each of the 63 lines (the root, its 60 children, the nested child and the
 segment line, the keys of type `timeline` or `child`) resolves once each
 the wedge and the cross-section line of a position no named timestamp
-holds; three whose address,
+holds, and each of the 39 leaders of the region labels beyond their first
+tier, which no key lists, once. The children have one band order, so the
+root's children band is aligned and places each child by its line alone:
+child `i` at `2i` with the reach 1 and an open end, drawn without the
+default layer (stroke width 1), has the extent `[4i, 4i + 2 + 9.5] = [4i,
+4i + 11.5]` (`x(t) = 2t`), so first fit puts child `i` in row `i mod 3 +
+1`, 20 children a row, and the segment line `[240, 320]` in row 1 after
+child 57 (`[228, 239.5]`). Each row is a row of one band order: its
+regions bands place their 20 regions `[4i, 4i + 2]`, 12 apart, in one
+regions row, and their labels `region` (28.6611328125 wide at 9, the
+extent 30.6611328125) by one first fit into three label tiers, the labels
+of the row cycling through tiers 1, 2, 3; 13 of each row's 20 lie beyond
+tier 1, `3 × 13 = 39`; three whose address,
 class or element no key has, 0 times; one per address the keys carry, the
 block's `{}` included, as often as core lists keys there that are
-resolved (an ID label's address 0 times). The metrics table is read 204
-times, the code points of the thirteen distinct texts as a multiset (the
+resolved (an ID label's address 0 times). The metrics table is read 332
+times, the code points of the twelve distinct texts as a multiset (the
 symbols `𝄆`, `Fine` and `𝄇` among them; the children, which draw no flow
-control band of their own, fill three rows of names, of 7, 8 and 7 names
-and the segment line); the manifest's keys are listed 0 times, so a draw
-copies nothing. No count is a timing.
+control band of their own, fill three rows of names, two of 20 `voice`, one
+text measured once, 138 code points, and one of 20 `voice` and the segment
+line's `segments`, 148; the other ten texts 46); the manifest's keys are
+listed 0 times, so a draw copies nothing. No count is a timing.
 
 **Work per timeline.** A draw's work grows with the number of timelines
 and no faster: no timeline is visited again for every other timeline, as a

@@ -62,7 +62,8 @@ export function rowSlots(rootRow: Row, fitted: ReadonlyMap<Entry, Fitted>): Map<
     const groups = new Map<string, PreparedTimeline[]>();
     for (const line of row.lines) {
       const { prepared } = known(fitted, line);
-      if (prepared.maps.length === 0) continue;
+      // A band is present where it holds a map, or in a row of one band order where another does.
+      if (!prepared.levels[prepared.sides.conversion_maps].includes("conversion_maps")) continue;
       const { side, level } = mapsLevel(prepared);
       const outwards = prepared.levels[side];
       const children = outwards.indexOf("children");

@@ -824,8 +824,8 @@ describe("ellipses", () => {
     expect(
       gaps.map((gap) => (gap.type === "elision" ? crossingYs(drawing, gap.x1, gap.x2) : [])),
     ).toEqual([
-      [127.234375 - 5.5, 127.234375],
-      [353.421875 - 5.5, 353.421875],
+      [130.734375 - 5.5, 130.734375],
+      [356.921875 - 5.5, 356.921875],
     ]);
     expect(
       gaps.map((gap) =>

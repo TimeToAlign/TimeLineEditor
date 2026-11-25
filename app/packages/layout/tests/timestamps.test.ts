@@ -43,6 +43,7 @@ import {
   boxAt,
   build,
   child,
+  edited,
   element,
   linearMap,
   loadFile,
@@ -395,32 +396,34 @@ describe("stacks in tiers", () => {
 });
 
 describe("named timestamps in the layout", () => {
-  it("counts a child's wedge in its extent", () => {
-    expect([
-      lineY(drawn(loadFile("contiguous")), "piece"),
-      lineY(drawn(loadFile("contiguous")), "b"),
-    ]).toEqual([51, 37]);
-    const drawing = drawn(
-      stamped("contiguous", [
-        { id: "timestamp_1", timeline: "b", coordinate: [0, 1], name: "B", display: ["wedge"] },
-      ]),
-    );
-    expect([lineY(drawing, "piece"), lineY(drawing, "b")]).toEqual([72.5, 23]);
+  // `c` stating its own band order makes the children band of `piece` not aligned.
+  const ownOrder = (manifest: Manifest) =>
+    edited(manifest, set("c", { order: ["regions", "line"] }));
+  const wedgeOnB = [
+    { id: "timestamp_1", timeline: "b", coordinate: [0, 1], name: "B", display: ["wedge"] },
+  ] as const;
+  const turned = (rotation: number) => [
+    { select: { addresses: [at("timestamp_1")] }, set: { rotation } },
+  ];
+  const lines = (drawing: Drawing) => [lineY(drawing, "piece"), lineY(drawing, "b")];
+
+  it("counts a child's wedge in its extent where the children bands are not aligned", () => {
+    expect(lines(drawn(ownOrder(loadFile("contiguous"))))).toEqual([51, 37]);
+    expect(lines(drawn(ownOrder(stamped("contiguous", wedgeOnB))))).toEqual([72.5, 23]);
   });
 
   it("counts a turned wedge's extent from its tip to its farthest corner across", () => {
-    const turned = (rotation: number) =>
-      drawn(
-        stamped(
-          "contiguous",
-          [{ id: "timestamp_1", timeline: "b", coordinate: [0, 1], name: "B", display: ["wedge"] }],
-          [{ select: { addresses: [at("timestamp_1")] }, set: { rotation } }],
-        ),
-      );
-    const right = turned(90);
-    expect([lineY(right, "piece"), lineY(right, "b")]).toEqual([58.5, 37]);
-    const left = turned(-90);
-    expect([lineY(left, "piece"), lineY(left, "b")]).toEqual([72.5, 23]);
+    const at90 = drawn(ownOrder(stamped("contiguous", wedgeOnB, turned(90))));
+    expect(lines(at90)).toEqual([58.5, 37]);
+    const at270 = drawn(ownOrder(stamped("contiguous", wedgeOnB, turned(-90))));
+    expect(lines(at270)).toEqual([72.5, 23]);
+  });
+
+  it("keeps a child in its row whatever its wedges where the children bands are aligned", () => {
+    expect(lines(drawn(loadFile("contiguous")))).toEqual([51, 37]);
+    for (const rules of [[], turned(90), turned(-90)]) {
+      expect(lines(drawn(stamped("contiguous", wedgeOnB, rules)))).toEqual([58.5, 37]);
+    }
   });
 
   it("joins a segment's timestamps to its segment line's markers band", () => {

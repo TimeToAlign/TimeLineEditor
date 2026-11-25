@@ -679,8 +679,8 @@ describe("the ancestor cards of bundle_shared_parent", () => {
   ];
 
   it("lie behind both frames, each at its own frame's proportions", () => {
-    expect(drawing.origin).toEqual({ x: 826.0802408854167, y: 3.671875 });
-    expect([drawing.width, drawing.height]).toEqual([2095.416097005208, 501.1796875]);
+    expect(drawing.origin).toEqual({ x: 826.0802408854167, y: 7.171875 });
+    expect([drawing.width, drawing.height]).toEqual([2095.416097005208, 504.6796875]);
     expect(
       ancestorsOf(drawing).map((box) => [
         box.key,
@@ -701,7 +701,7 @@ describe("the ancestor cards of bundle_shared_parent", () => {
         674.6666666666667,
         28.8046875,
         1410.7494303385415,
-        154.8828125,
+        158.3828125,
       ],
       [
         keys[1],
@@ -711,7 +711,7 @@ describe("the ancestor cards of bundle_shared_parent", () => {
         8,
         254.9921875,
         1370.7494303385417,
-        154.8828125,
+        158.3828125,
       ],
     ]);
   });
@@ -732,9 +732,9 @@ describe("the ancestor cards of bundle_shared_parent", () => {
     );
     const [, rootCard] = reference.boxes;
     if (rootCard === undefined) throw new Error("the reference draws no card");
-    expect(rootCard.height).toBe(154.8828125);
+    expect(rootCard.height).toBe(158.3828125);
     expect(span(lineOf(reference.elements, "timeline", at("score")))[0] - rootCard.y).toBe(
-      98.4296875,
+      101.9296875,
     );
     // Its line lies on score's ancestor row in its member's card, as drawn with the hiding layer.
     const without = drawFixture("bundles/bundle_shared_parent", [
@@ -767,7 +767,7 @@ describe("the ancestor cards of bundle_shared_parent", () => {
     ).toEqual([
       [
         keys[0],
-        127.234375,
+        130.734375,
         961.4703776041667,
         1361.4703776041667,
         "12",
@@ -775,7 +775,7 @@ describe("the ancestor cards of bundle_shared_parent", () => {
       ],
       [
         keys[0],
-        127.234375,
+        130.734375,
         1401.4703776041667,
         2068.137044270833,
         "20",
@@ -783,7 +783,7 @@ describe("the ancestor cards of bundle_shared_parent", () => {
       ],
       [
         keys[1],
-        353.421875,
+        356.921875,
         167.41357421875,
         834.0802408854167,
         "20",
@@ -791,7 +791,7 @@ describe("the ancestor cards of bundle_shared_parent", () => {
       ],
       [
         keys[1],
-        353.421875,
+        356.921875,
         961.4703776041667,
         1361.4703776041667,
         "12",

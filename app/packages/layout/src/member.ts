@@ -24,7 +24,7 @@ import {
 } from "./ancestors.ts";
 import type { Centred, LineElements, SegmentElement } from "./bands.ts";
 import type { AxisMarker, AxisTimestamp, AxisWedge, DrawnBox, ElementRange } from "./boxes.ts";
-import { type Fitted, fitTimelines } from "./children.ts";
+import { type Fitted, prepareTimelines } from "./children.ts";
 import type { DrawnElement } from "./elements.ts";
 import { type CrossingRow, crossingRows, gapElements, type StackLabel } from "./elisions.ts";
 import { heights } from "./heights.ts";
@@ -138,8 +138,7 @@ export function layoutScope(
 ): MemberLayout {
   const { rootEntry } = scope;
 
-  const fitted = fitTimelines(scope);
-  const rootRow = rowsOf(scope, fitted);
+  const { root: rootRow, fitted } = rowsOf(scope, prepareTimelines(scope));
   const slots = rowSlots(rootRow, fitted);
   const root = known(layoutRow(rootRow, fitted, slots), rootEntry);
   const ancestors = ancestorLines(scope);

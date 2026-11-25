@@ -272,8 +272,12 @@ export interface BandSpan {
   readonly width: number;
 }
 
-/** The bands of a timeline laid out together with those of other lines: their spans by facet. */
-export type JointSpans = Readonly<Partial<Record<"children" | "conversion_maps", BandSpan>>>;
+/**
+ * The bands of a timeline laid out together with those of other lines: their
+ * spans by facet, the children and conversion maps bands of every row, and in
+ * a row of one band order every band (section 6.4, Rows of one band order).
+ */
+export type JointSpans = Readonly<Partial<Record<Facet, BandSpan>>>;
 
 /**
  * The side each band of a timeline lies on (section 6.4, The band order):
@@ -347,7 +351,7 @@ export function bandStart(
  * - the children band and the conversion maps band, each laid out together
  *   with the bands of other lines of its row, start and are as wide as
  *   `spans` says (`spans` holds a span for each of them that `present`
- *   holds);
+ *   holds), and so does every band of a row of one band order;
  * - every outer edge is the band's start plus its width, the width summed
  *   first, and for the markers or conversion maps band at level 1 or −1 the
  *   larger of that and `reach`, since it shares its room with the line's;
@@ -371,10 +375,11 @@ export function fillSide(
     const first = edge === undefined;
     let start: number;
     let width: number;
-    if (band.facet === "children" || band.facet === "conversion_maps") {
-      const span = spans[band.facet];
-      if (span === undefined) throw new Error(`a ${band.facet} band is laid out without its span`);
+    const span = spans[band.facet];
+    if (span !== undefined) {
       ({ start, width } = span);
+    } else if (band.facet === "children" || band.facet === "conversion_maps") {
+      throw new Error(`a ${band.facet} band is laid out without its span`);
     } else {
       start = bandStart(band.facet, edge, reach, w, S);
       width = band.width;

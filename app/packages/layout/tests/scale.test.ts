@@ -198,9 +198,9 @@ const MEASURED = [
   "\u{1D107}",
   "root",
   "nested_unknown",
-  "voice, voice, voice, voice, voice, voice, voice",
-  "voice, voice, voice, voice, voice, voice, voice, voice",
-  "voice, voice, voice, voice, voice, voice, voice, segments",
+  // Rows 2 and 3 of 20 children each, then row 1, its 20 children and the segment line.
+  Array.from({ length: 20 }, () => "voice").join(", "),
+  [...Array.from({ length: 20 }, () => "voice"), "segments"].join(", "),
 ];
 
 /** An element's address as a selector states it. */
@@ -260,13 +260,14 @@ describe("redraw operation counts", () => {
     expect(keys).toHaveLength(1118);
   });
 
-  it("tests the general rule once per element key and twice per line, so resolves each key once", () => {
+  it("tests the general rule once per element key and leader and twice per line, so resolves each once", () => {
     // Each timeline or child line also resolves the wedge and the cross-section line no named
     // timestamp holds, once each; the ID labels of the breaks and the jump, which the
     // `label-display` `name label` leaves out of their stacks, are never resolved.
     const lines = keys.filter((key) => key.type === "timeline" || key.type === "child").length;
     expect(unresolved).toHaveLength(27);
-    expect(tests[0]).toBe(keys.length - unresolved.length + 2 * lines);
+    // The 39 leaders of the region labels beyond their first tier resolve once each too.
+    expect(tests[0]).toBe(keys.length - unresolved.length + 2 * lines + 39);
   });
 
   it("tests a rule with addresses, a class or an element only on keys it can match", () => {
@@ -282,7 +283,7 @@ describe("redraw operation counts", () => {
   });
 
   it("reads the font once per distinct text measured, one read per code point", () => {
-    expect(reads).toHaveLength(204);
+    expect(reads).toHaveLength(332);
     expect([...reads].sort()).toEqual(MEASURED.flatMap(codePoints).sort());
   });
 
