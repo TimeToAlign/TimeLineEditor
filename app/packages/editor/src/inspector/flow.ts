@@ -84,8 +84,11 @@ export function flowOf(subjects: readonly Subject[]): FlowSubject | null {
     const marked = new Set(
       destinationRows(flow).flatMap((row) => row.marks.slice(1).map(addressKey)),
     );
-    const names = (other: Subject) =>
-      flowIn(other)?.element.id === flow.element.id || marked.has(addressKey(other.address));
+    const names = (other: Subject) => {
+      const named = flowIn(other);
+      if (named?.block.id === flow.block.id && named.element.id === flow.element.id) return true;
+      return marked.has(addressKey(other.address));
+    };
     if (subjects.every(names)) return flow;
   }
   return null;

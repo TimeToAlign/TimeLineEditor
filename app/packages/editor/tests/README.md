@@ -978,8 +978,9 @@ not unique in the manifest, first at #/timelines/0/conversion_maps/0/id`
 at `/timelines/0/children/0/id`, the text and the journal kept. Below
 the rows a band shows its display toggles ("Display toggles" below): the
 flow control band of `score` in `flow/sections`, with the manifest's rule
-showing every arc, the key Display beside the one pressed toggle Arcs,
-whose press journals one `style`; a markers band none.
+showing every arc, the key Display beside Arcs (pressed) and Symbols, and
+Labels beside Name, ID and Label, a press journaling one `style`; a
+markers band none.
 
 **A selected region** (`regionRows`, `inspector-bands.test.ts`). A region
 alone, itself or by its label, shows three read-only rows instead of the
@@ -1005,9 +1006,11 @@ default user, who states as `statedBy(DEFAULT_USER)`; the day is
 2026-11-26 (the clock is set to noon UTC).
 
 1. **The element a selection names** (`flowOf`). In
-   `flow/sonata_exposition`, `{id: "jump_1"}`, its label `{id: "jump_1",
-   part: ["label"]}` and both together name the element at `{block, id:
-   "jump_1"}`, listed by the timeline `score`; a jump target is named by
+   `flow/sonata_exposition`, `{id: "jump_1"}` names the element at
+   `{block, id: "jump_1"}`, listed by the timeline `score`; in
+   `flow/sections`, whose `jump_1` states the label "D.C. al Fine", its
+   label `{id: "jump_1", part: ["label"]}` alone and with the jump name
+   the jump too; a jump target is named by
    its own address. A jump stays named with what its destinations mark
    (item 7), in either order: `jump_1` with `jump_target_1`, its second
    destination's target, names `jump_1`, and so does `jump_target_1` then
@@ -1116,7 +1119,9 @@ default user, who states as `statedBy(DEFAULT_USER)`; the day is
    `sonata_exposition`, `jump_2`'s one destination selects `[{block, id:
    "jump_2"}]`.
 9. **An element's display toggles** ("Display toggles" below): a jump
-   shows Display with Arcs, a flow line with Line, a jump target none.
+   shows Display (Arcs, and Symbol and Brackets where it draws them) and
+   Labels (Name, ID, Label), a flow line Display (Line, Symbol where it
+   draws one) and Labels, a jump target Display Symbol where it draws one.
 
 ## Display toggles (`inspector-display.test.ts`)
 
@@ -1134,15 +1139,27 @@ break `break_1`, section break `section_break_1`, all on `score`) and
 `flow/sonata_exposition` (three atomic sections) are held in block
 `0000000000`.
 
-1. **What is offered.** The flow control band of `score` shows Display
-   with Arcs (`word` `jump`), and, where the manifest holds a region whose
-   `type` statement names the class of an atomic section
-   (`sonata_exposition`), Regions with Atomic sections; its regions band
-   Regions alone; a regions band of a manifest without atomic sections
-   (`sections`), a markers band, nothing; a toggle is offered only where
-   an element of its type stands, so a jump target has none. An element's
-   toggles: a jump Display Arcs, `break_1`
-   and `section_break_1` Display Line.
+1. **What is offered.** A toggle is offered only where an element of its
+   type stands in core's keys of the manifest (the specification's
+   section 2.1). The flow control band of `score` shows Display with Arcs
+   (`word` `jump`), Symbols (`symbol`) and Brackets (`bracket`), each for
+   every element of the band's timeline's tree (`{element: type, within:
+   "score"}`); Labels with Name, ID and Label (`name`, `id`, `label`, the
+   words of `label-display`, `{within: "score"}`); and, where the manifest
+   holds a region whose `type` statement names the class of an atomic
+   section (`sonata_exposition`), Regions with Atomic sections. Its
+   regions band shows Regions alone; a regions band of a manifest without
+   atomic sections (`sections`), a markers band, nothing. An element's
+   toggles, each its own rule `{element: type, addresses: [its part's
+   address]}`: a jump Display Arcs, Symbol (`{id, part: ["symbol"]}`) and
+   Brackets (`{id, part: ["bracket"]}`), a flow line Line and Symbol, a
+   jump target Symbol, each where it is drawn; a jump or a flow line also
+   Labels with Name, ID and Label, in the rule of its arcs or line. On
+   `sections` (no volta, so no bracket): the band Display Arcs, Symbols;
+   `jump_2` (da capo) Display Arcs, Symbol; `break_1` (a Fine, its text a
+   symbol) Line, Symbol. On `sonata_exposition`, `jump_1` (two volta
+   destinations, no symbol) Display Arcs, Brackets; `jump_target_1`
+   (volta, no symbol) nothing.
 2. **A band's toggle shows its elements without the rules naming an
    address; an element's with them.** With the rule shown, Arcs of the
    band and of `jump_1` and `jump_2` are pressed.
@@ -1162,20 +1179,41 @@ break `break_1`, section break `section_break_1`, all on `score`) and
      pressed (its elements without the addressed rule are all shown);
    - `break_1` Line pressed (no rule hides a break) → `{element:
      "break", addresses: [{id: "break_1"}]}` `{display: "none"}`, then
-     not pressed, then → `{display: null}` and pressed again.
-4. **Atomic sections** is the rule `{element: "region", class:
+     not pressed, then → `{display: null}` and pressed again;
+   - the band's Symbols pressed (the defaults show symbols) →
+     `{element: "symbol", within: "score"}` `{display: "none"}`, then not
+     pressed, and `jump_2`'s Symbol not pressed either.
+4. **Labels compose a flow-control element's stack** from the words of
+   its cascaded `label-display` (initial `label`, which no default rule
+   sets), as a named timestamp's `display` composes its labels. On
+   `sections` the band's Labels are Name, ID, Label with Label alone
+   pressed, and so are `jump_1`'s. In order:
+   - the band's Name → `{select: {within: "score"}, set:
+     {"label-display": "name label"}}`; then the band and `jump_1` show
+     Name and Label pressed;
+   - `jump_1`'s Label → `{element: "jump", addresses: [{id: "jump_1"}]}`
+     `{"label-display": "name"}`; then `jump_1` Name alone, the band
+     still Name and Label;
+   - the band's Name → `{"label-display": null}`, since without the
+     band's rule every element draws `label` again; the band Label
+     alone, `jump_1` still Name alone;
+   - `jump_1`'s Name → `{"label-display": "none"}`, since without its own
+     rule it would draw `label`; then none of its words pressed.
+5. **Atomic sections** is the rule `{element: "region", class:
    "tts:AtomicSection"}` of the specification's section 2.3: not pressed
    while the manifest states no `display` `inline` for it; a press on
    `sonata_exposition`'s regions band journals `{display: "inline"}`
    with that selector, the toggle then pressed on the regions band and
    on the flow control band alike; a second press `{display: null}`, the
    rule gone from the manifest's rules.
-5. **The panel.** With the flow control band of `sections` selected (the
+6. **The panel.** With the flow control band of `sections` selected (the
    setting rule given), the band's rows stand above
-   `[data-testid="display-toggles"]`: the key Display, the group it
-   labels holding the one button Arcs, pressed. A click journals the one
+   `[data-testid="display-toggles"]`: the keys Display and Labels, each
+   naming its group, Display holding Arcs (pressed) and Symbols, Labels
+   Name, ID and Label (Label pressed). A click on Arcs journals the one
    `style` of item 3 and leaves Arcs not pressed; nothing is posted. With
-   `jump_1` selected, its Display group holds Arcs.
+   `jump_2` selected, its Display group holds Arcs and Symbol, its Labels
+   group Name, ID and Label.
 
 ## The Elisions tab (`inspector-elision.test.ts`)
 

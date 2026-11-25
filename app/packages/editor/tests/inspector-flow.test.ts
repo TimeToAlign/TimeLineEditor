@@ -57,10 +57,11 @@ describe("the flow-control element a selection names", () => {
     const store = storeOf("flow/sonata_exposition");
     const target = { block: A, id: "jump_1" };
     expect(flowIn(store, { id: "jump_1" })?.target).toEqual(target);
-    expect(flowIn(store, { id: "jump_1", part: ["label"] })?.target).toEqual(target);
-    expect(flowIn(store, { id: "jump_1" }, { id: "jump_1", part: ["label"] })?.target).toEqual(
-      target,
-    );
+    // A label is drawn, and so selected, where the element states one: the D.C. al Fine's.
+    const sections = storeOf("flow/sections");
+    const labelled = { id: "jump_1", part: ["label" as const] };
+    expect(flowIn(sections, labelled)?.target).toEqual(target);
+    expect(flowIn(sections, { id: "jump_1" }, labelled)?.target).toEqual(target);
     expect(flowIn(store, { id: "jump_target_1" })?.element.role).toBe("jump_target");
     expect(flowIn(store, { id: "jump_1" })?.timeline.id).toBe("score");
   });

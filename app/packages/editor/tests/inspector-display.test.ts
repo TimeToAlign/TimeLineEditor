@@ -60,12 +60,19 @@ function elementOf(store: Store, id: string): ToggleGroup[] {
   return elementToggles(store.view, flow);
 }
 
-/** The one toggle of the first group of `groups`, pressed or not. */
-function only(groups: readonly ToggleGroup[] | null) {
-  const toggle = groups?.[0]?.toggles[0];
-  if (toggle === undefined) throw new Error("no toggle");
-  return toggle;
+/** Whether the toggle `word` of `groups` is pressed. */
+function isPressed(groups: readonly ToggleGroup[] | null, word: string): boolean {
+  const toggle = groups?.flatMap((group) => group.toggles).find((item) => item.word === word);
+  if (toggle === undefined) throw new Error(`no toggle ${word}`);
+  return toggle.pressed;
 }
+
+/** The words of the Labels group of `groups` that are pressed. */
+const labelsOf = (groups: readonly ToggleGroup[] | null) =>
+  groups
+    ?.find((group) => group.key === "Labels")
+    ?.toggles.filter((toggle) => toggle.pressed)
+    .map((toggle) => toggle.word) ?? null;
 
 /** Press `toggle`'s button in `store`: the command it journals, which the store must accept. */
 function press(store: Store, groups: readonly ToggleGroup[] | null, word: string) {
@@ -84,11 +91,36 @@ const style = (select: object, display: string | null) => ({
   blocks: [A],
 });
 
+const labelStyle = (select: object, value: string | null) => ({
+  type: "style",
+  select,
+  set: { "label-display": value },
+  blocks: [A],
+});
+
+/** The Labels group: Name, ID and Label, the first `pressed` of them pressed. */
+const LABELS = (...pressed: string[]) => [
+  "Labels",
+  [
+    ["name", "Name", pressed.includes("name")],
+    ["id", "ID", pressed.includes("id")],
+    ["label", "Label", pressed.includes("label")],
+  ],
+];
+
 describe("the toggles offered", () => {
-  it("are a flow control band's arcs and atomic sections, and a regions band's atomic sections", () => {
+  it("are a flow control band's drawing, labels and atomic sections, a regions band's atomic sections", () => {
     const sonata = shownStore("flow/sonata_exposition");
     expect(shape(bandOf(sonata, "flow_control"))).toEqual([
-      ["Display", [["jump", "Arcs", true]]],
+      [
+        "Display",
+        [
+          ["jump", "Arcs", true],
+          ["symbol", "Symbols", true],
+          ["bracket", "Brackets", true],
+        ],
+      ],
+      LABELS("label"),
       ["Regions", [["atomic_sections", "Atomic sections", false]]],
     ]);
     expect(shape(bandOf(sonata, "regions"))).toEqual([
@@ -96,21 +128,54 @@ describe("the toggles offered", () => {
     ]);
     const sections = shownStore("flow/sections");
     expect(shape(bandOf(sections, "flow_control"))).toEqual([
-      ["Display", [["jump", "Arcs", true]]],
+      [
+        "Display",
+        [
+          ["jump", "Arcs", true],
+          ["symbol", "Symbols", true],
+        ],
+      ],
+      LABELS("label"),
     ]);
     expect(shape(bandOf(sections, "regions"))).toEqual([]);
     expect(shape(bandOf(sections, "markers"))).toEqual([]);
     expect(bandToggles(sections.view, subjectsOf(sections, { id: "jump_1" }))).toBeNull();
   });
 
-  it("are an element's own: a jump's arcs, a flow line's line, none for a jump target", () => {
+  it("are an element's own drawing where it is drawn, and its labels", () => {
     const sections = shownStore("flow/sections");
-    expect(shape(elementOf(sections, "jump_1"))).toEqual([["Display", [["jump", "Arcs", true]]]]);
-    expect(shape(elementOf(sections, "break_1"))).toEqual([["Display", [["break", "Line", true]]]]);
-    expect(shape(elementOf(sections, "section_break_1"))).toEqual([
-      ["Display", [["section_break", "Line", true]]],
+    expect(shape(elementOf(sections, "jump_2"))).toEqual([
+      [
+        "Display",
+        [
+          ["jump", "Arcs", true],
+          ["symbol", "Symbol", true],
+        ],
+      ],
+      LABELS("label"),
     ]);
-    expect(shape(elementOf(storeOf("flow/sonata_exposition"), "jump_target_1"))).toEqual([]);
+    expect(shape(elementOf(sections, "break_1"))).toEqual([
+      [
+        "Display",
+        [
+          ["break", "Line", true],
+          ["symbol", "Symbol", true],
+        ],
+      ],
+      LABELS("label"),
+    ]);
+    const sonata = shownStore("flow/sonata_exposition");
+    expect(shape(elementOf(sonata, "jump_1"))).toEqual([
+      [
+        "Display",
+        [
+          ["jump", "Arcs", true],
+          ["bracket", "Brackets", true],
+        ],
+      ],
+      LABELS("label"),
+    ]);
+    expect(shape(elementOf(sonata, "jump_target_1"))).toEqual([]);
   });
 });
 
@@ -120,9 +185,9 @@ describe("a press", () => {
     const band = { element: "jump", within: "score" };
     const ownOf = (id: string) => ({ element: "jump", addresses: [{ id }] });
     const pressed = () => [
-      only(bandOf(store, "flow_control")).pressed,
-      only(elementOf(store, "jump_1")).pressed,
-      only(elementOf(store, "jump_2")).pressed,
+      isPressed(bandOf(store, "flow_control"), "jump"),
+      isPressed(elementOf(store, "jump_1"), "jump"),
+      isPressed(elementOf(store, "jump_2"), "jump"),
     ];
 
     expect(press(store, bandOf(store, "flow_control"), "jump")).toEqual(style(band, "none"));
@@ -150,9 +215,46 @@ describe("a press", () => {
     const store = shownStore("flow/sections");
     const own = { element: "break", addresses: [{ id: "break_1" }] };
     expect(press(store, elementOf(store, "break_1"), "break")).toEqual(style(own, "none"));
-    expect(only(elementOf(store, "break_1")).pressed).toBe(false);
+    expect(isPressed(elementOf(store, "break_1"), "break")).toBe(false);
     expect(press(store, elementOf(store, "break_1"), "break")).toEqual(style(own, null));
-    expect(only(elementOf(store, "break_1")).pressed).toBe(true);
+    expect(isPressed(elementOf(store, "break_1"), "break")).toBe(true);
+  });
+
+  it("hides the symbols of a band's tree", () => {
+    const store = shownStore("flow/sections");
+    expect(press(store, bandOf(store, "flow_control"), "symbol")).toEqual(
+      style({ element: "symbol", within: "score" }, "none"),
+    );
+    expect(isPressed(bandOf(store, "flow_control"), "symbol")).toBe(false);
+    expect(isPressed(elementOf(store, "jump_2"), "symbol")).toBe(false);
+  });
+
+  it("composes the labels of a band's elements and of one element", () => {
+    const store = storeOf("flow/sections");
+    const band = { within: "score" };
+    const own = { element: "jump", addresses: [{ id: "jump_1" }] };
+    const labels = () => [
+      labelsOf(bandOf(store, "flow_control")),
+      labelsOf(elementOf(store, "jump_1")),
+    ];
+    expect(labels()).toEqual([["label"], ["label"]]);
+
+    expect(press(store, bandOf(store, "flow_control"), "name")).toEqual(
+      labelStyle(band, "name label"),
+    );
+    expect(labels()).toEqual([
+      ["name", "label"],
+      ["name", "label"],
+    ]);
+
+    expect(press(store, elementOf(store, "jump_1"), "label")).toEqual(labelStyle(own, "name"));
+    expect(labels()).toEqual([["name", "label"], ["name"]]);
+
+    expect(press(store, bandOf(store, "flow_control"), "name")).toEqual(labelStyle(band, null));
+    expect(labels()).toEqual([["label"], ["name"]]);
+
+    expect(press(store, elementOf(store, "jump_1"), "name")).toEqual(labelStyle(own, "none"));
+    expect(labels()).toEqual([["label"], []]);
   });
 
   it("writes and removes the rule showing the atomic sections", () => {
@@ -161,13 +263,13 @@ describe("a press", () => {
     expect(press(store, bandOf(store, "regions"), "atomic_sections")).toEqual(
       style(atomic, "inline"),
     );
-    expect(only(bandOf(store, "regions")).pressed).toBe(true);
-    expect(bandOf(store, "flow_control")?.[1]?.toggles[0]?.pressed).toBe(true);
+    expect(isPressed(bandOf(store, "regions"), "atomic_sections")).toBe(true);
+    expect(isPressed(bandOf(store, "flow_control"), "atomic_sections")).toBe(true);
     expect(press(store, bandOf(store, "flow_control"), "atomic_sections")).toEqual(
       style(atomic, null),
     );
     expect(store.view.blocks[A]?.manifest.graphical?.rules ?? []).toEqual([]);
-    expect(only(bandOf(store, "regions")).pressed).toBe(false);
+    expect(isPressed(bandOf(store, "regions"), "atomic_sections")).toBe(false);
   });
 });
 
@@ -217,13 +319,31 @@ describe("the toggles in the Properties tab", () => {
     expect(document.querySelector("dl")?.compareDocumentPosition(toggles() as Node)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
-    expect(toggles()?.querySelector(".key")?.textContent).toBe("Display");
-    const group = toggles()?.querySelector('[role="group"]');
-    expect(document.getElementById(group?.getAttribute("aria-labelledby") ?? "")?.textContent).toBe(
-      "Display",
-    );
-    expect(buttons().map((button) => [button.textContent, button.ariaPressed])).toEqual([
-      ["Arcs", "true"],
+    const groups = [...(toggles()?.querySelectorAll('[role="group"]') ?? [])];
+    expect(
+      groups.map((group) => [
+        document.getElementById(group.getAttribute("aria-labelledby") ?? "")?.textContent,
+        [...group.querySelectorAll("button")].map((button) => [
+          button.textContent,
+          button.ariaPressed,
+        ]),
+      ]),
+    ).toEqual([
+      [
+        "Display",
+        [
+          ["Arcs", "true"],
+          ["Symbols", "true"],
+        ],
+      ],
+      [
+        "Labels",
+        [
+          ["Name", "false"],
+          ["ID", "false"],
+          ["Label", "true"],
+        ],
+      ],
     ]);
     const entries = store.listed.length;
     buttons()[0]?.click();
@@ -232,14 +352,22 @@ describe("the toggles in the Properties tab", () => {
     expect(store.listed.at(-1)?.entry).toMatchObject({
       command: style({ element: "jump", within: "score" }, "none"),
     });
-    expect(buttons().map((button) => button.ariaPressed)).toEqual(["false"]);
+    expect(buttons()[0]?.ariaPressed).toBe("false");
     expect(informed).toEqual([]);
   });
 
   it("shows an element's toggles", () => {
-    show(shownStore("flow/sections"), { id: "jump_1" });
-    expect(buttons().map((button) => [button.textContent, button.ariaPressed])).toEqual([
-      ["Arcs", "true"],
+    show(shownStore("flow/sections"), { id: "jump_2" });
+    expect([...(toggles()?.querySelectorAll(".key") ?? [])].map((key) => key.textContent)).toEqual([
+      "Display",
+      "Labels",
+    ]);
+    expect(buttons().map((button) => button.textContent)).toEqual([
+      "Arcs",
+      "Symbol",
+      "Name",
+      "ID",
+      "Label",
     ]);
   });
 });
