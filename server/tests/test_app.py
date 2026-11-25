@@ -4,6 +4,8 @@ import asyncio
 import builtins
 import json
 import struct
+import subprocess
+import sys
 import threading
 from collections.abc import Callable
 from pathlib import Path
@@ -353,3 +355,47 @@ def test_a_held_computation_leaves_the_other_routes_answering(
         if files
         else (422, {"detail": {"path": [], "message": "held"}})
     )
+
+
+ARROW_PROBE = """
+import struct
+import sys
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+from timetoshare.validate import SCHEMA_VERSION, data_root
+
+from tilie_server.app import create_app
+from tilie_server.settings import ServerSettings
+
+assert "pyarrow" not in sys.modules
+app = create_app(ServerSettings("127.0.0.1", 8765, "token", Path(sys.argv[1])))
+assert "pyarrow" in sys.modules
+
+fixture = data_root() / "fixtures" / "tables" / SCHEMA_VERSION
+manifest = (fixture / "manifest.yaml").read_bytes()
+table = (fixture / "match_claims.parquet").read_bytes()
+body = struct.pack("<I", len(manifest)) + manifest + table
+for _ in range(30):
+    # Outside a context, a client runs each request on threads that end with it.
+    client = TestClient(app, base_url="http://127.0.0.1:8765")
+    response = client.post(
+        "/api/match-claims", headers={"Authorization": "Bearer token"}, content=body
+    )
+    assert response.status_code == 200, response.text
+print("answered")
+"""
+"""Run in a fresh interpreter: builds the application and asks a route that
+allocates Arrow memory thirty times, each on threads of its own."""
+
+
+def test_building_the_application_loads_pyarrow_on_the_building_thread(
+    tmp_path: Path,
+) -> None:
+    ran = subprocess.run(
+        [sys.executable, "-c", ARROW_PROBE, str(tmp_path)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert (ran.returncode, ran.stdout) == (0, "answered\n"), ran.stderr

@@ -50,6 +50,21 @@ request is released and answers. Run inside the event loop, the held
 request would keep the health request from ever being read, and the test
 fails at its safety timeout instead of hanging.
 
+**pyarrow is loaded where the application is built.** Those routes import
+timetoalign, and pyarrow with it, when a request needs them, on a worker
+thread that ends once it is idle. A process in which pyarrow was first
+imported on a thread that has since ended is ended by a segmentation fault
+when another thread allocates Arrow memory (seen with pyarrow 25.0.0), so
+building the application imports pyarrow on the building thread. Proved in
+a fresh interpreter, since this one has long imported pyarrow: there,
+pyarrow is not imported once the server's modules are, and is imported
+once the application is built; then thirty requests to
+`POST /api/match-claims` (TimeToShare's table fixture, whose reading
+allocates Arrow memory), each through a client of its own and so on threads
+that end with it, all answer 200 and the interpreter exits with status 0.
+Without the import the interpreter dies of the signal within those
+requests.
+
 ## Public mode
 
 `tilie --public-host <host>` (the option repeatable) serves the editor to

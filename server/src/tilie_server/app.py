@@ -37,6 +37,24 @@ __all__ = [
 ]
 
 
+def load_arrow() -> None:
+    """Import pyarrow, where it is installed, on the thread that calls this.
+
+    The routes that compute with timetoalign import it, and pyarrow with
+    it, when a request needs them: on a worker thread, which ends once it
+    is idle. A process in which pyarrow was first imported on a thread that
+    has since ended is ended by a segmentation fault when another thread
+    allocates Arrow memory (seen with pyarrow 25.0.0 and its mimalloc
+    pool). So the thread that builds the application, which lives as long
+    as the server, imports pyarrow first. A server without pyarrow still
+    starts; its routes say what they cannot do.
+    """
+    try:
+        import pyarrow  # noqa: F401
+    except ImportError:
+        pass
+
+
 def create_app(
     settings: ServerSettings, *, musicbrainz: MusicBrainz | None = None
 ) -> FastAPI:
@@ -56,6 +74,7 @@ def create_app(
         musicbrainz: The one client of MusicBrainz for the run's lookups; a
             new :class:`MusicBrainz` when not given.
     """
+    load_arrow()
     static_dir = (
         DEFAULT_STATIC_DIR if settings.static_dir is None else settings.static_dir
     )
