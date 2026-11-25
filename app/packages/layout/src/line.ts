@@ -63,16 +63,15 @@ export function levelZero(scope: Scope, line: Entry): LevelZero {
     drawn && line.manifest.is_segment_line
       ? (index.childrenByParent.get(line.manifest.id) ?? [])
       : [];
-  const part = (segment: Entry, word: "start" | "label") =>
-    styled(
-      elementKey(
-        word === "start" ? "boundary" : "label",
-        partAddress(idAddress(segment.manifest.id), word),
-        segment.manifest,
-        line.key,
-      ),
-      line.style,
+  const part = (segment: Entry, word: "start" | "label") => {
+    const key = elementKey(
+      word === "start" ? "boundary" : "label",
+      partAddress(idAddress(segment.manifest.id), word),
+      segment.manifest,
+      line.key,
     );
+    return { ...styled(key, line.style), key };
+  };
   const boundaries = segments
     .filter((segment) => !segment.first)
     .map((segment) => ({ segment, ...part(segment, "start") }))
@@ -82,7 +81,16 @@ export function levelZero(scope: Scope, line: Entry): LevelZero {
     const text = segment.manifest.name;
     const label = part(segment, "label");
     if (text === null || !shown(label.style)) return [];
-    return [{ segment, label, ...measured(label, text), at: midpoint(segment.start, segment.end) }];
+    const leader = scope.leaderOf(label);
+    return [
+      {
+        segment,
+        label,
+        leader,
+        ...measured(label, text),
+        at: midpoint(segment.start, segment.end),
+      },
+    ];
   });
   const tiers = new Rows();
   const tier = labelTiers(labels, (item) => relativeX(item.at), tiers);
@@ -126,6 +134,27 @@ export function levelZero(scope: Scope, line: Entry): LevelZero {
           return {
             segment: item.segment,
             element: centredLabel(item.label, at.x(item.at), at.y - outwards - d(size), item),
+          };
+        }),
+      // A label beyond its first tier is joined to the line by its leader (section 6.6, Leaders).
+      segmentLeaders: labels
+        .filter(
+          (item) =>
+            known(tier, item) > 1 && shown(item.leader.style) && at.gap(item.at) === undefined,
+        )
+        .map((item) => {
+          const x = at.x(item.at);
+          const outwards = m(against) + LABEL_GAP + (known(tier, item) - 1) * h(size);
+          return {
+            segment: item.segment,
+            element: {
+              type: "leader",
+              ...item.leader,
+              x1: x,
+              y1: at.y - m(against),
+              x2: x,
+              y2: at.y - outwards,
+            },
           };
         }),
     }),

@@ -236,6 +236,20 @@ export interface AnchorElement extends Addressed {
 }
 
 /**
+ * A leader line (section 6.6): a thin line joining a label that its first
+ * fit moved beyond its first tier to its element, from `(x1, y1)` at the
+ * element to `(x2, y2)` where the label's tier begins. It has the label's
+ * address and is held by the label.
+ */
+export interface LeaderElement extends Addressed {
+  readonly type: "leader";
+  readonly x1: number;
+  readonly y1: number;
+  readonly x2: number;
+  readonly y2: number;
+}
+
+/**
  * A wedge (section 6.6, Wedges): its tip at `(x, yt)` and the two corners of
  * its base, in the order section 6.6 gives them, turned by its style's
  * `rotation` about the tip.
@@ -327,6 +341,7 @@ export type DrawnElement =
   | JumpElement
   | VerticalLineElement
   | AnchorElement
+  | LeaderElement
   | MarkerElement
   | ElisionElement
   | EllipsisElement

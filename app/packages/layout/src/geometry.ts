@@ -302,6 +302,7 @@ export function boundsOf(element: DrawnElement, measure: TextMeasure): Bounds {
         bottom: Math.max(element.y1, element.y2),
       };
     case "alignment_anchor":
+    case "leader":
       return boundsOfPoints([
         [element.x1, element.y1],
         [element.x2, element.y2],

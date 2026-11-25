@@ -2032,6 +2032,91 @@ specification orders the operations.
    (8–16 ♩)"}}` and draws every element and record as the bundle drawn
    without an arrangement (the item order being the drawing order).
 
+## Labels in tiers and leader lines (`labels.test.ts`)
+
+Sections 6.4 (Regions, Segment lines), 6.6 (Regions, Leaders), 2.3 (the
+selector member `class` on regions), 4 and 7.2 are the oracle. A region
+keeps the row its own extent gives it whatever its label's width; the
+labels of a row then take that row's label tiers by first fit, row `k`
+with `Tk` tiers having the pitch `prk = 6 + 2 + Tk × h(9) + S`, and a
+label in tier `j ≥ 2` gets a `leader` at `{id: R, part: ["leader"]}` from
+the brace's tip `ak + 6` to `ak + 6 + 2 + (j − 1) × h(9)`, where its tier's
+line starts. A segment label in segment-label tier `n ≥ 2` gets one from
+`m` above its segment line to `m + 2 + (n − 1) × h(9)`. Until the default
+layer of this package holds the rules of section 4 that hide the atomic
+sections, show every band and stroke leaders (`#9CA3AF`, 0.5, solid), the
+tests add those three rules as an application layer `SECTION_4`, which
+changes nothing once the default layer holds them.
+
+1. **Two adjacent regions, the short one's label too wide.** `build("score",
+   16)` (`x(t) = x0 + 25 t`, `x0 = 53.798828125`, the line at 22.40234375,
+   as in "Region braces cut at gaps" without its elisions) with `region_1`
+   `development` from 0 to 2 and `region_2` `recapitulation` from 2 to 3.
+   The labels are `A = 1300 + 1260 + 1212 + 1260 + 569 + 1253 + 1300 +
+   1995 + 1260 + 1298 + 803 = 13510` and `14200` (`r e c a p i t u l a t
+   i o n`: 842, 1260, 1126, 1255, 1300, 569, 803, 1298, 569, 1255, 803,
+   569, 1253, 1298) units, `w1 = 59.3701171875` and `w2 = 62.40234375` at
+   9, centred on `L × u` = 25 and 62.5. **Before**, a region's extent was
+   widened to its label's: `region_1` `[−5.68505859375, 55.68505859375]`,
+   `region_2` `[30.298828125, 94.701171875]`, which conflict, so `region_2`
+   lay in row 2, `pr = 22.4765625` further out. **Now** the braces' own
+   extents `[0, 50]` and `[50, 75]` meet only where one ends (section 6.3):
+   both lie in row 1, arms at `Yb = 22.40234375 + 30.9765625 = 53.37890625`
+   (the regions band starts `S` beyond the markers band, `1.5 + 13 + 2 +
+   h(9) = 26.9765625` wide), tips at `Ya = 59.37890625`, `xm` = `x0 + 25 =
+   78.798828125` and `x0 + 62.5 = 116.298828125`. The label extents above
+   conflict, so `development` lies in tier 1, its line at `53.37890625 + 6
+   + 2 = 61.37890625`, baseline `+ a(9) = 8.35400390625`, 69.73291015625,
+   and `recapitulation` in tier 2, `h(9)` further: line 71.85546875,
+   baseline 80.20947265625. Its leader runs at `x = 116.298828125` from
+   `y1 = 59.37890625` to `y2 = 71.85546875`, at `{id: "region_2", part:
+   ["leader"]}`, stroked as section 4 states; `region_1` has none. The
+   leader is drawn after the marker labels and before the region labels
+   (section 7.2). Hiding `region_2`'s label (`{addresses: [{id:
+   "region_2", part: ["label"]}]}` `display: none`) hides its leader and
+   leaves both braces in row 1; hiding the leader (`{element: leader}`)
+   leaves the label in tier 2.
+2. **A segment label in tier 2.** `segment_line` with `b`'s segments
+   renamed `b1` `development section` (21537 units, 94.64501953125 wide)
+   and `b2` `recapitulation`: centred on `L × u` = 137.5 and 212.5 (8 to 14
+   and 14 to 20 of 32 at 12.5 a quarter), their extents `[89.177490234375,
+   185.822509765625]` and `[180.298828125, 244.701171875]` conflict, so
+   `b2`'s label lies in tier 2 and has the one leader of the drawing, at
+   `{id: "b2", part: ["leader"]}`, at the label's `x`: from the distance `m
+   = k = 8` above `b`'s line (it draws `b2`'s boundary), where that
+   boundary's upper end lies, to `m + 2 + h(9) = 20.4765625` above it, the
+   bottom of the label's line, so `y1 − y2 = 12.4765625` and `y2` is the
+   label's baseline plus `d(9) = 483 × 9 / 2048`. `b1`'s label in tier 1
+   lies `h(9)` lower than `b2`'s.
+3. **Op. 106's regions and movements.** The manifest of Beethoven's Piano
+   Sonata No. 29, Op. 106, as far as these rules read it, built through
+   commands: the root `op106` of 15833/4 quarters holding the movements
+   `clt_2` Allegro (0, 1644), `clt_3` Scherzo. Assai vivace (1644, 516),
+   `clt_4` Adagio sostenuto (2160, 561) and `clt_5` Introduzione. Largo –
+   Allegro risoluto (2721, 4949/4), and the atomic sections of each,
+   lettered as their regions are named, every one stating `type:
+   [AtomicSection]` (the absolute IRI, since a command refuses a prefix the
+   context does not declare): `clt_2` A (0 to 953/2), B (953/2 to 500), C
+   (500 to 1644), and one A over the whole of each other movement. With the
+   default layers (and `SECTION_4`) no region is drawn: every region is an
+   atomic section, so no regions band is present, and no leader. With the
+   manifest's own layer stating `{element: region, class:
+   "tts:AtomicSection"}` `display: inline` (the toggle "Atomic sections"
+   on), all six braces lie in row 1 of their movements' regions bands, at
+   one `yb`, each movement's band `S` beyond its line (`1.5 + 4 = 5.5`),
+   and their six labels in tier 1, at `yb + 6 + 2 + a(9)`, with no leader:
+   the labels are one letter, 1401 (A), 1405 (B) or 1430 (C) units, and
+   no two centres of one row lie within a label's width of each other.
+   **Before**, B's label (6.17431640625 wide) widened its 23.5-quarter
+   brace past A's end and C's start, so B lay in row 2, `pr` further out.
+   The four movements lie in one row both ways, a child's extent holding
+   its regions and labels: the name of that row is `Allegro, Scherzo.
+   Assai viv…`, the names joined and cut at 160 (`Allegro, Scherzo. Assai
+   viv` and the ellipsis are 29003 units, 155.77783203125 at 11; one more
+   letter, 30258, 162.5185546875), drawn at the address of `clt_2`'s name;
+   so `x0 = 16 + 155.77783203125 + 8 = 179.77783203125`, where the root's
+   line starts.
+
 ## Region braces cut at gaps (`region-cuts.test.ts`)
 
 Sections 3.2 (the elided axis), 6.6 (Regions, Elisions) and 7.2 (the

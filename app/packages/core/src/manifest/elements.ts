@@ -259,6 +259,23 @@ export function textKey(owner: ElementKey, type: "name" | "label"): ElementKey {
 }
 
 /**
+ * The key of the leader line joining the label `label` of the element `X`
+ * to that element (sections 2.1, 2.2 and 6.6): of type `leader`, at `{id: X,
+ * part: ["leader"]}`, of the label's timeline, held by the label.
+ */
+export function leaderKey(label: ElementKey): ElementKey {
+  const { coordinates: _marks, types: _types, ...held } = label;
+  const { id } = label.address;
+  if (id === undefined) throw new Error("a leader joins the label of an element with an ID");
+  return {
+    ...held,
+    type: "leader",
+    address: partAddress(idAddress(id), "leader"),
+    inside: holdersOf(label),
+  };
+}
+
+/**
  * The key of the band drawing the facet `facet` of the timeline `timeline`,
  * held by `holder`, that timeline's line or node: it belongs to the
  * timeline, has no domain, no modality and no class, and has its facet.

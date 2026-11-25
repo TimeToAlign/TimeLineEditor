@@ -135,3 +135,41 @@ export const widen = ([a1, b1]: Extent, [a2, b2]: Extent): Extent => [
   Math.min(a1, a2),
   Math.max(b1, b2),
 ];
+
+/** An item a tiered first fit places: its own extent, and its drawn label's when it has one. */
+export interface TieredItem {
+  readonly extent: Extent;
+  readonly label: Extent | undefined;
+}
+
+/** What a tiered first fit gives (section 6.4, Regions). */
+export interface Tiered {
+  /** The row of each item, from 1. */
+  readonly row: readonly number[];
+  /** The label tier of each item within its row, from 1; `undefined` for an item without a label. */
+  readonly tier: readonly (number | undefined)[];
+  /** The number `Tk` of label tiers of each row `k`, from row 1: at least 1, so every row keeps a label's room. */
+  readonly tiers: readonly number[];
+}
+
+/**
+ * A tiered first fit (section 6.4, Regions): the items, in order, placed by
+ * their own extents alone into rows, so that a label never moves its item;
+ * and each item's label, in the same order, by its label extent into the
+ * label tiers of its item's row, each row filling its own tiers. A label
+ * that conflicts with one before it in its row's first tier lies in a later
+ * tier, joined to its item by a leader line.
+ */
+export function tieredFit(items: readonly TieredItem[]): Tiered {
+  const rows = new Rows();
+  const labelRows: Rows[] = [];
+  const row: number[] = [];
+  const tier: (number | undefined)[] = [];
+  for (const item of items) {
+    const k = rows.place(item.extent);
+    row.push(k);
+    while (labelRows.length < k) labelRows.push(new Rows());
+    tier.push(item.label === undefined ? undefined : nth(labelRows, k - 1).place(item.label));
+  }
+  return { row, tier, tiers: labelRows.map((labels) => Math.max(1, labels.count)) };
+}

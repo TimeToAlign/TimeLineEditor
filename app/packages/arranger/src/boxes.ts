@@ -525,6 +525,7 @@ export function roleOf(descriptor: Descriptor): Role {
     case "cross_section":
     case "wedge":
     case "alignment_anchor":
+    case "leader":
     case "elision":
     case "ellipsis":
     case "name":

@@ -54,6 +54,7 @@ export type {
   EllipsisElement,
   GapOrigin,
   JumpElement,
+  LeaderElement,
   LineElement,
   LineEnd,
   LineStart,

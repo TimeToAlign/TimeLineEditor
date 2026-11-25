@@ -118,6 +118,7 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
     case "cross_section":
       return { ...element, style, x: x(element.x), y1: y(element.y1), y2: y(element.y2) };
     case "alignment_anchor":
+    case "leader":
       return {
         ...element,
         style,

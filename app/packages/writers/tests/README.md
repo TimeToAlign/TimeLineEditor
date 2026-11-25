@@ -281,7 +281,14 @@ width=1pt,dash pattern=on 3pt off 3pt] (10,5) -- (10,25);` (`30 − 25` and
 point to its second as the layout states them: `{id: anchor_1}` from `(30,
 5)` to `(10, 25)`, stroked alike, is `<line data-id="anchor_1" x1="30"
 y1="5" x2="10" y2="25" stroke="#1BA1E2" stroke-width="1"
-stroke-dasharray="3 3"/>`, in TikZ `… (30,25) -- (10,5);`. A wedge's points are the layout's (tip, then the base's two
+stroke-dasharray="3 3"/>`, in TikZ `… (30,25) -- (10,5);`. A **leader** (section 6.6, Leaders) is a
+line from the element's end `(X, y1)` to the label's `(X, y2)` as the
+layout states them, at the address `{id: X, part: [leader]}`: `{id:
+region_2, part: [leader]}` at `x 40` from `y1 10` to `y2 22`, stroked
+`#9CA3AF` with width 0.5 and no dash (the defaults), is `<line
+data-id="region_2" data-part="leader" x1="40" y1="10" x2="40" y2="22"
+stroke="#9CA3AF" stroke-width="0.5"/>`, in TikZ `\path[draw=ts9CA3AF,line
+width=0.5pt] (40,20) -- (40,8);` (`30 − 10` and `30 − 22`). A wedge's points are the layout's (tip, then the base's two
 corners in the order section 6.6 gives them), the same an editor's unnamed
 wedge is drawn with.
 

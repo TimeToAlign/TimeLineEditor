@@ -6,9 +6,10 @@
  */
 
 import { idAddress } from "@timetoalign/tilie-core";
+import { regionClasses } from "@timetoalign/tilie-core/drawing";
 import type { PreparedBand } from "./bands.ts";
 import { BRACE, LABEL_GAP } from "./constants.ts";
-import { type Extent, labelExtent, Rows, widen } from "./fit.ts";
+import { type Extent, labelExtent, tieredFit } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { add, coordinateValue, midpoint } from "./numbers.ts";
 import { type Entry, maxSize, nth, type Scope, shown } from "./traversal.ts";
@@ -17,16 +18,21 @@ import { type Entry, maxSize, nth, type Scope, shown } from "./traversal.ts";
  * The regions band of the timeline drawn with the line `line` (section 6.4,
  * Regions and Segments without a line): the displayed regions of each
  * timeline of `sources`, the line first and then each joined segment, each
- * one's in canonical order, placed in that order by one first fit with the
- * extent from the smaller to the larger of their start and end, widened to
- * their drawn label's extent. `R` rows are `R × pr − S` wide, `pr = 6 + 2 +
- * h(9) + S`, `S` the card spacing, 9 the largest font size of the band's drawn labels.
- * Drawn from its start `r0`, row `k` has its brace's arms `r0 + (k − 1) ×
- * pr` out, the tip 6 further and the label's ordinate 2 further again, each
- * distance summed whole first (section 6.6, Regions). A region whose start,
- * end or midpoint lies in a gap is not drawn, nor is its label; another is
- * drawn at their elided x, its brace cut at every gap it spans (section 6.6,
- * Elisions).
+ * one's in canonical order, placed in that order by one tiered first fit
+ * (`tieredFit`): each region into a row by its extent alone, from the smaller
+ * to the larger of its start and end, so that no label moves it, and its
+ * drawn label by its label extent into the label tiers of that row. Row `k`
+ * with `Tk` tiers has the pitch `prk = 6 + 2 + Tk × h(9) + S`, `S` the card
+ * spacing, 9 the largest font size of the band's drawn labels; the band is
+ * `pr1 + … + prR − S` wide. Drawn from its start `r0`, row `k` has its
+ * brace's arms `r0 + pr1 + … + pr(k − 1)` out, the tip 6 further, and a label
+ * in tier `j` its ordinate `2 + (j − 1) × h(9)` beyond the tip, each distance
+ * summed whole first (section 6.6, Regions); a label beyond tier 1 is joined
+ * to the tip by a leader from the tip to where its tier begins. A region
+ * whose start, end or midpoint lies in a gap is not drawn, nor is its label;
+ * another is drawn at their elided x, its brace cut at every gap it spans
+ * (section 6.6, Elisions). Its extents, which its timeline's extent holds,
+ * are its regions' and their drawn labels'.
  */
 export function regionsBand(scope: Scope, sources: readonly Entry[]): PreparedBand {
   const { owned, measured, relativeX, S, h } = scope;
@@ -34,7 +40,13 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): PreparedBa
     shown(source.bands.regions.style)
       ? source.manifest.regions
           .map((region) => ({
-            ...owned("region", idAddress(region.id), source, "regions"),
+            ...owned(
+              "region",
+              idAddress(region.id),
+              source,
+              "regions",
+              regionClasses(scope.manifest, region),
+            ),
             start: add(source.start, coordinateValue(region.start, source.manifest.number_type)),
             end: add(source.start, coordinateValue(region.end, source.manifest.number_type)),
             text: region.name,
@@ -50,21 +62,27 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): PreparedBa
         : undefined;
     const xs = relativeX(region.start);
     const xe = relativeX(region.end);
-    let extent: Extent = [Math.min(xs, xe), Math.max(xs, xe)];
-    if (label !== undefined) extent = widen(extent, labelExtent(relativeX(middle), label.width));
-    return { region, middle, label, extent };
+    const extent: Extent = [Math.min(xs, xe), Math.max(xs, xe)];
+    const labelled = label === undefined ? undefined : labelExtent(relativeX(middle), label.width);
+    return { region, middle, label, extent, labelled, leader: scope.leaderOf(region.label) };
   });
-  const rows = new Rows();
-  const row = placed.map((item) => rows.place(item.extent));
+  const fit = tieredFit(placed.map((item) => ({ extent: item.extent, label: item.labelled })));
   const size = maxSize(
     placed.flatMap((item) => (item.label === undefined ? [] : [item.region.label])),
   );
-  const pr = BRACE + LABEL_GAP + h(size) + S;
+  const pitch = (tiers: number) => BRACE + LABEL_GAP + tiers * h(size) + S;
+  // Row `k`'s arms at `r0 + (pr1 + … + pr(k − 1))`, the pitches summed first, left to right.
+  const arms = (start: number, row: number) =>
+    start + fit.tiers.slice(0, row - 1).reduce((sum, tiers) => sum + pitch(tiers), 0);
+  const width =
+    fit.tiers.length === 0 ? 0 : fit.tiers.reduce((sum, tiers) => sum + pitch(tiers), 0) - S;
   return {
     facet: "regions",
     elements: regions.length,
-    width: rows.count === 0 ? 0 : rows.count * pr - S,
-    extents: placed.map((item) => item.extent),
+    width,
+    extents: placed.flatMap((item) =>
+      item.labelled === undefined ? [item.extent] : [item.extent, item.labelled],
+    ),
     centred: placed.flatMap((item) => {
       // A region marking a position in a gap is not drawn, nor is its label (section 6.6).
       const x = scope.drawnX(item.middle);
@@ -76,37 +94,54 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): PreparedBa
         : [{ width: item.label.width, x }];
     }),
     draw: (start, side, at) => {
-      const arms = (index: number) => start + (nth(row, index) - 1) * pr;
       const drawn = placed.flatMap((item, index) =>
         [item.region.start, item.region.end, item.middle].some(
           (value) => at.gap(value) !== undefined,
         )
           ? []
-          : [{ ...item, index }],
+          : [{ ...item, out: arms(start, nth(fit.row, index)), tier: fit.tier[index] }],
       );
+      // The distance of a label's tier from the band's start, its row's arms `out` given.
+      const tierAt = (out: number, tier: number) => out + BRACE + LABEL_GAP + (tier - 1) * h(size);
       return {
-        regions: drawn.map(({ region, middle, index }) => ({
+        regions: drawn.map(({ region, middle, out }) => ({
           type: "region",
           address: region.address,
           style: region.style,
           x1: at.xAfter(region.start),
           x2: at.x(region.end),
           xm: at.x(middle),
-          yb: at.yAt(side, arms(index)),
-          ya: at.yAt(side, arms(index) + BRACE),
+          yb: at.yAt(side, out),
+          ya: at.yAt(side, out + BRACE),
           // The brace is cut at every gap it spans, as a row is (section 6.6, Elisions).
           cuts: at.cuts(region.start, region.end),
         })),
-        regionLabels: drawn.flatMap(({ region, middle, label, index }) =>
-          label === undefined
+        regionLabels: drawn.flatMap(({ region, middle, label, out, tier }) =>
+          label === undefined || tier === undefined
             ? []
             : [
                 centredLabel(
                   region.label,
                   at.x(middle),
-                  at.beyond(side, at.yAt(side, arms(index) + BRACE + LABEL_GAP), size),
+                  at.beyond(side, at.yAt(side, tierAt(out, tier)), size),
                   label,
                 ),
+              ],
+        ),
+        // A label beyond its first tier is joined to its brace's tip by its leader, displayed
+        // only with the label (sections 2.4 and 6.6, Leaders).
+        regionLeaders: drawn.flatMap(({ region, middle, label, out, tier, leader }) =>
+          label === undefined || tier === undefined || tier === 1 || !shown(leader.style)
+            ? []
+            : [
+                {
+                  type: "leader" as const,
+                  ...leader,
+                  x1: at.x(middle),
+                  y1: at.yAt(side, out + BRACE),
+                  x2: at.x(middle),
+                  y2: at.yAt(side, tierAt(out, tier)),
+                },
               ],
         ),
       };

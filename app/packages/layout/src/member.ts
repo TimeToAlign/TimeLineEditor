@@ -209,6 +209,8 @@ export function layoutScope(
       ...names,
       ...ancestorLabelElements(scope, ancestors, bands, x0, yRoot),
       ...each("wedgeLabels"),
+      ...bySegment(each("segmentLeaders")),
+      ...each("regionLeaders"),
       ...bySegment(each("segmentLabels")),
       ...each("regionLabels"),
       ...each("jumpLabels"),

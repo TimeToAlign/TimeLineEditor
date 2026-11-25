@@ -351,8 +351,10 @@ export class Cascade {
     if (element.type !== null) {
       for (const rule of this.#byElement.get(element.type) ?? []) candidates.add(rule);
     }
-    if (element.class !== null) {
-      for (const rule of this.#byClass.get(element.class) ?? []) candidates.add(rule);
+    for (const name of element.class === null
+      ? (element.types ?? [])
+      : [element.class, ...(element.types ?? [])]) {
+      for (const rule of this.#byClass.get(name) ?? []) candidates.add(rule);
     }
     if (element.facet !== null) {
       for (const rule of this.#byFacet.get(element.facet) ?? []) candidates.add(rule);

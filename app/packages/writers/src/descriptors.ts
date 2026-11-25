@@ -367,6 +367,7 @@ function elementDescriptors(element: DrawnElement, index: number): Descriptor[] 
     case "cross_section":
       return [writer.line(element.x, element.y1, element.x, element.y2)];
     case "alignment_anchor":
+    case "leader":
       return [writer.line(element.x1, element.y1, element.x2, element.y2)];
     case "elision": {
       // Its gap, filled and not stroked, without corners, only where its fill is not `none`; then

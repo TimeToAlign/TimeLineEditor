@@ -378,6 +378,22 @@ describe("descriptors", () => {
     ]);
   });
 
+  it("writes a leader from its element's end to its label's", () => {
+    const drawing = synthetic({
+      type: "leader",
+      address: at("region_2", "leader"),
+      style: style({ stroke: "#9CA3AF", "stroke-width": 0.5 }),
+      x1: 40,
+      y1: 10,
+      x2: 40,
+      y2: 22,
+    });
+    expect(svgBody(drawing)).toEqual([
+      '<line data-id="region_2" data-part="leader" x1="40" y1="10" x2="40" y2="22" stroke="#9CA3AF" stroke-width="0.5"/>',
+    ]);
+    expect(tikzBody(drawing)).toEqual(["\\path[draw=ts9CA3AF,line width=0.5pt] (40,20) -- (40,8);"]);
+  });
+
   it("writes the bundle_matchstamps fixture's anchors and their label last, as stored", () => {
     const manifest = loadFixture("bundles/bundle_matchstamps");
     const drawing = draw(

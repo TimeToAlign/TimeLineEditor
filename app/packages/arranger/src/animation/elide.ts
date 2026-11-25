@@ -133,7 +133,8 @@ function extentOf(element: DrawnElement, measure: TextMeasure): readonly [number
       return [element.x, element.x];
     case "name":
     case "label":
-    case "alignment_anchor": {
+    case "alignment_anchor":
+    case "leader": {
       const { left, right } = boundsOf(element, measure);
       const middle = (left + right) / 2;
       return [middle, middle];

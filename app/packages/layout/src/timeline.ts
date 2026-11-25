@@ -336,6 +336,8 @@ function mergeLineElements(parts: readonly Partial<LineElements>[]): LineElement
     wedges: parts.flatMap((part) => part.wedges ?? []),
     wedgeLabels: parts.flatMap((part) => part.wedgeLabels ?? []),
     segmentLabels: parts.flatMap((part) => part.segmentLabels ?? []),
+    segmentLeaders: parts.flatMap((part) => part.segmentLeaders ?? []),
+    regionLeaders: parts.flatMap((part) => part.regionLeaders ?? []),
     regionLabels: parts.flatMap((part) => part.regionLabels ?? []),
     jumpLabels: parts.flatMap((part) => part.jumpLabels ?? []),
     flowLineLabels: parts.flatMap((part) => part.flowLineLabels ?? []),

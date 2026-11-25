@@ -13,6 +13,7 @@ import type { AxisMarker, AxisTimestamp } from "./boxes.ts";
 import type {
   Cut,
   JumpElement,
+  LeaderElement,
   LineElement,
   MapElement,
   MarkerElement,
@@ -142,8 +143,12 @@ export interface LineElements {
   readonly wedgeLabels: readonly TextElement[];
   /** The labels of its segments, in their tiers above its line. */
   readonly segmentLabels: readonly SegmentElement<TextElement>[];
+  /** The leader lines of its segments' labels beyond their first tier, in the order of `segmentLabels`. */
+  readonly segmentLeaders: readonly SegmentElement<LeaderElement>[];
   /** The labels of its regions band's regions, in the order of `regions`. */
   readonly regionLabels: readonly TextElement[];
+  /** The leader lines of its regions band's labels beyond their first tier, in the order of `regionLabels`. */
+  readonly regionLeaders: readonly LeaderElement[];
   /** The labels of the arcs of its flow control band's jumps, in the order of `jumps`. */
   readonly jumpLabels: readonly TextElement[];
   /** The labels of its flow control band's breaks, section breaks and barlines, in the order of `flowLines`. */

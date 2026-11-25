@@ -22,6 +22,7 @@ import {
   type ElementKey,
   elementKey,
   type GroupFrame,
+  leaderKey,
   type MemberDrawing,
   orderedChildren,
   reachOf,
@@ -91,7 +92,7 @@ export interface Entry extends Holder {
 /** An element a timeline's band holds: a map, a region, a break, a section break, a barline, a jump or a wedge. */
 export interface Owned extends Styled {
   readonly entry: Entry;
-  readonly label: Styled;
+  readonly label: Styled & Holder;
 }
 
 /** A text ready to draw. */
@@ -164,7 +165,9 @@ export interface Scope extends Context {
   readonly a: (size: number) => number;
   readonly d: (size: number) => number;
   readonly styled: (key: ElementKey, parent: Style) => Styled;
-  readonly textOf: (owner: Holder, kind: "name" | "label") => Styled;
+  readonly textOf: (owner: Holder, kind: "name" | "label") => Styled & Holder;
+  /** The leader line joining the label `label` to its element, held by the label (section 6.6). */
+  readonly leaderOf: (label: Holder) => Styled;
   readonly measured: (owner: Styled, text: string) => Measured;
   /** A conversion map, which has no label element. */
   readonly mapped: (
@@ -172,12 +175,16 @@ export interface Scope extends Context {
     entry: Entry,
     map: ConversionMap,
   ) => Styled & Holder & { entry: Entry };
-  /** The element `at` of `entry`, held by its band of `facet`. */
+  /**
+   * The element `at` of `entry`, held by its band of `facet`; `types` the classes a region's type
+   * statement names (core's `regionClasses`), which its key carries.
+   */
   readonly owned: (
     type: Exclude<ElementType, "map">,
     at: ElementAddress,
     entry: Entry,
     facet: Facet,
+    types?: readonly string[],
   ) => Owned & Holder;
 }
 
@@ -346,8 +353,11 @@ export function traverse(
     address: key.address,
     style: cascade.resolve(key, parent),
   });
-  const textOf = (owner: Holder, kind: "name" | "label"): Styled =>
-    styled(textKey(owner.key, kind), owner.style);
+  const textOf = (owner: Holder, kind: "name" | "label"): Styled & Holder => {
+    const key = textKey(owner.key, kind);
+    return { ...styled(key, owner.style), key };
+  };
+  const leaderOf = (label: Holder): Styled => styled(leaderKey(label.key), label.style);
   const measured = (owner: Styled, text: string): Measured => {
     const clean = cleanText(text);
     return { clean, width: measure.width(clean, owner.style["font-size"]) };
@@ -457,9 +467,11 @@ export function traverse(
     entry: Entry,
     facet: Facet,
     map?: ConversionMap,
+    types?: readonly string[],
   ): Styled & Holder & { entry: Entry } => {
     const band = entry.bands[facet];
-    const key = elementKey(type, at, entry.manifest, band.key, map);
+    const own = elementKey(type, at, entry.manifest, band.key, map);
+    const key = types === undefined ? own : { ...own, types };
     const style = cascade.resolve(key, band.style);
     return { key, address: at, style, entry };
   };
@@ -470,8 +482,9 @@ export function traverse(
     at: ElementAddress,
     entry: Entry,
     facet: Facet,
+    types?: readonly string[],
   ): Owned & Holder => {
-    const item = held(type, at, entry, facet);
+    const item = held(type, at, entry, facet, undefined, types);
     return { ...item, label: textOf(item, "label") };
   };
 
@@ -501,6 +514,7 @@ export function traverse(
     d,
     styled,
     textOf,
+    leaderOf,
     measured,
     mapped,
     owned,
