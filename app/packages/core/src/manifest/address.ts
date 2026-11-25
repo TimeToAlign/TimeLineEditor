@@ -36,6 +36,9 @@ export const PART_WORDS = [
   "coordinate",
   "elision",
   "ellipsis",
+  "symbol",
+  "bracket",
+  "leader",
 ] as const satisfies readonly Part[];
 
 /** Whether a value is one of the part words. */

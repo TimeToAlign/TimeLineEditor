@@ -187,11 +187,20 @@ describe("the elements of a manifest", () => {
       ["band", band(flow, "regions")],
       ["band", band(flow, "flow_control")],
       ["break", id("break_1")],
+      ["label", id("break_1", "name")],
+      ["label", id("break_1", "id")],
       ["label", id("break_1", "label")],
+      ["symbol", id("break_1", "symbol")],
       ["jump", id("jump_1")],
+      ["label", id("jump_1", "id")],
       ["label", id("jump_1", "label")],
+      ["symbol", id("jump_1", "symbol")],
       ["jump", id("jump_2")],
+      ["label", id("jump_2", "id")],
       ["label", id("jump_2", "label")],
+      ["symbol", id("jump_2", "symbol")],
+      ["symbol", id("jump_target_1", "symbol")],
+      ["symbol", id("jump_target_2", "symbol")],
     ]);
   });
 

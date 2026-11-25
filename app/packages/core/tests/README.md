@@ -657,11 +657,15 @@ check of who holds what.
    `points`. A map takes its `target_unit`'s domain and modality, `number`
    included.
 3. **Regions, breaks and jumps** of `with_region.yaml` and
-   `flow_control.yaml` are addressed by their IDs, each with a label
+   `flow_control.yaml` are addressed by their IDs, a region with a label
    (`{id, part: ["label"]}`), and held by their bands (the whole (type,
    address) list of `flow_control.yaml` is pinned: the `break`
-   `{id: "break_1"}`, then the `jump`s `jump_1` and
-   `jump_2`, each followed by its label, the IDs minted by role); a jump target (`jump_target_1`, `jump_target_2`) is no
+   `{id: "break_1"}` with the labels of its stack, `name`, `id` and
+   `label`, and its symbol `{id, part: ["symbol"]}` (`fine`), then the
+   `jump`s `jump_1` and `jump_2`, each with its `id` and `label` labels
+   (a destination has a label) and its symbol, the IDs minted by role,
+   then the symbols of the jump targets `jump_target_1` (`repeat_start`)
+   and `jump_target_2` (`segno`), held by the band); a jump target is no
    element; in every one-root manifest fixture every
    address is distinct on the timeline it belongs to (compared by
    `addressKey` beside the timeline's ID: a secondary coordinate's wedge
@@ -880,13 +884,30 @@ ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
 2. **The drawn elements.** The roles drawn as lines are `break`,
    `section_break` and `barline`. A flow control band lists them together
    in canonical order (coordinate, then ID), then its jumps, each element's
-   type its role, and no jump target: `flow/sections` (break `break_1` at
+   type its role, then the symbols of its jump targets (a jump target is no
+   element): `flow/sections` (break `break_1` at
    8, jump `jump_1` and section break `section_break_1` at 16, jump
    `jump_2` at 32) lists `break_1`, `section_break_1`, `jump_1`, `jump_2`;
    `flow/repairs` `barline_1`, then `jump_1` and `jump_2` (the rejected
    jump is drawn, and so listed); `flow/sonata_exposition` `break_1`,
-   `jump_1`, `jump_2`. Each has one label `{id, part: ["label"]}`,
-   whatever its role and however many arcs a jump draws.
+   `jump_1`, `jump_2`. Each holds the labels of its **stack** that may be
+   drawn (drawing.md §6.4, Flow labels): `{id, part: ["name"]}` where its
+   `name` is not null, `{id, part: ["id"]}` always, `{id, part:
+   ["label"]}` where its own `label` or, for a jump, a destination's label
+   is not null (one address, however many arcs a jump draws): in
+   `flow/sections` `break_1` its ID and its label (`Fine`),
+   `section_break_1` its ID, `jump_1` and `jump_2` their IDs and their own
+   labels (`D.C. al Fine`, `D.C.`), in that order. Each holds its
+   **symbol** `{id, part: ["symbol"]}` where its manifestation has one (a
+   section break always), a jump target's held by the band; a jump holds
+   its **brackets** `{id, part: ["bracket"]}` where a destination is a
+   `volta` with passes: `flow/sections` the symbols of `break_1` (`fine`),
+   `section_break_1`, `jump_1` (`da_capo_al_fine`) and `jump_2`
+   (`da_capo`); `flow/sonata_exposition` the bracket of `jump_1` (two volta
+   destinations), then the symbol of `jump_2` (`repeat_end`), and none of
+   `break_1` or `jump_target_1` (both `volta`); `flow/repairs` the symbols
+   of `barline_1`, `jump_1`, `jump_2`, then of `jump_target_1`
+   (`repeat_start`), held by the band.
 3. **Words.** In a workspace of one block an element is worded by its role
    and its ID: "break 'break_1'", "section break 'section_break_1'", "jump
    'jump_1'", "barline 'barline_1'", "jump target 'jump_target_1'".
@@ -968,6 +989,33 @@ ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
    - rejecting `jump_target_1`, which `jump_2` names, is refused where it
      would dangle: `schema_violation` at `jump_2`'s `to` (`flow_control`
      index 3, `targets` 0, `to`).
+
+8. **What an element draws besides its line** (drawing.md §6.4,
+   Symbols and Brackets). `flowSymbols`: a jump target's `repeat_start`
+   𝄆 U+1D106, `segno` 𝄋 U+1D10B, `coda` 𝄌 U+1D10C, `volta` none; a break's
+   `fine` the text `Fine`, `volta` none; a barline's `double_barline` 𝄁
+   U+1D101, `final_barline` 𝄂 U+1D102, none without a manifestation; a
+   section break 𝄂 always; a jump one per destination, in the order of its
+   `targets`: `repeat_end` 𝄇 U+1D107, the three `dal_segno*` 𝄉 U+1D109, the
+   three `da_capo*` 𝄊 U+1D10A, `to_coda` 𝄌, and none for `volta`, `ossia`
+   or a word outside the vocabulary. `passesText`: `[1]` is `1.`, `[1, 3]`
+   `1., 3.`, `{from: 4}` `4.–` (U+2013).
+9. **A child member's flow** (drawing.md §6.4, Flow control): the card of
+   a member that is a child timeline draws the elements of its root's whole
+   tree lying on `[0, λ]` of its own axis. `groups/group_child_member`
+   (`piece` 16 long, its child `second-half` at 8, 8 long, a member of
+   `group_1` with `recording`), given barlines at 4, 8 and 16 and a
+   section break at 12 on `piece` and a barline at 2 on `second-half`:
+   `memberFlow` of `second-half` is `barline_2` at 0, `section_break_1` at
+   4, `barline_3` at 8 (all of `piece`, which starts at −8 on the member's
+   axis; the barline at 4 lies outside) and `barline_4` at 2 (its own,
+   `second-half` starting at 0), in the root's traversal order; of the root
+   `recording` nothing. The elements core lists are the five lines of
+   `piece`'s ancestor card in the order of its tree (`barline_4` in
+   `second-half`'s child band, held by `piece`'s children band, before
+   `piece`'s four in `piece`'s own flow control band), then in `second-half`'s member card its own
+   `barline_4`, then the three of `piece` on its stretch, held by the
+   member's own flow control band.
 
 ## Bands and band orders (`bands.test.ts`)
 
@@ -1161,7 +1209,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
    owner's `part` (`{id: "score"}` and `end` give `{id: "score", part:
    ["end"]}`, then `label` `["end", "label"]`) and keeps the owner's
    `block`, and refuses a band's address as its owner at the type level (a
-   band has no part: the test type-checks only with that call refused); `PART_WORDS` is `start`, `end`, `name`, `label`, `card`, `line`, `id`, `coordinate`, `elision`, `ellipsis`, the schema's order.
+   band has no part: the test type-checks only with that call refused); `PART_WORDS` is `start`, `end`, `name`, `label`, `card`, `line`, `id`, `coordinate`, `elision`, `ellipsis`, `symbol`, `bracket`, `leader`, the schema's order.
    `inBlock(A, element)` puts an element address into block `A`,
    `elementAddressOf` takes the block off again (`{}` for a block), and
    `isElementAddress` holds for an address stating `id`, `facet` or `part`

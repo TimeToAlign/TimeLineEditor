@@ -25,12 +25,14 @@ import {
 import { ELISION_LABELS, elisionsOn, elisionsUnder, groupElisions } from "./elisions.ts";
 import type { GroupFrame, MemberDrawing } from "./files.ts";
 import { isNamed, memberDrawings } from "./files.ts";
-import { FLOW_LINE_ROLES } from "./flow.ts";
+import { FLOW_LINE_ROLES, type FlowLineRole } from "./flow.ts";
+import { flowSymbols, memberFlow } from "./flowtree.ts";
 import { findTimeline, groupsHolding, timelineAncestry } from "./tree.ts";
 import type {
   ChildTimeline,
   ConversionMap,
   Elision,
+  FlowControlElement,
   Manifest,
   NamedTimestamp,
   TimelineManifest,
@@ -117,6 +119,9 @@ export function unownedKey(
  * the drawing is its role.
  */
 const DRAWN_FLOW = [FLOW_LINE_ROLES, ["jump"]] as const;
+
+/** The words of a flow-control element's stack, in the order it stacks them (section 6.4, Flow labels). */
+const FLOW_LABELS = ["name", "id", "label"] as const;
 
 /** The domain and modality of every unit (drawing.md section 2.3). */
 const UNIT_DOMAINS: Readonly<Record<TimeUnit, readonly [Domain, Modality]>> = {
@@ -410,6 +415,37 @@ function memberElements(
     }
     secondary(timeline, ancestor);
   }
+  // A flow-control element of `timeline` held by `band` (section 2.1): its own key (none for a
+  // jump target, which is no element), then the labels its stack may draw, its symbol where its
+  // manifestation has one and a jump's brackets where a destination is a volta with passes.
+  const flowElement = (
+    item: FlowControlElement,
+    type: FlowLineRole | "jump" | null,
+    timeline: TimelineManifest,
+    band: ElementKey,
+  ) => {
+    const at = idAddress(item.id);
+    const holder = type === null ? band : elementKey(type, at, timeline, band);
+    if (type !== null) {
+      keys.push(holder);
+      const labelled =
+        (item.label !== null && item.label !== undefined) ||
+        (item.targets ?? []).some((target) => target.label !== null && target.label !== undefined);
+      const texts = { name: item.name !== null && item.name !== undefined, id: true, label: labelled };
+      for (const word of FLOW_LABELS) {
+        if (texts[word]) keys.push(elementKey("label", partAddress(at, word), timeline, holder));
+      }
+    }
+    if (flowSymbols(item).length > 0) {
+      keys.push(elementKey("symbol", partAddress(at, "symbol"), timeline, holder));
+    }
+    const volta = (item.targets ?? []).some(
+      (target) => target.manifestation === "volta" && target.passes !== undefined,
+    );
+    if (type === "jump" && volta) {
+      keys.push(elementKey("bracket", partAddress(at, "bracket"), timeline, holder));
+    }
+  };
   const visit = (key: ElementKey, timeline: TimelineManifest) => {
     const labelled = (type: ElementType, at: ElementAddress, band: ElementKey) => {
       const owned = elementKey(type, at, timeline, band);
@@ -461,7 +497,26 @@ function memberElements(
         for (const roles of DRAWN_FLOW) {
           for (const item of timeline.flow_control) {
             const role = roles.find((drawn) => drawn === item.role);
-            if (role !== undefined) labelled(role, idAddress(item.id), band);
+            if (role !== undefined) flowElement(item, role, timeline, band);
+          }
+        }
+        for (const item of timeline.flow_control) {
+          if (item.role === "jump_target") flowElement(item, null, timeline, band);
+        }
+        // A member that is a child timeline: the elements of its root's tree outside its own.
+        if (timeline !== root || member.ancestors.length === 0) return;
+        const own = new Set<TimelineManifest>();
+        const collect = (each: TimelineManifest) => {
+          own.add(each);
+          for (const child of each.children) collect(child);
+        };
+        collect(root);
+        for (const roles of [...DRAWN_FLOW, ["jump_target"] as const]) {
+          for (const placed of memberFlow(manifest, member)) {
+            if (own.has(placed.timeline)) continue;
+            const role = roles.find((drawn) => drawn === placed.element.role);
+            if (role === undefined) continue;
+            flowElement(placed.element, role === "jump_target" ? null : role, placed.timeline, band);
           }
         }
       },

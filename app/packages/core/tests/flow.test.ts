@@ -3,13 +3,26 @@ import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { idAddress } from "../src/manifest/address.ts";
 import { manifestElements } from "../src/manifest/elements.ts";
+import { memberDrawings } from "../src/manifest/files.ts";
 import { FLOW_LINE_ROLES, isRejected, withElementBelief } from "../src/manifest/flow.ts";
+import { flowSymbols, memberFlow, passesText } from "../src/manifest/flowtree.ts";
 import { loadManifest, saveManifest } from "../src/manifest/io.ts";
 import { removedBy } from "../src/manifest/remove.ts";
 import type { FlowControlElement, Manifest } from "../src/manifest/types.ts";
 import { addressWords, manifestIds, resolveElement } from "../src/workspace/address.ts";
 import type { View } from "../src/workspace/view.ts";
-import { A, allFixtures, at, changed, key, load, viewOf } from "./support.ts";
+import {
+  A,
+  allFixtures,
+  at,
+  changed,
+  fileText,
+  key,
+  load,
+  loadText,
+  manifestValue,
+  viewOf,
+} from "./support.ts";
 
 const FLOW = allFixtures.filter((fixture) => fixture.name.startsWith("flow/"));
 const COMPLETE = { minimal: false } as const;
@@ -72,7 +85,7 @@ describe("the drawn elements of flow control", () => {
   const drawn = (name: string) =>
     manifestElements(load(name))
       .filter((item) => item.inside.at(-1) === "band" && item.address.facet === undefined)
-      .filter((item) => item.type !== "label" && item.type !== "region")
+      .filter((item) => !["label", "region", "symbol"].includes(item.type ?? ""))
       .map((item) => [item.type, item.address.id]);
 
   it("names the roles drawn as lines", () => {
@@ -98,15 +111,42 @@ describe("the drawn elements of flow control", () => {
     ]);
   });
 
-  it("gives every drawn one a label, whatever its role", () => {
+  it("gives every drawn one the labels of its stack, whatever its role", () => {
     const labels = manifestElements(load("flow/sections.yaml"))
       .filter((item) => item.type === "label" && item.inside.at(-1) !== "band")
       .map((item) => [item.inside.at(-1), item.address]);
     expect(labels).toEqual([
+      ["break", { id: "break_1", part: ["id"] }],
       ["break", { id: "break_1", part: ["label"] }],
-      ["section_break", { id: "section_break_1", part: ["label"] }],
+      ["section_break", { id: "section_break_1", part: ["id"] }],
+      ["jump", { id: "jump_1", part: ["id"] }],
       ["jump", { id: "jump_1", part: ["label"] }],
+      ["jump", { id: "jump_2", part: ["id"] }],
       ["jump", { id: "jump_2", part: ["label"] }],
+    ]);
+  });
+
+  it("lists the symbols and the brackets, a jump target's held by the band", () => {
+    const parts = (name: string) =>
+      manifestElements(load(name))
+        .filter((item) => item.type === "symbol" || item.type === "bracket")
+        .map((item) => [item.type, item.address, item.inside.at(-1)]);
+    const part = (id: string, word: "symbol" | "bracket") => ({ id, part: [word] });
+    expect(parts("flow/sections.yaml")).toEqual([
+      ["symbol", part("break_1", "symbol"), "break"],
+      ["symbol", part("section_break_1", "symbol"), "section_break"],
+      ["symbol", part("jump_1", "symbol"), "jump"],
+      ["symbol", part("jump_2", "symbol"), "jump"],
+    ]);
+    expect(parts("flow/sonata_exposition.yaml")).toEqual([
+      ["bracket", part("jump_1", "bracket"), "jump"],
+      ["symbol", part("jump_2", "symbol"), "jump"],
+    ]);
+    expect(parts("flow/repairs.yaml")).toEqual([
+      ["symbol", part("barline_1", "symbol"), "barline"],
+      ["symbol", part("jump_1", "symbol"), "jump"],
+      ["symbol", part("jump_2", "symbol"), "jump"],
+      ["symbol", part("jump_target_1", "symbol"), "band"],
     ]);
   });
 
@@ -421,5 +461,121 @@ describe("a belief set in an element", () => {
       code: "schema_violation",
       path: [...FLOW_PATH, 3, "targets", 0, "to"],
     });
+  });
+});
+
+describe("what a flow-control element draws besides its line", () => {
+  it("gives each manifestation its symbol, a jump one per destination", () => {
+    const symbols = (role: string, manifestation: string | null, targets?: object[]) =>
+      flowSymbols({ id: "x", role, coordinate: [0, 1], manifestation, targets } as never);
+    expect(symbols("jump_target", "repeat_start")).toEqual(["\u{1D106}"]);
+    expect(symbols("jump_target", "segno")).toEqual(["\u{1D10B}"]);
+    expect(symbols("jump_target", "coda")).toEqual(["\u{1D10C}"]);
+    expect(symbols("jump_target", "volta")).toEqual([]);
+    expect(symbols("break", "fine")).toEqual(["Fine"]);
+    expect(symbols("break", "volta")).toEqual([]);
+    expect(symbols("barline", "double_barline")).toEqual(["\u{1D101}"]);
+    expect(symbols("barline", "final_barline")).toEqual(["\u{1D102}"]);
+    expect(symbols("barline", null)).toEqual([]);
+    expect(symbols("section_break", null)).toEqual(["\u{1D102}"]);
+    const words = [
+      "repeat_end",
+      "dal_segno",
+      "dal_segno_al_fine",
+      "dal_segno_al_coda",
+      "da_capo",
+      "da_capo_al_fine",
+      "da_capo_al_coda",
+      "to_coda",
+      "volta",
+      "ossia",
+      "unknown_word",
+    ];
+    expect(
+      symbols(
+        "jump",
+        null,
+        words.map((manifestation) => ({ manifestation })),
+      ),
+    ).toEqual([
+      "\u{1D107}",
+      "\u{1D109}",
+      "\u{1D109}",
+      "\u{1D109}",
+      "\u{1D10A}",
+      "\u{1D10A}",
+      "\u{1D10A}",
+      "\u{1D10C}",
+    ]);
+  });
+
+  it("prints a volta bracket's passes", () => {
+    expect(passesText([1])).toBe("1.");
+    expect(passesText([1, 3])).toBe("1., 3.");
+    expect(passesText({ from: 4 })).toBe("4.–");
+  });
+
+  it("gathers a child member's flow from its root's tree, on its own axis", () => {
+    const value = manifestValue("groups/group_child_member.yaml");
+    const [piece] = value.timelines as Record<string, unknown>[];
+    const element = (id: string, role: string, coordinate: number) => ({
+      id,
+      role,
+      coordinate: [coordinate, 1],
+    });
+    const withFlow = {
+      ...value,
+      timelines: [
+        {
+          ...piece,
+          flow_control: [
+            element("barline_1", "barline", 4),
+            element("barline_2", "barline", 8),
+            element("section_break_1", "section_break", 12),
+            element("barline_3", "barline", 16),
+          ],
+          children: ((piece?.children ?? []) as Record<string, unknown>[]).map((child) => ({
+            ...child,
+            flow_control: [element("barline_4", "barline", 2)],
+          })),
+        },
+        ...(value.timelines as unknown[]).slice(1),
+      ],
+    };
+    const manifest = loadText(fileText(withFlow));
+    const { frames } = memberDrawings(manifest);
+    const members = frames.flatMap((frame) => frame.members);
+    const placed = (id: string) => {
+      const member = members.find((each) => each.timeline.id === id);
+      if (member === undefined) throw new Error(`no member ${id}`);
+      return memberFlow(manifest, member).map((item) => [
+        item.element.id,
+        item.timeline.id,
+        String(item.start),
+        String(item.at),
+      ]);
+    };
+    expect(placed("second-half")).toEqual([
+      ["barline_2", "piece", "-8", "0"],
+      ["section_break_1", "piece", "-8", "4"],
+      ["barline_3", "piece", "-8", "8"],
+      ["barline_4", "second-half", "0", "2"],
+    ]);
+    expect(placed("recording")).toEqual([]);
+    // Core lists the root's elements outside the member's tree in the member's flow control band.
+    const keys = manifestElements(manifest).filter(
+      (key) => key.type === "barline" || key.type === "section_break",
+    );
+    expect(keys.map((key) => [key.address.id, key.timeline, key.inside.at(-2)])).toEqual([
+      ["barline_4", "second-half", "child"],
+      ["barline_1", "piece", "timeline"],
+      ["barline_2", "piece", "timeline"],
+      ["section_break_1", "piece", "timeline"],
+      ["barline_3", "piece", "timeline"],
+      ["barline_4", "second-half", "timeline"],
+      ["barline_2", "piece", "timeline"],
+      ["section_break_1", "piece", "timeline"],
+      ["barline_3", "piece", "timeline"],
+    ]);
   });
 });

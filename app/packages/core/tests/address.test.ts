@@ -162,6 +162,9 @@ describe("the shape of an address", () => {
       "coordinate",
       "elision",
       "ellipsis",
+      "symbol",
+      "bracket",
+      "leader",
     ]);
   });
 
@@ -548,6 +551,8 @@ function kindOf(key: ElementKey): ResolvedElement["kind"] {
     case "boundary":
     case "cross_section":
     case "ellipsis":
+    case "symbol":
+    case "bracket":
       return "part";
     case "alignment_anchor":
       return "anchor";

@@ -50,5 +50,7 @@ export {
   groupElisions,
 } from "./manifest/elisions.ts";
 export type { Ancestor, AncestorCard, GroupFrame, MemberDrawing } from "./manifest/files.ts";
+export type { PlacedFlow } from "./manifest/flowtree.ts";
+export { flowSymbols, memberFlow, passesText } from "./manifest/flowtree.ts";
 export { memberDrawings } from "./manifest/files.ts";
 export { timelineAncestry } from "./manifest/tree.ts";
