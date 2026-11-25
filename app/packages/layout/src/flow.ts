@@ -30,7 +30,8 @@ import { type Entry, maxSize, type Owned, type Scope, shown } from "./traversal.
  * the child timeline with that ID, or 0 for the timeline itself; neither,
  * the start of the jump's section: the coordinate of the nearest section
  * break before the jump that is not rejected, else 0. `undefined` for a
- * `to` that names none of these, which only a rejected jump may hold.
+ * `to` that names none of these or names a rejected jump target (a rejected
+ * element is no place), which only a rejected jump may hold.
  */
 function placeOf(
   timeline: TimelineManifest,
@@ -56,7 +57,7 @@ function placeOf(
   const target = timeline.flow_control.find(
     (item) => item.role === "jump_target" && item.id === to,
   );
-  if (target !== undefined) return own(target.coordinate);
+  if (target !== undefined) return isRejected(target) ? undefined : own(target.coordinate);
   const region = timeline.regions.find((item) => item.id === to);
   if (region !== undefined) return own(region.start);
   const child = timeline.children.find((item) => item.id === to);
@@ -89,8 +90,9 @@ function believed<T extends Owned>(item: T, element: FlowControlElement): T {
  * place, then by `by`, then by `to`), from its coordinate to the
  * destination's place (`placeOf`); a destination with `by` 0, which is going
  * on and no jump, draws none, nor does one whose place resolves nowhere. An arc is
- * drawn with its destination's `label`, else its jump's, else its
- * destination's manifestation, else with no label; every arc and every
+ * drawn with its destination's `label`, else that destination's
+ * manifestation, else with no label; the jump's own `label` and `name`
+ * label the jump, never an arc, and are not drawn. Every arc and every
  * label of a jump carries the jump's address. An element some actor
  * believes `false` (`isRejected`) is drawn faded (`fadedStyle`), with its
  * label, and takes its place in the rows as any other. The drawn labels of
@@ -137,7 +139,7 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
         const place = placeOf(source.manifest, item, destination);
         if (place === undefined) return [];
         const to = own(source, place);
-        const text = destination.label ?? item.label ?? destination.manifestation ?? null;
+        const text = destination.label ?? destination.manifestation ?? null;
         return [{ ...drawn, from, to, text }];
       });
       return arcs.length === 0 ? [] : [arcs];

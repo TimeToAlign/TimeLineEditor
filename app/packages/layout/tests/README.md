@@ -789,11 +789,14 @@ every arc and every label at the jump's one address and its label's; the
 destination is its jump target's coordinate, its region's start, its
 child's offset, 0 for the timeline itself, the jump's coordinate plus its
 `by`, and without either the coordinate of the nearest section break
-strictly before the jump that is not rejected, else 0; an arc's **text**
-is its destination's `label`, else its jump's, else its destination's
-manifestation; a **rejected** element (a belief `false` in its
-provenance) and its label are drawn at opacity 0.35, the defaults' opacity
-of ancestor lines, in their rows as any other.
+strictly before the jump that is not rejected, else 0; a `to` naming
+nothing, or a jump target that is rejected, is **no place**, and its
+destination draws no arc (only a rejected jump may hold one); an arc's
+**text** is its destination's `label`, else that destination's
+manifestation, never its jump's own `label` or `name`, which this version
+of the drawing draws nowhere; a **rejected** element (a belief `false` in
+its provenance) and its label are drawn at opacity 0.35, the defaults'
+opacity of ancestor lines, in their rows as any other.
 
 - **`flow/sonata_exposition`** (length 24, `x(t) = x0 + 400 × u`, `u` the
   double nearest `t / 24`): three regions in one row, so the regions band
@@ -843,9 +846,12 @@ of ancestor lines, in their rows as any other.
   15.9765625` out, `yf = 59.18359375`; the lines at 155.05029296875 and
   255.05029296875, `Fine` from 158.05029296875 at the baseline `yf − d(9)
   = 57.06103515625`. `jump_1` at 16 has no place: the section break at 16
-  is not before it, so the arc 16→0, text the jump's label `D.C. al
-  Fine`; `jump_2` at 32 has none either and lands at the section break,
-  the arc 32→16, text `D.C.`. Both spans are 16 and their extents `[0,
+  is not before it, so the arc 16→0; its destination has no label, so
+  the text is that destination's manifestation `da_capo_al_fine`, not the
+  jump's own label `D.C. al Fine`, which no element of the drawing holds;
+  `jump_2` at 32 has no place either and lands at the section break,
+  the arc 32→16, text `da_capo` (the jump's label is `D.C.`). Neither
+  text is wider than its arc, both spans are 16 and their extents `[0,
   200]` and `[200, 400]` only touch: both in row 1, `yc =
   69.85026041666666`, in canonical order. Arc 16→0: `C1 =
   (205.05029296875, yc)`, `C2 = (105.05029296875, yc)`, `Bh =
@@ -853,7 +859,7 @@ of ancestor lines, in their rows as any other.
   61.97413330993069)` and `(59.37954125798827, 58.06216196423346)`; arc
   32→16 the same 200 further right. Labels at 155.05029296875 and
   355.05029296875, baseline 77.53759765625. With `section_break_1`
-  rejected through a `set` of its provenance, it is drawn at opacity 0.35
+  rejected by a belief `false`, it is drawn at opacity 0.35
   and no longer starts a section: `jump_2`'s arc runs 32→0.
 - **`flow/repairs`** (length 16, `x(t) = x0 + 25 t`): the barline
   `barline_1` at 8 runs at 255.05029296875 from `yf = 48.70703125` to
@@ -878,6 +884,27 @@ of ancestor lines, in their rows as any other.
   + 320`), a jump added at 8.0 with `by` 1e-17 lands at the double `8.0 +
   1e-17 = 8.0` and still draws its arc, leaving and arriving at `x0 +
   320`.
+- **The texts of one jump's arcs.** A jump `jump_3` added to
+  `flow/sections` at 24 with the label `Leap`, the name `Named` and three
+  destinations: `by` −4 with the label `back`, `by` 4 with the
+  manifestation `volta` and no label, `by` −8 with neither. It draws three
+  arcs and two labels at its label's address, in the order of first fit
+  (span 4, 4, 8): `back` centred at `x(22) = 330.05029296875`, `volta` at
+  `x(26) = 380.05029296875`, and none for the third arc. No label of the
+  drawing reads `Leap` or `Named`.
+- **A `to` that names no place.** `flow/repairs` gains, by commands, a
+  region `gone` from 2 to 6; a jump target `struck` at 4, rejected when it
+  is added; and three jumps, each rejected when it is added: `kept` at 10
+  to `jump_target_1` (at 8, not rejected), `lost` at 12 to `gone`, `stray`
+  at 14 to `struck`. `kept` draws its arc 10→8 (`x(10) = 305.05029296875`
+  to 255.05029296875) and `lost` its arc 12→2 (355.05029296875 to
+  105.05029296875), both faded; `stray` draws nothing, neither arc nor
+  label: the target it names is rejected. With `struck` added without a
+  rejection instead, `stray` draws 14→4 (405.05029296875 to
+  155.05029296875). With `gone` then removed (accepted: only a rejected
+  jump names it), `lost` draws nothing either, and the arcs left are, in
+  the order of first fit by span, `kept` (2), `jump_2` 16→8 (8) and
+  `jump_1` 16→0 (16).
 
 ## Row names and empty blocks (`names.test.ts`)
 

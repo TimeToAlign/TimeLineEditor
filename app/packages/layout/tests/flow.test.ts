@@ -193,7 +193,7 @@ describe("flow/sections", () => {
         x: 155.05029296875,
         baseline: 77.53759765625,
         anchor: "middle",
-        text: "D.C. al Fine",
+        text: "da_capo_al_fine",
       },
       {
         type: "label",
@@ -201,7 +201,7 @@ describe("flow/sections", () => {
         x: 355.05029296875,
         baseline: 77.53759765625,
         anchor: "middle",
-        text: "D.C.",
+        text: "da_capo",
       },
       {
         type: "label",
@@ -214,13 +214,20 @@ describe("flow/sections", () => {
     ]);
   });
 
+  it("labels no arc with its jump's own label", () => {
+    const labels = loadFile("flow/sections").timelines[0]?.flow_control.map((item) => item.label);
+    expect(labels).toEqual(["Fine", "D.C. al Fine", null, "D.C."]);
+    const texts = drawFixture("flow/sections").elements.flatMap((item) =>
+      item.type === "label" ? [item.text] : [],
+    );
+    expect(texts.filter((text) => text.startsWith("D.C."))).toEqual([]);
+  });
+
   it("passes over a rejected section break", () => {
-    const provenance = [
-      { beliefs: [{ actor: "https://example.org/a", belief: "false", date: "2026-11-25" }] },
-    ];
+    const belief = { actor: "https://example.org/a", belief: "false", date: "2026-11-25" };
     const manifest = edited(loadFile("flow/sections"), {
       type: "set",
-      changes: [{ target: target("section_break_1"), values: { provenance } }],
+      changes: [{ target: target("section_break_1"), values: { belief } }],
     });
     const drawing = draw(
       manifest,
@@ -277,6 +284,17 @@ describe("flow/repairs", () => {
   });
 });
 
+/** A manifest drawn with the default layer and its own. */
+const drawn = (manifest: Manifest): Drawing =>
+  draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, manifestLayer(manifest)], metrics);
+
+/** Where each arc of the jump `id` leaves and arrives, in drawing order. */
+const arcsOf = (drawing: Drawing, id: string) =>
+  drawing.elements
+    .filter((item): item is JumpElement => item.type === "jump")
+    .filter((item) => item.address.id === id)
+    .map((item) => [item.start[0], item.tip[0]]);
+
 describe("the arcs of one jump", () => {
   /** The `add` of a jump of `flow/sections` at 24 with destinations given in this order. */
   const jump = (...targets: object[]) => ({
@@ -284,11 +302,7 @@ describe("the arcs of one jump", () => {
     into: target("score"),
     flow_control: { id: "jump_3", role: "jump", coordinate: quarters(24), targets },
   });
-  const ends = (manifest: Manifest) =>
-    draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, manifestLayer(manifest)], metrics)
-      .elements.filter((item): item is JumpElement => item.type === "jump")
-      .filter((item) => item.address.id === "jump_3")
-      .map((item) => [item.start[0], item.tip[0]]);
+  const ends = (manifest: Manifest) => arcsOf(drawn(manifest), "jump_3");
 
   it("follow the canonical order of its destinations, whatever order they are given in", () => {
     // Both arcs span 4, so the stable sort by span keeps their order: `by` −4 before `by` 4.
@@ -313,6 +327,116 @@ describe("the arcs of one jump", () => {
       flow_control: { id: "jump_3", role: "jump", coordinate: 8.0, targets: [{ by: 1e-17 }] },
     };
     expect(ends(edit("flow/loop", near))).toEqual([[X_TAKE + 320, X_TAKE + 320]]);
+  });
+});
+
+describe("the texts of one jump's arcs", () => {
+  it("are each destination's label, else its manifestation, and never the jump's", () => {
+    const manifest = edit("flow/sections", {
+      type: "add",
+      into: target("score"),
+      flow_control: {
+        id: "jump_3",
+        role: "jump",
+        coordinate: quarters(24),
+        label: "Leap",
+        name: "Named",
+        targets: [
+          { by: quarters(-4), label: "back" },
+          { by: quarters(4), manifestation: "volta" },
+          { by: quarters(-8) },
+        ],
+      },
+    });
+    const drawing = drawn(manifest);
+    expect(arcsOf(drawing, "jump_3")).toEqual([
+      [355.05029296875, 305.05029296875],
+      [355.05029296875, 405.05029296875],
+      [355.05029296875, 255.05029296875],
+    ]);
+    const labels = drawing.elements.flatMap((item) => (item.type === "label" ? [item] : []));
+    expect(
+      labels
+        .filter((item) => item.address.id === "jump_3")
+        .map((item) => [item.address, item.text, item.x]),
+    ).toEqual([
+      [at("jump_3", "label"), "back", 330.05029296875],
+      [at("jump_3", "label"), "volta", 380.05029296875],
+    ]);
+    expect(labels.filter((item) => ["Leap", "Named"].includes(item.text))).toEqual([]);
+  });
+});
+
+describe("a to that names no place", () => {
+  const REJECTED = [
+    { beliefs: [{ actor: "https://example.org/a", belief: "false", date: "2026-11-25" }] },
+  ];
+  const added = (element: object) => ({
+    type: "add",
+    into: target("score"),
+    flow_control: element,
+  });
+  const jump = (id: string, coordinate: number, to: string) =>
+    added({
+      id,
+      role: "jump",
+      coordinate: quarters(coordinate),
+      targets: [{ to }],
+      provenance: REJECTED,
+    });
+  const struck = { id: "struck", role: "jump_target", coordinate: quarters(4) };
+  const commands = (target4: object) => [
+    {
+      type: "add",
+      into: target("score"),
+      region: { id: "gone", start: quarters(2), end: quarters(6) },
+    },
+    added(target4),
+    jump("kept", 10, "jump_target_1"),
+    jump("lost", 12, "gone"),
+    jump("stray", 14, "struck"),
+  ];
+  const ADDED = ["kept", "lost", "stray"];
+  /** The arcs of the jumps added, in drawing order: the jump, where it leaves, where it arrives, its opacity. */
+  const arcs = (drawing: Drawing) =>
+    drawing.elements
+      .filter((item): item is JumpElement => item.type === "jump")
+      .filter((item) => ADDED.includes(item.address.id ?? ""))
+      .map((item) => [item.address.id, item.start[0], item.tip[0], item.style.opacity]);
+
+  it("draws no arc to a rejected jump target", () => {
+    const rejected = drawn(edit("flow/repairs", ...commands({ ...struck, provenance: REJECTED })));
+    expect(arcs(rejected)).toEqual([
+      ["kept", 305.05029296875, 255.05029296875, FADED_OPACITY],
+      ["lost", 355.05029296875, 105.05029296875, FADED_OPACITY],
+    ]);
+    expect(styles(rejected, "stray")).toEqual([]);
+    // The same jump draws its arc to the target while the target is not rejected.
+    const believed = drawn(edit("flow/repairs", ...commands(struck)));
+    expect(arcs(believed)).toEqual([
+      ["kept", 305.05029296875, 255.05029296875, FADED_OPACITY],
+      ["lost", 355.05029296875, 105.05029296875, FADED_OPACITY],
+      ["stray", 405.05029296875, 155.05029296875, FADED_OPACITY],
+    ]);
+  });
+
+  it("draws no arc for a rejected jump whose to names nothing any more", () => {
+    const drawing = drawn(
+      edit("flow/repairs", ...commands({ ...struck, provenance: REJECTED }), {
+        type: "remove",
+        targets: [target("gone")],
+      }),
+    );
+    expect(styles(drawing, "lost")).toEqual([]);
+    expect(
+      drawing.elements
+        .filter((item): item is JumpElement => item.type === "jump")
+        .map((item) => [item.address.id, item.start[0], item.tip[0]]),
+    ).toEqual([
+      ["kept", 305.05029296875, 255.05029296875],
+      ["jump_2", 455.05029296875, 255.05029296875],
+      ["jump_1", 455.05029296875, X0],
+    ]);
   });
 });
 
