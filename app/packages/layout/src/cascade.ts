@@ -59,6 +59,10 @@ export interface Style {
   readonly "elision-display": string;
 }
 
+/**
+ * The initial value of every property: what a drawing's style holds for a
+ * property that no rule sets and that it does not inherit from its holder.
+ */
 export const INITIAL_STYLE: Style = {
   stroke: "none",
   "stroke-width": 1,

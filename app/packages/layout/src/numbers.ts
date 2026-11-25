@@ -40,6 +40,7 @@ export function zero(numberType: NumberType): Real {
   return numberType === "float" ? 0 : Rational.of(0n);
 }
 
+/** `left + right` in the tower: exact when both are exact, otherwise a float. */
 export const add = addReal;
 
 /** `−value` in the tower: exact for an exact value, a float's negation for a float. */

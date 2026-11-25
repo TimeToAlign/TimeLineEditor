@@ -27,6 +27,7 @@ import type { Entry, Gap } from "./traversal.ts";
 /** A side of a timeline's line: up or down, whichever side of its parent's line it lies on. */
 export type Side = "above" | "below";
 
+/** The other side of the line. */
 export const opposite = (side: Side): Side => (side === "above" ? "below" : "above");
 
 /**

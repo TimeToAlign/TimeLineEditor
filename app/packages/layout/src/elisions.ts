@@ -67,6 +67,7 @@ import {
 /** The words of an elision's `display`, in their canonical order (section 2). */
 export const ELISION_WORDS = ["ellipsis", "name", "id", "coordinate", "continuation"] as const;
 
+/** One word of an elision's `display`. */
 export type ElisionWord = (typeof ELISION_WORDS)[number];
 
 type LabelWord = GapLabel["word"];

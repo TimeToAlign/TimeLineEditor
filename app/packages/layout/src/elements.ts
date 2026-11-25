@@ -73,6 +73,10 @@ export interface View {
 /** The default view, 1280 × 720 (section 1). */
 export const DEFAULT_VIEW: View = { width: 1280, height: 720 };
 
+/**
+ * The placement used when none is given: length 400, spacing 8, margin 0, no stated width or
+ * height, no places.
+ */
 export const DEFAULT_PLACEMENT: Placement = {
   length: 400,
   spacing: 8,
@@ -82,6 +86,7 @@ export const DEFAULT_PLACEMENT: Placement = {
   places: {},
 };
 
+/** A timestamp's coordinate as a label carries it: its value on its timeline's own axis, and that axis' unit. */
 export interface ShownCoordinate {
   readonly unit: TimeUnit;
   readonly value: Real;
@@ -92,6 +97,7 @@ interface Addressed {
   readonly style: Style;
 }
 
+/** The block itself, the first element of every drawing: its width and height. */
 export interface BlockElement {
   readonly type: "block";
   /** The bundle's address, `{}`. */
@@ -126,6 +132,7 @@ export type LineStart = "circle" | "chevrons" | "none";
  */
 export type LineEnd = "arrowhead" | "open" | "circle" | "diamond" | "unknown" | "chevrons" | "none";
 
+/** A timeline's line: the root's, a child's, or an ancestor line drawn behind a root (section 8.3). */
 export interface LineElement extends Addressed {
   readonly type: "timeline" | "child" | "ancestor";
   /** The start `Xs`, or `Xa` where an ancestor line runs on to the left. */
@@ -145,6 +152,7 @@ export interface LineElement extends Addressed {
 /** The edges `x(a)` and `x(b)` of a gap a row crosses, where its line or outline stops and resumes. */
 export type Cut = readonly [number, number];
 
+/** A conversion map: a closed double line from `xs` to `xe` (section 6.6). */
 export interface MapElement extends Addressed {
   readonly type: "map";
   readonly xs: number;
@@ -157,12 +165,18 @@ export interface MapElement extends Addressed {
   readonly cuts: readonly Cut[];
 }
 
+/** A region: a brace from its start to its end (section 6.6, Regions). */
 export interface RegionElement extends Addressed {
   readonly type: "region";
+  /** The x of the region's start. */
   readonly x1: number;
+  /** The x of the region's end. */
   readonly x2: number;
+  /** The x of its midpoint, where the brace has its tip. */
   readonly xm: number;
+  /** The ordinate of the brace's arms. */
   readonly yb: number;
+  /** The ordinate of the brace's tip. */
   readonly ya: number;
   /**
    * The gaps the brace spans (section 6.6, Elisions), each its left and right edge `x(a)` and
@@ -289,15 +303,21 @@ export interface EllipsisElement extends Addressed {
   readonly spacing: number;
 }
 
+/** A name or a label: its text, written from `x` on its `baseline`, anchored at its start or middle. */
 export interface TextElement extends Addressed {
   readonly type: "name" | "label";
   readonly x: number;
   readonly baseline: number;
   readonly anchor: "start" | "middle";
   readonly text: string;
+  /**
+   * The timestamp's coordinate on a wedge's coordinate label and on every label of a stack on an
+   * ancestor line; absent on every other text.
+   */
   readonly coordinate?: ShownCoordinate;
 }
 
+/** Any element of a drawing. */
 export type DrawnElement =
   | BlockElement
   | RectElement
@@ -312,6 +332,7 @@ export type DrawnElement =
   | EllipsisElement
   | TextElement;
 
+/** One block drawn: its size, its containers and lines, and every element in drawing order. */
 export interface Drawing {
   readonly width: number;
   readonly height: number;
@@ -325,12 +346,14 @@ export interface Drawing {
   readonly boxes: readonly DrawnBox[];
   /** Every line drawn, in the order of its element: what a position on it stands for. */
   readonly axes: readonly DrawnAxis[];
+  /** Every element, the block first, in drawing order. */
   readonly elements: readonly DrawnElement[];
   /**
    * What each container drawing gaps or able to draw them decides of its elisions (section
    * 8.9): every ungrouped root's card, every drawn ancestor card and every frame, in drawing order.
    */
   readonly elisions: readonly ElisionExposure[];
+  /** The code points the font has no advance for, measured with its fallback advance, ascending. */
   readonly unmapped: readonly number[];
   /** The arrangement it is drawn in (section 1); absent where the placement asks for none. */
   readonly arrangement?: DrawnArrangement;

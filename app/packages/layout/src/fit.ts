@@ -5,6 +5,7 @@
 
 import { nth } from "./traversal.ts";
 
+/** An extent `[a, b]` along the axis, from its start `a` to its end `b`. */
 export type Extent = readonly [number, number];
 
 /** Whether `[a1, b1]` and `[a2, b2]` conflict (section 6.3). */
@@ -84,6 +85,7 @@ class Row {
   }
 }
 
+/** Numbered rows filled by first fit: each extent goes to the first row it conflicts with none of. */
 export class Rows {
   readonly #rows: Row[] = [];
 
@@ -92,6 +94,7 @@ export class Rows {
     return this.#rows.map((row) => row.extents);
   }
 
+  /** Places `extent` in the first row it fits, adding a row when none does: that row's number, from 1. */
   place(extent: Extent): number {
     const [a, b] = extent;
     const copy: Extent = [a, b];
@@ -104,6 +107,7 @@ export class Rows {
     return index + 1;
   }
 
+  /** The number of rows. */
   get count(): number {
     return this.#rows.length;
   }
@@ -126,6 +130,7 @@ export function labelTiers<T extends { readonly width: number }>(
   );
 }
 
+/** The smallest extent covering both `[a1, b1]` and `[a2, b2]`. */
 export const widen = ([a1, b1]: Extent, [a2, b2]: Extent): Extent => [
   Math.min(a1, a2),
   Math.max(b1, b2),

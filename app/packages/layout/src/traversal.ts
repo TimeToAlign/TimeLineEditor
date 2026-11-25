@@ -36,6 +36,7 @@ import type { GapOrigin, LineEnd, Placement } from "./elements.ts";
 import { cleanText, type TextMeasure } from "./metrics.ts";
 import { add, coordinateValue, lengthValue, proportion, zero } from "./numbers.ts";
 
+/** A drawn element: its address and its cascaded style. */
 export interface Styled {
   readonly address: ElementAddress;
   readonly style: Style;
@@ -47,9 +48,16 @@ export interface Holder {
   readonly style: Style;
 }
 
+/**
+ * A timeline as the traversal visits it: its key and style, where it starts and ends on the
+ * root's axis, its name, its bands, and whether it is drawn.
+ */
 export interface Entry extends Holder {
+  /** The timeline itself. */
   readonly manifest: TimelineManifest;
+  /** The entry of its parent; undefined for the root. */
   readonly parent: Entry | undefined;
+  /** Where it starts on the root's axis: the sum of its offsets and its ancestors'. */
   readonly start: Real;
   /** Where it ends on the root's axis (section 3.4). */
   readonly end: Real;
@@ -86,8 +94,11 @@ export interface Owned extends Styled {
   readonly label: Styled;
 }
 
+/** A text ready to draw. */
 export interface Measured {
+  /** The text with every control character replaced by a space. */
   readonly clean: string;
+  /** The width of `clean` at its owner's font size. */
   readonly width: number;
 }
 
@@ -279,6 +290,7 @@ export interface CardAxis {
   crosses(gap: Gap, start: Real, end: Real | null): boolean;
 }
 
+/** Whether a style displays its element: its `display` is `inline`. */
 export const shown = (style: Style): boolean => style.display === "inline";
 
 /** What `map` holds under `key`: a stage reads only what an earlier stage of the pipeline set. */
@@ -295,6 +307,7 @@ export function nth<T>(items: readonly T[], index: number): T {
   return item;
 }
 
+/** The largest font size among `items`, or `fallback` when there are none. */
 export const maxSize = (items: readonly Styled[], fallback = 9): number =>
   items.length === 0 ? fallback : Math.max(...items.map((item) => item.style["font-size"]));
 
