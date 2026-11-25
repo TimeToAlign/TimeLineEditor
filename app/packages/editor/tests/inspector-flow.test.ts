@@ -321,7 +321,7 @@ describe("the Properties tab on a flow-control element", () => {
     expect(texts('[data-testid="metadata-beliefs"]')).toEqual(["No one has stated a belief."]);
   });
 
-  it("records a belief as one set of the provenance, and rejects by the belief false", () => {
+  it("records a belief as one set of the element's belief, and rejects by the belief false", () => {
     const store = storeOf("flow/repairs");
     const me = statedBy(DEFAULT_USER);
     show(store, { id: "jump_2" });
@@ -337,23 +337,23 @@ describe("the Properties tab on a flow-control element", () => {
         changes: [
           {
             target: { block: A, id: "jump_2" },
-            values: {
-              provenance: [
-                {
-                  beliefs: [
-                    { actor: EDITOR, belief: "true", date: "2026-11-25" },
-                    { actor: me, belief: "false", date: "2026-11-26" },
-                  ],
-                  date: "2026-11-25",
-                  method: "manual",
-                  stated_by: [EDITOR],
-                },
-              ],
-            },
+            values: { belief: { actor: me, belief: "false", date: "2026-11-26" } },
           },
         ],
       },
     });
+    // The entry keeps how the element was made and the editor's belief; the user's joins it.
+    expect(elementIn(store, "jump_2").provenance).toEqual([
+      {
+        beliefs: [
+          { actor: EDITOR, belief: "true", date: "2026-11-25" },
+          { actor: me, belief: "false", date: "2026-11-26" },
+        ],
+        date: "2026-11-25",
+        method: "manual",
+        stated_by: [EDITOR],
+      },
+    ]);
     expect(isRejected(elementIn(store, "jump_2"))).toBe(true);
     expect(pressed()).toEqual(["False"]);
     expect(texts('[data-testid="flow-rows"] dt').at(-1)).toBe("Status");

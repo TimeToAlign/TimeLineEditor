@@ -12,6 +12,7 @@ import type { Subject } from "@timetoalign/tilie-arranger";
 import type {
   Address,
   Block,
+  ElementBelief,
   FlowControlElement,
   JumpDestination,
   ResolvedAddress,
@@ -26,7 +27,6 @@ import {
   isRejected,
   prettyText,
   statedBy,
-  withElementBelief,
 } from "@timetoalign/tilie-core";
 import { axisCoordinate } from "@timetoalign/tilie-core/numbers";
 import type { Belief } from "@timetoalign/timetoshare";
@@ -208,20 +208,17 @@ export function flowProvenance(
 
 /**
  * The `set` recording `user`'s belief in the element on `day`
- * (`YYYY-MM-DD`): its `provenance` with the belief in place (core's
- * `withElementBelief`, the user named as in every statement, `statedBy`).
- * A belief `false` rejects the element; another one believes it again.
+ * (`YYYY-MM-DD`): the element's `belief`, the user named as in every
+ * statement (`statedBy`). Core puts it into the element's provenance, in
+ * place of the user's earlier one, and changes nothing else of it. A belief
+ * `false` rejects the element; another one believes it again.
  */
 export function beliefCommand(
-  { block, target, element }: FlowSubject,
+  { target }: FlowSubject,
   user: User,
   belief: Belief,
   day: string,
 ): SetCommand {
-  const provenance = withElementBelief(element.provenance, block.manifest["@context"], {
-    actor: statedBy(user),
-    belief,
-    date: day,
-  });
-  return { type: "set", changes: [{ target, values: { provenance } }] };
+  const recorded: ElementBelief = { actor: statedBy(user), belief, date: day };
+  return { type: "set", changes: [{ target, values: { belief: recorded } }] };
 }

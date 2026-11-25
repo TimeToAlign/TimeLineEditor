@@ -5,10 +5,10 @@
  * jump with its conditions), then its provenance as the Metadata and the
  * Matchstamp tabs show an entry (`ProvenanceDetails`): how each entry says
  * the element was made, who believes it, and the user's own belief, one
- * button each. A belief is one `set` of the element's `provenance`
- * (`beliefCommand`); a belief `false` rejects the element, which stays in
- * the manifest and is drawn faded. Nothing else of the element is edited
- * here.
+ * button each. A belief is one `set` of the element's `belief`
+ * (`beliefCommand`), which core records in the element's provenance; a
+ * belief `false` rejects the element, which stays in the manifest and is
+ * drawn faded. Nothing else of the element is edited here.
  */
 import type { Store, View } from "@timetoalign/tilie-core";
 import { addressWords } from "@timetoalign/tilie-core";

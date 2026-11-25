@@ -986,7 +986,7 @@ itself or by its label, the Properties tab shows its name field, its
 read-only rows and its provenance; nothing else is a field. The oracles
 are TimeToShare's `flow/` fixtures, each held alone in block
 `0000000000`, the store (what it accepts, refuses and journals) and
-core's `withElementBelief`, `isRejected` and `statedBy`. The user is the
+core's `isRejected` and `statedBy`. The user is the
 default user, who states as `statedBy(DEFAULT_USER)`; the day is
 2026-11-26 (the clock is set to noon UTC).
 
@@ -1048,12 +1048,15 @@ default user, who states as `statedBy(DEFAULT_USER)`; the day is
    jump 'jump_1'". On `sections` with `break_1`'s label selected: the
    break's four rows, "No provenance entry: the manifest states it." and
    "No one has stated a belief.".
-5. **A belief is one `set` of the element's `provenance`.** On `repairs`
+5. **A belief is one `set` of the element's `belief`.** On `repairs`
    with `jump_2` selected, False journals one `set` whose one change
-   targets `{block, id: "jump_2"}` with the one entry's beliefs the
-   editor's `true` and then the user's `false` of 2026-11-26, nothing
-   posted; the element is then rejected (core's `isRejected`), False is
-   pressed and the last row is Status. False again journals nothing.
+   targets `{block, id: "jump_2"}` with the value `{belief: {actor: <the
+   user>, belief: "false", date: "2026-11-26"}}` and nothing else (the
+   editor never sends a provenance), nothing posted; the element's one
+   entry then holds its paradata as before and the beliefs the editor's
+   `true` and then the user's `false`; the element is rejected (core's
+   `isRejected`), False is pressed and the last row is Status. False
+   again journals nothing.
    True journals a second `set`, replaces the user's belief in place and
    the element is read again, True pressed.
 6. **A refusal is posted.** On `sections` with `jump_1` selected, False

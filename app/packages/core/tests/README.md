@@ -919,13 +919,45 @@ ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
    https://example.org/people/`, compared as the IRI it stands for), it
    replaces that belief in place, the earlier note going with it, and
    without the prefix `ex:editor` is another actor, so the belief joins
-   the first entry. On `flow/repairs`: believing the rejected `jump_1`
-   `true` while `jump_2` stands at the same coordinate is a
-   `schema_violation` at `flow_control` index 3 (two jumps at one
-   coordinate, the second in canonical order); after believing `jump_2`
-   `false` it is accepted, `jump_1`'s one entry then `{method: "imported",
-   beliefs: [{actor, belief: "true", date: "2026-11-26"}]}`, and of the
-   four elements only `jump_2` is rejected.
+   the first entry.
+7. **A belief is the one thing a command changes of an element's
+   provenance.** A `set` of a flow-control element's `belief`, `{actor,
+   belief, date}`, records that belief as item 6 says and reads the
+   element again by the format's rules; `provenance` is no property a
+   `set` gives. On `flow/repairs` (`jump_1` imported and rejected by the
+   editor on 2026-11-25 with a note, `jump_2` added by the editor at the
+   same coordinate, `jump_target_1` named by `jump_2`, `barline_1`
+   imported without a belief):
+   - the editor believing the rejected `jump_1` `true` while `jump_2`
+     stands at the same coordinate is a `schema_violation` at
+     `flow_control` index 3 (two jumps at one coordinate, the second in
+     canonical order); after believing `jump_2` `false` it is accepted,
+     `jump_1`'s one entry then `{method: "imported", beliefs: [{actor,
+     belief: "true", date: "2026-11-26"}]}` (the note gone with the
+     earlier belief), and of the four elements only `jump_2` is rejected;
+   - nothing is erased and nobody is spoken for: another actor
+     (`https://example.org/people/other`) believing `jump_1` `true` leaves
+     the editor's `false` with its note in place and appends the other's,
+     so the jump stays rejected; the same actor believing `barline_1`
+     `unlikely` gives its one entry `{method: "imported", beliefs: [that
+     belief]}`; a belief the element holds already (the editor's `true` of
+     2026-11-25 in `jump_2`) is a command that changes nothing
+     (`invalid_value` at `[address, "belief"]`);
+   - `provenance` set to `null`, to `[]`, to another list of entries or
+     to the very list the element holds is `wrong_target_kind` at
+     `[address, "provenance"]` (a property of other kinds of target, not
+     of this one);
+   - a value that is no belief is refused before anything is read:
+     `null` and a belief without its `date` are `invalid_value` at
+     `[address, "belief"]`, a `belief` `"maybe"`, an empty `actor` and a
+     `date` `7` `invalid_value` at that member, a fourth member `note`
+     `unknown_property` at `[address, "belief", "note"]`; a `date` that is
+     no calendar date (`2026-13-40`) is the schema's refusal, at the
+     belief's `date` in the element's provenance (`flow_control` index 3,
+     `provenance` 0, `beliefs` 1, `date`);
+   - rejecting `jump_target_1`, which `jump_2` names, is refused where it
+     would dangle: `schema_violation` at `jump_2`'s `to` (`flow_control`
+     index 3, `targets` 0, `to`).
 
 ## Bands and band orders (`bands.test.ts`)
 
@@ -1439,11 +1471,12 @@ other commands are not judged by it.
    passes: [1], manifestation: "volta"}`, given in that order and stored
    in the canonical one (the `by` before the `to`), each complete
    (`determined: true`, `reset: true`, `label: null`); `jump_from_1` named
-   `repeat` and its `label` set to null in one `set`; its `provenance` set
-   to one entry `{method: "imported", beliefs: [{actor:
-   "https://example.org/people/editor", belief: "false", date:
-   "2026-11-25"}]}`, stored as given, and set to null, which removes the
-   member; `jump_from_1` removed together with its timeline
+   `repeat` and its `label` set to null in one `set`; its `belief` set to
+   `{actor: "https://example.org/people/editor", belief: "false", date:
+   "2026-11-25"}`, which gives the element, stating no provenance, the one
+   entry `{beliefs: [that belief]}`, and set again to the same actor's
+   `true` of 2026-11-26, which replaces it in that entry (a belief is
+   replaced, never taken away); `jump_from_1` removed together with its timeline
    `flow:quarters`, which leaves no timeline. A flow-control element is
    never changed in place and never removed alone: a repair rejects it by
    a belief and adds another.
@@ -1605,15 +1638,16 @@ refusal as `apply`.
   "jump_to", …}` added at 8, at `flow_control` index 3, where canonical
   order puts it), for a second jump at the coordinate of one that is not
   rejected (`again` at 8 sorts before `jump_from_1`, which is then the
-  second, index 3), for an empty `provenance` (index 2, `provenance`) and
-  for rejecting `jump_from_2`, which the Fine's `ends` names (at
+  second, index 3) and
+  for rejecting `jump_from_2` by a belief `false`, which the Fine's `ends` names (at
   `flow_control` index 3, `ends`, `after`, `jump`); `not_removable` at
   the element's address for each of `jump_to_1`, `jump_from_1` and
   `flow_marker_1` removed alone; `unknown_property` for a `set` of
   `flow_control`, `role`, `targets`, `manifestation` or `ends` on
-  `jump_from_1`, and `wrong_target_kind` for `coordinate` and `meta`,
-  which other kinds of target have: what decides the flow, and where the
-  element lies, is no property a `set` gives. Manifest locations:
+  `jump_from_1`, and `wrong_target_kind` for `coordinate`, `meta` and
+  `provenance`, which other kinds of target have: what decides the flow,
+  where the element lies and how it was made is no property a `set`
+  gives. Manifest locations:
   `negative_child_offset`
   (`clt_2` at `[-1, 1]`), `region_end_before_start` (`with_region.yaml`): a
   removal that leaves a reference dangling is refused, never followed by

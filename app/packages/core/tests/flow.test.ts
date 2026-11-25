@@ -269,43 +269,124 @@ describe("a belief recorded in an element", () => {
       { method: "manual", beliefs: [other, earlier] },
     ]);
   });
+});
 
-  it("is what rejects the replacement of flow/repairs and believes its rejected jump again", () => {
-    const view = viewOf([A, "flow/repairs.yaml"]);
-    const context = manifestOf(view)["@context"];
-    const believe = (id: string, belief: "true" | "false") => ({
-      type: "set",
-      changes: [
-        {
-          target: at(id),
-          values: {
-            provenance: withElementBelief(element("flow/repairs.yaml", id).provenance, context, {
-              actor: EDITOR,
-              belief,
-              date: "2026-11-26",
-            }),
-          },
-        },
-      ],
-    });
+describe("a belief set in an element", () => {
+  const EDITOR = "https://example.org/people/editor";
+  const OTHER = "https://example.org/people/other";
+  const DAY = "2026-11-26";
+  const REPAIRS = "flow/repairs.yaml";
+  const FLOW_PATH = [A, "manifest", "timelines", 0, "flow_control"];
+  const believe = (id: string, belief: unknown) => ({
+    type: "set",
+    changes: [{ target: at(id), values: { belief } }],
+  });
+  const flowOf = (view: View) => manifestOf(view).timelines[0]?.flow_control ?? [];
+  const provenanceOf = (view: View, id: string) =>
+    flowOf(view).find((item) => item.id === id)?.provenance;
+
+  it("rejects the replacement of flow/repairs and believes its rejected jump again", () => {
+    const view = viewOf([A, REPAIRS]);
+    const mine = (belief: "true" | "false") => ({ actor: EDITOR, belief, date: DAY });
     // Two jumps at one coordinate, neither rejected, are refused: the second in canonical order.
-    expect(refusal(view, believe("jump_1", "true"))).toEqual({
+    expect(refusal(view, believe("jump_1", mine("true")))).toEqual({
       code: "schema_violation",
-      path: [A, "manifest", "timelines", 0, "flow_control", 3],
+      path: [...FLOW_PATH, 3],
     });
-    const swapped = changed(changed(view, believe("jump_2", "false")), believe("jump_1", "true"));
-    const flow = manifestOf(swapped).timelines[0]?.flow_control ?? [];
-    expect(flow.map((item) => [item.id, isRejected(item)])).toEqual([
+    const swapped = changed(
+      changed(view, believe("jump_2", mine("false"))),
+      believe("jump_1", mine("true")),
+    );
+    expect(flowOf(swapped).map((item) => [item.id, isRejected(item)])).toEqual([
       ["barline_1", false],
       ["jump_target_1", false],
       ["jump_1", false],
       ["jump_2", true],
     ]);
-    expect(flow[2]?.provenance).toEqual([
+    expect(provenanceOf(swapped, "jump_1")).toEqual([
+      { method: "imported", beliefs: [{ actor: EDITOR, belief: "true", date: DAY }] },
+    ]);
+  });
+
+  it("erases nothing and speaks for nobody else", () => {
+    const view = viewOf([A, REPAIRS]);
+    const theirs = { actor: OTHER, belief: "true", date: DAY };
+    const believed = changed(view, believe("jump_1", theirs));
+    expect(provenanceOf(believed, "jump_1")).toEqual([
       {
         method: "imported",
-        beliefs: [{ actor: EDITOR, belief: "true", date: "2026-11-26" }],
+        beliefs: [
+          {
+            actor: EDITOR,
+            belief: "false",
+            date: "2026-11-25",
+            note: "The repeat begins at the double barline.",
+          },
+          theirs,
+        ],
       },
     ]);
+    expect(flowOf(believed).map((item) => isRejected(item))).toEqual([false, false, true, false]);
+    const doubted = { actor: OTHER, belief: "unlikely", date: DAY };
+    expect(provenanceOf(changed(view, believe("barline_1", doubted)), "barline_1")).toEqual([
+      { method: "imported", beliefs: [doubted] },
+    ]);
+    // The belief the element holds already changes nothing.
+    const held = { actor: EDITOR, belief: "true", date: "2026-11-25" };
+    expect(refusal(view, believe("jump_2", held))).toEqual({
+      code: "invalid_value",
+      path: [key(at("jump_2")), "belief"],
+    });
+  });
+
+  it("is the one way a set changes the provenance", () => {
+    const view = viewOf([A, REPAIRS]);
+    const stored = element(REPAIRS, "jump_1").provenance;
+    for (const provenance of [null, [], [{ method: "imported" }], stored]) {
+      const command = { type: "set", changes: [{ target: at("jump_1"), values: { provenance } }] };
+      expect(refusal(view, command)).toEqual({
+        code: "wrong_target_kind",
+        path: [key(at("jump_1")), "provenance"],
+      });
+    }
+  });
+
+  it.each([
+    ["null", null, "invalid_value", []],
+    ["a list", [], "invalid_value", []],
+    ["no date", { actor: OTHER, belief: "false" }, "invalid_value", []],
+    ["no actor", { belief: "false", date: DAY }, "invalid_value", []],
+    ["no belief", { actor: OTHER, date: DAY }, "invalid_value", []],
+    ["another word", { actor: OTHER, belief: "maybe", date: DAY }, "invalid_value", ["belief"]],
+    ["an empty actor", { actor: "", belief: "true", date: DAY }, "invalid_value", ["actor"]],
+    ["a date no string", { actor: OTHER, belief: "true", date: 7 }, "invalid_value", ["date"]],
+    [
+      "a fourth member",
+      { actor: OTHER, belief: "true", date: DAY, note: "as printed" },
+      "unknown_property",
+      ["note"],
+    ],
+  ])("refuses %s as a belief", (_case, belief, code, member) => {
+    const view = viewOf([A, REPAIRS]);
+    expect(refusal(view, believe("jump_2", belief))).toEqual({
+      code,
+      path: [key(at("jump_2")), "belief", ...member],
+    });
+  });
+
+  it("is read by the format's rules once recorded", () => {
+    const view = viewOf([A, REPAIRS]);
+    // No calendar date: refused where the belief stands in the element's provenance.
+    const undated = { actor: OTHER, belief: "false", date: "2026-13-40" };
+    expect(refusal(view, believe("jump_2", undated))).toEqual({
+      code: "schema_violation",
+      path: [...FLOW_PATH, 3, "provenance", 0, "beliefs", 1, "date"],
+    });
+    // A jump target a jump that is not rejected names cannot be rejected alone.
+    const rejecting = { actor: OTHER, belief: "false", date: DAY };
+    expect(refusal(view, believe("jump_target_1", rejecting))).toEqual({
+      code: "schema_violation",
+      path: [...FLOW_PATH, 3, "targets", 0, "to"],
+    });
   });
 });

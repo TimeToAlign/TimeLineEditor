@@ -6,7 +6,12 @@
  * recognised without comparing views.
  */
 
-import { ANCHOR_DISPLAY, ELISION_DISPLAY, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
+import {
+  ANCHOR_DISPLAY,
+  BELIEFS,
+  ELISION_DISPLAY,
+  TIMESTAMP_DISPLAY,
+} from "@timetoalign/timetoshare";
 import type { CommandError, Problem } from "../errors.ts";
 import { assertNever, ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { Json, JsonObject, PathSegment } from "../json.ts";
@@ -24,6 +29,8 @@ import {
   withPlaceAt,
 } from "../manifest/containers.ts";
 import type { EntryKind, EntryTypes } from "../manifest/files.ts";
+import type { ElementBelief } from "../manifest/flow.ts";
+import { withElementBelief } from "../manifest/flow.ts";
 import { contentEnd, readOnAxis } from "../manifest/invariants.ts";
 import { normalizeManifest, readEntry, readMeasureMap } from "../manifest/io.ts";
 import { lockProblem, withPlaceLocks, withSegmentLine } from "../manifest/locks.ts";
@@ -52,6 +59,7 @@ import {
   readName,
   readNullableString,
   readObject,
+  readString,
   toJson,
   unknownMember,
 } from "../values.ts";
@@ -868,26 +876,50 @@ function entryRead(
   return withTimeline(view, block, at, withEntryAt(at.timeline, kind, index, read));
 }
 
+/** A reader of each member of the belief a `set` records in a flow-control element. */
+const BELIEF_READERS: Readers<ElementBelief> = {
+  actor: (value, path) =>
+    typeof value === "string" && value !== ""
+      ? value
+      : problem(ErrorCode.invalidValue, "an actor is a non-empty string", path),
+  belief: (value, path) =>
+    BELIEFS.find((word) => word === value) ??
+    problem(
+      ErrorCode.invalidValue,
+      `expected a belief (${BELIEFS.map((word) => `"${word}"`).join(", ")})`,
+      path,
+    ),
+  date: readString,
+};
+
 /**
- * A member whose values only the schema reads (an enumeration, a reference,
- * a count): the entry with the value in place, or without the member for
- * `null` where `optional`, is read whole through the schema boundary, as a
- * conversion map is.
+ * An actor's belief recorded in a flow-control element: the one way a
+ * command changes the element's `provenance`. The value is `{actor, belief,
+ * date}`, all three; the stored provenance takes it as `withElementBelief`
+ * says (the actor's earlier belief replaced, every entry's paradata and
+ * every other actor's belief kept), and the element is then read whole
+ * through the schema boundary. So no command removes an entry, its paradata
+ * or another actor's belief, and an element is believed again only by a
+ * belief of the actor who rejected it.
  */
-function entrySchemaValue(member: string, optional = false): Setter<EntryTarget> {
-  return (view, target, value, path, changes) => {
-    const json = toJson(value, path);
-    if (isCommandError(json)) return json;
-    const stored = entryAt(target.at.timeline, target.kind, target.index);
-    const changed =
-      optional && json === null
-        ? Object.fromEntries(Object.entries(stored ?? {}).filter(([key]) => key !== member))
-        : { ...stored, [member]: json };
-    const object = readObject(changed, [addressKey(target.address)]);
-    if (isCommandError(object)) return object;
-    return entryRead(view, target, object, path, changes);
-  };
-}
+const elementBelief: Setter<EntryTarget> = (view, target, value, path, changes) => {
+  const read = readMembers<ElementBelief>(value, path, BELIEF_READERS);
+  if (isCommandError(read)) return read;
+  const { actor, belief, date } = read;
+  if (actor === undefined || belief === undefined || date === undefined) {
+    return problem(ErrorCode.invalidValue, "a belief is an actor, a belief and a date", path);
+  }
+  const stored = entryAt(target.at.timeline, "flow_control", target.index);
+  if (stored === undefined) throw new Error(`a belief is recorded in a ${target.kind}`);
+  const provenance = withElementBelief(stored.provenance, target.block.manifest["@context"], {
+    actor,
+    belief,
+    date,
+  });
+  const object = readObject({ ...stored, provenance }, [addressKey(target.address)]);
+  if (isCommandError(object)) return object;
+  return entryRead(view, target, object, path, changes);
+};
 
 /** The whole entry of kind `kind`, replaced by the value, which keeps the entry's id. */
 function entryWhole(kind: EntryKind, what: string): Setter<EntryTarget> {
@@ -915,11 +947,12 @@ const ENTRY_SET: { readonly [kind in EntryTarget["kind"]]: Setters<EntryTarget> 
     provenance: regionDescribed("provenance"),
   },
   // A flow-control element is never changed in place: its role, its coordinate and what decides
-  // the flow stay as they were added. It is renamed, and rejected through its provenance.
+  // the flow stay as they were added. It is renamed, and rejected by a belief `false`; its
+  // `provenance` is no property a `set` gives, so no command erases it.
   flow_control: {
     name: entryValue("flow_control", "name", readNullableString),
     label: entryValue("flow_control", "label", readNullableString),
-    provenance: entrySchemaValue("provenance", true),
+    belief: elementBelief,
   },
 };
 

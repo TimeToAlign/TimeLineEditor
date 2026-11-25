@@ -716,18 +716,28 @@ describe("regions and flow-control elements", () => {
       fine,
       ds,
     ]);
-    const provenance = [
-      {
-        method: "imported",
-        beliefs: [
-          { actor: "https://example.org/people/editor", belief: "false", date: "2026-11-25" },
-        ],
-      },
-    ];
-    const refused = applied(view, set(at("jump_from_1"), { provenance }));
-    expect(flow(refused)).toEqual([start, segno, { ...repeat, provenance }, fine, ds]);
-    const believed = applied(refused, set(at("jump_from_1"), { provenance: null }));
-    expect(flow(believed)).toEqual([start, segno, repeat, fine, ds]);
+    const belief = {
+      actor: "https://example.org/people/editor",
+      belief: "false",
+      date: "2026-11-25",
+    };
+    const disbelieved = applied(view, set(at("jump_from_1"), { belief }));
+    expect(flow(disbelieved)).toEqual([
+      start,
+      segno,
+      { ...repeat, provenance: [{ beliefs: [belief] }] },
+      fine,
+      ds,
+    ]);
+    const again = { ...belief, belief: "true", date: "2026-11-26" };
+    const believed = applied(disbelieved, set(at("jump_from_1"), { belief: again }));
+    expect(flow(believed)).toEqual([
+      start,
+      segno,
+      { ...repeat, provenance: [{ beliefs: [again] }] },
+      fine,
+      ds,
+    ]);
     // A flow-control element goes with its timeline, and only with it.
     const gone = applied(view, {
       type: "remove",
@@ -751,17 +761,16 @@ describe("regions and flow-control elements", () => {
         path: [key(at("jump_from_1")), property],
       });
     }
-    for (const property of ["coordinate", "meta"]) {
+    // Nor is how it was made: its provenance changes by a belief alone.
+    for (const property of ["coordinate", "meta", "provenance"]) {
       expect(rejected(flow, set(at("jump_from_1"), { [property]: null }))).toEqual({
         code: "wrong_target_kind",
         path: [key(at("jump_from_1")), property],
       });
     }
     // Rejecting the jump a break's `ends` names leaves that break dangling.
-    const provenance = [
-      { beliefs: [{ actor: "https://example.org/a", belief: "false", date: "2026-11-25" }] },
-    ];
-    expect(rejected(flow, set(at("jump_from_2"), { provenance }))).toEqual({
+    const belief = { actor: "https://example.org/a", belief: "false", date: "2026-11-25" };
+    expect(rejected(flow, set(at("jump_from_2"), { belief }))).toEqual({
       code: "schema_violation",
       path: [...flowPath, 3, "ends", "after", "jump"],
     });
@@ -775,10 +784,6 @@ describe("regions and flow-control elements", () => {
     expect(rejected(flow, second)).toEqual({
       code: "schema_violation",
       path: [...flowPath, 3],
-    });
-    expect(rejected(flow, set(at("jump_from_1"), { provenance: [] }))).toEqual({
-      code: "schema_violation",
-      path: [...flowPath, 2, "provenance"],
     });
     const earlier = {
       type: "add",
