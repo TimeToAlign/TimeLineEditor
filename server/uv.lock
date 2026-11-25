@@ -1601,7 +1601,6 @@ provides-extras = ["midi", "partitura", "music21", "ms3", "verovio", "audio", "g
 
 [package.metadata.requires-dev]
 conformance = [{ name = "pymeasuremap", git = "https://github.com/measure-map/pyMeasureMap.git?rev=ddcfec3" }]
-typing = [{ name = "pyarrow-stubs", specifier = ">=20" }]
 
 [[package]]
 name = "timetoshare"
