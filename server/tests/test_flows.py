@@ -695,11 +695,38 @@ def test_a_timeline_without_flow_control_has_nothing_written(
     assert spelled(answer) == spelled(read("flow/flow_map_by_hand"))
 
 
-def test_a_childs_flows_are_not_written(server: TestClient) -> None:
-    response = ask(server, fixture("child_jumps"), "verse", FLOW_MAPS)
-    assert_refused_in_timetoshares_words(
-        response, ["timeline"], ["'verse'", "'piece'", "child"]
+def test_a_childs_flows_are_written_on_the_child_and_its_root(
+    server: TestClient,
+) -> None:
+    posted = read("child_jumps")
+    answer = written(server, fixture("child_jumps"), "verse")
+    validate(answer)
+    (root,) = answer["timelines"]
+    (child,) = root["children"]
+    assert spelled(child["regions"]) == spelled(
+        [section(1, "A", 0, 2), section(2, "B", 2, 4), section(3, "C", 4, 8)]
     )
+    assert "regions" not in root
+    assert spelled(answer["flow_maps"]) == spelled(
+        [
+            {
+                **flow_map(number, convention, regions),
+                "timeline": "#piece",
+                "name": f"Verse, {convention}",
+            }
+            for number, convention, regions in [
+                (1, "default", [1, 2, 1, 2, 1, 2, 3, 2, 3]),
+                (2, "single", [1, 2, 3]),
+                (3, "printed", [1, 2, 3]),
+            ]
+        ]
+    )
+    posted_context = posted.pop("@context")
+    answer_context = answer.pop("@context")
+    assert posted_context.items() <= answer_context.items()
+    del answer["flow_maps"]
+    del child["regions"]
+    assert spelled(answer) == spelled(posted)
 
 
 @pytest.mark.parametrize(

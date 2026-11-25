@@ -586,7 +586,7 @@ IDs; the Region of 0 to 12 is no section any more and stays.
 | --- | --- |
 | `flow/da_capo_al_fine` in the complete form | 200, byte for byte the answer to its minimal form |
 | `flow/flow_map_by_hand`, timeline `set` (no flow control) | 200, the posted manifest: nothing is written |
-| `child_jumps`, the child `verse` | 422 at `["timeline"]`, timetoalign's words, of which `'verse'`, `'piece'` and `child` are asserted |
+| `child_jumps`, the child `verse` (its sections and flows derived by hand in the computing route's table above) | 200, accepted by `validate`; the child's `regions`, whole and in order: `region_1` A 0 to 2, `region_2` B 2 to 4, `region_3` C 4 to 8, each as an atomic section is stated; the root `piece` no `regions`; `flow_maps`, whole, each naming the root `piece`, named after the child `Verse` and its convention, with its `inferred` entry: `flow_map_1` `Verse, default` the Regions 1, 2, 1, 2, 1, 2, 3, 2, 3, `flow_map_2` `Verse, single` 1, 2, 3, `flow_map_3` `Verse, printed` 1, 2, 3 (a FlowMap names a root timeline, so a child's flows are written on its root and list the child's Regions); with the child's `regions`, the `flow_maps` and the `@context` taken out of both, the answer is the posted manifest, and its `@context` holds every entry of the posted one |
 | `flow/repairs` with `believer` `https://example.org/people/other` | 422 at `["timeline"]`, as the computing route |
 | a parameter `convention` | 422 at `["convention"]`, `'convention' is no parameter of this route` |
 | `timeline` `nothing` | 422 at `["timeline"]`, `the manifest has no timeline 'nothing'` |
