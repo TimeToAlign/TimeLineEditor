@@ -277,7 +277,9 @@ def written_manifest(body: bytes) -> str:
         A manifest file's text in timetoshare's JSON serialization: the
         manifest as timetoalign writes it, in the minimal form, after
         writing the timeline's atomic sections as Regions and its computed
-        FlowMaps. A timeline without flow control has nothing written. Where
+        FlowMaps. A child timeline's Regions are written on the child and
+        its FlowMaps on the root of its tree, which a FlowMap names. A
+        timeline without flow control has nothing written. Where
         the manifest holds flows written before, an atomic section whose
         stretch is still one keeps its Region, a new stretch gets a new
         Region, and a Region whose stretch is none any more stays, with the
@@ -290,7 +292,7 @@ def written_manifest(body: bytes) -> str:
             :func:`asked_believer`, :func:`asked_rejection` and
             :func:`asked_timeline`; 422 at ``["timeline"]`` with
             timetoalign's message if it does not write the flows: the
-            timeline is a child, its length is unknown, its flow control
+            timeline's length is unknown, its flow control
             cannot be played, or it holds an atomic section that is none any
             more and the request names no ``actor`` to reject it.
     """
