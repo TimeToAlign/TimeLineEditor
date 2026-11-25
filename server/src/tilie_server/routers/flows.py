@@ -7,8 +7,11 @@ timeline (``POST /api/flows``): its atomic sections, and for each convention
 the runs played, the sections they cover and, for the default convention,
 what playing found. When its user wants those flows in the manifest, it asks
 for the manifest with them written (``POST /api/flows/flow-maps``): the
-atomic sections as Regions of the timeline and the computed FlowMaps. The
-server stores nothing; what is done with either answer is the editor's.
+atomic sections as Regions of the timeline and the computed FlowMaps. A
+manifest that holds flows written before is written again: a Region whose
+stretch is an atomic section no longer stays and is rejected as one, which
+needs the actor who asks. The server stores nothing; what is done with
+either answer is the editor's.
 
 Both requests are a JSON object of parameters behind its length, as the
 MatchClaim provenance routes take them, followed by the manifest file's
@@ -32,7 +35,11 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse, Response
 
 from tilie_server.manifests import PostedBody, Refusal, read_manifest
-from tilie_server.routers.claim_provenance import split_parameters
+from tilie_server.routers.claim_provenance import (
+    checked_actor,
+    checked_date,
+    split_parameters,
+)
 from tilie_server.settings import API_PREFIX
 
 router = APIRouter()
@@ -43,8 +50,8 @@ REQUIRED_PARAMETERS = ("timeline",)
 FLOWS_PARAMETERS = ("convention", "believer")
 """The parameters the computing route takes besides, each optional."""
 
-WRITING_PARAMETERS = ("believer",)
-"""The parameter the writing route takes besides, optional."""
+WRITING_PARAMETERS = ("believer", "actor", "date")
+"""The parameters the writing route takes besides, each optional."""
 
 MANIFEST_MEDIA_TYPE = "application/json"
 """The media type of the writing route's answer, a manifest file in JSON."""
@@ -82,6 +89,24 @@ def asked_believer(parameters: Mapping[str, Any]) -> str | None:
     if not isinstance(believer, str):
         raise Refusal(["believer"], "the parameter 'believer' is no actor")
     return believer
+
+
+def asked_rejection(parameters: Mapping[str, Any]) -> tuple[str | None, str | None]:
+    """Who asks for the flows to be written, and on which day, where a request says so.
+
+    Returns:
+        The actor whose belief rejects the atomic sections that are none any
+        more, and the day of that belief (``YYYY-MM-DD``); None for each the
+        request leaves out.
+
+    Raises:
+        Refusal: 422 at ``["actor"]`` if the actor is no non-empty string, at
+            ``["date"]`` if the date is no calendar date written
+            ``YYYY-MM-DD``.
+    """
+    actor = checked_actor(parameters["actor"]) if "actor" in parameters else None
+    date = checked_date(parameters["date"]) if "date" in parameters else None
+    return actor, date
 
 
 def asked_conventions(parameters: Mapping[str, Any]) -> list[Any]:
@@ -252,24 +277,34 @@ def written_manifest(body: bytes) -> str:
         A manifest file's text in timetoshare's JSON serialization: the
         manifest as timetoalign writes it, in the minimal form, after
         writing the timeline's atomic sections as Regions and its computed
-        FlowMaps. A timeline without flow control has nothing written.
+        FlowMaps. A timeline without flow control has nothing written. Where
+        the manifest holds flows written before, an atomic section whose
+        stretch is still one keeps its Region, a new stretch gets a new
+        Region, and a Region whose stretch is none any more stays, with the
+        belief ``false`` of the request's ``actor`` on the request's
+        ``date`` (the server's day without one) in its type statement; the
+        computed FlowMaps keep their IDs and list the sections standing now.
 
     Raises:
         Refusal: 501 as :func:`flow_engine`; 422 as :func:`read_request`,
-            :func:`asked_believer` and :func:`asked_timeline`; 422 at
-            ``["timeline"]`` with timetoalign's message if it does not write
-            the flows: the timeline is a child, its length is unknown, its
-            flow control cannot be played, or it holds atomic sections that
-            a FlowMap not computed from flow control names.
+            :func:`asked_believer`, :func:`asked_rejection` and
+            :func:`asked_timeline`; 422 at ``["timeline"]`` with
+            timetoalign's message if it does not write the flows: the
+            timeline is a child, its length is unknown, its flow control
+            cannot be played, or it holds an atomic section that is none any
+            more and the request names no ``actor`` to reject it.
     """
     flow_engine()
     from timetoshare import dumps
 
     parameters, manifest, bare = read_request(body, WRITING_PARAMETERS)
     believer = asked_believer(parameters)
+    actor, date = asked_rejection(parameters)
     bundle, timeline = asked_timeline(parameters, manifest, bare)
     try:
-        timeline.create_flow_maps_from_flow_control(believer=believer)
+        timeline.create_flow_maps_from_flow_control(
+            believer=believer, actor=actor, date=date
+        )
     except ValueError as error:
         raise Refusal(["timeline"], str(error)) from error
     return dumps(bundle.to_dict(), "json")
@@ -301,9 +336,12 @@ def flow_maps(body: PostedBody) -> Response:
 
     The body is the parameters' length in bytes (a little-endian 32-bit
     integer), the parameters ``{"timeline": <bare ID>, "believer"?:
-    <actor>}`` as JSON, then the manifest file's text. The answer is a
-    manifest file in JSON (:func:`written_manifest`); nothing is stored.
-    Refusals answer as the computing route's.
+    <actor>, "actor"?: <actor>, "date"?: "YYYY-MM-DD"}`` as JSON, then the
+    manifest file's text. ``actor`` is who asks: the one whose belief
+    rejects an atomic section written before that is none any more, on
+    ``date``. The answer is a manifest file in JSON
+    (:func:`written_manifest`); nothing is stored. Refusals answer as the
+    computing route's.
     """
     try:
         text = written_manifest(body)

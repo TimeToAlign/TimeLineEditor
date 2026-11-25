@@ -194,6 +194,34 @@ def provenance_answer(body: bytes, bounds: TableBounds) -> dict[str, Any]:
     }
 
 
+def checked_actor(actor: Any) -> str:
+    """An actor a request names: a non-empty string.
+
+    Raises:
+        Refusal: 422 at ``["actor"]`` otherwise.
+    """
+    if not isinstance(actor, str) or actor == "":
+        raise Refusal(["actor"], "an actor is named by a non-empty string")
+    return actor
+
+
+def checked_date(date: Any) -> str:
+    """The day a request states for a belief: a calendar date written ``YYYY-MM-DD``.
+
+    Raises:
+        Refusal: 422 at ``["date"]`` otherwise.
+    """
+    from timetoshare.statements import calendar_date
+
+    if not isinstance(date, str):
+        raise Refusal(["date"], "a date is a string written YYYY-MM-DD")
+    try:
+        calendar_date(date)
+    except ValueError as error:
+        raise Refusal(["date"], str(error)) from error
+    return date
+
+
 def checked_belief(
     parameters: Mapping[str, Any], rows: Mapping[str, int]
 ) -> tuple[str, str, str, str]:
@@ -206,25 +234,15 @@ def checked_belief(
             date written ``YYYY-MM-DD``.
     """
     from timetoshare import BELIEFS
-    from timetoshare.statements import calendar_date
 
     claim = parameters["claim"]
     row_of(rows, claim, ["claim"])
-    actor = parameters["actor"]
-    if not isinstance(actor, str) or actor == "":
-        raise Refusal(["actor"], "an actor is named by a non-empty string")
+    actor = checked_actor(parameters["actor"])
     belief = parameters["belief"]
     if not isinstance(belief, str) or belief not in BELIEFS:
         words = ", ".join(f"'{word}'" for word in BELIEFS)
         raise Refusal(["belief"], f"a belief is one of the strings {words}")
-    date = parameters["date"]
-    if not isinstance(date, str):
-        raise Refusal(["date"], "a date is a string written YYYY-MM-DD")
-    try:
-        calendar_date(date)
-    except ValueError as error:
-        raise Refusal(["date"], str(error)) from error
-    return claim, actor, belief, date
+    return claim, actor, belief, checked_date(parameters["date"])
 
 
 def believed_table(table: Any, believed: Any) -> Any:

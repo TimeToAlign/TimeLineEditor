@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import datetime
 import importlib
 import json
 import struct
@@ -46,9 +47,6 @@ NAMES = [
     "volta_passes",
 ]
 """The expected-flows files."""
-
-WRITTEN = [name for name in NAMES if name != "sonata_exposition"]
-"""Those whose manifest fixture holds no sections and no FlowMaps yet."""
 
 NUMBER_TYPES = {"loop": "float"}
 """The number type a file spells its values in where it is not ``fraction``."""
@@ -462,9 +460,11 @@ def test_the_routes_need_the_token(server: TestClient, route: str) -> None:
 # --------------------------------------------------------- the manifest written
 
 
-def written(server: TestClient, manifest: bytes | Any, timeline: str) -> Any:
+def written(
+    server: TestClient, manifest: bytes | Any, timeline: str, **parameters: Any
+) -> Any:
     """The answer of the writing route, read as a manifest file."""
-    response = ask(server, manifest, timeline, FLOW_MAPS)
+    response = ask(server, manifest, timeline, FLOW_MAPS, **parameters)
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/json"
     return loads(response.content.decode("utf-8"))
@@ -490,7 +490,7 @@ def intervals(manifest: Any, timeline: str) -> list[dict[str, Any]]:
     ]
 
 
-@pytest.mark.parametrize("name", WRITTEN)
+@pytest.mark.parametrize("name", NAMES)
 def test_a_fixture_is_answered_with_its_expected_flows_written(
     server: TestClient, name: str
 ) -> None:
@@ -514,14 +514,20 @@ def test_a_fixture_is_answered_with_its_expected_flows_written(
     ]
     assert len(answer["flow_maps"]) == len(named_chunks(answer, timeline))
 
-    rest = copy.deepcopy(answer)
-    context = rest.pop("@context")
-    del rest["flow_maps"]
-    for entry in rest["timelines"]:
-        if entry["id"] == f"#{timeline}":
-            del entry["regions"]
-    before = posted.pop("@context")
-    assert spelled(rest) == spelled(posted)
+    def without_flows(manifest: Any) -> tuple[Any, Any]:
+        """A manifest's ``@context``, and the manifest without it, its
+        FlowMaps and the timeline's Regions."""
+        rest = copy.deepcopy(manifest)
+        context = rest.pop("@context")
+        rest.pop("flow_maps", None)
+        for entry in rest["timelines"]:
+            if entry["id"] == f"#{timeline}":
+                entry.pop("regions", None)
+        return context, rest
+
+    context, rest = without_flows(answer)
+    before, kept = without_flows(posted)
+    assert spelled(rest) == spelled(kept)
     assert {key: context[key] for key in before} == before
 
 
@@ -533,7 +539,13 @@ def test_ossia_has_no_single_flow_map(server: TestClient) -> None:
     ]
 
 
-def test_the_sonata_exposition_is_written_as_its_fixture_states_it(
+def test_the_sonata_exposition_answers_itself(server: TestClient) -> None:
+    whole = read("flow/sonata_exposition")
+    answer = written(server, fixture("flow/sonata_exposition"), "score")
+    assert spelled(answer) == spelled(whole)
+
+
+def test_the_sonata_exposition_is_written_from_nothing_as_its_fixture_states_it(
     server: TestClient,
 ) -> None:
     whole = read("flow/sonata_exposition")
@@ -541,15 +553,132 @@ def test_the_sonata_exposition_is_written_as_its_fixture_states_it(
     del emptied["timelines"][0]["regions"]
     del emptied["flow_maps"]
     del emptied["virtual_timelines"]
+    del whole["virtual_timelines"]
     answer = written(server, emptied, "score")
-    validate(answer)
-    assert spelled(intervals(answer, "score")) == spelled(intervals(whole, "score"))
-    assert named_chunks(answer, "score") == named_chunks(whole, "score")
+    assert spelled(answer) == spelled(whole)
     assert named_chunks(whole, "score") == [
         ("default", ["A", "B", "A", "C"]),
         ("single", ["A", "C"]),
         ("printed", ["A", "B", "C"]),
     ]
+
+
+def divided() -> Any:
+    """``flow/sonata_exposition`` with a jump target at 4, which divides its
+    first atomic section; the target stands first, where canonical order has it."""
+    manifest = read("flow/sonata_exposition")
+    manifest["timelines"][0]["flow_control"].insert(
+        0, {"id": "#jump_target_2", "role": "jump_target", "coordinate": [4, 1]}
+    )
+    return manifest
+
+
+def section(
+    region: int, name: str, start: int, end: int, beliefs: list[Any] | None = None
+) -> dict[str, Any]:
+    """A Region as an atomic section is stated, with the beliefs in its type."""
+    (entry,) = ATOMIC["provenance"]
+    return {
+        "id": f"#region_{region}",
+        "name": name,
+        "start": [start, 1],
+        "end": [end, 1],
+        "statements": ATOMIC["statements"],
+        "provenance": [entry if beliefs is None else {**entry, "beliefs": beliefs}],
+    }
+
+
+def flow_map(number: int, convention: str, regions: list[int]) -> dict[str, Any]:
+    """A computed FlowMap of ``score`` listing Regions by their numbers."""
+    return {
+        "id": f"#flow_map_{number}",
+        "timeline": "#score",
+        "convention": convention,
+        "chunks": [f"#region_{region}" for region in regions],
+        "provenance": [{"method": "inferred"}],
+    }
+
+
+def test_a_section_that_is_none_any_more_needs_the_actor(server: TestClient) -> None:
+    response = ask(server, divided(), "score", FLOW_MAPS)
+    assert_refused_in_timetoshares_words(
+        response, ["timeline"], ["'score'", "region_1", "actor"]
+    )
+
+
+def test_flows_written_before_are_written_again(server: TestClient) -> None:
+    posted = divided()
+    answer = written(server, posted, "score", actor=EDITOR, date="2026-11-26")
+    validate(answer)
+    (root,) = answer["timelines"]
+    rejecting = [{"actor": EDITOR, "belief": "false", "date": "2026-11-26"}]
+    assert spelled(root["regions"]) == spelled(
+        [
+            section(4, "A", 0, 4),
+            section(1, "A", 0, 12, rejecting),
+            section(5, "B", 4, 12),
+            section(2, "C", 12, 16),
+            section(3, "D", 16, 24),
+        ]
+    )
+    assert spelled(answer["flow_maps"]) == spelled(
+        [
+            flow_map(1, "default", [4, 5, 2, 4, 5, 3]),
+            flow_map(2, "single", [4, 5, 3]),
+            flow_map(3, "printed", [4, 5, 2, 3]),
+        ]
+    )
+    assert answer["virtual_timelines"][0]["length"] == [36, 1]
+    for manifest in (answer, posted):
+        del manifest["flow_maps"]
+        del manifest["timelines"][0]["regions"]
+    assert spelled(answer) == spelled(posted)
+
+
+def test_without_a_date_the_belief_is_of_the_servers_day(server: TestClient) -> None:
+    before = datetime.date.today().isoformat()
+    answer = written(server, divided(), "score", actor=EDITOR)
+    after = datetime.date.today().isoformat()
+    (entry,) = answer["timelines"][0]["regions"][1]["provenance"]
+    (belief,) = entry["beliefs"]
+    assert {key: belief[key] for key in ("actor", "belief")} == {
+        "actor": EDITOR,
+        "belief": "false",
+    }
+    assert belief["date"] in {before, after}
+
+
+def test_where_no_section_is_rejected_no_belief_is_written(server: TestClient) -> None:
+    answer = written(
+        server,
+        fixture("flow/sonata_exposition"),
+        "score",
+        actor=EDITOR,
+        date="2026-11-26",
+    )
+    assert spelled(answer) == spelled(read("flow/sonata_exposition"))
+
+
+@pytest.mark.parametrize(
+    ("parameters", "path", "message"),
+    [
+        ({"actor": ""}, ["actor"], "an actor is named by a non-empty string"),
+        ({"actor": 7}, ["actor"], "an actor is named by a non-empty string"),
+        ({"date": 7}, ["date"], "a date is a string written YYYY-MM-DD"),
+    ],
+    ids=["empty actor", "actor no string", "date no string"],
+)
+def test_who_asks_and_when_are_refused_at_their_names(
+    server: TestClient, parameters: dict[str, Any], path: list[Any], message: str
+) -> None:
+    refused(ask(server, divided(), "score", FLOW_MAPS, **parameters), path, message)
+
+
+def test_a_date_that_is_no_calendar_date_is_refused(server: TestClient) -> None:
+    response = ask(
+        server, divided(), "score", FLOW_MAPS, actor=EDITOR, date="2026-13-26"
+    )
+    assert_refused_in_timetoshares_words(response, ["date"], ["'2026-13-26'"])
 
 
 def test_the_complete_form_answers_as_the_minimal_form(server: TestClient) -> None:
@@ -564,17 +693,6 @@ def test_a_timeline_without_flow_control_has_nothing_written(
 ) -> None:
     answer = written(server, fixture("flow/flow_map_by_hand"), "set")
     assert spelled(answer) == spelled(read("flow/flow_map_by_hand"))
-
-
-def test_sections_named_by_a_flow_map_of_another_origin_are_not_replaced(
-    server: TestClient,
-) -> None:
-    response = ask(server, fixture("flow/sonata_exposition"), "score", FLOW_MAPS)
-    assert_refused_in_timetoshares_words(
-        response,
-        ["timeline"],
-        ["'score'", "flow_map_1", "not computed from its flow control"],
-    )
 
 
 def test_a_childs_flows_are_not_written(server: TestClient) -> None:

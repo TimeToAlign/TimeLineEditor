@@ -372,6 +372,7 @@ with timetoshare's path and message, before any map is expanded.
 | --- | --- |
 | TimeToShare 0.2.0's fixture `groups/group_measure_map.minimal.yaml`, copied byte for byte into `data/` and posted as it is, canonical YAML in the minimal form with `#` IDs, as the editor posts a manifest (rows count 1 and count 4, both 4/4 and four quarters long, row 1 naming `next` `["2"]`, row 4 stating qstamp 12; the map's ID `"#measuremap_1"`) | 200, one map `measuremap_1` (bare) with four rows, compared whole with `data/group_measure_map.answer.json`: counts and numbers 1 to 4, IDs and names `"1"` to `"4"`, qstamps `[0, 1]`, `[4, 1]`, `[8, 1]`, `[12, 1]`, both lengths `[4, 1]`, `next` `[2]`, `[3]`, `[4]`, `[]`, `volta` `null`, `offset_within_measure` `[0, 1]`, no repeats |
 | two rows of 3/4 in a map `"#bars"`: count 1 with `actual_length` 0.5 and `offset_within_measure` 2.5 (floats), count 2 with `volta` 1 and an unknown key `"extra"`; posted once as pretty JSON and once as canonical YAML | 200, both alike: one map `bars` of two rows: row 1 qstamp `[0, 1]`, number 0 and name `"0"` (a first row shorter than its nominal length is the anacrusis), lengths `[3, 1]` and `[1, 2]`, offset `[5, 2]` (each float read as its exact binary value), `next` `[2]`; row 2 qstamp `[1, 2]`, number and name 2, lengths `[3, 1]`, `next` `[]`, `volta` 1, offset `[0, 1]`; no `"extra"` |
+| three rows of 4/4 in a map `"#bars"`, each four quarters long: count 1 with `volta` `[1, 3]`, count 2 with `volta` `[1]`, count 3 with `volta` `[3, 1]`; posted once as pretty JSON and once as canonical YAML | 200, both alike: the three rows' `volta` as written, `[1, 3]`, `[1]` (a list, not `1`) and `[3, 1]` (not sorted); qstamps `[0, 1]`, `[4, 1]`, `[8, 1]` |
 | a map `"#measuremap_1"` of three 9/8 rows written as a score importer writes them, each stating its own `ID` (`qhghzyb`, `t1ajik95`, `l1lqnom3`), `count` and `number` 1 to 3, `name` `"1"` to `"3"`, qstamps `[0, 1]`, `[9, 2]`, `[9, 1]`, both lengths `[9, 2]`, no repeats, `next` naming the following row's `ID` (`["t1ajik95"]`, `["l1lqnom3"]`, `[]`), read by a quarters timeline's `MeasureRecordMap` with `target_unit: null`; posted as canonical YAML under the editor's `Content-Type: application/json` | 200, one map `measuremap_1` of three rows: each row's `ID`, count, number, name, qstamp, lengths and time signature as written, `next` the following row's count (`[2]`, `[3]`, `[]`), `volta` `null`, `offset_within_measure` `[0, 1]` |
 | no `measure_maps`, or an empty list | 200 `{"measure_maps": []}` |
 | a body that is no UTF-8 (the byte `0xff`) | 422 `{"detail": {"path": [], "message": "the body is not UTF-8 text"}}` |
@@ -427,8 +428,11 @@ object), then the manifest file's text to the end of the body, in any
 serialization. The parameters: `timeline`, the bare ID of a timeline of the
 manifest at any depth, required; `believer`, an actor, optional (the
 elements that actor does not reject are read; without it the elements no
-actor rejects); and, for `POST /api/flows` alone, `convention`, one of
-`default`, `single` and `printed`, optional (all three without it).
+actor rejects); for `POST /api/flows` alone, `convention`, one of
+`default`, `single` and `printed`, optional (all three without it); and,
+for `POST /api/flows/flow-maps` alone, `actor`, who asks, and `date`, the
+day (`YYYY-MM-DD`), both optional: the actor whose belief `false`, on that
+day, rejects an atomic section written before that is none any more.
 
 **The oracle** is not the library's output: TimeToShare states, for nine
 of its `flow/` manifest fixtures, the flows expected of them
@@ -533,9 +537,8 @@ whatever timeline is asked.
 **The manifest written.** `POST /api/flows/flow-maps` answers a manifest
 file's text: the manifest as timetoalign writes it after the call, in the
 minimal form, in timetoshare's JSON serialization (`application/json`).
-For each expected-flows file but `sonata_exposition`, whose fixture holds
-its sections and FlowMaps already, the minimal fixture is posted with the
-file's timeline, and the answer, read by timetoshare's `loads`:
+For each expected-flows file the minimal fixture is posted with the file's
+timeline, and the answer, read by timetoshare's `loads`:
 
 - is accepted by timetoshare's validator (`validate`);
 - holds, as the timeline's `regions`, the file's atomic sections in order
@@ -550,17 +553,39 @@ file's timeline, and the answer, read by timetoshare's `loads`:
   manifest's `flow_maps` and the `@context` taken out of both, the two are
   equal, and the answer's `@context` holds every entry of the posted one.
 
-`flow/sonata_exposition` with its Regions, its FlowMaps and its virtual
-timeline (which names one of the FlowMaps) removed answers Regions with
-the names and intervals of the fixture's own Regions and FlowMaps with the
-conventions and chunk orders (as Region names) of the fixture's own
-FlowMaps; IDs are minted anew and are not compared.
+**Flows written before.** `flow/sonata_exposition` is the one fixture that
+holds its atomic sections and its computed FlowMaps already, and a virtual
+timeline applying one of them. Posted as it is, it answers itself: every
+member of the answer, the `@context` included, equals the fixture's.
+Posted with its Regions, its FlowMaps and its virtual timeline removed, it
+answers the fixture without its virtual timeline, member for member, IDs
+included: what the library writes from nothing is what the format states.
+
+Its flow control changed, the flows are written again. A jump target added
+at 4 divides the first section; derived by hand from the fixture (24
+quarters; a jump at 12 going on at the first pass and to the target at 16
+at the second, a repeat end at 16 without a place): the boundaries are 0,
+4, 12, 16 and 24, so the sections are A 0 to 4, B 4 to 12, C 12 to 16 and
+D 16 to 24; the `default` flow plays 0 to 16, 0 to 12 and 16 to 24 as
+before, which is A B C A B D; `single` A B D; `printed` A B C D. The
+Regions of 12 to 16 and of 16 to 24 are still sections and keep their IDs
+under the new letters C and D; 0 to 4 and 4 to 12 are new and get the next
+IDs; the Region of 0 to 12 is no section any more and stays.
+
+| Request | Answer |
+| --- | --- |
+| that manifest, no `actor` | 422 at `["timeline"]`, timetoalign's words, of which `'score'`, `region_1` and `actor` are asserted |
+| with `actor` `https://example.org/people/editor` and `date` `2026-11-26` | 200, accepted by `validate`; the timeline's `regions`, whole and in order: `region_4` A 0 to 4, `region_1` A 0 to 12, `region_5` B 4 to 12, `region_2` C 12 to 16, `region_3` D 16 to 24, each as an atomic section is stated, and `region_1`'s one provenance entry holding besides the `beliefs` `[{actor, belief: "false", date}]` of the request; `flow_maps`, whole: `flow_map_1` (`default`) the Regions 4, 5, 2, 4, 5, 3, `flow_map_2` (`single`) 4, 5, 3, `flow_map_3` (`printed`) 4, 5, 2, 3, each with its `inferred` entry; `virtual_timelines` the fixture's (its length is still 36 = 4 + 8 + 4 + 4 + 8 + 8); every other member the posted one's |
+| with that `actor` and no `date` | 200; the belief's `date` is the server's day, read before and after the request |
+| the fixture as it is, with that `actor` and `date` | 200, the fixture: where no section is rejected nobody's belief is written |
+| `actor` `""`; `actor` `7` | 422 at `["actor"]`, `an actor is named by a non-empty string` |
+| `date` `7` | 422 at `["date"]`, `a date is a string written YYYY-MM-DD` |
+| `date` `2026-13-26` | 422 at `["date"]`, timetoshare's words, of which `'2026-13-26'` is asserted |
 
 | Request | Answer |
 | --- | --- |
 | `flow/da_capo_al_fine` in the complete form | 200, byte for byte the answer to its minimal form |
 | `flow/flow_map_by_hand`, timeline `set` (no flow control) | 200, the posted manifest: nothing is written |
-| `flow/sonata_exposition` as it is: its FlowMaps do not say they were computed from flow control | 422 at `["timeline"]`, timetoalign's words, of which `'score'`, `flow_map_1` and `not computed from its flow control` are asserted |
 | `child_jumps`, the child `verse` | 422 at `["timeline"]`, timetoalign's words, of which `'verse'`, `'piece'` and `child` are asserted |
 | `flow/repairs` with `believer` `https://example.org/people/other` | 422 at `["timeline"]`, as the computing route |
 | a parameter `convention` | 422 at `["convention"]`, `'convention' is no parameter of this route` |
