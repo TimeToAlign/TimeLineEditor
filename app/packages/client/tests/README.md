@@ -58,7 +58,12 @@ call or the exact result.
    parsing would round) rejects with code `status`, its status and the
    message "the measure-maps answer is not a list of expanded measure
    maps". A row is checked member by member, so an answer the client
-   accepts holds exact integers only.
+   accepts holds exact integers only. A row's `volta` is what the format
+   lets a measure map write: `null`, the number of a pass from 1 on, or a
+   non-empty list of distinct such numbers, and it resolves as the answer
+   wrote it: `2` stays `2`, `[1]` stays `[1]`, `[3, 1]` stays `[3, 1]`. A
+   `volta` that is none of these (`0`, `1.5`, `"1"`, `[]`, `[0]`,
+   `[1, 1]`, `[1, 1.5]`, `[[1]]`) makes the answer malformed.
 
 5. **MatchClaims.** `matchClaims(manifest, table)` takes a manifest's
    text and the picked `match_claims.parquet` (a `Blob`) and sends one

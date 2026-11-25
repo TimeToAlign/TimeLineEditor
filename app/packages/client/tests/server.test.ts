@@ -281,6 +281,37 @@ describe("measureMaps", () => {
       { id: "m", rows: [open] },
     ]);
   });
+
+  it.each([
+    ["one pass", 2],
+    ["a list of one pass", [1]],
+    ["a list of passes, in the order written", [3, 1]],
+  ])("keeps a volta that is %s as the answer wrote it", async (_case, volta) => {
+    const rows = [{ ...row, volta }];
+    stubFetch(async () => Response.json({ measure_maps: [{ id: "m", rows }] }));
+    const [map] = await connect({ url: "api/", token: "" }).measureMaps(manifestText);
+    expect(map?.rows.map((read) => read.volta)).toStrictEqual([volta]);
+  });
+
+  it.each([
+    ["the pass 0", 0],
+    ["no integer", 1.5],
+    ["a string", "1"],
+    ["an empty list", []],
+    ["a list holding 0", [0]],
+    ["a list naming a pass twice", [1, 1]],
+    ["a list holding no integer", [1, 1.5]],
+    ["a list of lists", [[1]]],
+  ])("rejects a volta that is %s as malformed", async (_case, volta) => {
+    const rows = [{ ...row, volta }];
+    stubFetch(async () => Response.json({ measure_maps: [{ id: "m", rows }] }));
+    const error = await rejection(connect({ url: "api/", token: "" }).measureMaps(manifestText));
+    expect([error.code, error.status, error.message]).toEqual([
+      "status",
+      200,
+      "the measure-maps answer is not a list of expanded measure maps",
+    ]);
+  });
 });
 
 describe("matchClaims", () => {

@@ -151,6 +151,24 @@ def test_floats_volta_and_unknown_keys(server: TestClient, serialization: str) -
     }
 
 
+@pytest.mark.parametrize("serialization", ["json", "yaml"])
+def test_a_volta_naming_several_passes_is_answered_as_written(
+    server: TestClient, serialization: str
+) -> None:
+    voltas = [[1, 3], [1], [3, 1]]
+    rows: list[dict[str, Any]] = [
+        {"count": count, "volta": volta} for count, volta in enumerate(voltas, start=1)
+    ]
+    rows[0]["time_signature"] = "4/4"
+    response = post(
+        server, dumps({"measure_maps": [{"id": "#bars", "rows": rows}]}, serialization)
+    )
+    assert response.status_code == 200
+    (answered,) = response.json()["measure_maps"]
+    assert [entry["volta"] for entry in answered["rows"]] == voltas
+    assert [entry["qstamp"] for entry in answered["rows"]] == [[0, 1], [4, 1], [8, 1]]
+
+
 def test_rows_with_their_own_ids_read_by_a_measure_record_map(
     server: TestClient,
 ) -> None:

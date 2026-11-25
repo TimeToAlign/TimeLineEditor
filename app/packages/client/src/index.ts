@@ -107,7 +107,12 @@ export interface MeasureRow {
   readonly start_repeat: boolean;
   readonly end_repeat: boolean;
   readonly next: readonly number[];
-  readonly volta: number | null;
+  /**
+   * The pass the measure's volta bracket is played in, counted from 1, or
+   * the distinct passes of a bracket standing for several, as the measure
+   * map writes it (`1` and `[1]` are kept apart); `null` under no bracket.
+   */
+  readonly volta: number | readonly number[] | null;
   readonly offset_within_measure: FractionPair;
 }
 
@@ -292,6 +297,17 @@ function isPairOrNull(value: unknown): value is FractionPair | null {
   return value === null || isFractionPair(value);
 }
 
+/** Whether `value` is the number of a pass: a safe integer from 1 on. */
+function isPass(value: unknown): value is number {
+  return isInteger(value) && value >= 1;
+}
+
+/** Whether `value` is a row's volta: a pass, or a non-empty list of distinct passes. */
+function isVolta(value: unknown): value is number | readonly number[] {
+  if (!Array.isArray(value)) return isPass(value);
+  return value.length > 0 && value.every(isPass) && new Set(value).size === value.length;
+}
+
 /** Whether `value` is an expanded row: every member of its form, checked one by one. */
 function isMeasureRow(value: unknown): value is MeasureRow {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
@@ -313,7 +329,7 @@ function isMeasureRow(value: unknown): value is MeasureRow {
     typeof member("end_repeat") === "boolean" &&
     Array.isArray(next) &&
     next.every(isInteger) &&
-    (volta === null || isInteger(volta)) &&
+    (volta === null || isVolta(volta)) &&
     isFractionPair(member("offset_within_measure"))
   );
 }
