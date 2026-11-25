@@ -1,10 +1,12 @@
 import { dumps, loads } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
+import { assertNever } from "../src/errors.ts";
 import { idAddress } from "../src/manifest/address.ts";
 import { manifestElements, memberFlow } from "../src/manifest/elements.ts";
 import { memberDrawings } from "../src/manifest/files.ts";
 import {
+  destinationPlace,
   FLOW_LINE_ROLES,
   flowSymbols,
   isRejected,
@@ -13,7 +15,8 @@ import {
 } from "../src/manifest/flow.ts";
 import { loadManifest, saveManifest } from "../src/manifest/io.ts";
 import { removedBy } from "../src/manifest/remove.ts";
-import type { FlowControlElement, Manifest } from "../src/manifest/types.ts";
+import type { FlowControlElement, Manifest, TimelineManifest } from "../src/manifest/types.ts";
+import { axisCoordinate } from "../src/number/coordinate.ts";
 import { addressWords, manifestIds, resolveElement } from "../src/workspace/address.ts";
 import type { View } from "../src/workspace/view.ts";
 import {
@@ -582,5 +585,95 @@ describe("what a flow-control element draws besides its line", () => {
       ["section_break_1", "piece", "timeline"],
       ["barline_3", "piece", "timeline"],
     ]);
+  });
+});
+
+describe("where a destination leads", () => {
+  const quarters = (value: number) =>
+    axisCoordinate([value, 1], { unit: "quarters", number_type: "fraction" });
+
+  /** The timeline `score` of `view`'s block `A`. */
+  const scoreOf = (view: View): TimelineManifest => {
+    const timeline = manifestOf(view).timelines[0];
+    if (timeline === undefined) throw new Error("block A holds a root");
+    return timeline;
+  };
+
+  /** What each destination of the jump `id` of `view`'s `score` names: its kind, its ID and where it lands. */
+  const placesOf = (view: View, id: string) => {
+    const timeline = scoreOf(view);
+    const jump = timeline.flow_control.find((item) => item.id === id);
+    if (jump === undefined) throw new Error(`no jump ${id}`);
+    return (jump.targets ?? []).map((destination) => {
+      const place = destinationPlace(timeline, jump, destination);
+      switch (place.kind) {
+        case "by":
+          return [place.kind, null, place.at];
+        case "jump_target":
+          return [place.kind, place.element.id, place.at];
+        case "region":
+          return [place.kind, place.region.id, place.at];
+        case "timeline":
+          return [place.kind, place.timeline.id, place.at];
+        case "child":
+          return [place.kind, place.child.id, place.at];
+        case "section":
+          return [place.kind, place.start?.id ?? null, place.at];
+        case "nowhere":
+          return [place.kind, place.to, null];
+        default:
+          return assertNever(place);
+      }
+    });
+  };
+
+  it("names the jump target, the child, or the place a distance reaches", () => {
+    expect(placesOf(viewOf([A, "flow/sonata_exposition.yaml"]), "jump_1")).toEqual([
+      ["by", null, quarters(12)],
+      ["jump_target", "jump_target_1", quarters(16)],
+    ]);
+    expect(placesOf(viewOf([A, "flow/ossia.yaml"]), "jump_1")).toEqual([
+      ["by", null, quarters(4)],
+      ["child", "ossia", quarters(16)],
+    ]);
+    expect(placesOf(viewOf([A, "flow/repairs.yaml"]), "jump_2")).toEqual([
+      ["jump_target", "jump_target_1", quarters(8)],
+    ]);
+  });
+
+  it("starts a section at the nearest section break before the jump, else at 0", () => {
+    expect(placesOf(viewOf([A, "flow/sonata_exposition.yaml"]), "jump_2")).toEqual([
+      ["section", null, quarters(0)],
+    ]);
+    const sections = viewOf([A, "flow/sections.yaml"]);
+    expect(placesOf(sections, "jump_2")).toEqual([["section", "section_break_1", quarters(16)]]);
+    expect(placesOf(sections, "jump_1")).toEqual([["section", null, quarters(0)]]);
+  });
+
+  it("names a region, the timeline itself, and nothing for an unknown ID", () => {
+    const view = changed(viewOf([A, "flow/sonata_exposition.yaml"]), {
+      type: "add",
+      into: at("score"),
+      flow_control: {
+        id: "jump_3",
+        role: "jump",
+        coordinate: [20, 1],
+        targets: [{ to: "region_2" }, { to: "score" }, { by: [-8, 1] }],
+      },
+    });
+    // Canonical order: by `by`, then by `to`.
+    expect(placesOf(view, "jump_3")).toEqual([
+      ["by", null, quarters(12)],
+      ["region", "region_2", quarters(12)],
+      ["timeline", "score", quarters(0)],
+    ]);
+    const timeline = scoreOf(view);
+    const jump = timeline.flow_control.find((item) => item.id === "jump_3");
+    if (jump === undefined) throw new Error("jump_3 was added");
+    const nowhere = { to: "nothing", determined: true, reset: true, label: null };
+    expect(destinationPlace(timeline, jump, nowhere)).toEqual({
+      kind: "nowhere",
+      to: "nothing",
+    });
   });
 });

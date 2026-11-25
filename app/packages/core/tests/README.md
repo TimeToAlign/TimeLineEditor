@@ -1018,7 +1018,27 @@ ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
      would dangle: `schema_violation` at `jump_2`'s `to` (`flow_control`
      index 3, `targets` 0, `to`).
 
-8. **What an element draws besides its line** (drawing.md §6.4,
+8. **Where a destination leads** (`destinationPlace`): what the place of
+   a destination of a jump names on the own axis of the timeline listing
+   the jump, and the coordinate it reaches there, exact in the axis's
+   number type. `flow/sonata_exposition` (quarters, fraction): `jump_1`
+   at 12, its `by` 0 is `by` at 12, its `to` `jump_target_1` the jump
+   target `jump_target_1` at 16; `jump_2` at 16, which states no place,
+   the start of its section, no section break before it, so 0 with no
+   start element. `flow/sections`: `jump_2` at 32 starts its section at
+   the section break `section_break_1` at 16; `jump_1` at 16 stands at
+   that section break, which is not before it, so 0 with none.
+   `flow/ossia`: `jump_1`'s `to` `ossia` is the child timeline `ossia`
+   at its offset 16. `flow/repairs`: `jump_2`'s `to` `jump_target_1` is
+   that jump target at 8. A jump added to
+   `flow/sonata_exposition` at 20 (one `add` of `flow_control` into
+   `score`) with the destinations `to` `region_2`, `to` `score` and `by`
+   −8 holds them in canonical order, `by` first, and gives `by` at 12,
+   the region `region_2` at its start 12 and the timeline `score` at 0. A `to` naming none of these (`nothing`, given to
+   the function directly; a valid manifest never holds one) is `nowhere`
+   with that `to`.
+
+9. **What an element draws besides its line** (drawing.md §6.4,
    Symbols and Brackets). `flowSymbols`: a jump target's `repeat_start`
    𝄆 U+1D106, `segno` 𝄋 U+1D10B, `coda` 𝄌 U+1D10C, `volta` none; a break's
    `fine` the text `Fine`, `volta` none; a barline's `double_barline` 𝄁
@@ -1028,7 +1048,7 @@ ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
    three `da_capo*` 𝄊 U+1D10A, `to_coda` 𝄌, and none for `volta`, `ossia`
    or a word outside the vocabulary. `passesText`: `[1]` is `1.`, `[1, 3]`
    `1., 3.`, `{from: 4}` `4.–` (U+2013).
-9. **A child member's flow** (drawing.md §6.4, Flow control): the card of
+10. **A child member's flow** (drawing.md §6.4, Flow control): the card of
    a member that is a child timeline draws the elements of its root's whole
    tree lying on `[0, λ]` of its own axis. `groups/group_child_member`
    (`piece` 16 long, its child `second-half` at 8, 8 long, a member of

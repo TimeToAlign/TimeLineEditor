@@ -1,15 +1,26 @@
 /**
  * Flow control as a manifest holds it, beyond its lists: which roles the
  * drawing draws as lines, the symbol each manifestation draws and the
- * passes a volta bracket prints, whether an element is rejected, and the
- * belief an actor records in one. A flow-control element is never removed or changed
+ * passes a volta bracket prints, whether an element is rejected, the belief
+ * an actor records in one, and what the place of a jump's destination names.
+ * A flow-control element is never removed or changed
  * in place: a repair rejects it (a belief `false` in its `provenance`) and
  * adds another.
  */
 
 import type { Belief } from "@timetoalign/timetoshare";
 import { actorIri } from "../matches/beliefs.ts";
-import type { FlowControlElement, FlowRole, JumpDestination } from "./types.ts";
+import type { Coordinate } from "../number/coordinate.ts";
+import { addCoordinates, axisCoordinate, compareCoordinates } from "../number/coordinate.ts";
+import { Rational } from "../number/rational.ts";
+import type {
+  ChildTimeline,
+  FlowControlElement,
+  FlowRole,
+  JumpDestination,
+  Region,
+  TimelineManifest,
+} from "./types.ts";
 
 /** The roles drawn as a vertical line at the element's coordinate, in no order of their own. */
 export const FLOW_LINE_ROLES = [
@@ -145,4 +156,76 @@ export function passesText(passes: NonNullable<JumpDestination["passes"]>): stri
     .sort((left, right) => Number(left) - Number(right))
     .map((pass) => `${pass}.`)
     .join(", ");
+}
+
+/**
+ * What the place of a destination of a jump names, on the own axis of the
+ * timeline listing the jump, with `at` the coordinate it reaches there:
+ * `by`, that distance from the jump's coordinate; `to`, the jump target
+ * (rejected or not: a rejected target is still what the destination names),
+ * the region (its start), the timeline itself (0) or the child timeline (its
+ * offset) with that ID; neither, the start of the jump's section, the nearest
+ * section break before the jump that is not rejected (`start`), else 0 with
+ * `start` null. `nowhere` for a `to` naming none of these, which a valid
+ * manifest never holds.
+ */
+export type DestinationPlace =
+  | { readonly kind: "by"; readonly at: Coordinate }
+  | { readonly kind: "jump_target"; readonly element: FlowControlElement; readonly at: Coordinate }
+  | { readonly kind: "region"; readonly region: Region; readonly at: Coordinate }
+  | { readonly kind: "timeline"; readonly timeline: TimelineManifest; readonly at: Coordinate }
+  | { readonly kind: "child"; readonly child: ChildTimeline; readonly at: Coordinate }
+  | {
+      readonly kind: "section";
+      readonly start: FlowControlElement | null;
+      readonly at: Coordinate;
+    }
+  | { readonly kind: "nowhere"; readonly to: string };
+
+/** 0 on the own axis of `timeline`, in its number type. */
+function originOf(timeline: TimelineManifest): Coordinate {
+  const { unit, number_type: numberType } = timeline;
+  const value = numberType === "int" ? 0n : numberType === "float" ? 0 : Rational.of(0n);
+  return { unit, numberType, value };
+}
+
+/** The place the destination `destination` of the jump `jump`, listed by `timeline`, names (`DestinationPlace`). */
+export function destinationPlace(
+  timeline: TimelineManifest,
+  jump: FlowControlElement,
+  destination: JumpDestination,
+): DestinationPlace {
+  const from = axisCoordinate(jump.coordinate, timeline);
+  if (destination.by !== undefined) {
+    return { kind: "by", at: addCoordinates(from, axisCoordinate(destination.by, timeline)) };
+  }
+  const { to } = destination;
+  if (to === undefined) {
+    let nearest: { readonly start: FlowControlElement; readonly at: Coordinate } | null = null;
+    for (const item of timeline.flow_control) {
+      if (item.role !== "section_break" || isRejected(item)) continue;
+      const at = axisCoordinate(item.coordinate, timeline);
+      if (compareCoordinates(at, from) >= 0) continue;
+      if (nearest === null || compareCoordinates(at, nearest.at) > 0) nearest = { start: item, at };
+    }
+    return nearest === null
+      ? { kind: "section", start: null, at: originOf(timeline) }
+      : { kind: "section", ...nearest };
+  }
+  if (to === timeline.id) return { kind: "timeline", timeline, at: originOf(timeline) };
+  const element = timeline.flow_control.find(
+    (item) => item.role === "jump_target" && item.id === to,
+  );
+  if (element !== undefined) {
+    return { kind: "jump_target", element, at: axisCoordinate(element.coordinate, timeline) };
+  }
+  const region = timeline.regions.find((item) => item.id === to);
+  if (region !== undefined) {
+    return { kind: "region", region, at: axisCoordinate(region.start, timeline) };
+  }
+  const child = timeline.children.find((item) => item.id === to);
+  if (child !== undefined) {
+    return { kind: "child", child, at: axisCoordinate(child.offset, timeline) };
+  }
+  return { kind: "nowhere", to };
 }
