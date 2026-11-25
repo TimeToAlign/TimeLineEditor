@@ -57,6 +57,11 @@ export interface Style {
   readonly "elision-depths": string;
   /** The `display` of every elision a card derives: `none`, or elision display words (section 8.9). */
   readonly "elision-display": string;
+  /**
+   * Which labels of its stack a flow line or a jump draws, and whether a jump's arcs draw their
+   * labels: `none`, or the words `name`, `id` and `label` (section 6.4, Flow labels).
+   */
+  readonly "label-display": string;
 }
 
 /**
@@ -80,6 +85,7 @@ export const INITIAL_STYLE: Style = {
   "elision-proportion": "auto",
   "elision-depths": "auto",
   "elision-display": "ellipsis name",
+  "label-display": "label",
 };
 
 type StyleValues = { -readonly [Property in keyof Style]?: Style[Property] };
@@ -197,6 +203,13 @@ const STYLE_PROPERTIES = {
     set: (values, declaration) => {
       if (declaration["elision-display"] !== undefined)
         values["elision-display"] = declaration["elision-display"];
+    },
+  },
+  "label-display": {
+    inherits: false,
+    set: (values, declaration) => {
+      if (declaration["label-display"] !== undefined)
+        values["label-display"] = declaration["label-display"];
     },
   },
 } satisfies Record<keyof Style, StyleProperty>;
