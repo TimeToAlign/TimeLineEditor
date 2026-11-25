@@ -39,8 +39,8 @@ the API. Every answer above, success or rejection, carries exactly one
 `Referrer-Policy: no-referrer` header.
 
 **A long computation holds no other route.** The routes that compute their
-answer from a posted body (measure maps, the four MatchClaim routes, the
-file write) run on the framework's thread pool, so that the event loop
+answer from a posted body (measure maps, the two flow routes, the four
+MatchClaim routes, the file write) run on the framework's thread pool, so that the event loop
 stays free while they compute. Proved without a clock: through one client
 whose requests share one event loop, a request to each of those routes is
 held inside its computation (the manifest reader, or the file writer,
@@ -265,8 +265,8 @@ row at the cost of a few bytes each. No test can bound that without a
 reader of page headers, which the server does not have.
 
 **Computations and connections.** A public run lets at most two posted-body
-computations run at once (measure maps and the four MatchClaim routes; the
-file write is not served there); further ones wait their turn, they are
+computations run at once (measure maps, the two flow routes and the four
+MatchClaim routes; the file write is not served there); further ones wait their turn, they are
 not refused, and they wait on the event loop, holding no worker thread.
 `GET /api/health`, the 404 of an unserved `/api/` path and the editor's
 files never wait: only the routes taking a posted body pass the gate. A
@@ -410,6 +410,169 @@ anew answers `GET /api/health` 200, its `timetoshare` `null`, and every authoriz
 files"}}`, the version being the installed package's; when no timetoshare
 is installed at all, the message is `timetoshare is not installed, so
 manifest files cannot be read`.
+
+## Flows
+
+`POST /api/flows` answers the flows of one timeline of a posted manifest:
+its flow control played by timetoalign (`play` and `atomic_sections` of
+`timetoalign.timelines.flow.engine`). `POST /api/flows/flow-maps` answers
+the manifest with that timeline's atomic sections written as Regions and
+its computed FlowMaps written (timetoalign's
+`Timeline.create_flow_maps_from_flow_control`). Neither stores anything:
+two requests with one body answer the same bytes.
+
+Both bodies are the parameters behind their length, as the MatchClaim
+provenance routes take them (a little-endian 32-bit length, then a JSON
+object), then the manifest file's text to the end of the body, in any
+serialization. The parameters: `timeline`, the bare ID of a timeline of the
+manifest at any depth, required; `believer`, an actor, optional (the
+elements that actor does not reject are read; without it the elements no
+actor rejects); and, for `POST /api/flows` alone, `convention`, one of
+`default`, `single` and `printed`, optional (all three without it).
+
+**The oracle** is not the library's output: TimeToShare states, for nine
+of its `flow/` manifest fixtures, the flows expected of them
+(`fixtures/flows/0.2.0/<name>.yaml`), each derived by hand in the trace
+beside it (`<name>.md`) from the format's rules alone. An expected-flows
+file names its manifest fixture and timeline and holds the atomic sections
+(`name`, `start`, `end`), and per convention the `runs` (`[start, end]`
+pairs, one for each stretch played up to a jump, a break or the end), the
+`sections` (the atomic sections the runs cover, in the order played) and,
+for `default`, the `findings` (`kind`, `coordinate`). The answer takes that
+form:
+
+```
+{"timeline": <bare ID>, "number_type": "int" | "float" | "fraction",
+ "atomic_sections": [{"name", "start", "end"}],
+ "conventions": {"default": {"runs", "sections", "findings"},
+                 "single": {"runs", "sections"},
+                 "printed": {"runs", "sections"}}}
+```
+
+Every value on the axis (a section's `start` and `end`, a run's two ends, a
+finding's `coordinate` and `end`) is spelled as a manifest spells a value
+on that timeline's own axis: an integer, a number or a `[numerator,
+denominator]` pair, as `number_type`, the timeline's, says. The answer
+differs from a file in three places, each compared by its rule. It names no
+manifest. Its runs are the library's, in which stretches played one after
+the other without a jump between them are one run; a file's runs are
+compared after joining each run to the one before where it begins at that
+one's end, and the `sections` lists, which do not depend on the joining,
+are compared as they are. A finding holds, beside the file's `kind` and
+`coordinate`, its `message` (the library's sentence) and, where it is a
+stretch never played, the stretch's `end`. Only `default` has findings:
+`single` and `printed` hold exactly `runs` and `sections`.
+
+**Every expected-flows file.** For each of the nine files (`da_capo_al_fine`,
+`dal_segno_al_coda`, `loop`, `ossia`, `repairs`, `repeat_end_and_dal_segno`,
+`sections`, `sonata_exposition`, `volta_passes`; the test fails when the
+folder holds another list), the manifest fixture it names is posted with
+its timeline and no convention, once in the minimal form and once in the
+complete form, both canonical YAML as they lie in the format's package.
+Each answers 200 with: `timeline` the file's; `number_type` the type the
+file spells its values in (`float` for `loop`, `fraction` for the others);
+`atomic_sections` the file's, value for value and kind for kind (a float
+is no integer); `conventions` exactly `default`, `single` and `printed`,
+each with the file's `sections` and the file's `runs` joined; the
+`default` findings' `kind` and `coordinate`, in order, the file's. Kinds
+are compared too: `[0, 1]` is not `0`, and `0.0` is not `0`.
+
+**Findings whole.** `ossia` is the one file with findings; its answer's
+are written out: `undetermined_target` at `[4, 1]` (the message names
+`'jump_1'`), `flow_ends_at_break` at `[16, 1]` (the message names
+`'break_1'`), `never_played` at `[16, 1]` with `end` `[24, 1]`, the
+timeline's length (the message names `[16, 24)`); only the last has an
+`end`. The sentences are timetoalign's, so the substrings alone are
+asserted.
+
+**One convention.** `ossia` asked with `convention` `default`, `single`
+and `printed` in turn answers `conventions` with that one member, equal to
+the same member of the answer to all three; sections and the rest are
+unchanged.
+
+**Other axes, other timelines.**
+
+| Request | Answer |
+| --- | --- |
+| a timeline `take` of 100 samples whose one jump at 60 goes back to the start once (`repeat_count` 1, no place), derived by hand: the flow plays to 60, goes back, plays to 100; posted as canonical YAML, as pretty JSON and as RFC 8785 JSON | 200: `number_type` `int`; sections A `0` to `60`, B `60` to `100`, every value a JSON integer; `default` runs `[[0, 60], [0, 100]]`, sections A, A, B, no finding; `single` and `printed` one run `[0, 100]`, sections A, B |
+| `flow/flow_map_by_hand`, timeline `set` (20 quarters, two children, no flow control) | 200: one section A `[0, 1]` to `[20, 1]`; each convention one run over it, sections A; `default` findings `[]` |
+| the same manifest, its child timeline `second` (12 quarters) | 200: one section A `[0, 1]` to `[12, 1]` and one run over it, on the child's own axis |
+| `child_jumps`, the child `verse` (8 quarters at offset 4 in `piece`; a jump target at 2, a jump at 4 going back to the start twice, a jump at 8 to the target once, without `reset`), derived by hand: three times to 4, on to 8, back to 2, on to 8 | 200: sections A `[0, 1]`–`[2, 1]`, B –`[4, 1]`, C –`[8, 1]`, on the child's axis (not 4 to 12); `default` runs `[0, 4]`, `[0, 4]`, `[0, 8]`, `[2, 8]`, sections A B, A B, A B C, B C, no finding; `single` and `printed` one run `[0, 8]`, sections A B C |
+| `flow/repairs` with `believer` `https://example.org/people/editor`, who rejects the imported jump `jump_1` | 200, the answer without a believer: the file's flows |
+| `flow/repairs` with `believer` `https://example.org/people/other`, who rejects nothing, so two jumps are read at 16 | 422 at `["timeline"]`, timetoalign's words, of which `'jump_1'`, `'jump_2'` and `16` are asserted |
+
+**Refusals.** Each answers 422 `{"detail": {"path", "message"}}`; the
+server's own words are exact, a library's are asserted by the substrings
+naming what is refused.
+
+| Request | Path and message |
+| --- | --- |
+| no `timeline` | `["timeline"]`, `the parameter 'timeline' is missing` |
+| a parameter `note` | `["note"]`, `'note' is no parameter of this route` |
+| `timeline` `7` | `["timeline"]`, `the parameter 'timeline' is no timeline ID` |
+| `timeline` `nothing`; `#score` (the file form of an ID the manifest holds); `virtual_1` (a virtual timeline of `flow/sonata_exposition`) | `["timeline"]`, `the manifest has no timeline '<the ID asked>'` |
+| `convention` `twice`; `convention` `7` | `["convention"]`, `the parameter 'convention' is none of 'default', 'single', 'printed'` |
+| `believer` `7` | `["believer"]`, `the parameter 'believer' is no actor` |
+| a body of two bytes; a prefix stating 100 bytes before 10; parameters `[1]`; parameters `{` | `[]`, the words of the MatchClaim provenance routes' parameters |
+| a manifest that is no UTF-8 (the byte `0xff`); a JSON list | `[]`, `the manifest is not UTF-8 text`; `the manifest is not an object` |
+
+The last two rows above (the body and the manifest's text) and the rows below are
+asked of both routes.
+
+| Request | Path and message |
+| --- | --- |
+| `flow/volta_passes` with its timeline's `unit` removed (the schema requires it) | at `["timelines", 0]`, timetoshare's words, of which `unit` is asserted |
+| `flow/volta_passes` with a destination's `to` naming `#nothing` | at that destination's `to` (`["timelines", 0, "flow_control", <jump>, "targets", <destination>, "to"]`), timetoshare's words, of which `'nothing'` is asserted |
+| `flow/repairs` with its timeline's `length` `null` | `["timeline"]`, timetoalign's words, of which `'score'` and `unknown` are asserted |
+| without the bearer token | 401 `{"detail": "missing or invalid token"}` |
+
+A manifest is read whole by timetoalign before its timeline is looked for,
+so a manifest it refuses is refused at the place the refusal names,
+whatever timeline is asked.
+
+**The manifest written.** `POST /api/flows/flow-maps` answers a manifest
+file's text: the manifest as timetoalign writes it after the call, in the
+minimal form, in timetoshare's JSON serialization (`application/json`).
+For each expected-flows file but `sonata_exposition`, whose fixture holds
+its sections and FlowMaps already, the minimal fixture is posted with the
+file's timeline, and the answer, read by timetoshare's `loads`:
+
+- is accepted by timetoshare's validator (`validate`);
+- holds, as the timeline's `regions`, the file's atomic sections in order
+  (`name`, `start`, `end`), each stating the type `tts:AtomicSection` with
+  the provenance method `inferred`;
+- holds a FlowMap of the timeline with `convention` `default` whose chunks,
+  read as the names of the Regions they name, are the file's `default`
+  `sections`; one for `single` and one for `printed` exactly where the
+  file's `sections` of that convention differ from `default`'s (`ossia` has
+  no `single`), with those sections; and no other FlowMap;
+- is otherwise the posted manifest: with the timeline's `regions`, the
+  manifest's `flow_maps` and the `@context` taken out of both, the two are
+  equal, and the answer's `@context` holds every entry of the posted one.
+
+`flow/sonata_exposition` with its Regions, its FlowMaps and its virtual
+timeline (which names one of the FlowMaps) removed answers Regions with
+the names and intervals of the fixture's own Regions and FlowMaps with the
+conventions and chunk orders (as Region names) of the fixture's own
+FlowMaps; IDs are minted anew and are not compared.
+
+| Request | Answer |
+| --- | --- |
+| `flow/da_capo_al_fine` in the complete form | 200, byte for byte the answer to its minimal form |
+| `flow/flow_map_by_hand`, timeline `set` (no flow control) | 200, the posted manifest: nothing is written |
+| `flow/sonata_exposition` as it is: its FlowMaps do not say they were computed from flow control | 422 at `["timeline"]`, timetoalign's words, of which `'score'`, `flow_map_1` and `not computed from its flow control` are asserted |
+| `child_jumps`, the child `verse` | 422 at `["timeline"]`, timetoalign's words, of which `'verse'`, `'piece'` and `child` are asserted |
+| `flow/repairs` with `believer` `https://example.org/people/other` | 422 at `["timeline"]`, as the computing route |
+| a parameter `convention` | 422 at `["convention"]`, `'convention' is no parameter of this route` |
+| `timeline` `nothing` | 422 at `["timeline"]`, `the manifest has no timeline 'nothing'` |
+| without the bearer token | 401 |
+
+**A timetoalign that cannot play flow control.** With
+`timetoalign.timelines.flow.engine` made unimportable, the server's modules
+import and the app is built anew: `GET /api/health` answers 200, and both
+routes, whatever their body, answer 501 `{"detail": {"path": [],
+"message": "the installed timetoalign <version> cannot play flow
+control"}}`.
 
 ## MatchClaims
 
@@ -894,7 +1057,12 @@ writes each answer's body byte for byte to
 `app/packages/client/tests/data/<name>.answer.bin` (or into the folder
 given). The requests are the cases the client's tests README derives:
 `GET /api/health`; `POST /api/measure-maps` with `data/`'s copy of
-`group_measure_map.minimal.yaml`; with TimeToShare's table fixture as it
+`group_measure_map.minimal.yaml`; `POST /api/flows` with TimeToShare's
+fixture `flow/sonata_exposition.minimal.yaml` and its timeline `score`, and
+once more with `flow/ossia.minimal.yaml`, `score` and the convention
+`default` (two recordings of one route: the second holds findings);
+`POST /api/flows/flow-maps` with `flow/da_capo_al_fine.minimal.yaml` and
+`score`; with TimeToShare's table fixture as it
 is, `POST /api/match-claims`, the provenance of `claim_6`, `claim_15`,
 `claim_1`, A's belief `false` in `claim_6` on 2026-11-22, the events of
 `claim_1`, `claim_11`, `claim_12`; and below a root made for the run, the

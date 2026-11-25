@@ -17,6 +17,7 @@ from fastapi.testclient import TestClient
 import tilie_server.routers.claim_events
 import tilie_server.routers.claim_provenance
 import tilie_server.routers.files
+import tilie_server.routers.flows
 import tilie_server.routers.match_claims
 import tilie_server.routers.measure_maps
 from tilie_server.app import create_app
@@ -255,6 +256,12 @@ def parameters(value: dict[str, object]) -> bytes:
     return struct.pack("<I", len(text)) + text + struct.pack("<I", 0)
 
 
+def flow_parameters() -> bytes:
+    """The parameters of a flow route behind their length, and no manifest."""
+    text = json.dumps({"timeline": "t"}).encode()
+    return struct.pack("<I", len(text)) + text
+
+
 BELIEF = {"claim": "c", "actor": "a", "belief": "true", "date": "2026-11-22"}
 
 HELD_ROUTES = [
@@ -264,6 +271,20 @@ HELD_ROUTES = [
         "POST",
         "/api/measure-maps",
         b"",
+    ),
+    (
+        tilie_server.routers.flows,
+        "read_manifest",
+        "POST",
+        "/api/flows",
+        flow_parameters(),
+    ),
+    (
+        tilie_server.routers.flows,
+        "read_manifest",
+        "POST",
+        "/api/flows/flow-maps",
+        flow_parameters(),
     ),
     (
         tilie_server.routers.match_claims,

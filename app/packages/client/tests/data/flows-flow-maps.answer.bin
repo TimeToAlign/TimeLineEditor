@@ -1,0 +1,180 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "actor": {
+      "@id": "https://timetoalign.github.io/timetoshare/ns#actor",
+      "@type": "@id"
+    },
+    "basis": {
+      "@id": "http://www.w3.org/ns/prov#hadPrimarySource",
+      "@type": "@id"
+    },
+    "belief": {
+      "@id": "https://timetoalign.github.io/timetoshare/ns#belief",
+      "@type": "@vocab"
+    },
+    "beliefs": "https://timetoalign.github.io/timetoshare/ns#beliefs",
+    "broad": "http://www.w3.org/2004/02/skos/core#broadMatch",
+    "children": "@included",
+    "close": "http://www.w3.org/2004/02/skos/core#closeMatch",
+    "date": {
+      "@id": "http://purl.org/dc/terms/date",
+      "@type": "http://www.w3.org/2001/XMLSchema#date"
+    },
+    "exact": "http://www.w3.org/2004/02/skos/core#exactMatch",
+    "false": "https://timetoalign.github.io/timetoshare/ns#False",
+    "groups": "@included",
+    "id": "@id",
+    "imported": "https://timetoalign.github.io/timetoshare/ns#Imported",
+    "inferred": "https://timetoalign.github.io/timetoshare/ns#Inferred",
+    "label": "http://www.w3.org/2000/01/rdf-schema#label",
+    "list": "@list",
+    "manual": "https://timetoalign.github.io/timetoshare/ns#Manual",
+    "match": {
+      "@id": "https://timetoalign.github.io/timetoshare/ns#match",
+      "@type": "@vocab"
+    },
+    "method": {
+      "@id": "https://timetoalign.github.io/timetoshare/ns#method",
+      "@type": "@vocab"
+    },
+    "narrow": "http://www.w3.org/2004/02/skos/core#narrowMatch",
+    "note": "http://www.w3.org/2000/01/rdf-schema#comment",
+    "property": {
+      "@id": "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",
+      "@type": "@vocab"
+    },
+    "provenance": {
+      "@reverse": "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
+    },
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "reconciled": "https://timetoalign.github.io/timetoshare/ns#Reconciled",
+    "regions": "@included",
+    "related": "http://www.w3.org/2004/02/skos/core#relatedMatch",
+    "service": {
+      "@id": "https://timetoalign.github.io/timetoshare/ns#service",
+      "@type": "@id"
+    },
+    "stated_by": {
+      "@id": "http://www.w3.org/ns/prov#wasAttributedTo",
+      "@type": "@id"
+    },
+    "statements": "@nest",
+    "timelines": "@included",
+    "true": "https://timetoalign.github.io/timetoshare/ns#True",
+    "tts": "https://timetoalign.github.io/timetoshare/ns#",
+    "type": "@type",
+    "unlikely": "https://timetoalign.github.io/timetoshare/ns#Unlikely",
+    "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"
+  },
+  "flow_maps": [
+    {
+      "chunks": ["#region_1", "#region_2", "#region_1"],
+      "convention": "default",
+      "id": "#flow_map_1",
+      "provenance": [
+        {
+          "method": "inferred"
+        }
+      ],
+      "timeline": "#score"
+    },
+    {
+      "chunks": ["#region_1", "#region_2"],
+      "convention": "single",
+      "id": "#flow_map_2",
+      "provenance": [
+        {
+          "method": "inferred"
+        }
+      ],
+      "timeline": "#score"
+    },
+    {
+      "chunks": ["#region_1", "#region_2"],
+      "convention": "printed",
+      "id": "#flow_map_3",
+      "provenance": [
+        {
+          "method": "inferred"
+        }
+      ],
+      "timeline": "#score"
+    }
+  ],
+  "name": "Da capo al fine",
+  "timelines": [
+    {
+      "flow_control": [
+        {
+          "coordinate": [8, 1],
+          "ends": {
+            "after": {
+              "jump": "#jump_1"
+            }
+          },
+          "id": "#break_1",
+          "label": "Fine",
+          "manifestation": "fine",
+          "role": "break"
+        },
+        {
+          "coordinate": [16, 1],
+          "id": "#jump_1",
+          "label": "D.C. al Fine",
+          "role": "jump",
+          "targets": [
+            {
+              "manifestation": "da_capo_al_fine",
+              "repeat_count": 1,
+              "reset": false
+            }
+          ]
+        }
+      ],
+      "id": "#score",
+      "length": [16, 1],
+      "name": "Score",
+      "regions": [
+        {
+          "end": [8, 1],
+          "id": "#region_1",
+          "name": "A",
+          "provenance": [
+            {
+              "method": "inferred",
+              "property": "rdf:type",
+              "value": {
+                "id": "tts:AtomicSection"
+              }
+            }
+          ],
+          "start": [0, 1],
+          "statements": {
+            "type": ["tts:AtomicSection"]
+          }
+        },
+        {
+          "end": [16, 1],
+          "id": "#region_2",
+          "name": "B",
+          "provenance": [
+            {
+              "method": "inferred",
+              "property": "rdf:type",
+              "value": {
+                "id": "tts:AtomicSection"
+              }
+            }
+          ],
+          "start": [8, 1],
+          "statements": {
+            "type": ["tts:AtomicSection"]
+          }
+        }
+      ],
+      "unit": "quarters"
+    }
+  ],
+  "timetoshare": "0.2.0"
+}

@@ -67,15 +67,18 @@ def provenance_model() -> tuple[Any, Callable[[str, Any], str], Callable[[Any], 
 
 
 def split_parameters(
-    body: bytes, names: tuple[str, ...]
+    body: bytes, names: tuple[str, ...], optional: tuple[str, ...] = ()
 ) -> tuple[dict[str, Any], bytes]:
-    """Split a request into its parameters and the request of the table route.
+    """Split a request into its parameters and what follows them.
 
     Args:
         body: The request's body: the parameters' length in bytes (a
             little-endian 32-bit integer), the parameters as a JSON object
-            in UTF-8, then the body ``POST /api/match-claims`` takes.
-        names: The parameters the route takes, each required.
+            in UTF-8, then the rest of the request (for the MatchClaim
+            routes the body ``POST /api/match-claims`` takes).
+        names: The parameters the route requires.
+        optional: The parameters the route takes besides, each of which a
+            request may leave out.
 
     Raises:
         Refusal: 422, if the body is shorter than its prefix or than the
@@ -98,7 +101,7 @@ def split_parameters(
     if not isinstance(parameters, dict):
         raise Refusal([], "the parameters are no JSON object")
     for name in sorted(parameters):
-        if name not in names:
+        if name not in names and name not in optional:
             raise Refusal([name], f"'{name}' is no parameter of this route")
     for name in names:
         if name not in parameters:

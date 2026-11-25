@@ -14,6 +14,12 @@ The requests:
 - ``GET /api/health``;
 - ``POST /api/measure-maps`` with the server tests' copy of TimeToShare's
   fixture ``groups/group_measure_map.minimal.yaml``;
+- ``POST /api/flows`` with TimeToShare's fixture
+  ``flow/sonata_exposition.minimal.yaml`` and its timeline ``score``, and
+  once more with ``flow/ossia.minimal.yaml``, its timeline ``score`` and the
+  convention ``default`` (the fixture with findings);
+- ``POST /api/flows/flow-maps`` with ``flow/da_capo_al_fine.minimal.yaml``
+  and its timeline ``score``;
 - the four MatchClaim routes with TimeToShare's table fixture
   (``fixtures/tables/<version>/``: its ``manifest.yaml`` and
   ``match_claims.parquet``, both as they are): the columns; the provenance
@@ -42,6 +48,7 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 from timetoshare.tables import fixture_path
+from timetoshare.validate import SCHEMA_VERSION, data_root
 
 from tilie_server.app import create_app
 from tilie_server.routers.match_claims import PREFIX
@@ -76,6 +83,17 @@ def with_parameters(parameters: dict[str, object]) -> bytes:
     return PREFIX.pack(len(text)) + text + table_body()
 
 
+def flow_body(name: str, **parameters: str) -> bytes:
+    """The body of a flow route for TimeToShare's fixture ``flow/<name>`` in
+    the minimal form and its timeline ``score``, as the client sends it: the
+    parameters as compact JSON behind their length, then the manifest."""
+    fixtures = data_root() / "fixtures" / SCHEMA_VERSION / "flow"
+    manifest = (fixtures / f"{name}.minimal.yaml").read_bytes()
+    asked = {"timeline": "score", **parameters}
+    text = json.dumps(asked, separators=(",", ":")).encode("utf-8")
+    return PREFIX.pack(len(text)) + text + manifest
+
+
 def made_root(root: Path) -> None:
     """The files below the root the file routes are recorded on."""
     (root / "sub dir" / "ä" / "d").mkdir(parents=True)
@@ -97,6 +115,31 @@ RECORDINGS: dict[str, tuple[str, str, Request]] = {
             content=(
                 SERVER / "tests" / "data" / "group_measure_map.minimal.yaml"
             ).read_bytes(),
+        ),
+    ),
+    "flows": (
+        "POST",
+        "/api/flows",
+        lambda c: c.post(
+            "/api/flows", headers=OCTETS, content=flow_body("sonata_exposition")
+        ),
+    ),
+    "flows-findings": (
+        "POST",
+        "/api/flows",
+        lambda c: c.post(
+            "/api/flows",
+            headers=OCTETS,
+            content=flow_body("ossia", convention="default"),
+        ),
+    ),
+    "flows-flow-maps": (
+        "POST",
+        "/api/flows/flow-maps",
+        lambda c: c.post(
+            "/api/flows/flow-maps",
+            headers=OCTETS,
+            content=flow_body("da_capo_al_fine"),
         ),
     ),
     "match-claims": (

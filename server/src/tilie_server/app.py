@@ -11,6 +11,7 @@ from tilie_server.musicbrainz import MusicBrainz
 from tilie_server.routers.claim_events import router as claim_events_router
 from tilie_server.routers.claim_provenance import router as claim_provenance_router
 from tilie_server.routers.files import router as files_router
+from tilie_server.routers.flows import router as flows_router
 from tilie_server.routers.health import router as health_router
 from tilie_server.routers.lookup import router as lookup_router
 from tilie_server.routers.match_claims import TableBounds
@@ -87,6 +88,7 @@ def create_app(
     )
     app.include_router(health_router)
     app.include_router(measure_maps_router)
+    app.include_router(flows_router)
     app.include_router(match_claims_router)
     app.include_router(claim_provenance_router)
     app.include_router(claim_events_router)
