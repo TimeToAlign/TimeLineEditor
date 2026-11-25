@@ -96,6 +96,13 @@ function inputOf(recorded: unknown): MapInput {
   return Rational.fromParts(numerator, denominator);
 }
 
+/** A row's volta as the server answers it: null, one pass or a list of passes. */
+function voltaOf(value: unknown): number | readonly number[] | null {
+  if (value === null) return null;
+  if (Array.isArray(value)) return value.map((pass) => Number(integer(pass)));
+  return Number(integer(value));
+}
+
 function knotsOf(value: unknown): readonly MeasureKnots[] {
   const pair = (item: unknown): readonly [number, number] | null => {
     if (item === null) return null;
@@ -118,6 +125,7 @@ function knotsOf(value: unknown): readonly MeasureKnots[] {
         nominal_length: pair(member(row, "nominal_length")),
         actual_length: pair(member(row, "actual_length")),
         next: list(member(row, "next")).map((count) => Number(integer(count))),
+        volta: voltaOf(member(row, "volta")),
         offset_within_measure: offset,
       };
     }),
@@ -255,6 +263,7 @@ describe("express", () => {
         nominal_length: null,
         actual_length: null,
         next: [],
+        volta: null,
         offset_within_measure: [0, 1] as const,
       },
     };
@@ -329,6 +338,7 @@ describe("compound floating measures", () => {
     actual: Pair,
     next: readonly number[],
     offset: Pair = [0, 1],
+    volta: number | null = null,
   ): MeasureKnot => ({
     ID: String(count),
     name: String(number ?? count),
@@ -338,6 +348,7 @@ describe("compound floating measures", () => {
     nominal_length: nominal,
     actual_length: actual,
     next,
+    volta,
     offset_within_measure: offset,
   });
   const floating: ConversionMap = {
@@ -383,29 +394,60 @@ describe("compound floating measures", () => {
     ]);
   });
 
-  it("keeps a volta pair left by a jump apart, and joins it when it continues", () => {
+  it("keeps a volta pair apart, with or without a jump between the endings", () => {
     const bars = (fifteenNext: readonly number[]) => {
       const rows: MeasureKnot[] = [];
       for (let count = 1; count <= 14; count += 1) {
         rows.push(row(count, count, [4 * (count - 1), 1], four, four, [count + 1]));
       }
-      rows.push(row(15, 15, [56, 1], four, four, fifteenNext));
-      rows.push(row(16, 15, [60, 1], four, four, []));
+      rows.push(row(15, 15, [56, 1], four, four, fifteenNext, [0, 1], 1));
+      rows.push(row(16, 15, [60, 1], four, four, [], [0, 1], 2));
       return reader(rows);
     };
     expect([56n, 60n, 64n].map(bars([1]))).toEqual([15, 16, 17]);
-    expect([56n, 60n, 64n].map(bars([16]))).toEqual([15, 15.5, 16]);
+    expect([56n, 60n, 64n].map(bars([16]))).toEqual([15, 16, 17]);
   });
 
-  it("reads nothing where knots of different measures coincide", () => {
-    const pair = (first: number | null, second: number | null, firstNext: readonly number[]) =>
+  it("joins a bar split at a repeat sign by the offset its second part states", () => {
+    const pair = (firstNext: readonly number[]) =>
       reader([
-        row(1, first, [0, 1], [2, 1], [1, 2], firstNext),
-        row(2, second, [1, 2], [2, 1], [3, 2], [], [1, 2]),
+        row(1, 5, [0, 1], [2, 1], [1, 2], firstNext),
+        row(2, 5, [1, 2], [2, 1], [3, 2], [], [1, 2]),
       ]);
-    for (const read of [pair(5, 6, [2]), pair(5, 5, [1]), pair(null, null, [2])]) {
+    expect([0n, 1n, 2n].map(pair([1]))).toEqual([1, 1.5, 2]);
+    expect([0n, 1n, 2n].map(pair([2]))).toEqual([1, 1.5, 2]);
+  });
+
+  it("reads a Couperin musete bar split at a repeat sign as one bar", () => {
+    const sixEight: Pair = [3, 1];
+    const half: Pair = [3, 2];
+    const read = reader([
+      row(31, 28, [165, 2], sixEight, half, [17, 6]),
+      row(32, 28, [84, 1], sixEight, half, [33], half),
+      row(33, 29, [171, 2], sixEight, sixEight, []),
+    ]);
+    expect([q(165, 2), 84n, 85n, q(171, 2)].map(read)).toEqual([1, 1.5, 1.833, 2]);
+  });
+
+  it("reads nothing where knots of rows that cannot join coincide", () => {
+    const pair = (
+      first: number | null,
+      second: number | null,
+      secondNominal: Pair = [2, 1],
+      voltas: readonly [number | null, number | null] = [null, null],
+    ) =>
+      reader([
+        row(1, first, [0, 1], [2, 1], [1, 2], [2], [0, 1], voltas[0]),
+        row(2, second, [1, 2], secondNominal, [3, 2], [], [1, 2], voltas[1]),
+      ]);
+    for (const read of [
+      pair(5, 6),
+      pair(null, null),
+      pair(5, 5, [3, 1]),
+      pair(5, 5, [2, 1], [1, 2]),
+    ]) {
       expect([0n, 1n, 2n].map(read)).toEqual([undefined, undefined, undefined]);
     }
-    expect([0n, 1n, 2n].map(pair(5, 5, [2]))).toEqual([1, 1.5, 2]);
+    expect([0n, 1n, 2n].map(pair(5, 5))).toEqual([1, 1.5, 2]);
   });
 });

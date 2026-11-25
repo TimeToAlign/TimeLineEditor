@@ -301,36 +301,73 @@ function measureView(type: ConversionMap["type"], rows: readonly MeasureKnot[]):
   }
 }
 
-/**
- * Whether `following`, the row after `row`, continues the floating measure
- * of `row`: both carry one measure number and `row`'s next names it.
- */
-function continues(row: MeasureKnot, following: MeasureKnot): boolean {
+/** The passes a row's volta bracket names, `null` under no bracket. */
+function passesOf(row: MeasureKnot): readonly number[] | null {
+  if (row.volta === null) return null;
+  return typeof row.volta === "number" ? [row.volta] : row.volta;
+}
+
+/** Whether two rows state volta brackets naming different passes. */
+function differentVoltas(row: MeasureKnot, following: MeasureKnot): boolean {
+  const passes = passesOf(row);
+  const followingPasses = passesOf(following);
+  if (passes === null || followingPasses === null) return false;
   return (
-    row.number !== null && row.number === following.number && row.next.includes(following.count)
+    passes.length !== followingPasses.length ||
+    passes.some((pass, i) => pass !== followingPasses[i])
   );
 }
 
 /**
- * Floating measures. A floating measure is a run of consecutive rows with
- * one measure number, each naming the row after it in its next (a single
- * row is a run of one), so the rows of a split bar read as that one bar.
- * One knot per run at its first row's nominal downbeat (its qstamp minus
- * its offset within the measure) carrying the run's ordinal, and one at the
- * end of the last row; the first run is ordinal 0 when it is an anacrusis.
- * Linear between and beyond the knots in exact arithmetic, truncated to
- * three decimals; knots that do not increase give no floating measures.
+ * Whether `following`, the row after the run `run`, continues its floating
+ * measure: it has the number and the nominal length of the run's last row,
+ * the two do not state different voltas, and either that row's next names
+ * it or its offset within the measure is where the run ends in the notated
+ * bar (the first row's offset plus the rows' actual lengths).
+ */
+function continues(run: readonly MeasureKnot[], following: MeasureKnot): boolean {
+  const row = nth(run, run.length - 1);
+  if (row.number === null || row.number !== following.number) return false;
+  const nominal = row.nominal_length;
+  const followingNominal = following.nominal_length;
+  if ((nominal === null) !== (followingNominal === null)) return false;
+  if (nominal !== null && followingNominal !== null) {
+    if (!exactPair(nominal).equals(exactPair(followingNominal))) return false;
+  }
+  if (differentVoltas(row, following)) return false;
+  if (row.next.includes(following.count)) return true;
+  let end = exactPair(nth(run, 0).offset_within_measure);
+  for (const part of run) {
+    if (part.actual_length === null) return false;
+    end = end.add(exactPair(part.actual_length));
+  }
+  return exactPair(following.offset_within_measure).equals(end);
+}
+
+/**
+ * Floating measures. A floating measure is a run of consecutive rows that
+ * represent one notated bar (a single row is a run of one; see `continues`),
+ * so the rows of a split bar read as that one bar. One knot per run at its
+ * first row's nominal downbeat (its qstamp minus its offset within the
+ * measure) carrying the run's ordinal, and one at the end of the last row;
+ * the first run is ordinal 0 when it is an anacrusis. Linear between and
+ * beyond the knots in exact arithmetic, truncated to three decimals; knots
+ * that do not increase give no floating measures.
  */
 function floatingMeasures(rows: readonly MeasureKnot[]): Evaluate {
+  const runs: MeasureKnot[][] = [];
   const xs: Rational[] = [];
   let firstExtent = Rational.of(0);
-  for (const [i, row] of rows.entries()) {
+  for (const row of rows) {
     if (row.qstamp === null || row.actual_length === null) return NOTHING;
-    const joins = i > 0 && continues(nth(rows, i - 1), row);
-    if (!joins) {
+    const run = runs.at(-1);
+    if (run !== undefined && continues(run, row)) {
+      run.push(row);
+    } else {
+      runs.push([row]);
       xs.push(exactPair(row.qstamp).subtract(exactPair(row.offset_within_measure)));
     }
-    if (xs.length === 1) firstExtent = firstExtent.add(exactPair(row.actual_length));
+    if (runs.length === 1) firstExtent = firstExtent.add(exactPair(row.actual_length));
   }
   const first = nth(rows, 0);
   const anacrusis =

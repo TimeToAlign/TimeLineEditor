@@ -2036,6 +2036,7 @@ describe("a named timestamp's MeasureMaps", () => {
     nominal_length: [4, 1],
     actual_length: [4, 1],
     next: [Number(name) + 1],
+    volta: null,
     offset_within_measure: [0, 1],
   });
   const ROWS: MeasureKnots[] = [
@@ -2189,7 +2190,8 @@ describe("a named timestamp's MeasureMaps", () => {
         '      "nominal_length": null,',
         '      "number": null,',
         '      "offset_within_measure": [0, 1],',
-        '      "qstamp": [4, 1]',
+        '      "qstamp": [4, 1],',
+        '      "volta": null',
         "    }",
         "  },",
         '  "matchstamp": false,',
@@ -2216,6 +2218,7 @@ describe("a named timestamp's MeasureMaps", () => {
         "    number: null",
         "    offset_within_measure: [0, 1]",
         "    qstamp: [4, 1]",
+        "    volta: null",
         "matchstamp: false",
         'name: "Bar two"',
         "timeline: score",

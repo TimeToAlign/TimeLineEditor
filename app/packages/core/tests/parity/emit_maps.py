@@ -83,7 +83,33 @@ SPLIT = {
 }
 """The opening of Op. 106/IV: one measure number over two rows, then three."""
 
-MEASURE_MAPS = [BARS, SPLIT]
+REPEAT = {
+    "id": "repeat",
+    "name": None,
+    "meta": {},
+    "rows": [
+        {"count": 1, "number": 1, "time_signature": "6/8", "actual_length": 3},
+        {
+            "count": 2,
+            "number": 2,
+            "actual_length": [3, 2],
+            "end_repeat": True,
+            "next": [1],
+        },
+        {
+            "count": 3,
+            "number": 2,
+            "actual_length": [3, 2],
+            "start_repeat": True,
+            "offset_within_measure": [3, 2],
+        },
+        {"count": 4, "number": 3, "actual_length": 3},
+    ],
+}
+"""A 6/8 bar split at a repeat sign: its first part jumps back to count 1,
+its second part states the offset where the first ends."""
+
+MEASURE_MAPS = [BARS, SPLIT, REPEAT]
 
 
 def base(kind: str, map_id: str, source: str | None, target: str | None) -> dict[str, Any]:
@@ -236,6 +262,10 @@ QUARTERS = [
     (
         view("FloatingMeasureMap", "q_floating_split", "floating_measures", "split"),
         [F(0), F(23, 4), F(35, 4), F(87, 8), F(51, 4), F(75, 4), F(91, 4), -1, 30, 10.875],
+    ),
+    (
+        view("FloatingMeasureMap", "q_floating_repeat", "floating_measures", "repeat"),
+        [F(0), F(3), F(9, 2), F(5), F(6), F(9)],
     ),
 ]
 
