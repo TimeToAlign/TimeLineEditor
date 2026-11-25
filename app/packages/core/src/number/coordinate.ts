@@ -227,7 +227,7 @@ function combine(left: Coordinate, right: Coordinate, sign: 1 | -1): Coordinate 
 /**
  * The sum of two coordinates on one axis, exact in their number type.
  *
- * @throws AxisMismatchError when their axes differ.
+ * @throws {AxisMismatchError} when their axes differ.
  */
 export function addCoordinates(left: Coordinate, right: Coordinate): Coordinate {
   return combine(left, right, 1);
@@ -236,7 +236,7 @@ export function addCoordinates(left: Coordinate, right: Coordinate): Coordinate 
 /**
  * `left` minus `right`, two coordinates on one axis, exact in their number type.
  *
- * @throws AxisMismatchError when their axes differ.
+ * @throws {AxisMismatchError} when their axes differ.
  */
 export function subtractCoordinates(left: Coordinate, right: Coordinate): Coordinate {
   return combine(left, right, -1);

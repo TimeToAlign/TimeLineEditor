@@ -108,7 +108,8 @@ export function isIndex(text: string): boolean {
  * An index sorting strictly between `a` and `b`; null leaves that side
  * open, and two nulls give the first index, `a0`.
  *
- * @throws RangeError when either bound is not an index or `a` is not below `b`.
+ * @throws {RangeError} when either bound is not an index, `a` is not below
+ *   `b`, or no index exists below `b`.
  */
 export function indexBetween(a: string | null, b: string | null): string {
   if (a !== null) validateIndex(a);
@@ -144,7 +145,7 @@ export function indexBetween(a: string | null, b: string | null): string {
  * `n` ascending indices sorting strictly between `a` and `b`, null bounds
  * open as in `indexBetween`.
  *
- * @throws RangeError when `n` is not a non-negative safe integer, or as
+ * @throws {RangeError} when `n` is not a non-negative safe integer, or as
  *   `indexBetween` throws.
  */
 export function indicesBetween(a: string | null, b: string | null, n: number): string[] {

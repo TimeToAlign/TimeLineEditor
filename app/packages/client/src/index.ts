@@ -387,7 +387,8 @@ function measureMapsOf(body: unknown): readonly ExpandedMeasureMap[] | undefined
 }
 
 /**
- * The server at `url`: one typed call per route, each sending the token.
+ * The server at `url`: one typed call per route, each sending the token,
+ * when there is one.
  * Nothing is requested before a call is made; a call the server does not
  * answer as its route does rejects with a `ServerError`.
  */

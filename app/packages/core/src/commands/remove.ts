@@ -91,8 +91,9 @@ function removalOf(target: Target): Removal | null {
 }
 
 /**
- * Apply a `remove` of `targets`, recording the changes in `changes`; the
- * refusals are those this module describes.
+ * Apply a `remove` of `targets`, recording the changes in `changes`.
+ * Refused: the workspace and an alignment anchor (`not_removable`), the
+ * refusals the module comment lists, and any address `targetOf` refuses.
  */
 export function applyRemove(
   view: View,
