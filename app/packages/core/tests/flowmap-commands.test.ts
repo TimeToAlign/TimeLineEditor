@@ -256,7 +256,7 @@ describe("FlowMaps", () => {
     expect(refused(apply(view, { type: "remove", targets: [at(PLAYED)] }))).toEqual({
       code: "not_removable",
       path: [key(at(PLAYED))],
-      message: `FlowMap '${PLAYED}' is applied by the virtual timeline 'virtual_1'`,
+      message: `FlowMap '${PLAYED}' is applied by the virtual timeline 'Score, as played'`,
     });
     const both = changed(view, { type: "remove", targets: [at(PLAYED), at("virtual_1")] });
     const manifest = valid(both);
@@ -351,13 +351,30 @@ describe("Virtual timelines", () => {
     expect(valid(view).virtual_timelines?.[0]?.name).toBe("Repeats played");
   });
 
-  it("refuses to remove a virtual timeline a FlowMap names as a chunk", () => {
-    const view = changed(sonata(), addFlowMap("score", { chunks: ["virtual_1"] }, ["twice"]));
-    expect(refused(apply(view, { type: "remove", targets: [at("virtual_1")] }))).toEqual({
+  it("refuses to remove a virtual timeline a FlowMap names as a chunk, naming both", () => {
+    const twice = changed(
+      changed(sonata(), addFlowMap("score", { chunks: ["virtual_1"] }, ["twice"])),
+      set(at("twice"), { name: "Twice" }),
+    );
+    const removing = { type: "remove", targets: [at("virtual_1")] } as const;
+    expect(refused(apply(twice, removing))).toEqual({
       code: "not_removable",
       path: [key(at("virtual_1"))],
       message:
-        "virtual timeline 'virtual_1' is still named: the FlowMaps 'twice' name it as a chunk",
+        "virtual timeline 'Score, as played' is still named: the FlowMap 'Twice' names it as a chunk",
+    });
+    const thrice = changed(twice, addFlowMap("score", { chunks: ["virtual_1"] }, ["thrice"]));
+    expect(refused(apply(thrice, removing))).toEqual({
+      code: "not_removable",
+      path: [key(at("virtual_1"))],
+      message:
+        "virtual timeline 'Score, as played' is still named: the FlowMaps 'thrice', 'Twice' name it as a chunk",
+    });
+    const applied = changed(twice, addVirtual({ map: "twice", timeline: "score" }, ["twice_card"]));
+    expect(refused(apply(applied, { type: "remove", targets: [at("twice")] }))).toEqual({
+      code: "not_removable",
+      path: [key(at("twice"))],
+      message: "FlowMap 'Twice' is applied by the virtual timeline 'twice_card'",
     });
   });
 

@@ -318,17 +318,23 @@ const HIDE_INSTEAD = "Hide instead";
 const CANCEL = "Cancel";
 
 /**
- * Ask `question` through `ask`, the focus on Cancel: "Delete all" gives its
- * `remove`, "Hide instead", offered only where its `hide` is not `null`,
- * that command (a virtual card's `set`, a root's `style`), and Cancel or a dismissed dialog `null`, storing nothing. The
- * one dialog of a deletion that also deletes virtual timelines, on the
- * canvas and in the Properties tab alike.
+ * Ask `question` through `ask`, the focus on Cancel: "Delete all", offered
+ * only where its `remove` is not `null` (core would refuse it otherwise,
+ * and the question says why), gives that `remove`; "Hide instead", offered
+ * only where its `hide` is not `null`, that command (a virtual card's
+ * `set`, a root's `style`); Cancel or a dismissed dialog `null`, storing
+ * nothing. The one dialog of a deletion that also deletes virtual
+ * timelines, on the canvas and in the Properties tab alike.
  */
 export async function askDeletion(
   ask: Ask,
   { question, remove, hide }: DeleteQuestion,
 ): Promise<RemoveCommand | SetCommand | StyleCommand | null> {
-  const choices = hide === null ? [DELETE_ALL, CANCEL] : [DELETE_ALL, HIDE_INSTEAD, CANCEL];
+  const choices = [
+    ...(remove === null ? [] : [DELETE_ALL]),
+    ...(hide === null ? [] : [HIDE_INSTEAD]),
+    CANCEL,
+  ];
   const answer = await ask(question, choices, CANCEL);
   if (answer === DELETE_ALL) return remove;
   return answer === HIDE_INSTEAD ? hide : null;

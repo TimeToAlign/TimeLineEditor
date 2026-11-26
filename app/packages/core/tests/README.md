@@ -6530,9 +6530,26 @@ never a spelled-out random literal.
    dependency of TiLiE). Left without an ID it is given the
    minter's `clt_…`, the prefix of its unit's timeline class. `set {name}`
    renames it. `remove` of `flow_map_1` is `not_removable` at its address
-   key, naming `'virtual_1'`; removing both in one command is accepted;
-   `virtual_1` named as a chunk by a FlowMap is `not_removable` naming that
-   FlowMap. Removing `virtual_1` takes it out of every group's `members`
+   key; removing both in one command is accepted; `virtual_1` named as a
+   chunk by a FlowMap is `not_removable` naming that FlowMap. The message
+   names every FlowMap and virtual timeline as the deletion dialog's
+   other words do (`addressWords`): by its name, else its ID, and agrees
+   in number with what it lists, in the manifest's order. What proves
+   it: the fixture's `flow_map_1` has no name and `virtual_1` the name
+   `Score, as played`, so `remove` of `flow_map_1` gives `FlowMap
+   'flow_map_1' is applied by the virtual timeline 'Score, as played'`.
+   With the hand-made `twice` (chunks `[virtual_1]`) added and `set {name:
+   "Twice"}`, `remove` of `virtual_1` gives `virtual timeline 'Score, as
+   played' is still named: the FlowMap 'Twice' names it as a chunk`; with
+   `thrice` (chunks `[virtual_1]`, no name) added too, `… the FlowMaps
+   'thrice', 'Twice' name it as a chunk` (the store keeps FlowMaps in the
+   order of their IDs); with a virtual timeline `twice_card` (no name)
+   applying `twice` added instead, `remove` of `twice` gives `FlowMap
+   'Twice' is applied by the virtual timeline 'twice_card'` (a computed
+   FlowMap such as `flow_map_1` takes no name, so a named one is
+   hand-made). A virtual timeline made from another is named the same way
+   (the arranger's README, Deleting: `the virtual timeline 'again' comes
+   from it`). Removing `virtual_1` takes it out of every group's `members`
    and display order, its place and every rule naming its address, and a
    rule's `flow` naming it, so a switched card is drawn as written again.
 3. **Regions get minted IDs.** `add {into: score, region: {start: [0,

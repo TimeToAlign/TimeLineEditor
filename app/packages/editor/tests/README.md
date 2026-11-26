@@ -1138,10 +1138,12 @@ deletion that also deletes virtual timelines (the arranger's
 `deleteQuestion`, its README, Deleting) is answered in the editor's
 confirm dialog, on the canvas (the canvas's `confirmDelete`) and for
 "Delete virtual timeline" alike. The rule: the question's text is asked
-as it is, with the answers "Delete all", "Hide instead" (only where the
-question's `hide` is not `null`) and "Cancel", in that order, the focus
-on "Cancel"; "Delete all" gives the question's `remove`, "Hide instead"
-its `hide`, "Cancel" and a dismissed dialog `null`. What proves it: a
+as it is, with the answers "Delete all" (only where the question's
+`remove` is not `null`: the arranger sets it `null` where core would
+refuse it, and the question then says why), "Hide instead" (only where
+the question's `hide` is not `null`) and "Cancel", in that order, the
+focus on "Cancel"; "Delete all" gives the question's `remove`, "Hide
+instead" its `hide`, "Cancel" and a dismissed dialog `null`. What proves it: a
 stand-in for the dialog records what it was asked and answers as told,
 on questions built from the store, and the store accepts the command
 chosen. In `flow/virtual_cards` with `allegro_default` placed and
@@ -1159,7 +1161,19 @@ leaving `allegro_by_hand` and `allegro_single`; "Cancel" and `null`
 give `null`. The root `allegro` deleted (`remove` [A: allegro], without
 `again`) is asked with the three answers too, and "Hide instead" gives
 the arranger's `rootDisplayCommand(A, "allegro", true)`, which the store
-accepts, `allegro` kept and hidden (`rootHidden`). "Delete virtual
+accepts, `allegro` kept and hidden (`rootHidden`). **No "Delete all"
+where core refuses it:** with `again` and `loop` added (one more `add`
+into `allegro` of the FlowMap `{chunks: ["again"]}` with the ID `loop`,
+which keeps `again`), the card of `allegro_default` selected is asked
+`Deleting virtual timeline 'Allegro, default' also deletes what is made
+from it: virtual timeline 'again'. They cannot all be deleted. Virtual
+timeline 'again' is still named: the FlowMap 'loop' names it as a
+chunk. Hide its card instead?` with the answers "Hide instead" and
+"Cancel" alone, the focus on "Cancel"; "Hide instead" gives the same
+`set` as above, which the store accepts. In `groups/virtual_member`
+(where `allegro_default`'s card is placed by its frame, so nothing can
+be hidden instead) with `again` added through `printed` and `loop`,
+[A: allegro_default] is asked with "Cancel" alone, and gives `null`. "Delete virtual
 timeline" asks the same dialog (mounted under a stand-in provided as the
 editor provides its dialog): with the card of `allegro_default` selected
 and `again` added, a click asks exactly that question and journals

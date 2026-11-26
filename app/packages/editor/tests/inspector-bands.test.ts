@@ -327,6 +327,54 @@ describe("askDeletion", () => {
     expect(manifest?.timelines.map((timeline) => timeline.id)).toEqual(["allegro"]);
     expect(manifest === undefined ? null : rootHidden(manifest, "allegro")).toBe(true);
   });
+
+  /** `store` with `loop`, one more FlowMap of `allegro`, its one chunk `again`. */
+  function withLoop(store: Store): Store {
+    const refused = store.dispatch({
+      type: "add",
+      into: id("allegro"),
+      flow_map: { chunks: ["again"] },
+      ids: ["loop"],
+    });
+    if (refused !== null) throw new Error(refused.message);
+    return store;
+  }
+  const refusedQuestion =
+    "Deleting virtual timeline 'Allegro, default' also deletes what is made from it: virtual timeline 'again'. They cannot all be deleted. Virtual timeline 'again' is still named: the FlowMap 'loop' names it as a chunk.";
+
+  it("offers no Delete all where core refuses it, only Hide instead and Cancel", async () => {
+    const store = withLoop(withAgain());
+    const { ask, asked } = dialog("Hide instead");
+    const chosen = await askDeletion(ask, question(store));
+    expect(asked).toEqual([
+      [`${refusedQuestion} Hide its card instead?`, ["Hide instead", "Cancel"], "Cancel"],
+    ]);
+    expect(chosen).toEqual({
+      type: "set",
+      changes: [{ target: id("allegro_default"), values: { place: { x: null, y: null } } }],
+    });
+    if (chosen === null) throw new Error("nothing chosen");
+    expect(store.dispatch(chosen)).toBeNull();
+  });
+
+  it("offers Cancel alone where core refuses Delete all and nothing can be hidden", async () => {
+    const store = storeOfFixtures("groups/virtual_member");
+    const added = store.dispatch({
+      type: "add",
+      into: { block: A },
+      virtual_timeline: { map: "printed", timeline: "allegro_default" },
+      ids: ["again"],
+    });
+    if (added !== null) throw new Error(added.message);
+    const asked = deleteQuestion(withLoop(store).view, {
+      type: "remove",
+      targets: [id("allegro_default")],
+    });
+    if (asked === null) throw new Error("no question");
+    const { ask, asked: questions } = dialog("Cancel");
+    expect(await askDeletion(ask, asked)).toBeNull();
+    expect(questions).toEqual([[refusedQuestion, ["Cancel"], "Cancel"]]);
+  });
 });
 
 describe("the other readers of the selection", () => {

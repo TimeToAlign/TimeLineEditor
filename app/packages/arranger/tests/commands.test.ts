@@ -440,7 +440,8 @@ describe("Delete on a virtual card", () => {
         "Virtual cards are hidden apart from what is deleted; select the virtual cards alone to hide them.",
     });
     const chunkHint = {
-      refused: "A chunk is changed in its FlowMap; open the flow editor of its root to change it.",
+      refused:
+        "A chunk is changed in its FlowMap; open the flow-control editor of its root to change it.",
     };
     const brace: Address = { block: A, id: DEFAULT, facet: "regions", part: [1] };
     const label: Address = { block: A, id: DEFAULT, facet: "regions", part: [1, "label"] };
@@ -546,7 +547,7 @@ describe("deleteQuestion", () => {
       code: "not_removable",
       path: [addressKey(id(DEFAULT))],
       message:
-        "virtual timeline 'allegro_default' is still named: the virtual timelines 'again' come from it",
+        "virtual timeline 'Allegro, default' is still named: the virtual timeline 'again' comes from it",
     });
     expect(virtualIds(changed(view, question.remove))).toEqual([BY_HAND, "allegro_single"]);
     const hidden = blockIn(changed(view, question.hide), A);
@@ -577,7 +578,7 @@ describe("deleteQuestion", () => {
       ids: ["loop"],
     });
   const loopRefusal =
-    "virtual timeline 'again' is still named: the FlowMaps 'loop' name it as a chunk";
+    "virtual timeline 'again' is still named: the FlowMap 'loop' names it as a chunk";
 
   it("offers no Delete all where core refuses it, saying why, and hides instead", () => {
     const view = withLoop(withAgain(virtualView(), "single"));
@@ -593,7 +594,7 @@ describe("deleteQuestion", () => {
     };
     expect(question).toEqual({
       question:
-        "Deleting virtual timeline 'Allegro, default' also deletes what is made from it: virtual timeline 'again'. They cannot all be deleted. Virtual timeline 'again' is still named: the FlowMaps 'loop' name it as a chunk. Hide its card instead?",
+        "Deleting virtual timeline 'Allegro, default' also deletes what is made from it: virtual timeline 'again'. They cannot all be deleted. Virtual timeline 'again' is still named: the FlowMap 'loop' names it as a chunk. Hide its card instead?",
       remove: null,
       hide,
     });
@@ -608,7 +609,7 @@ describe("deleteQuestion", () => {
     );
     expect(asked(view, id(DEFAULT))).toEqual({
       question:
-        "Deleting virtual timeline 'Allegro, default' also deletes what is made from it: virtual timeline 'again'. They cannot all be deleted. Virtual timeline 'again' is still named: the FlowMaps 'loop' name it as a chunk.",
+        "Deleting virtual timeline 'Allegro, default' also deletes what is made from it: virtual timeline 'again'. They cannot all be deleted. Virtual timeline 'again' is still named: the FlowMap 'loop' names it as a chunk.",
       remove: null,
       hide: null,
     });
