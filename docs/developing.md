@@ -68,7 +68,7 @@ format's side):
 | --- | --- | --- |
 | bundle | **block** | the manifest; a block's whole drawing |
 | group | **frame** | a group, with its title and its members' cards |
-| timeline | **card** | a timeline drawn as a root: an ungrouped root's card lies in the block, a member has one in the frame of each group that has it as a member |
+| timeline | **card** | a timeline drawn as a root: an ungrouped root's card lies in the block, a member has one in the frame of each group that has it as a member; a virtual timeline is drawn the same way, in its groups' frames or, placed by the block, in the block |
 | facet | **band** | one of a timeline's five facets, `markers`, `conversion_maps`, `children`, `regions` and `flow_control`, at the timeline's line |
 
 All four are **boxes**, drawn as rectangles with rounded corners; "box" is
@@ -139,7 +139,7 @@ The code treats the four kinds through one model:
   read that list and derive nothing from element order;
 - the arranger's level table (`containers.ts`) says, per level of the
   canvas (the arranger, the bundle editor, the group editor, the timeline
-  editor), what may be moved, reordered, resized, removed and opened, and
+  editor, the flow editor), what may be moved, reordered, resized, removed and opened, and
   how each kind of box resizes.
 
 "Item" is a role (a frame or a block-held card is placed freely in the
@@ -154,25 +154,31 @@ reserved word (TimeToShare's README, "Identity"). TiLiE never parses an ID,
 and names a timeline, group or manifest without a `name` by its whole ID.
 Where core creates an element itself (the first segment of an empty
 segment line, the default timestamps, a named timestamp, an elision, a
-named MatchStamp with its anchors, a group added without an ID), it mints
+named MatchStamp with its anchors, and a group, region, conversion map,
+flow-control element, FlowMap or virtual timeline added without an ID), it mints
 the ID as timetoalign does: the type prefix, `_` and 13 random base-36
 characters (`timestamp_3b7gu4iwqkg9i`). `dispatch` mints these IDs before
 the command is applied and journals them in the command's `ids`, so a
 replay reads them and mints nothing; a minted ID is never renamed or
-reissued. Any other element a command adds carries its ID.
+reissued. Any other element a command adds (a timeline, a child, a
+measure map) carries its ID.
 
 An address names anything a command can target, and it is an object,
 never a string composed from IDs: `{}` the workspace, `{block}` a block,
 and `{block, id?, facet?, part?}` an element of the block's manifest, its
 members those of the manifest's own address (TimeToShare's drawing
 specification, section 2.2): `{block, id: X}` a timeline, group, measure
-map, conversion map, region, flow-control element, named timestamp (its
-wedge), named MatchStamp, alignment anchor (its line) or stored elision
-(every gap drawn of it); `{block, id: T, part: ["elision"]}` the gaps a
+map, conversion map, region, flow-control element, FlowMap, virtual
+timeline, named timestamp (its wedge), named MatchStamp, alignment anchor
+(its line) or stored elision (every gap drawn of it); `{block, id: T, part: ["elision"]}` the gaps a
 card derives on `T`, which have no ID; `{block, id: T,
 facet: F}` the band drawing facet `F` of timeline `T`; `{block, id: T,
-part: ["card"]}` every card of `T`; `{block, part: ["name"]}` the
-manifest's title; and a part of an element its address with `start`,
+part: ["card"]}` every card of `T`, a virtual timeline's too; `{block,
+id: V, facet: "regions", part: [k]}` the chunk `k` (from 0) that the
+virtual card of `V` draws, or the switched card of `T` with `T` in place
+of `V`, the one address where `facet` stands with `part`, its part
+beginning with the chunk index; `{block, part: ["name"]}` the manifest's
+title; and a part of an element its address with `start`,
 `name`, `label`, `id`, `coordinate`, `line` or `ellipsis` appended to `part`
 (a named timestamp's line, a groupstamp's across every frame drawing it
 included, is `{block, id: X, part: ["line"]}`). An element drawn more than
@@ -183,7 +189,8 @@ Two addresses are equal when they are equal as whole objects, and
 or a Svelte keyed block takes for it. Core's `resolveAddress(view,
 address)` is the one place that decides what an address names, returning
 a discriminated record (workspace, block, title, frame, timeline, card,
-band, entry, measure map, timestamp, elision, MatchStamp, anchor, part); a part
+band, entry, measure map, timestamp, elision, MatchStamp, anchor, FlowMap,
+virtual timeline, virtual card, virtual band, chunk, part); a part
 names something only where it is drawn. Nothing reads an ID or an address out of
 a string. A statement has neither an ID nor an address: it is changed
 through the element holding it, by one `set` of that element's whole
