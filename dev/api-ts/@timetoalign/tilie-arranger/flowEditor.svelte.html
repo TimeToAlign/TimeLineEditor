@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>flowEditor.svelte &#8212; TimeLineEditor 0.3.0</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../_static/documentation_options.js?v=0926e583"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api-ts/@timetoalign/tilie-arranger/flowEditor.svelte';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="flowEditorRows" href="flowEditorRows.html" />
+    <link rel="prev" title="flowEditor" href="flowEditor.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.3.0" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TimeLineEditor 0.3.0</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../overview.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../developing.html">
+    Developing TimeLineEditor
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../python.html">
+    Python API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../typescript.html">
+    TypeScript API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../decisions.html">
+    Design decisions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Changelog
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to TiLiE
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/TimeToAlign/TimeLineEditor" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../tilie-core/index.html">@timetoalign/tilie-core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-layout/index.html">@timetoalign/tilie-layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-writers/index.html">@timetoalign/tilie-writers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-client/index.html">@timetoalign/tilie-client</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">@timetoalign/tilie-arranger</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="affected.html">affected</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/cardMotions.svelte.html">animation/cardMotions.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/elide.html">animation/elide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/progress.svelte.html">animation/progress.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/raise.html">animation/raise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/unfold.html">animation/unfold</a></li>
+<li class="toctree-l2"><a class="reference internal" href="animation/unfolding.svelte.html">animation/unfolding.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arrangeMenu.html">arrangeMenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="axisValues.html">axisValues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bands.html">bands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="blockDrag.html">blockDrag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="boxes.html">boxes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cardAxis.html">cardAxis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html">commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="containers.html">containers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coordinates.html">coordinates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowEditor.html">flowEditor</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">flowEditor.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowEditorRows.html">flowEditorRows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowOverlay.html">flowOverlay</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowSwitch.html">flowSwitch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowSwitchMotion.svelte.html">flowSwitchMotion.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="focus.html">focus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gaps.html">gaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gesture.html">gesture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/arranged.html">gestures/arranged</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/band.html">gestures/band</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/canvas.html">gestures/canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/flowDrag.html">gestures/flowDrag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/gap.html">gestures/gap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/wheel.html">gestures/wheel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index-1.html">index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="items.html">items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="keys.html">keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="liveStore.svelte.html">liveStore.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="marquee.html">marquee</a></li>
+<li class="toctree-l2"><a class="reference internal" href="matches.html">matches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="motion.html">motion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="node.html">node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nodeActions.html">nodeActions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nodes.svelte.html">nodes.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="numbers.html">numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="onScreen.html">onScreen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pane.html">pane</a></li>
+<li class="toctree-l2"><a class="reference internal" href="picking.html">picking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="project.html">project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reorder.html">reorder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="resize.html">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ribbons.html">ribbons</a></li>
+<li class="toctree-l2"><a class="reference internal" href="roving.html">roving</a></li>
+<li class="toctree-l2"><a class="reference internal" href="selection.html">selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="selectionRules.html">selectionRules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="snap.html">snap</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../tilie-editor/index.html">@timetoalign/tilie-editor</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../typescript.html" class="nav-link">TypeScript API</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">&#64;timetoalign/tilie-arranger</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">flowEditor.svelte</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="floweditor-svelte">
+<h1>flowEditor.svelte<a class="headerlink" href="#floweditor-svelte" title="Link to this heading">#</a></h1>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
+<section id="floweditorsession">
+<h3>FlowEditorSession<a class="headerlink" href="#floweditorsession" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L82">arranger/src/flowEditor.svelte.ts:82</a></p>
+<p>The flow editor of one canvas. Its state is the edited row, whether a recompute runs, and the findings known.</p>
+<section id="constructors">
+<h4>Constructors<a class="headerlink" href="#constructors" title="Link to this heading">#</a></h4>
+<section id="constructor">
+<h5>Constructor<a class="headerlink" href="#constructor" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>new FlowEditorSession</strong>(<code class="docutils literal notranslate"><span class="pre">host</span></code>): <a class="reference internal" href="#floweditorsession"><code class="docutils literal notranslate"><span class="pre">FlowEditorSession</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L89">arranger/src/flowEditor.svelte.ts:89</a></p>
+<section id="parameters">
+<h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
+</section>
+<section id="host">
+<h6>host<a class="headerlink" href="#host" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#floweditorhost"><code class="docutils literal notranslate"><span class="pre">FlowEditorHost</span></code></a></p>
+</section>
+<section id="returns">
+<h6>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#floweditorsession"><code class="docutils literal notranslate"><span class="pre">FlowEditorSession</span></code></a></p>
+</section>
+</section>
+</section>
+<section id="accessors">
+<h4>Accessors<a class="headerlink" href="#accessors" title="Link to this heading">#</a></h4>
+<section id="recomputing">
+<h5>recomputing<a class="headerlink" href="#recomputing" title="Link to this heading">#</a></h5>
+<section id="get-signature">
+<h6>Get Signature<a class="headerlink" href="#get-signature" title="Link to this heading">#</a></h6>
+<blockquote>
+<div><p><strong>get</strong> <strong>recomputing</strong>(): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L100">arranger/src/flowEditor.svelte.ts:100</a></p>
+<p>Whether the computed FlowMaps are being recomputed.</p>
+</section>
+<section id="id1">
+<h6>Returns<a class="headerlink" href="#id1" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+</section>
+<section id="methods">
+<h4>Methods<a class="headerlink" href="#methods" title="Link to this heading">#</a></h4>
+<section id="add">
+<h5>add()<a class="headerlink" href="#add" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>add</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L133">arranger/src/flowEditor.svelte.ts:133</a></p>
+<p>Add +: the open flow editor <code class="docutils literal notranslate"><span class="pre">target</span></code> gets a new, empty FlowMap row; one edited row at a time.</p>
+<section id="id2">
+<h6>Parameters<a class="headerlink" href="#id2" title="Link to this heading">#</a></h6>
+</section>
+<section id="target">
+<h6>target<a class="headerlink" href="#target" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a></p>
+</section>
+<section id="id3">
+<h6>Returns<a class="headerlink" href="#id3" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">void</span></code></p>
+</section>
+</section>
+<section id="askfindings">
+<h5>askFindings()<a class="headerlink" href="#askfindings" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>askFindings</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">void</span></code>&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L120">arranger/src/flowEditor.svelte.ts:120</a></p>
+<p>Ask the server what playing the flow control of the target’s root
+finds per convention, in the manifest as stored now: when the flow
+editor opens and after Recompute. Its answer replaces the one kept; a
+failure keeps none. Nothing without a server.</p>
+<section id="id4">
+<h6>Parameters<a class="headerlink" href="#id4" title="Link to this heading">#</a></h6>
+</section>
+<section id="id5">
+<h6>target<a class="headerlink" href="#id5" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a></p>
+</section>
+<section id="id6">
+<h6>Returns<a class="headerlink" href="#id6" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">void</span></code>&gt;</p>
+</section>
+</section>
+<section id="cancel">
+<h5>cancel()<a class="headerlink" href="#cancel" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>cancel</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L164">arranger/src/flowEditor.svelte.ts:164</a></p>
+<p>The edited row’s Cancel: every step taken since Add + or since the row
+became the edited one is undone (its entries, and the Regions and
+virtual timelines written for them), and the new row goes.</p>
+<section id="id7">
+<h6>Parameters<a class="headerlink" href="#id7" title="Link to this heading">#</a></h6>
+</section>
+<section id="id8">
+<h6>target<a class="headerlink" href="#id8" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a></p>
+</section>
+<section id="id9">
+<h6>Returns<a class="headerlink" href="#id9" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">void</span></code></p>
+</section>
+</section>
+<section id="done">
+<h5>done()<a class="headerlink" href="#done" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>done</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L155">arranger/src/flowEditor.svelte.ts:155</a></p>
+<p>The edited row’s Done: the FlowMap stays as written; the row becomes one of the others.</p>
+<section id="id10">
+<h6>Parameters<a class="headerlink" href="#id10" title="Link to this heading">#</a></h6>
+</section>
+<section id="id11">
+<h6>target<a class="headerlink" href="#id11" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a></p>
+</section>
+<section id="id12">
+<h6>Returns<a class="headerlink" href="#id12" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">void</span></code></p>
+</section>
+</section>
+<section id="draftof">
+<h5>draftOf()<a class="headerlink" href="#draftof" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>draftOf</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>): <a class="reference internal" href="#id44"><code class="docutils literal notranslate"><span class="pre">Draft</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L94">arranger/src/flowEditor.svelte.ts:94</a></p>
+<p>The edited row of the open flow editor <code class="docutils literal notranslate"><span class="pre">target</span></code>; <code class="docutils literal notranslate"><span class="pre">null</span></code> where it has none.</p>
+<section id="id13">
+<h6>Parameters<a class="headerlink" href="#id13" title="Link to this heading">#</a></h6>
+</section>
+<section id="id14">
+<h6>target<a class="headerlink" href="#id14" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+<section id="id15">
+<h6>Returns<a class="headerlink" href="#id15" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#id44"><code class="docutils literal notranslate"><span class="pre">Draft</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="edit">
+<h5>edit()<a class="headerlink" href="#edit" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>edit</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>, <code class="docutils literal notranslate"><span class="pre">flowMap</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L144">arranger/src/flowEditor.svelte.ts:144</a></p>
+<p>Edit the hand-made FlowMap <code class="docutils literal notranslate"><span class="pre">flowMap</span></code> of the target’s root in its own
+row, as the new row is edited, with its own Done and Cancel: one row at
+a time, and never a computed FlowMap, which is read only. Whether it is
+now the edited row.</p>
+<section id="id16">
+<h6>Parameters<a class="headerlink" href="#id16" title="Link to this heading">#</a></h6>
+</section>
+<section id="id17">
+<h6>target<a class="headerlink" href="#id17" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a></p>
+</section>
+<section id="flowmap">
+<h6>flowMap<a class="headerlink" href="#flowmap" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id18">
+<h6>Returns<a class="headerlink" href="#id18" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<section id="entriesof">
+<h5>entriesOf()<a class="headerlink" href="#entriesof" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>entriesOf</strong>(<code class="docutils literal notranslate"><span class="pre">draft</span></code>): readonly (<code class="docutils literal notranslate"><span class="pre">string</span></code> | { })[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L182">arranger/src/flowEditor.svelte.ts:182</a></p>
+<p>The edited FlowMap’s entries as stored: none before a new one’s first is written.</p>
+<section id="id19">
+<h6>Parameters<a class="headerlink" href="#id19" title="Link to this heading">#</a></h6>
+</section>
+<section id="draft">
+<h6>draft<a class="headerlink" href="#draft" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#id44"><code class="docutils literal notranslate"><span class="pre">Draft</span></code></a></p>
+</section>
+<section id="id20">
+<h6>Returns<a class="headerlink" href="#id20" title="Link to this heading">#</a></h6>
+<p>readonly (<code class="docutils literal notranslate"><span class="pre">string</span></code> | { })[]</p>
+</section>
+</section>
+<section id="findingsof">
+<h5>findingsOf()<a class="headerlink" href="#findingsof" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>findingsOf</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>): <a class="reference internal" href="flowEditor.html#flowfindings"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">FlowFindings</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L110">arranger/src/flowEditor.svelte.ts:110</a></p>
+<p>What playing the flow control of the target’s root found per
+convention, as the server last answered (<code class="docutils literal notranslate"><span class="pre">askFindings</span></code>); none without
+a server, before it answers, or where it failed. Reads the answers
+kept; never asks.</p>
+<section id="id21">
+<h6>Parameters<a class="headerlink" href="#id21" title="Link to this heading">#</a></h6>
+</section>
+<section id="id22">
+<h6>target<a class="headerlink" href="#id22" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a></p>
+</section>
+<section id="id23">
+<h6>Returns<a class="headerlink" href="#id23" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="flowEditor.html#flowfindings"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">FlowFindings</span></code></span></a></p>
+</section>
+</section>
+<section id="gap">
+<h5>gap()<a class="headerlink" href="#gap" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>gap</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L261">arranger/src/flowEditor.svelte.ts:261</a></p>
+<p>“+ Gap”: a gap of the length typed as <code class="docutils literal notranslate"><span class="pre">text</span></code> (exact, in the root’s
+number type) at the edited FlowMap’s end; the message saying why where
+the text is no such length, else <code class="docutils literal notranslate"><span class="pre">null</span></code>.</p>
+<section id="id24">
+<h6>Parameters<a class="headerlink" href="#id24" title="Link to this heading">#</a></h6>
+</section>
+<section id="id25">
+<h6>target<a class="headerlink" href="#id25" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a></p>
+</section>
+<section id="text">
+<h6>text<a class="headerlink" href="#text" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id26">
+<h6>Returns<a class="headerlink" href="#id26" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="land">
+<h5>land()<a class="headerlink" href="#land" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>land</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>, <code class="docutils literal notranslate"><span class="pre">dragged</span></code>, <code class="docutils literal notranslate"><span class="pre">index?</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L208">arranger/src/flowEditor.svelte.ts:208</a></p>
+<p>Land <code class="docutils literal notranslate"><span class="pre">dragged</span></code> in the edited FlowMap of <code class="docutils literal notranslate"><span class="pre">target</span></code> before entry <code class="docutils literal notranslate"><span class="pre">index</span></code> (at
+its end without one): what it needs written first is written (a Region
+over the whole root or swept, a row’s virtual timeline), then the
+entries are stored. A swept stretch opens the new row where none is
+open. Whether it landed.</p>
+<section id="id27">
+<h6>Parameters<a class="headerlink" href="#id27" title="Link to this heading">#</a></h6>
+</section>
+<section id="id28">
+<h6>target<a class="headerlink" href="#id28" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a></p>
+</section>
+<section id="dragged">
+<h6>dragged<a class="headerlink" href="#dragged" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="flowEditor.html#id4"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Dragged</span></code></span></a></p>
+</section>
+<section id="index">
+<h6>index?<a class="headerlink" href="#index" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id29">
+<h6>Returns<a class="headerlink" href="#id29" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<section id="move">
+<h5>move()<a class="headerlink" href="#move" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>move</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>, <code class="docutils literal notranslate"><span class="pre">from</span></code>, <code class="docutils literal notranslate"><span class="pre">to</span></code>, <code class="docutils literal notranslate"><span class="pre">duplicate</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L239">arranger/src/flowEditor.svelte.ts:239</a></p>
+<p>Move the edited FlowMap’s entry <code class="docutils literal notranslate"><span class="pre">from</span></code> to land before <code class="docutils literal notranslate"><span class="pre">to</span></code>, or copy it there (<code class="docutils literal notranslate"><span class="pre">duplicate</span></code>).</p>
+<section id="id30">
+<h6>Parameters<a class="headerlink" href="#id30" title="Link to this heading">#</a></h6>
+</section>
+<section id="id31">
+<h6>target<a class="headerlink" href="#id31" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a></p>
+</section>
+<section id="from">
+<h6>from<a class="headerlink" href="#from" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="to">
+<h6>to<a class="headerlink" href="#to" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="duplicate">
+<h6>duplicate<a class="headerlink" href="#duplicate" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+<section id="id32">
+<h6>Returns<a class="headerlink" href="#id32" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<section id="place">
+<h5>place()<a class="headerlink" href="#place" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>place</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>, <code class="docutils literal notranslate"><span class="pre">flowMap</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L276">arranger/src/flowEditor.svelte.ts:276</a></p>
+<p>Place the row of the FlowMap <code class="docutils literal notranslate"><span class="pre">flowMap</span></code> as a card of its own: its
+virtual timeline written where none gives its axis, then its card
+placed at <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code> of the block’s places, held by the block. Whether
+it was placed.</p>
+<section id="id33">
+<h6>Parameters<a class="headerlink" href="#id33" title="Link to this heading">#</a></h6>
+</section>
+<section id="id34">
+<h6>target<a class="headerlink" href="#id34" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a></p>
+</section>
+<section id="id35">
+<h6>flowMap<a class="headerlink" href="#id35" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="x">
+<h6>x<a class="headerlink" href="#x" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="y">
+<h6>y<a class="headerlink" href="#y" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id36">
+<h6>Returns<a class="headerlink" href="#id36" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<section id="recompute">
+<h5>recompute()<a class="headerlink" href="#recompute" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>recompute</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">void</span></code>&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L296">arranger/src/flowEditor.svelte.ts:296</a></p>
+<p>Recompute: the server writes the flows of the root into the manifest,
+and what changed is stored (<code class="docutils literal notranslate"><span class="pre">recomputeCommands</span></code>), command by command,
+stopping at the first refusal; a notice where nothing changed, the
+server’s message where it fails. Then the findings are asked again
+(<code class="docutils literal notranslate"><span class="pre">askFindings</span></code>).</p>
+<section id="id37">
+<h6>Parameters<a class="headerlink" href="#id37" title="Link to this heading">#</a></h6>
+</section>
+<section id="id38">
+<h6>target<a class="headerlink" href="#id38" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a></p>
+</section>
+<section id="id39">
+<h6>Returns<a class="headerlink" href="#id39" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">void</span></code>&gt;</p>
+</section>
+</section>
+<section id="remove">
+<h5>remove()<a class="headerlink" href="#remove" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>remove</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>, <code class="docutils literal notranslate"><span class="pre">index</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L250">arranger/src/flowEditor.svelte.ts:250</a></p>
+<p>Remove the edited FlowMap’s entry <code class="docutils literal notranslate"><span class="pre">index</span></code>.</p>
+<section id="id40">
+<h6>Parameters<a class="headerlink" href="#id40" title="Link to this heading">#</a></h6>
+</section>
+<section id="id41">
+<h6>target<a class="headerlink" href="#id41" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a></p>
+</section>
+<section id="id42">
+<h6>index<a class="headerlink" href="#id42" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id43">
+<h6>Returns<a class="headerlink" href="#id43" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+</section>
+</section>
+</section>
+<section id="interfaces">
+<h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
+<section id="id44">
+<h3>Draft<a class="headerlink" href="#id44" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L68">arranger/src/flowEditor.svelte.ts:68</a></p>
+<p>The edited row of an open flow editor: its FlowMap (a new one’s once its
+first entry has been written, <code class="docutils literal notranslate"><span class="pre">null</span></code> before; a hand-made one’s from the
+start), and how many entries the editor’s session held when Add + made
+it or the hand-made row became the edited one, which its Cancel undoes
+down to.</p>
+<section id="extends">
+<h4>Extends<a class="headerlink" href="#extends" title="Link to this heading">#</a></h4>
+<ul class="simple">
+<li><p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a></p></li>
+</ul>
+</section>
+<section id="properties">
+<h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
+<section id="block">
+<h5>block<a class="headerlink" href="#block" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>block</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L57">arranger/src/flowEditor.svelte.ts:57</a></p>
+<section id="inherited-from">
+<h6>Inherited from<a class="headerlink" href="#inherited-from" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a>.<a class="reference internal" href="#id66"><code class="docutils literal notranslate"><span class="pre">block</span></code></a></p>
+</section>
+</section>
+<section id="id45">
+<h5>flowMap<a class="headerlink" href="#id45" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>flowMap</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L69">arranger/src/flowEditor.svelte.ts:69</a></p>
+</section>
+<section id="mark">
+<h5>mark<a class="headerlink" href="#mark" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>mark</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L70">arranger/src/flowEditor.svelte.ts:70</a></p>
+</section>
+<section id="root">
+<h5>root<a class="headerlink" href="#root" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>root</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L58">arranger/src/flowEditor.svelte.ts:58</a></p>
+<section id="id46">
+<h6>Inherited from<a class="headerlink" href="#id46" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a>.<a class="reference internal" href="#id67"><code class="docutils literal notranslate"><span class="pre">root</span></code></a></p>
+</section>
+</section>
+<section id="session">
+<h5>session<a class="headerlink" href="#session" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>session</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L56">arranger/src/flowEditor.svelte.ts:56</a></p>
+<section id="id47">
+<h6>Inherited from<a class="headerlink" href="#id47" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowtarget"><code class="docutils literal notranslate"><span class="pre">FlowTarget</span></code></a>.<a class="reference internal" href="#id68"><code class="docutils literal notranslate"><span class="pre">session</span></code></a></p>
+</section>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="floweditorhost">
+<h3>FlowEditorHost<a class="headerlink" href="#floweditorhost" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L42">arranger/src/flowEditor.svelte.ts:42</a></p>
+<p>What the flow editor reads from the canvas and does through it.</p>
+<section id="id48">
+<h4>Methods<a class="headerlink" href="#id48" title="Link to this heading">#</a></h4>
+<section id="dispatch">
+<h5>dispatch()<a class="headerlink" href="#dispatch" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>dispatch</strong>(<code class="docutils literal notranslate"><span class="pre">command</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L45">arranger/src/flowEditor.svelte.ts:45</a></p>
+<p>Runs a command; reports a refusal and answers <code class="docutils literal notranslate"><span class="pre">false</span></code>.</p>
+<section id="id49">
+<h6>Parameters<a class="headerlink" href="#id49" title="Link to this heading">#</a></h6>
+</section>
+<section id="command">
+<h6>command<a class="headerlink" href="#command" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
+</section>
+<section id="id50">
+<h6>Returns<a class="headerlink" href="#id50" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<section id="drawing">
+<h5>drawing()<a class="headerlink" href="#drawing" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>drawing</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>): <a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L49">arranger/src/flowEditor.svelte.ts:49</a></p>
+<p>The drawing of block <code class="docutils literal notranslate"><span class="pre">block</span></code> as the canvas shows it; <code class="docutils literal notranslate"><span class="pre">undefined</span></code> where it shows none.</p>
+<section id="id51">
+<h6>Parameters<a class="headerlink" href="#id51" title="Link to this heading">#</a></h6>
+</section>
+<section id="id52">
+<h6>block<a class="headerlink" href="#id52" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id53">
+<h6>Returns<a class="headerlink" href="#id53" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</section>
+</section>
+<section id="refuse">
+<h5>refuse()<a class="headerlink" href="#refuse" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>refuse</strong>(<code class="docutils literal notranslate"><span class="pre">message</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L47">arranger/src/flowEditor.svelte.ts:47</a></p>
+<p>Reports a refusal or a notice to the canvas’s host.</p>
+<section id="id54">
+<h6>Parameters<a class="headerlink" href="#id54" title="Link to this heading">#</a></h6>
+</section>
+<section id="message">
+<h6>message<a class="headerlink" href="#message" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id55">
+<h6>Returns<a class="headerlink" href="#id55" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">void</span></code></p>
+</section>
+</section>
+<section id="server">
+<h5>server()<a class="headerlink" href="#server" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>server</strong>(): <a class="reference internal" href="#flowserver"><code class="docutils literal notranslate"><span class="pre">FlowServer</span></code></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L51">arranger/src/flowEditor.svelte.ts:51</a></p>
+<p>The server’s flow routes; <code class="docutils literal notranslate"><span class="pre">undefined</span></code> without a server.</p>
+<section id="id56">
+<h6>Returns<a class="headerlink" href="#id56" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#flowserver"><code class="docutils literal notranslate"><span class="pre">FlowServer</span></code></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
+</section>
+</section>
+<section id="store">
+<h5>store()<a class="headerlink" href="#store" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>store</strong>(): <a class="reference internal" href="../tilie-core/workspace/store.html#store"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Store</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L43">arranger/src/flowEditor.svelte.ts:43</a></p>
+<section id="id57">
+<h6>Returns<a class="headerlink" href="#id57" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="../tilie-core/workspace/store.html#store"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Store</span></code></span></a></p>
+</section>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="flowserver">
+<h3>FlowServer<a class="headerlink" href="#flowserver" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L36">arranger/src/flowEditor.svelte.ts:36</a></p>
+<p>The flow routes of a server, as the flow editor asks them: the manifest
+with the flows of a root written (<code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/flows/flow-maps</span></code>), and what
+playing its flow control finds per convention (<code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/flows</span></code>).</p>
+<section id="id58">
+<h4>Methods<a class="headerlink" href="#id58" title="Link to this heading">#</a></h4>
+<section id="findings">
+<h5>findings()<a class="headerlink" href="#findings" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>findings</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<a class="reference internal" href="flowEditor.html#flowfindings"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">FlowFindings</span></code></span></a>&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L38">arranger/src/flowEditor.svelte.ts:38</a></p>
+<section id="id59">
+<h6>Parameters<a class="headerlink" href="#id59" title="Link to this heading">#</a></h6>
+</section>
+<section id="manifest">
+<h6>manifest<a class="headerlink" href="#manifest" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="timeline">
+<h6>timeline<a class="headerlink" href="#timeline" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id60">
+<h6>Returns<a class="headerlink" href="#id60" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<a class="reference internal" href="flowEditor.html#flowfindings"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">FlowFindings</span></code></span></a>&gt;</p>
+</section>
+</section>
+<section id="withflowmaps">
+<h5>withFlowMaps()<a class="headerlink" href="#withflowmaps" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>withFlowMaps</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a>&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L37">arranger/src/flowEditor.svelte.ts:37</a></p>
+<section id="id61">
+<h6>Parameters<a class="headerlink" href="#id61" title="Link to this heading">#</a></h6>
+</section>
+<section id="id62">
+<h6>manifest<a class="headerlink" href="#id62" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="id63">
+<h6>timeline<a class="headerlink" href="#id63" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id64">
+<h6>Returns<a class="headerlink" href="#id64" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a>&gt;</p>
+</section>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="flowtarget">
+<h3>FlowTarget<a class="headerlink" href="#flowtarget" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L55">arranger/src/flowEditor.svelte.ts:55</a></p>
+<p>The flow editor open: its session, block and root.</p>
+<section id="extended-by">
+<h4>Extended by<a class="headerlink" href="#extended-by" title="Link to this heading">#</a></h4>
+<ul class="simple">
+<li><p><a class="reference internal" href="#id44"><code class="docutils literal notranslate"><span class="pre">Draft</span></code></a></p></li>
+</ul>
+</section>
+<section id="id65">
+<h4>Properties<a class="headerlink" href="#id65" title="Link to this heading">#</a></h4>
+<section id="id66">
+<h5>block<a class="headerlink" href="#id66" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>block</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L57">arranger/src/flowEditor.svelte.ts:57</a></p>
+</section>
+<section id="id67">
+<h5>root<a class="headerlink" href="#id67" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>root</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L58">arranger/src/flowEditor.svelte.ts:58</a></p>
+</section>
+<section id="id68">
+<h5>session<a class="headerlink" href="#id68" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>session</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/flowEditor.svelte.ts#L56">arranger/src/flowEditor.svelte.ts:56</a></p>
+</section>
+</section>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="flowEditor.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">flowEditor</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="flowEditorRows.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">flowEditorRows</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#floweditorsession">FlowEditorSession</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#constructors">Constructors</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#constructor">Constructor</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#host">host</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#accessors">Accessors</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#recomputing">recomputing</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#get-signature">Get Signature</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#methods">Methods</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#add">add()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#target">target</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#askfindings">askFindings()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">target</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#cancel">cancel()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">target</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#done">done()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">target</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#draftof">draftOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">target</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#edit">edit()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">target</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#flowmap">flowMap</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#entriesof">entriesOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#draft">draft</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#findingsof">findingsOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">target</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#gap">gap()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">target</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#text">text</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id26">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#land">land()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id27">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">target</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#dragged">dragged</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#index">index?</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id29">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#move">move()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id30">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id31">target</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#from">from</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#to">to</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#duplicate">duplicate</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#place">place()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id33">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id34">target</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id35">flowMap</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#x">x</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#y">y</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id36">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#recompute">recompute()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id37">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id38">target</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id39">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#remove">remove()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id40">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id41">target</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id42">index</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id43">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id44">Draft</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#extends">Extends</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#block">block</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#inherited-from">Inherited from</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id45">flowMap</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mark">mark</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#root">root</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id46">Inherited from</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#session">session</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id47">Inherited from</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#floweditorhost">FlowEditorHost</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id48">Methods</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#dispatch">dispatch()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id49">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#command">command</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id50">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#drawing">drawing()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id51">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id52">block</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id53">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#refuse">refuse()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id54">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#message">message</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id55">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#server">server()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id56">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#store">store()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id57">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowserver">FlowServer</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id58">Methods</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#findings">findings()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id59">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#manifest">manifest</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#timeline">timeline</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id60">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#withflowmaps">withFlowMaps()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id61">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id62">manifest</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id63">timeline</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id64">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowtarget">FlowTarget</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#extended-by">Extended by</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id65">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id66">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id67">root</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id68">session</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026 Time to Align!.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  <script src="/TimeLineEditor/versions.js" defer></script>
+</body>
+</html>

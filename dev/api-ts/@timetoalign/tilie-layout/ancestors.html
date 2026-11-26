@@ -435,8 +435,10 @@
 <li class="toctree-l2"><a class="reference internal" href="rows.html">rows</a></li>
 <li class="toctree-l2"><a class="reference internal" href="slots.html">slots</a></li>
 <li class="toctree-l2"><a class="reference internal" href="stacks.html">stacks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="switched.html">switched</a></li>
 <li class="toctree-l2"><a class="reference internal" href="timeline.html">timeline</a></li>
 <li class="toctree-l2"><a class="reference internal" href="traversal.html">traversal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="virtual.html">virtual</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1"><a class="reference internal" href="../tilie-writers/index.html">@timetoalign/tilie-writers</a></li>
@@ -512,7 +514,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="ancestorbands">
 <h3>AncestorBands<a class="headerlink" href="#ancestorbands" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L250">layout/src/ancestors.ts:250</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L270">layout/src/ancestors.ts:270</a></p>
 <p>The ancestor bands laid out: where each ancestor’s line lies, and each side’s outer edge.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -521,7 +523,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>count</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L261">layout/src/ancestors.ts:261</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L281">layout/src/ancestors.ts:281</a></p>
 <p>The number of ancestor bands: 0, 1 or 2.</p>
 </section>
 <section id="distances">
@@ -529,37 +531,64 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>distances</strong>: readonly <code class="docutils literal notranslate"><span class="pre">number</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L252">layout/src/ancestors.ts:252</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L272">layout/src/ancestors.ts:272</a></p>
 <p>The distance of each drawn ancestor’s line from the root’s line, outwards on its side, from A1.</p>
 </section>
 <section id="edges">
 <h5>edges<a class="headerlink" href="#edges" title="Link to this heading">#</a></h5>
 <blockquote>
-<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>edges</strong>: <code class="docutils literal notranslate"><span class="pre">Readonly</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Record</span></code>&lt;<a class="reference internal" href="bands.html#id45"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Side</span></code></span></a>, <code class="docutils literal notranslate"><span class="pre">number</span></code>&gt;&gt;</p>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>edges</strong>: <code class="docutils literal notranslate"><span class="pre">Readonly</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Record</span></code>&lt;<a class="reference internal" href="bands.html#id46"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Side</span></code></span></a>, <code class="docutils literal notranslate"><span class="pre">number</span></code>&gt;&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L257">layout/src/ancestors.ts:257</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L277">layout/src/ancestors.ts:277</a></p>
 <p>The outer edge of each side: the outer edge of its ancestor band where it has one, else the
 outer edge <code class="docutils literal notranslate"><span class="pre">Ea</span></code> or <code class="docutils literal notranslate"><span class="pre">Eb</span></code> of the root’s side.</p>
 </section>
 <section id="outermost">
 <h5>outermost<a class="headerlink" href="#outermost" title="Link to this heading">#</a></h5>
 <blockquote>
-<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>outermost</strong>: <code class="docutils literal notranslate"><span class="pre">Readonly</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Partial</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Record</span></code>&lt;<a class="reference internal" href="bands.html#id45"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Side</span></code></span></a>, <code class="docutils literal notranslate"><span class="pre">number</span></code>&gt;&gt;&gt;</p>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>outermost</strong>: <code class="docutils literal notranslate"><span class="pre">Readonly</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Partial</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Record</span></code>&lt;<a class="reference internal" href="bands.html#id46"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Side</span></code></span></a>, <code class="docutils literal notranslate"><span class="pre">number</span></code>&gt;&gt;&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L259">layout/src/ancestors.ts:259</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L279">layout/src/ancestors.ts:279</a></p>
 <p>The distance of the outermost ancestor line on each side that has an ancestor band.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="ancestorpiece">
+<h3>AncestorPiece<a class="headerlink" href="#ancestorpiece" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L383">layout/src/ancestors.ts:383</a></p>
+<p>One drawing of an ancestor line: its element and, on a carried card of a
+switched frame (section 8.10), the stretch of the ancestor’s own axis it
+draws, from the coordinate at its drawn start <code class="docutils literal notranslate"><span class="pre">xStart</span></code> to that at its drawn
+end <code class="docutils literal notranslate"><span class="pre">xEnd</span></code> (null where the end is not known), the abscissas without its
+chevrons; null on a card drawn as written, whose axes read the line whole.</p>
+<section id="id1">
+<h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
+<section id="axis">
+<h5>axis<a class="headerlink" href="#axis" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>axis</strong>: { <code class="docutils literal notranslate"><span class="pre">drawnEnd</span></code>: <a class="reference internal" href="../tilie-core/number/real.html#real"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Real</span></code></span></a>; <code class="docutils literal notranslate"><span class="pre">end</span></code>: <a class="reference internal" href="../tilie-core/number/real.html#real"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Real</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code>; <code class="docutils literal notranslate"><span class="pre">start</span></code>: <a class="reference internal" href="../tilie-core/number/real.html#real"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Real</span></code></span></a>; <code class="docutils literal notranslate"><span class="pre">xEnd</span></code>: <code class="docutils literal notranslate"><span class="pre">number</span></code>; <code class="docutils literal notranslate"><span class="pre">xStart</span></code>: <code class="docutils literal notranslate"><span class="pre">number</span></code>; } | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L385">layout/src/ancestors.ts:385</a></p>
+</section>
+<section id="element">
+<h5>element<a class="headerlink" href="#element" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>element</strong>: <a class="reference internal" href="elements.html#lineelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineElement</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L384">layout/src/ancestors.ts:384</a></p>
 </section>
 </section>
 </section>
 </section>
 <section id="functions">
 <h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
-<section id="id1">
-<h3>ancestorBands()<a class="headerlink" href="#id1" title="Link to this heading">#</a></h3>
+<section id="id2">
+<h3>ancestorBands()<a class="headerlink" href="#id2" title="Link to this heading">#</a></h3>
 <blockquote>
 <div><p><strong>ancestorBands</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">ancestors</span></code>, <code class="docutils literal notranslate"><span class="pre">p0</span></code>, <code class="docutils literal notranslate"><span class="pre">edges</span></code>, <code class="docutils literal notranslate"><span class="pre">aligned</span></code>): <a class="reference internal" href="#ancestorbands"><code class="docutils literal notranslate"><span class="pre">AncestorBands</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L278">layout/src/ancestors.ts:278</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L298">layout/src/ancestors.ts:298</a></p>
 <p>The ancestor bands (section 8.3), one on each side holding an ancestor line, each the outermost
 band of its side. On a side whose outer edge is <code class="docutils literal notranslate"><span class="pre">E</span></code> (<code class="docutils literal notranslate"><span class="pre">Ea</span></code> above, <code class="docutils literal notranslate"><span class="pre">Eb</span></code> below), the band starts at
 <code class="docutils literal notranslate"><span class="pre">c0</span> <span class="pre">=</span> <span class="pre">max(p0</span> <span class="pre">/</span> <span class="pre">2,</span> <span class="pre">max(E,</span> <span class="pre">wm</span> <span class="pre">/</span> <span class="pre">2)</span> <span class="pre">+</span> <span class="pre">S)</span></code>, <code class="docutils literal notranslate"><span class="pre">S</span></code> the card spacing and <code class="docutils literal notranslate"><span class="pre">wm</span></code> the stroke width of the
@@ -576,17 +605,17 @@ labels of its named timestamps, on the side of its line away from the member. Ro
 <h5>scope<a class="headerlink" href="#scope" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="traversal.html#scope"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Scope</span></code></span></a></p>
 </section>
-<section id="id2">
-<h5>ancestors<a class="headerlink" href="#id2" title="Link to this heading">#</a></h5>
+<section id="id3">
+<h5>ancestors<a class="headerlink" href="#id3" title="Link to this heading">#</a></h5>
 <p>readonly <code class="docutils literal notranslate"><span class="pre">AncestorLine</span></code>[]</p>
 </section>
 <section id="p0">
 <h5>p0<a class="headerlink" href="#p0" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </section>
-<section id="id3">
-<h5>edges<a class="headerlink" href="#id3" title="Link to this heading">#</a></h5>
-<p><code class="docutils literal notranslate"><span class="pre">Readonly</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Record</span></code>&lt;<a class="reference internal" href="bands.html#id45"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Side</span></code></span></a>, <code class="docutils literal notranslate"><span class="pre">number</span></code>&gt;&gt;</p>
+<section id="id4">
+<h5>edges<a class="headerlink" href="#id4" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">Readonly</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Record</span></code>&lt;<a class="reference internal" href="bands.html#id46"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Side</span></code></span></a>, <code class="docutils literal notranslate"><span class="pre">number</span></code>&gt;&gt;</p>
 </section>
 <section id="aligned">
 <h5>aligned<a class="headerlink" href="#aligned" title="Link to this heading">#</a></h5>
@@ -604,21 +633,21 @@ labels of its named timestamps, on the side of its line away from the member. Ro
 <blockquote>
 <div><p><strong>ancestorCentred</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">ancestors</span></code>): <a class="reference internal" href="bands.html#centred"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Centred</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L238">layout/src/ancestors.ts:238</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L258">layout/src/ancestors.ts:258</a></p>
 <p>The drawn centred labels of the ancestor lines (section 6.7), each with its carry.</p>
-<section id="id4">
-<h4>Parameters<a class="headerlink" href="#id4" title="Link to this heading">#</a></h4>
 <section id="id5">
-<h5>scope<a class="headerlink" href="#id5" title="Link to this heading">#</a></h5>
+<h4>Parameters<a class="headerlink" href="#id5" title="Link to this heading">#</a></h4>
+<section id="id6">
+<h5>scope<a class="headerlink" href="#id6" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="traversal.html#scope"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Scope</span></code></span></a></p>
 </section>
-<section id="id6">
-<h5>ancestors<a class="headerlink" href="#id6" title="Link to this heading">#</a></h5>
+<section id="id7">
+<h5>ancestors<a class="headerlink" href="#id7" title="Link to this heading">#</a></h5>
 <p>readonly <code class="docutils literal notranslate"><span class="pre">AncestorLine</span></code>[]</p>
 </section>
 </section>
-<section id="id7">
-<h4>Returns<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>
+<section id="id8">
+<h4>Returns<a class="headerlink" href="#id8" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="bands.html#centred"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Centred</span></code></span></a>[]</p>
 </section>
 </section>
@@ -628,17 +657,17 @@ labels of its named timestamps, on the side of its line away from the member. Ro
 <blockquote>
 <div><p><strong>ancestorCrossSections</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">ancestors</span></code>, <code class="docutils literal notranslate"><span class="pre">bands</span></code>, <code class="docutils literal notranslate"><span class="pre">x0</span></code>, <code class="docutils literal notranslate"><span class="pre">yRoot</span></code>, <code class="docutils literal notranslate"><span class="pre">span</span></code>): <a class="reference internal" href="elements.html#verticallineelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">VerticalLineElement</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L528">layout/src/ancestors.ts:528</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L610">layout/src/ancestors.ts:610</a></p>
 <p>The cross-section lines of the ancestors’ own timestamps drawn in the member’s card, from A1 to
 Ak, each’s in canonical order: across the card’s span <code class="docutils literal notranslate"><span class="pre">span</span></code> less each one’s gap.</p>
-<section id="id8">
-<h4>Parameters<a class="headerlink" href="#id8" title="Link to this heading">#</a></h4>
 <section id="id9">
-<h5>scope<a class="headerlink" href="#id9" title="Link to this heading">#</a></h5>
+<h4>Parameters<a class="headerlink" href="#id9" title="Link to this heading">#</a></h4>
+<section id="id10">
+<h5>scope<a class="headerlink" href="#id10" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="traversal.html#scope"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Scope</span></code></span></a></p>
 </section>
-<section id="id10">
-<h5>ancestors<a class="headerlink" href="#id10" title="Link to this heading">#</a></h5>
+<section id="id11">
+<h5>ancestors<a class="headerlink" href="#id11" title="Link to this heading">#</a></h5>
 <p>readonly <code class="docutils literal notranslate"><span class="pre">AncestorLine</span></code>[]</p>
 </section>
 <section id="bands">
@@ -658,8 +687,8 @@ Ak, each’s in canonical order: across the card’s span <code class="docutils 
 <p><a class="reference internal" href="stacks.html#span"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Span</span></code></span></a></p>
 </section>
 </section>
-<section id="id11">
-<h4>Returns<a class="headerlink" href="#id11" title="Link to this heading">#</a></h4>
+<section id="id12">
+<h4>Returns<a class="headerlink" href="#id12" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="elements.html#verticallineelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">VerticalLineElement</span></code></span></a>[]</p>
 </section>
 </section>
@@ -669,34 +698,34 @@ Ak, each’s in canonical order: across the card’s span <code class="docutils 
 <blockquote>
 <div><p><strong>ancestorLabelElements</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">ancestors</span></code>, <code class="docutils literal notranslate"><span class="pre">bands</span></code>, <code class="docutils literal notranslate"><span class="pre">x0</span></code>, <code class="docutils literal notranslate"><span class="pre">yRoot</span></code>): <a class="reference internal" href="elements.html#textelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">TextElement</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L468">layout/src/ancestors.ts:468</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L550">layout/src/ancestors.ts:550</a></p>
 <p>The labels of each ancestor line’s stacks, in the same order, each stack in its tier beyond its
 wedge’s base on the side away from the member, carried by a turned wedge (section 6.6).</p>
-<section id="id12">
-<h4>Parameters<a class="headerlink" href="#id12" title="Link to this heading">#</a></h4>
 <section id="id13">
-<h5>scope<a class="headerlink" href="#id13" title="Link to this heading">#</a></h5>
+<h4>Parameters<a class="headerlink" href="#id13" title="Link to this heading">#</a></h4>
+<section id="id14">
+<h5>scope<a class="headerlink" href="#id14" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="traversal.html#scope"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Scope</span></code></span></a></p>
 </section>
-<section id="id14">
-<h5>ancestors<a class="headerlink" href="#id14" title="Link to this heading">#</a></h5>
+<section id="id15">
+<h5>ancestors<a class="headerlink" href="#id15" title="Link to this heading">#</a></h5>
 <p>readonly <code class="docutils literal notranslate"><span class="pre">AncestorLine</span></code>[]</p>
 </section>
-<section id="id15">
-<h5>bands<a class="headerlink" href="#id15" title="Link to this heading">#</a></h5>
+<section id="id16">
+<h5>bands<a class="headerlink" href="#id16" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="#ancestorbands"><code class="docutils literal notranslate"><span class="pre">AncestorBands</span></code></a></p>
 </section>
-<section id="id16">
-<h5>x0<a class="headerlink" href="#id16" title="Link to this heading">#</a></h5>
-<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
-</section>
 <section id="id17">
-<h5>yRoot<a class="headerlink" href="#id17" title="Link to this heading">#</a></h5>
+<h5>x0<a class="headerlink" href="#id17" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
-</section>
 </section>
 <section id="id18">
-<h4>Returns<a class="headerlink" href="#id18" title="Link to this heading">#</a></h4>
+<h5>yRoot<a class="headerlink" href="#id18" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id19">
+<h4>Returns<a class="headerlink" href="#id19" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="elements.html#textelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">TextElement</span></code></span></a>[]</p>
 </section>
 </section>
@@ -704,39 +733,42 @@ wedge’s base on the side away from the member, carried by a turned wedge (sect
 <section id="ancestorlineelements">
 <h3>ancestorLineElements()<a class="headerlink" href="#ancestorlineelements" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>ancestorLineElements</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">ancestors</span></code>, <code class="docutils literal notranslate"><span class="pre">bands</span></code>, <code class="docutils literal notranslate"><span class="pre">x0</span></code>, <code class="docutils literal notranslate"><span class="pre">yRoot</span></code>): <a class="reference internal" href="elements.html#lineelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineElement</span></code></span></a>[]</p>
+<div><p><strong>ancestorLineElements</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">ancestors</span></code>, <code class="docutils literal notranslate"><span class="pre">bands</span></code>, <code class="docutils literal notranslate"><span class="pre">x0</span></code>, <code class="docutils literal notranslate"><span class="pre">yRoot</span></code>): <a class="reference internal" href="#ancestorpiece"><code class="docutils literal notranslate"><span class="pre">AncestorPiece</span></code></a>[][]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L362">layout/src/ancestors.ts:362</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L403">layout/src/ancestors.ts:403</a></p>
 <p>The ancestor lines, from A1 to Ak, each running on in chevrons or ending at the member’s ends,
 <code class="docutils literal notranslate"><span class="pre">x0</span> <span class="pre">+</span> <span class="pre">L'</span></code> with <code class="docutils literal notranslate"><span class="pre">L'</span> <span class="pre">=</span> <span class="pre">L</span> <span class="pre">−</span> <span class="pre">DG</span></code> the drawn length of its frame’s members (section 8.2); on the
 frame’s elided axis, an end short of the member’s lying in a gap ends at the gap’s left edge
-without its mark, and each is cut at every gap it crosses (section 6.6, Elisions).</p>
-<section id="id19">
-<h4>Parameters<a class="headerlink" href="#id19" title="Link to this heading">#</a></h4>
+without its mark, and each is cut at every gap it crosses (section 6.6, Elisions). Each is one
+drawing; on a carried card of a switched frame (section 8.10) one in every stretch piece its
+stretch of the member’s axis, 0 to <code class="docutils literal notranslate"><span class="pre">te</span></code> or <code class="docutils literal notranslate"><span class="pre">λ</span></code>, reaches into, its start and end, chevrons
+included, kept only where they lie in that piece and placed at their played x.</p>
 <section id="id20">
-<h5>scope<a class="headerlink" href="#id20" title="Link to this heading">#</a></h5>
+<h4>Parameters<a class="headerlink" href="#id20" title="Link to this heading">#</a></h4>
+<section id="id21">
+<h5>scope<a class="headerlink" href="#id21" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="traversal.html#scope"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Scope</span></code></span></a></p>
 </section>
-<section id="id21">
-<h5>ancestors<a class="headerlink" href="#id21" title="Link to this heading">#</a></h5>
+<section id="id22">
+<h5>ancestors<a class="headerlink" href="#id22" title="Link to this heading">#</a></h5>
 <p>readonly <code class="docutils literal notranslate"><span class="pre">AncestorLine</span></code>[]</p>
 </section>
-<section id="id22">
-<h5>bands<a class="headerlink" href="#id22" title="Link to this heading">#</a></h5>
+<section id="id23">
+<h5>bands<a class="headerlink" href="#id23" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="#ancestorbands"><code class="docutils literal notranslate"><span class="pre">AncestorBands</span></code></a></p>
 </section>
-<section id="id23">
-<h5>x0<a class="headerlink" href="#id23" title="Link to this heading">#</a></h5>
-<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
-</section>
 <section id="id24">
-<h5>yRoot<a class="headerlink" href="#id24" title="Link to this heading">#</a></h5>
+<h5>x0<a class="headerlink" href="#id24" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
-</section>
 </section>
 <section id="id25">
-<h4>Returns<a class="headerlink" href="#id25" title="Link to this heading">#</a></h4>
-<p><a class="reference internal" href="elements.html#lineelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineElement</span></code></span></a>[]</p>
+<h5>yRoot<a class="headerlink" href="#id25" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id26">
+<h4>Returns<a class="headerlink" href="#id26" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#ancestorpiece"><code class="docutils literal notranslate"><span class="pre">AncestorPiece</span></code></a>[][]</p>
 </section>
 </section>
 <hr class="docutils" />
@@ -745,24 +777,24 @@ without its mark, and each is cut at every gap it crosses (section 6.6, Elisions
 <blockquote>
 <div><p><strong>ancestorLineMarks</strong>(<code class="docutils literal notranslate"><span class="pre">ancestors</span></code>, <code class="docutils literal notranslate"><span class="pre">lines</span></code>): <code class="docutils literal notranslate"><span class="pre">Map</span></code>&lt;<a class="reference internal" href="elements.html#lineelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineElement</span></code></span></a>, <a class="reference internal" href="boxes.html#axiswedge"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AxisWedge</span></code></span></a>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L425">layout/src/ancestors.ts:425</a></p>
-<p>The mark an editor shows at a position on each drawn ancestor line, <code class="docutils literal notranslate"><span class="pre">lines</span></code> the elements of
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L508">layout/src/ancestors.ts:508</a></p>
+<p>The mark an editor shows at a position on each drawn ancestor line, <code class="docutils literal notranslate"><span class="pre">lines</span></code> the drawings of
 <code class="docutils literal notranslate"><span class="pre">ancestors</span></code> in their order (<code class="docutils literal notranslate"><span class="pre">ancestorLineElements</span></code>): drawn as a named timestamp’s wedge on it is
 (<code class="docutils literal notranslate"><span class="pre">ancestorWedgeElements</span></code>), in the style of a wedge held by the line that no named timestamp
-holds, so that no rule naming an address changes it; by its line’s element.</p>
-<section id="id26">
-<h4>Parameters<a class="headerlink" href="#id26" title="Link to this heading">#</a></h4>
+holds, so that no rule naming an address changes it; by each of its drawings’ element.</p>
 <section id="id27">
-<h5>ancestors<a class="headerlink" href="#id27" title="Link to this heading">#</a></h5>
+<h4>Parameters<a class="headerlink" href="#id27" title="Link to this heading">#</a></h4>
+<section id="id28">
+<h5>ancestors<a class="headerlink" href="#id28" title="Link to this heading">#</a></h5>
 <p>readonly <code class="docutils literal notranslate"><span class="pre">AncestorLine</span></code>[]</p>
 </section>
 <section id="lines">
 <h5>lines<a class="headerlink" href="#lines" title="Link to this heading">#</a></h5>
-<p>readonly <a class="reference internal" href="elements.html#lineelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineElement</span></code></span></a>[]</p>
+<p>readonly (readonly <a class="reference internal" href="#ancestorpiece"><code class="docutils literal notranslate"><span class="pre">AncestorPiece</span></code></a>[])[]</p>
 </section>
 </section>
-<section id="id28">
-<h4>Returns<a class="headerlink" href="#id28" title="Link to this heading">#</a></h4>
+<section id="id29">
+<h4>Returns<a class="headerlink" href="#id29" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">Map</span></code>&lt;<a class="reference internal" href="elements.html#lineelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineElement</span></code></span></a>, <a class="reference internal" href="boxes.html#axiswedge"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AxisWedge</span></code></span></a>&gt;</p>
 </section>
 </section>
@@ -772,17 +804,17 @@ holds, so that no rule naming an address changes it; by its line’s element.</p
 <blockquote>
 <div><p><strong>ancestorLines</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>): <code class="docutils literal notranslate"><span class="pre">AncestorLine</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L115">layout/src/ancestors.ts:115</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L116">layout/src/ancestors.ts:116</a></p>
 <p>The drawn ancestor lines, from the root A1 down to the parent Ak, at the member’s scale.</p>
-<section id="id29">
-<h4>Parameters<a class="headerlink" href="#id29" title="Link to this heading">#</a></h4>
 <section id="id30">
-<h5>scope<a class="headerlink" href="#id30" title="Link to this heading">#</a></h5>
+<h4>Parameters<a class="headerlink" href="#id30" title="Link to this heading">#</a></h4>
+<section id="id31">
+<h5>scope<a class="headerlink" href="#id31" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="traversal.html#scope"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Scope</span></code></span></a></p>
 </section>
 </section>
-<section id="id31">
-<h4>Returns<a class="headerlink" href="#id31" title="Link to this heading">#</a></h4>
+<section id="id32">
+<h4>Returns<a class="headerlink" href="#id32" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">AncestorLine</span></code>[]</p>
 </section>
 </section>
@@ -792,17 +824,17 @@ holds, so that no rule naming an address changes it; by its line’s element.</p
 <blockquote>
 <div><p><strong>ancestorNames</strong>(<code class="docutils literal notranslate"><span class="pre">ancestors</span></code>): <a class="reference internal" href="names.html#nameitem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">NameItem</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L340">layout/src/ancestors.ts:340</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L360">layout/src/ancestors.ts:360</a></p>
 <p>The ancestors’ names, from A1 to Ak, each its own row of the name column.</p>
-<section id="id32">
-<h4>Parameters<a class="headerlink" href="#id32" title="Link to this heading">#</a></h4>
 <section id="id33">
-<h5>ancestors<a class="headerlink" href="#id33" title="Link to this heading">#</a></h5>
+<h4>Parameters<a class="headerlink" href="#id33" title="Link to this heading">#</a></h4>
+<section id="id34">
+<h5>ancestors<a class="headerlink" href="#id34" title="Link to this heading">#</a></h5>
 <p>readonly <code class="docutils literal notranslate"><span class="pre">AncestorLine</span></code>[]</p>
 </section>
 </section>
-<section id="id34">
-<h4>Returns<a class="headerlink" href="#id34" title="Link to this heading">#</a></h4>
+<section id="id35">
+<h4>Returns<a class="headerlink" href="#id35" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="names.html#nameitem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">NameItem</span></code></span></a>[]</p>
 </section>
 </section>
@@ -810,33 +842,40 @@ holds, so that no rule naming an address changes it; by its line’s element.</p
 <section id="ancestortimestamps">
 <h3>ancestorTimestamps()<a class="headerlink" href="#ancestortimestamps" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>ancestorTimestamps</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">ancestors</span></code>, <code class="docutils literal notranslate"><span class="pre">x0</span></code>, <code class="docutils literal notranslate"><span class="pre">span</span></code>): <a class="reference internal" href="boxes.html#axistimestamp"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AxisTimestamp</span></code></span></a>[][]</p>
+<div><p><strong>ancestorTimestamps</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">ancestors</span></code>, <code class="docutils literal notranslate"><span class="pre">lines</span></code>, <code class="docutils literal notranslate"><span class="pre">x0</span></code>, <code class="docutils literal notranslate"><span class="pre">span</span></code>): <code class="docutils literal notranslate"><span class="pre">Map</span></code>&lt;<a class="reference internal" href="elements.html#lineelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineElement</span></code></span></a>, <a class="reference internal" href="boxes.html#axistimestamp"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AxisTimestamp</span></code></span></a>[]&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L554">layout/src/ancestors.ts:554</a></p>
-<p>The named timestamps each ancestor line holds (<code class="docutils literal notranslate"><span class="pre">DrawnAxis.timestamps</span></code>), from A1 to Ak; none at
-a position in a gap, which has no abscissa.</p>
-<section id="id35">
-<h4>Parameters<a class="headerlink" href="#id35" title="Link to this heading">#</a></h4>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L639">layout/src/ancestors.ts:639</a></p>
+<p>The named timestamps each drawing of an ancestor line holds (<code class="docutils literal notranslate"><span class="pre">DrawnAxis.timestamps</span></code>), by its
+element, <code class="docutils literal notranslate"><span class="pre">lines</span></code> the drawings of <code class="docutils literal notranslate"><span class="pre">ancestors</span></code> in their order (<code class="docutils literal notranslate"><span class="pre">ancestorLineElements</span></code>): a line
+drawn once holds every one of its own; a line drawn once in each piece of a switched frame
+(section 8.10) holds each at a played x in the first of its drawings reaching it. None at a
+position in a gap, which has no abscissa.</p>
 <section id="id36">
-<h5>scope<a class="headerlink" href="#id36" title="Link to this heading">#</a></h5>
+<h4>Parameters<a class="headerlink" href="#id36" title="Link to this heading">#</a></h4>
+<section id="id37">
+<h5>scope<a class="headerlink" href="#id37" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="traversal.html#scope"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Scope</span></code></span></a></p>
 </section>
-<section id="id37">
-<h5>ancestors<a class="headerlink" href="#id37" title="Link to this heading">#</a></h5>
+<section id="id38">
+<h5>ancestors<a class="headerlink" href="#id38" title="Link to this heading">#</a></h5>
 <p>readonly <code class="docutils literal notranslate"><span class="pre">AncestorLine</span></code>[]</p>
 </section>
-<section id="id38">
-<h5>x0<a class="headerlink" href="#id38" title="Link to this heading">#</a></h5>
+<section id="id39">
+<h5>lines<a class="headerlink" href="#id39" title="Link to this heading">#</a></h5>
+<p>readonly (readonly <a class="reference internal" href="#ancestorpiece"><code class="docutils literal notranslate"><span class="pre">AncestorPiece</span></code></a>[])[]</p>
+</section>
+<section id="id40">
+<h5>x0<a class="headerlink" href="#id40" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </section>
-<section id="id39">
-<h5>span<a class="headerlink" href="#id39" title="Link to this heading">#</a></h5>
+<section id="id41">
+<h5>span<a class="headerlink" href="#id41" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="stacks.html#span"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Span</span></code></span></a></p>
 </section>
 </section>
-<section id="id40">
-<h4>Returns<a class="headerlink" href="#id40" title="Link to this heading">#</a></h4>
-<p><a class="reference internal" href="boxes.html#axistimestamp"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AxisTimestamp</span></code></span></a>[][]</p>
+<section id="id42">
+<h4>Returns<a class="headerlink" href="#id42" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">Map</span></code>&lt;<a class="reference internal" href="elements.html#lineelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineElement</span></code></span></a>, <a class="reference internal" href="boxes.html#axistimestamp"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AxisTimestamp</span></code></span></a>[]&gt;</p>
 </section>
 </section>
 <hr class="docutils" />
@@ -845,35 +884,35 @@ a position in a gap, which has no abscissa.</p>
 <blockquote>
 <div><p><strong>ancestorWedgeElements</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">ancestors</span></code>, <code class="docutils literal notranslate"><span class="pre">bands</span></code>, <code class="docutils literal notranslate"><span class="pre">x0</span></code>, <code class="docutils literal notranslate"><span class="pre">yRoot</span></code>): <a class="reference internal" href="elements.html#markerelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MarkerElement</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L445">layout/src/ancestors.ts:445</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L527">layout/src/ancestors.ts:527</a></p>
 <p>The wedges of each ancestor line, from A1 to Ak, each’s in the order of its first fit (its
 timestamps’ coordinates), on its side away from the member, turned by each one’s <code class="docutils literal notranslate"><span class="pre">rotation</span></code>
 (<code class="docutils literal notranslate"><span class="pre">markOn</span></code>); none at a position in a gap (section 6.6, Elisions).</p>
-<section id="id41">
-<h4>Parameters<a class="headerlink" href="#id41" title="Link to this heading">#</a></h4>
-<section id="id42">
-<h5>scope<a class="headerlink" href="#id42" title="Link to this heading">#</a></h5>
+<section id="id43">
+<h4>Parameters<a class="headerlink" href="#id43" title="Link to this heading">#</a></h4>
+<section id="id44">
+<h5>scope<a class="headerlink" href="#id44" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="traversal.html#scope"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Scope</span></code></span></a></p>
 </section>
-<section id="id43">
-<h5>ancestors<a class="headerlink" href="#id43" title="Link to this heading">#</a></h5>
+<section id="id45">
+<h5>ancestors<a class="headerlink" href="#id45" title="Link to this heading">#</a></h5>
 <p>readonly <code class="docutils literal notranslate"><span class="pre">AncestorLine</span></code>[]</p>
 </section>
-<section id="id44">
-<h5>bands<a class="headerlink" href="#id44" title="Link to this heading">#</a></h5>
+<section id="id46">
+<h5>bands<a class="headerlink" href="#id46" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="#ancestorbands"><code class="docutils literal notranslate"><span class="pre">AncestorBands</span></code></a></p>
 </section>
-<section id="id45">
-<h5>x0<a class="headerlink" href="#id45" title="Link to this heading">#</a></h5>
-<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
-</section>
-<section id="id46">
-<h5>yRoot<a class="headerlink" href="#id46" title="Link to this heading">#</a></h5>
-<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
-</section>
-</section>
 <section id="id47">
-<h4>Returns<a class="headerlink" href="#id47" title="Link to this heading">#</a></h4>
+<h5>x0<a class="headerlink" href="#id47" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="id48">
+<h5>yRoot<a class="headerlink" href="#id48" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id49">
+<h4>Returns<a class="headerlink" href="#id49" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="elements.html#markerelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MarkerElement</span></code></span></a>[]</p>
 </section>
 </section>
@@ -883,12 +922,12 @@ timestamps’ coordinates), on its side away from the member, turned by each one
 <blockquote>
 <div><p><strong>ancestorY</strong>(<code class="docutils literal notranslate"><span class="pre">bands</span></code>, <code class="docutils literal notranslate"><span class="pre">index</span></code>, <code class="docutils literal notranslate"><span class="pre">side</span></code>, <code class="docutils literal notranslate"><span class="pre">yRoot</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L344">layout/src/ancestors.ts:344</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L364">layout/src/ancestors.ts:364</a></p>
 <p>The ordinate of drawn ancestor <code class="docutils literal notranslate"><span class="pre">index</span></code> (from A1) lying on <code class="docutils literal notranslate"><span class="pre">side</span></code>, <code class="docutils literal notranslate"><span class="pre">yRoot</span></code> the root’s line.</p>
-<section id="id48">
-<h4>Parameters<a class="headerlink" href="#id48" title="Link to this heading">#</a></h4>
-<section id="id49">
-<h5>bands<a class="headerlink" href="#id49" title="Link to this heading">#</a></h5>
+<section id="id50">
+<h4>Parameters<a class="headerlink" href="#id50" title="Link to this heading">#</a></h4>
+<section id="id51">
+<h5>bands<a class="headerlink" href="#id51" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="#ancestorbands"><code class="docutils literal notranslate"><span class="pre">AncestorBands</span></code></a></p>
 </section>
 <section id="index">
@@ -897,15 +936,15 @@ timestamps’ coordinates), on its side away from the member, turned by each one
 </section>
 <section id="side">
 <h5>side<a class="headerlink" href="#side" title="Link to this heading">#</a></h5>
-<p><a class="reference internal" href="bands.html#id45"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Side</span></code></span></a></p>
+<p><a class="reference internal" href="bands.html#id46"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Side</span></code></span></a></p>
 </section>
-<section id="id50">
-<h5>yRoot<a class="headerlink" href="#id50" title="Link to this heading">#</a></h5>
+<section id="id52">
+<h5>yRoot<a class="headerlink" href="#id52" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </section>
 </section>
-<section id="id51">
-<h4>Returns<a class="headerlink" href="#id51" title="Link to this heading">#</a></h4>
+<section id="id53">
+<h4>Returns<a class="headerlink" href="#id53" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </section>
 </section>
@@ -915,17 +954,17 @@ timestamps’ coordinates), on its side away from the member, turned by each one
 <blockquote>
 <div><p><strong>chevrons</strong>(<code class="docutils literal notranslate"><span class="pre">ancestors</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/ancestors.ts#L353">layout/src/ancestors.ts:353</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/ancestors.ts#L373">layout/src/ancestors.ts:373</a></p>
 <p>The stroke widths of the drawn ancestor lines that run on to the left.</p>
-<section id="id52">
-<h4>Parameters<a class="headerlink" href="#id52" title="Link to this heading">#</a></h4>
-<section id="id53">
-<h5>ancestors<a class="headerlink" href="#id53" title="Link to this heading">#</a></h5>
+<section id="id54">
+<h4>Parameters<a class="headerlink" href="#id54" title="Link to this heading">#</a></h4>
+<section id="id55">
+<h5>ancestors<a class="headerlink" href="#id55" title="Link to this heading">#</a></h5>
 <p>readonly <code class="docutils literal notranslate"><span class="pre">AncestorLine</span></code>[]</p>
 </section>
 </section>
-<section id="id54">
-<h4>Returns<a class="headerlink" href="#id54" title="Link to this heading">#</a></h4>
+<section id="id56">
+<h4>Returns<a class="headerlink" href="#id56" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">number</span></code>[]</p>
 </section>
 </section>
@@ -990,15 +1029,23 @@ timestamps’ coordinates), on its side away from the member, turned by each one
 </li>
 </ul>
 </li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ancestorpiece">AncestorPiece</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#axis">axis</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#element">element</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">ancestorBands()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">ancestorBands()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#scope">scope</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">ancestors</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">ancestors</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#p0">p0</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">edges</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">edges</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#aligned">aligned</a></li>
 </ul>
 </li>
@@ -1006,116 +1053,117 @@ timestamps’ coordinates), on its side away from the member, turned by each one
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ancestorcentred">ancestorCentred()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">scope</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">ancestors</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">scope</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">ancestors</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ancestorcrosssections">ancestorCrossSections()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">scope</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">ancestors</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">scope</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">ancestors</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#bands">bands</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#x0">x0</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#yroot">yRoot</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#span">span</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ancestorlabelelements">ancestorLabelElements()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">scope</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">ancestors</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">bands</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">x0</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">yRoot</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">scope</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">ancestors</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">bands</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">x0</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">yRoot</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ancestorlineelements">ancestorLineElements()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">scope</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">ancestors</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">bands</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">x0</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">yRoot</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">scope</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">ancestors</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">bands</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">x0</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">yRoot</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id26">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ancestorlinemarks">ancestorLineMarks()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id26">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id27">ancestors</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id27">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">ancestors</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#lines">lines</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id29">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ancestorlines">ancestorLines()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id29">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id30">scope</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id30">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id31">scope</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id31">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ancestornames">ancestorNames()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id33">ancestors</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id33">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id34">ancestors</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id34">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id35">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ancestortimestamps">ancestorTimestamps()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id35">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id36">scope</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id37">ancestors</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id38">x0</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id39">span</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id36">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id37">scope</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id38">ancestors</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id39">lines</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id40">x0</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id41">span</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id40">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id42">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ancestorwedgeelements">ancestorWedgeElements()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id41">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id42">scope</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id43">ancestors</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id44">bands</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id45">x0</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id46">yRoot</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id43">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id44">scope</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id45">ancestors</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id46">bands</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id47">x0</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id48">yRoot</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id47">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id49">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ancestory">ancestorY()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id48">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id49">bands</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id50">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id51">bands</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#index">index</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#side">side</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id50">yRoot</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id52">yRoot</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id51">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id53">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#chevrons">chevrons()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id52">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id53">ancestors</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id54">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id55">ancestors</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id54">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id56">Returns</a></li>
 </ul>
 </li>
 </ul>

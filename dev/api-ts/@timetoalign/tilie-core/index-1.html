@@ -398,6 +398,7 @@
 <li class="toctree-l2"><a class="reference internal" href="commands/add.html">commands/add</a></li>
 <li class="toctree-l2"><a class="reference internal" href="commands/apply.html">commands/apply</a></li>
 <li class="toctree-l2"><a class="reference internal" href="commands/elisions.html">commands/elisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands/flowmaps.html">commands/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="commands/matchstamps.html">commands/matchstamps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="commands/mutations.html">commands/mutations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="commands/parse.html">commands/parse</a></li>
@@ -422,6 +423,7 @@
 <li class="toctree-l2"><a class="reference internal" href="manifest/elisions.html">manifest/elisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="manifest/files.html">manifest/files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="manifest/flow.html">manifest/flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/flowmaps.html">manifest/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="manifest/invariants.html">manifest/invariants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="manifest/io.html">manifest/io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="manifest/locks.html">manifest/locks</a></li>
@@ -429,8 +431,10 @@
 <li class="toctree-l2"><a class="reference internal" href="manifest/remove.html">manifest/remove</a></li>
 <li class="toctree-l2"><a class="reference internal" href="manifest/segments.html">manifest/segments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="manifest/statements.html">manifest/statements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/switched.html">manifest/switched</a></li>
 <li class="toctree-l2"><a class="reference internal" href="manifest/tree.html">manifest/tree</a></li>
 <li class="toctree-l2"><a class="reference internal" href="manifest/types.html">manifest/types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manifest/virtual.html">manifest/virtual</a></li>
 <li class="toctree-l2"><a class="reference internal" href="maps/compile.html">maps/compile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="maps/express.html">maps/express</a></li>
 <li class="toctree-l2"><a class="reference internal" href="maps/invert.html">maps/invert</a></li>
@@ -538,7 +542,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>name</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;&#64;timetoalign/tilie-core&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/index.ts#L16">index.ts:16</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/index.ts#L16">index.ts:16</a></p>
 <p>The package’s name.</p>
 </section>
 </section>
@@ -729,6 +733,11 @@
 <p>Re-exports <a class="reference internal" href="manifest/address.html#cardaddress"><span class="std std-ref">cardAddress</span></a></p>
 </section>
 <hr class="docutils" />
+<section id="cardflow">
+<h3>cardFlow<a class="headerlink" href="#cardflow" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/switched.html#cardflow"><span class="std std-ref">cardFlow</span></a></p>
+</section>
+<hr class="docutils" />
 <section id="cardplace">
 <h3>CardPlace<a class="headerlink" href="#cardplace" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="manifest/containers.html#cardplace"><span class="std std-ref">CardPlace</span></a></p>
@@ -757,6 +766,11 @@
 <section id="childtimeline">
 <h3>ChildTimeline<a class="headerlink" href="#childtimeline" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="manifest/types.html#childtimeline"><span class="std std-ref">ChildTimeline</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="chunkindex">
+<h3>ChunkIndex<a class="headerlink" href="#chunkindex" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/address.html#chunkindex"><span class="std std-ref">ChunkIndex</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="claimbeliefs">
@@ -1021,7 +1035,7 @@
 <hr class="docutils" />
 <section id="entry">
 <h3>Entry<a class="headerlink" href="#entry" title="Link to this heading">#</a></h3>
-<p>Re-exports <a class="reference internal" href="workspace/sessions.html#id12"><span class="std std-ref">Entry</span></a></p>
+<p>Re-exports <a class="reference internal" href="workspace/sessions.html#id13"><span class="std std-ref">Entry</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="entrykind">
@@ -1084,6 +1098,16 @@
 <p>Re-exports <a class="reference internal" href="manifest/flow.html#flow-line-roles"><span class="std std-ref">FLOW_LINE_ROLES</span></a></p>
 </section>
 <hr class="docutils" />
+<section id="flowchunk">
+<h3>FlowChunk<a class="headerlink" href="#flowchunk" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flowmaps.html#flowchunk"><span class="std std-ref">FlowChunk</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="flowchunkkind">
+<h3>FlowChunkKind<a class="headerlink" href="#flowchunkkind" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flowmaps.html#flowchunkkind"><span class="std std-ref">FlowChunkKind</span></a></p>
+</section>
+<hr class="docutils" />
 <section id="flowcontrolelement">
 <h3>FlowControlElement<a class="headerlink" href="#flowcontrolelement" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="manifest/types.html#flowcontrolelement"><span class="std std-ref">FlowControlElement</span></a></p>
@@ -1094,6 +1118,21 @@
 <p>Re-exports <a class="reference internal" href="manifest/flow.html#flowlinerole"><span class="std std-ref">FlowLineRole</span></a></p>
 </section>
 <hr class="docutils" />
+<section id="flowmap">
+<h3>FlowMap<a class="headerlink" href="#flowmap" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#flowmap"><span class="std std-ref">FlowMap</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="flowmaperror">
+<h3>FlowMapError<a class="headerlink" href="#flowmaperror" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flowmaps.html#flowmaperror"><span class="std std-ref">FlowMapError</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="flowmaperrorcode">
+<h3>FlowMapErrorCode<a class="headerlink" href="#flowmaperrorcode" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flowmaps.html#flowmaperrorcode"><span class="std std-ref">FlowMapErrorCode</span></a></p>
+</section>
+<hr class="docutils" />
 <section id="flowreading">
 <h3>flowReading<a class="headerlink" href="#flowreading" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="manifest/flow.html#id7"><span class="std std-ref">flowReading</span></a></p>
@@ -1102,6 +1141,26 @@
 <section id="id5">
 <h3>FlowReading<a class="headerlink" href="#id5" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="manifest/flow.html#flowreading"><span class="std std-ref">FlowReading</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="flowrun">
+<h3>FlowRun<a class="headerlink" href="#flowrun" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flowmaps.html#flowrun"><span class="std std-ref">FlowRun</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="flowvirtualtimeline">
+<h3>FlowVirtualTimeline<a class="headerlink" href="#flowvirtualtimeline" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/virtual.html#flowvirtualtimeline"><span class="std std-ref">FlowVirtualTimeline</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="fold">
+<h3>fold<a class="headerlink" href="#fold" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flowmaps.html#fold"><span class="std std-ref">fold</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="foldvirtual">
+<h3>foldVirtual<a class="headerlink" href="#foldvirtual" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/virtual.html#foldvirtual"><span class="std std-ref">foldVirtual</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="gap">
@@ -1239,9 +1298,19 @@
 <p>Re-exports <a class="reference internal" href="maps/invert.html#invertible"><span class="std std-ref">invertible</span></a></p>
 </section>
 <hr class="docutils" />
+<section id="isatomicsection">
+<h3>isAtomicSection<a class="headerlink" href="#isatomicsection" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/elements.html#isatomicsection"><span class="std std-ref">isAtomicSection</span></a></p>
+</section>
+<hr class="docutils" />
 <section id="iscommanderror">
 <h3>isCommandError<a class="headerlink" href="#iscommanderror" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="errors.html#iscommanderror"><span class="std std-ref">isCommandError</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="iscomputedflowmap">
+<h3>isComputedFlowMap<a class="headerlink" href="#iscomputedflowmap" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands/flowmaps.html#iscomputedflowmap"><span class="std std-ref">isComputedFlowMap</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="iselementaddress">
@@ -1429,6 +1498,11 @@
 <p>Re-exports <a class="reference internal" href="maps/values.html#mapoutputs"><span class="std std-ref">MapOutputs</span></a></p>
 </section>
 <hr class="docutils" />
+<section id="mappedvirtualtimeline">
+<h3>MappedVirtualTimeline<a class="headerlink" href="#mappedvirtualtimeline" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/virtual.html#mappedvirtualtimeline"><span class="std std-ref">MappedVirtualTimeline</span></a></p>
+</section>
+<hr class="docutils" />
 <section id="mapresult">
 <h3>MapResult<a class="headerlink" href="#mapresult" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="maps/values.html#mapresult"><span class="std std-ref">MapResult</span></a></p>
@@ -1564,6 +1638,11 @@
 <p>Re-exports <a class="reference internal" href="manifest/io.html#normalizemanifest"><span class="std std-ref">normalizeManifest</span></a></p>
 </section>
 <hr class="docutils" />
+<section id="occurrence">
+<h3>Occurrence<a class="headerlink" href="#occurrence" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flowmaps.html#occurrence"><span class="std std-ref">Occurrence</span></a></p>
+</section>
+<hr class="docutils" />
 <section id="openeditor">
 <h3>OpenEditor<a class="headerlink" href="#openeditor" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="workspace/sessions.html#openeditor"><span class="std std-ref">OpenEditor</span></a></p>
@@ -1582,6 +1661,11 @@
 <section id="partaddress">
 <h3>partAddress<a class="headerlink" href="#partaddress" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="manifest/address.html#partaddress"><span class="std std-ref">partAddress</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="partitem">
+<h3>PartItem<a class="headerlink" href="#partitem" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/address.html#partitem"><span class="std std-ref">PartItem</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="pathsegment">
@@ -1642,6 +1726,11 @@
 <section id="places">
 <h3>Places<a class="headerlink" href="#places" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="manifest/containers.html#places"><span class="std std-ref">Places</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="playedstretch">
+<h3>PlayedStretch<a class="headerlink" href="#playedstretch" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flowmaps.html#playedstretch"><span class="std std-ref">PlayedStretch</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="positionfor">
@@ -1749,14 +1838,34 @@
 <p>Re-exports <a class="reference internal" href="workspace/address.html#resolvedelement"><span class="std std-ref">ResolvedElement</span></a></p>
 </section>
 <hr class="docutils" />
+<section id="resolvedflowmap">
+<h3>ResolvedFlowMap<a class="headerlink" href="#resolvedflowmap" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flowmaps.html#resolvedflowmap"><span class="std std-ref">ResolvedFlowMap</span></a></p>
+</section>
+<hr class="docutils" />
 <section id="resolvedpath">
 <h3>resolvedPath<a class="headerlink" href="#resolvedpath" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="workspace/address.html#resolvedpath"><span class="std std-ref">resolvedPath</span></a></p>
 </section>
 <hr class="docutils" />
+<section id="resolvedvirtualtimeline">
+<h3>ResolvedVirtualTimeline<a class="headerlink" href="#resolvedvirtualtimeline" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/virtual.html#resolvedvirtualtimeline"><span class="std std-ref">ResolvedVirtualTimeline</span></a></p>
+</section>
+<hr class="docutils" />
 <section id="resolveelement">
 <h3>resolveElement<a class="headerlink" href="#resolveelement" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="workspace/address.html#resolveelement"><span class="std std-ref">resolveElement</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="resolveflowmap">
+<h3>resolveFlowMap<a class="headerlink" href="#resolveflowmap" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flowmaps.html#resolveflowmap"><span class="std std-ref">resolveFlowMap</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="resolvevirtualtimeline">
+<h3>resolveVirtualTimeline<a class="headerlink" href="#resolvevirtualtimeline" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/virtual.html#resolvevirtualtimeline"><span class="std std-ref">resolveVirtualTimeline</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="row">
@@ -1834,6 +1943,11 @@
 <p>Re-exports <a class="reference internal" href="workspace/user.html#statedby"><span class="std std-ref">statedBy</span></a></p>
 </section>
 <hr class="docutils" />
+<section id="statededitorkind">
+<h3>StatedEditorKind<a class="headerlink" href="#statededitorkind" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="workspace/sessions.html#statededitorkind"><span class="std std-ref">StatedEditorKind</span></a></p>
+</section>
+<hr class="docutils" />
 <section id="statementholder">
 <h3>statementHolder<a class="headerlink" href="#statementholder" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="manifest/statements.html#id17"><span class="std std-ref">statementHolder</span></a></p>
@@ -1862,6 +1976,11 @@
 <section id="storeoptions">
 <h3>StoreOptions<a class="headerlink" href="#storeoptions" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="workspace/store.html#storeoptions"><span class="std std-ref">StoreOptions</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="stretch">
+<h3>Stretch<a class="headerlink" href="#stretch" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flowmaps.html#stretch"><span class="std std-ref">Stretch</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="stylecommand">
@@ -1934,6 +2053,16 @@
 <p>Re-exports <a class="reference internal" href="manifest/address.html#title-address"><span class="std std-ref">TITLE_ADDRESS</span></a></p>
 </section>
 <hr class="docutils" />
+<section id="unfold">
+<h3>unfold<a class="headerlink" href="#unfold" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/flowmaps.html#unfold"><span class="std std-ref">unfold</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="unfoldvirtual">
+<h3>unfoldVirtual<a class="headerlink" href="#unfoldvirtual" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/virtual.html#unfoldvirtual"><span class="std std-ref">unfoldVirtual</span></a></p>
+</section>
+<hr class="docutils" />
 <section id="unknownkeys">
 <h3>unknownKeys<a class="headerlink" href="#unknownkeys" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="manifest/io.html#unknownkeys"><span class="std std-ref">unknownKeys</span></a></p>
@@ -1967,6 +2096,11 @@
 <section id="view">
 <h3>View<a class="headerlink" href="#view" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="workspace/view.html#view"><span class="std std-ref">View</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="virtualtimeline">
+<h3>VirtualTimeline<a class="headerlink" href="#virtualtimeline" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="manifest/types.html#virtualtimeline"><span class="std std-ref">VirtualTimeline</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="withheldids">
@@ -2100,12 +2234,14 @@
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#canvasdirection">CanvasDirection</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#card-place-members">CARD_PLACE_MEMBERS</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cardaddress">cardAddress</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cardflow">cardFlow</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cardplace">CardPlace</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#carriedids">CarriedIds</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#change">Change</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#checkcolumns">checkColumns</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#checkmatchstamp">checkMatchStamp</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#childtimeline">ChildTimeline</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#chunkindex">ChunkIndex</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#claimbeliefs">ClaimBeliefs</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#claimrowof">claimRowOf</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#claimrowsof">claimRowsOf</a></li>
@@ -2171,10 +2307,19 @@
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#facetword">facetWord</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#findtimeline">findTimeline</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flow-line-roles">FLOW_LINE_ROLES</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowchunk">FlowChunk</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowchunkkind">FlowChunkKind</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowcontrolelement">FlowControlElement</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowlinerole">FlowLineRole</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowmap">FlowMap</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowmaperror">FlowMapError</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowmaperrorcode">FlowMapErrorCode</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowreading">flowReading</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">FlowReading</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowrun">FlowRun</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowvirtualtimeline">FlowVirtualTimeline</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fold">fold</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#foldvirtual">foldVirtual</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gap">Gap</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gapoption">GapOption</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gaps">GAPS</a></li>
@@ -2202,7 +2347,9 @@
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#inversioncontext">InversionContext</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#invert">invert</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#invertible">invertible</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isatomicsection">isAtomicSection</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#iscommanderror">isCommandError</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#iscomputedflowmap">isComputedFlowMap</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#iselementaddress">isElementAddress</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isfacet">isFacet</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isgroupmember">isGroupMember</a></li>
@@ -2240,6 +2387,7 @@
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mapevaluator">MapEvaluator</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mapinput">MapInput</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mapoutputs">MapOutputs</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mappedvirtualtimeline">MappedVirtualTimeline</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mapresult">MapResult</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mapvalue">MapValue</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchclaimcolumns">matchClaimColumns</a></li>
@@ -2267,10 +2415,12 @@
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#neighbours">Neighbours</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#new-manifest-file">NEW_MANIFEST_FILE</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#normalizemanifest">normalizeManifest</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#occurrence">Occurrence</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#openeditor">OpenEditor</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#owneraddress">OwnerAddress</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#parseaxisvalue">parseAxisValue</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#partaddress">partAddress</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#partitem">PartItem</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pathsegment">PathSegment</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pin">Pin</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pinat">pinAt</a></li>
@@ -2283,6 +2433,7 @@
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placekeytext">placeKeyText</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placemembersof">placeMembersOf</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#places">Places</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#playedstretch">PlayedStretch</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#positionfor">positionFor</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#potentialmatchstamps">PotentialMatchStamps</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#prettytext">prettyText</a></li>
@@ -2304,8 +2455,12 @@
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#resolveaddress">resolveAddress</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#resolvedaddress">ResolvedAddress</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#resolvedelement">ResolvedElement</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#resolvedflowmap">ResolvedFlowMap</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#resolvedpath">resolvedPath</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#resolvedvirtualtimeline">ResolvedVirtualTimeline</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#resolveelement">resolveElement</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#resolveflowmap">resolveFlowMap</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#resolvevirtualtimeline">resolveVirtualTimeline</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#row">Row</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sameaddress">sameAddress</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sameplacekey">samePlaceKey</a></li>
@@ -2321,12 +2476,14 @@
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#skeletontimeline">SkeletonTimeline</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#snaponrow">snapOnRow</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#statedby">statedBy</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#statededitorkind">StatedEditorKind</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#statementholder">statementHolder</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">StatementHolder</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#statementholders">statementHolders</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#statements">Statements</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#store">Store</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#storeoptions">StoreOptions</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stretch">Stretch</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stylecommand">StyleCommand</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tilie-agent">TILIE_AGENT</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timelineaxis">TimelineAxis</a></li>
@@ -2341,6 +2498,8 @@
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timestamprow">TimestampRow</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timestamprows">timestampRows</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#title-address">TITLE_ADDRESS</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#unfold">unfold</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#unfoldvirtual">unfoldVirtual</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#unknownkeys">unknownKeys</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#untitled-workspace">UNTITLED_WORKSPACE</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#user">User</a></li>
@@ -2348,6 +2507,7 @@
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#valuecolumn">ValueColumn</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#valueless-text">VALUELESS_TEXT</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#view">View</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#virtualtimeline">VirtualTimeline</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#withheldids">withHeldIds</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#withoutreferencesto">withoutReferencesTo</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#withplaceat">withPlaceAt</a></li>

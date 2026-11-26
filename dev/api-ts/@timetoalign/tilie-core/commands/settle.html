@@ -398,6 +398,7 @@
 <li class="toctree-l2"><a class="reference internal" href="add.html">commands/add</a></li>
 <li class="toctree-l2"><a class="reference internal" href="apply.html">commands/apply</a></li>
 <li class="toctree-l2"><a class="reference internal" href="elisions.html">commands/elisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowmaps.html">commands/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="matchstamps.html">commands/matchstamps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mutations.html">commands/mutations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="parse.html">commands/parse</a></li>
@@ -422,6 +423,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../manifest/elisions.html">manifest/elisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/files.html">manifest/files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/flow.html">manifest/flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/flowmaps.html">manifest/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/invariants.html">manifest/invariants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/io.html">manifest/io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/locks.html">manifest/locks</a></li>
@@ -429,8 +431,10 @@
 <li class="toctree-l2"><a class="reference internal" href="../manifest/remove.html">manifest/remove</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/segments.html">manifest/segments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/statements.html">manifest/statements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/switched.html">manifest/switched</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/tree.html">manifest/tree</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/types.html">manifest/types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/virtual.html">manifest/virtual</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/compile.html">maps/compile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/express.html">maps/express</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/invert.html">maps/invert</a></li>
@@ -538,7 +542,7 @@
 <blockquote>
 <div><p><strong>settle</strong>(<code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">changes</span></code>, <code class="docutils literal notranslate"><span class="pre">checked</span></code>): <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/commands/settle.ts#L166">commands/settle.ts:166</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/commands/settle.ts#L166">commands/settle.ts:166</a></p>
 <p>Settle each manifest <code class="docutils literal notranslate"><span class="pre">changes</span></code> names: cut its <code class="docutils literal notranslate"><span class="pre">&#64;context</span></code> to the prefixes
 it declares itself and its statements use (covering states nothing, so
 the context holds for the covered manifest too), cover its segment lines
@@ -577,7 +581,7 @@ block the command removed is passed over.</p>
 <blockquote>
 <div><p><strong>withSegmentLinesCovered</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">mint</span></code>): <code class="docutils literal notranslate"><span class="pre">unknown</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/commands/settle.ts#L85">commands/settle.ts:85</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/commands/settle.ts#L85">commands/settle.ts:85</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">value</span></code>, a manifest an edit leaves, with every segment line of known
 length that holds no segment given one segment from 0 covering its whole
 length, of its unit and number type, unlocked as every segment is; its id

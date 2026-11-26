@@ -407,6 +407,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../animation/unfold.html">animation/unfold</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../animation/unfolding.svelte.html">animation/unfolding.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../arrangeMenu.html">arrangeMenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../axisValues.html">axisValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../bands.html">bands</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../blockDrag.html">blockDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../boxes.html">boxes</a></li>
@@ -418,13 +419,19 @@
 <li class="toctree-l2"><a class="reference internal" href="../editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowEditor.html">flowEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowEditor.svelte.html">flowEditor.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowEditorRows.html">flowEditorRows</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../flowOverlay.html">flowOverlay</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowSwitch.html">flowSwitch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowSwitchMotion.svelte.html">flowSwitchMotion.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../focus.html">focus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gaps.html">gaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gesture.html">gesture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arranged.html">gestures/arranged</a></li>
 <li class="toctree-l2"><a class="reference internal" href="band.html">gestures/band</a></li>
 <li class="toctree-l2"><a class="reference internal" href="canvas.html">gestures/canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowDrag.html">gestures/flowDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gap.html">gestures/gap</a></li>
 <li class="toctree-l2"><a class="reference internal" href="held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="host.html">gestures/host</a></li>
@@ -448,6 +455,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../project.html">project</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reorder.html">reorder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../resize.html">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ribbons.html">ribbons</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../roving.html">roving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../selection.html">selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../selectionRules.html">selectionRules</a></li>
@@ -527,7 +535,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>PAN_SPEED</strong>: <code class="docutils literal notranslate"><span class="pre">0.5</span></code> = <code class="docutils literal notranslate"><span class="pre">0.5</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/gestures/wheel.ts#L6">arranger/src/gestures/wheel.ts:6</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/gestures/wheel.ts#L6">arranger/src/gestures/wheel.ts:6</a></p>
 <p>Canvas pixels panned per pixel of wheel travel, Svelte Flow’s default.</p>
 </section>
 </section>
@@ -538,7 +546,7 @@
 <blockquote>
 <div><p><strong>shiftWheel</strong>(<code class="docutils literal notranslate"><span class="pre">pan</span></code>): <code class="docutils literal notranslate"><span class="pre">Attachment</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">HTMLElement</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/gestures/wheel.ts#L19">arranger/src/gestures/wheel.ts:19</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/gestures/wheel.ts#L19">arranger/src/gestures/wheel.ts:19</a></p>
 <p>Shift+wheel pans horizontally. Svelte Flow, outside macOS, turns a Shift
 wheel’s vertical travel into horizontal travel, but Chromium and Firefox
 on Linux and Windows already report it as horizontal travel, which Svelte

@@ -398,6 +398,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../commands/add.html">commands/add</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/apply.html">commands/apply</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/elisions.html">commands/elisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../commands/flowmaps.html">commands/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/matchstamps.html">commands/matchstamps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/mutations.html">commands/mutations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/parse.html">commands/parse</a></li>
@@ -422,6 +423,7 @@
 <li class="toctree-l2"><a class="reference internal" href="elisions.html">manifest/elisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="files.html">manifest/files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="flow.html">manifest/flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowmaps.html">manifest/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="invariants.html">manifest/invariants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="io.html">manifest/io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="locks.html">manifest/locks</a></li>
@@ -429,8 +431,10 @@
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">manifest/remove</a></li>
 <li class="toctree-l2"><a class="reference internal" href="segments.html">manifest/segments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="statements.html">manifest/statements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="switched.html">manifest/switched</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tree.html">manifest/tree</a></li>
 <li class="toctree-l2"><a class="reference internal" href="types.html">manifest/types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="virtual.html">manifest/virtual</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/compile.html">maps/compile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/express.html">maps/express</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/invert.html">maps/invert</a></li>
@@ -538,7 +542,7 @@
 <blockquote>
 <div><p><strong>removedBy</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">elements</span></code>): <code class="docutils literal notranslate"><span class="pre">Set</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/remove.ts#L48">manifest/remove.ts:48</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/manifest/remove.ts#L51">manifest/remove.ts:51</a></p>
 <p>The IDs that removing the elements with the IDs <code class="docutils literal notranslate"><span class="pre">elements</span></code> (timelines,
 groups, measure maps, maps, regions, flow-control elements, named
 timestamps, elisions and named MatchStamps) removes: the elements themselves, every
@@ -572,7 +576,7 @@ virtual timeline of a removed map or timeline. An ID naming nothing removes noth
 <blockquote>
 <div><p><strong>withoutElements</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">elements</span></code>): <a class="reference internal" href="types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/remove.ts#L99">manifest/remove.ts:99</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/manifest/remove.ts#L114">manifest/remove.ts:114</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">manifest</span></code> with <code class="docutils literal notranslate"><span class="pre">elements</span></code> removed, and everything <code class="docutils literal notranslate"><span class="pre">removedBy</span></code> names with them.</p>
 <section id="id1">
 <h4>Parameters<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>

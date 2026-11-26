@@ -45,7 +45,7 @@
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
     <link rel="next" title="gaps" href="gaps.html" />
-    <link rel="prev" title="flowOverlay" href="flowOverlay.html" />
+    <link rel="prev" title="flowSwitchMotion.svelte" href="flowSwitchMotion.svelte.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
@@ -407,6 +407,7 @@
 <li class="toctree-l2"><a class="reference internal" href="animation/unfold.html">animation/unfold</a></li>
 <li class="toctree-l2"><a class="reference internal" href="animation/unfolding.svelte.html">animation/unfolding.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arrangeMenu.html">arrangeMenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="axisValues.html">axisValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="bands.html">bands</a></li>
 <li class="toctree-l2"><a class="reference internal" href="blockDrag.html">blockDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="boxes.html">boxes</a></li>
@@ -418,13 +419,19 @@
 <li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowEditor.html">flowEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowEditor.svelte.html">flowEditor.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowEditorRows.html">flowEditorRows</a></li>
 <li class="toctree-l2"><a class="reference internal" href="flowOverlay.html">flowOverlay</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowSwitch.html">flowSwitch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowSwitchMotion.svelte.html">flowSwitchMotion.svelte</a></li>
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">focus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gaps.html">gaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gesture.html">gesture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/arranged.html">gestures/arranged</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/band.html">gestures/band</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/canvas.html">gestures/canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/flowDrag.html">gestures/flowDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/gap.html">gestures/gap</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
@@ -448,6 +455,7 @@
 <li class="toctree-l2"><a class="reference internal" href="project.html">project</a></li>
 <li class="toctree-l2"><a class="reference internal" href="reorder.html">reorder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="resize.html">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ribbons.html">ribbons</a></li>
 <li class="toctree-l2"><a class="reference internal" href="roving.html">roving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="selection.html">selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="selectionRules.html">selectionRules</a></li>
@@ -527,7 +535,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>FOCUS_DURATION</strong>: <code class="docutils literal notranslate"><span class="pre">1000</span></code> = <code class="docutils literal notranslate"><span class="pre">1000</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/focus.ts#L14">arranger/src/focus.ts:14</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/focus.ts#L14">arranger/src/focus.ts:14</a></p>
 <p>How long, in milliseconds, the view takes to move to an editor and back.</p>
 </section>
 <hr class="docutils" />
@@ -536,7 +544,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>FOCUS_MARGIN</strong>: <code class="docutils literal notranslate"><span class="pre">0.1</span></code> = <code class="docutils literal notranslate"><span class="pre">0.1</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/focus.ts#L16">arranger/src/focus.ts:16</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/focus.ts#L16">arranger/src/focus.ts:16</a></p>
 <p>The share of the canvas area left free on each side of the focused element.</p>
 </section>
 <hr class="docutils" />
@@ -545,7 +553,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>FOCUS_MAX_ZOOM</strong>: <code class="docutils literal notranslate"><span class="pre">4</span></code> = <code class="docutils literal notranslate"><span class="pre">4</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/focus.ts#L20">arranger/src/focus.ts:20</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/focus.ts#L20">arranger/src/focus.ts:20</a></p>
 <p>The largest zoom the focus moves to.</p>
 </section>
 <hr class="docutils" />
@@ -554,7 +562,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>FOCUS_MIN_ZOOM</strong>: <code class="docutils literal notranslate"><span class="pre">0.05</span></code> = <code class="docutils literal notranslate"><span class="pre">0.05</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/focus.ts#L18">arranger/src/focus.ts:18</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/focus.ts#L18">arranger/src/focus.ts:18</a></p>
 <p>The smallest zoom the focus moves to.</p>
 </section>
 </section>
@@ -565,7 +573,7 @@
 <blockquote>
 <div><p><strong>elidedReach</strong>(<code class="docutils literal notranslate"><span class="pre">node</span></code>, <code class="docutils literal notranslate"><span class="pre">target</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/focus.ts#L84">arranger/src/focus.ts:84</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/focus.ts#L84">arranger/src/focus.ts:84</a></p>
 <p>How far the elided ancestor cards behind the frame of the group <code class="docutils literal notranslate"><span class="pre">target</span></code>
 reach out from the frame’s horizontal centre <code class="docutils literal notranslate"><span class="pre">c</span></code>, in canvas units: the
 largest of <code class="docutils literal notranslate"><span class="pre">c</span></code> less a card’s left edge and its right edge less <code class="docutils literal notranslate"><span class="pre">c</span></code>, over
@@ -598,7 +606,7 @@ card is drawn: every card drawn whole.</p>
 <blockquote>
 <div><p><strong>focusViewport</strong>(<code class="docutils literal notranslate"><span class="pre">bounds</span></code>, <code class="docutils literal notranslate"><span class="pre">pane</span></code>, <code class="docutils literal notranslate"><span class="pre">drawerWidth</span></code>, <code class="docutils literal notranslate"><span class="pre">reach?</span></code>): <code class="docutils literal notranslate"><span class="pre">Viewport</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/focus.ts#L127">arranger/src/focus.ts:127</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/focus.ts#L127">arranger/src/focus.ts:127</a></p>
 <p>The viewport that centres <code class="docutils literal notranslate"><span class="pre">bounds</span></code> (canvas units) in the pane (<code class="docutils literal notranslate"><span class="pre">pane</span></code>,
 screen pixels) less the drawer of width <code class="docutils literal notranslate"><span class="pre">drawerWidth</span></code> on its right, with
 <code class="docutils literal notranslate"><span class="pre">FOCUS_MARGIN</span></code> of that area free on each side: the zoom at which the
@@ -646,7 +654,7 @@ the width left of the drawer, still at least <code class="docutils literal notra
 <blockquote>
 <div><p><strong>targetBounds</strong>(<code class="docutils literal notranslate"><span class="pre">node</span></code>, <code class="docutils literal notranslate"><span class="pre">target</span></code>, <code class="docutils literal notranslate"><span class="pre">metrics</span></code>): <a class="reference internal" href="marquee.html#rect"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rect</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/focus.ts#L35">arranger/src/focus.ts:35</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/focus.ts#L35">arranger/src/focus.ts:35</a></p>
 <p>The canvas rectangle of the editor target <code class="docutils literal notranslate"><span class="pre">target</span></code> in <code class="docutils literal notranslate"><span class="pre">node</span></code>’s block: the
 block’s box for the block itself, the displayed frame of a group or card
 of a timeline (its first, for a member of several groups), and for a
@@ -689,12 +697,12 @@ ancestor card draws below the frames while it is not raised
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="flowOverlay.html"
+       href="flowSwitchMotion.svelte.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">flowOverlay</p>
+        <p class="prev-next-title">flowSwitchMotion.svelte</p>
       </div>
     </a>
     <a class="right-next"

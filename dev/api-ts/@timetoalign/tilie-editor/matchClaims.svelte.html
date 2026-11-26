@@ -409,6 +409,7 @@
 <li class="toctree-l2"><a class="reference internal" href="files.html">files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="fixtureWorkspace.html">fixtureWorkspace</a></li>
 <li class="toctree-l2"><a class="reference internal" href="fixtures.html">fixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowServer.html">flowServer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/claimProvenance.html">inspector/claimProvenance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/codec.html">inspector/codec</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/display.html">inspector/display</a></li>
@@ -434,6 +435,7 @@
 <li class="toctree-l2"><a class="reference internal" href="inspector/properties.html">inspector/properties</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/propertyDrafts.svelte.html">inspector/propertyDrafts.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/provenance.html">inspector/provenance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="inspector/regions.html">inspector/regions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/selection.html">inspector/selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/stamps/commands.html">inspector/stamps/commands</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/stamps/drafts.svelte.html">inspector/stamps/drafts.svelte</a></li>
@@ -538,7 +540,7 @@
 <h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
 <section id="matchclaimtables">
 <h3>MatchClaimTables<a class="headerlink" href="#matchclaimtables" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L348">editor/src/matchClaims.svelte.ts:348</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L348">editor/src/matchClaims.svelte.ts:348</a></p>
 <p>The MatchClaim tables held for the open workspace’s blocks, one per block, read through a server.</p>
 <section id="constructors">
 <h4>Constructors<a class="headerlink" href="#constructors" title="Link to this heading">#</a></h4>
@@ -547,7 +549,7 @@
 <blockquote>
 <div><p><strong>new MatchClaimTables</strong>(<code class="docutils literal notranslate"><span class="pre">server</span></code>, <code class="docutils literal notranslate"><span class="pre">options?</span></code>): <a class="reference internal" href="#matchclaimtables"><code class="docutils literal notranslate"><span class="pre">MatchClaimTables</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L376">editor/src/matchClaims.svelte.ts:376</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L376">editor/src/matchClaims.svelte.ts:376</a></p>
 <p>The tables read through <code class="docutils literal notranslate"><span class="pre">server</span></code> (<code class="docutils literal notranslate"><span class="pre">null</span></code>: no server, so no table is
 ever read), as <code class="docutils literal notranslate"><span class="pre">options</span></code> say what is known of it now: whether it
 computes, the user’s files it offers, why its health check failed.
@@ -579,7 +581,7 @@ no files, the files a manifest names are not looked for beside it.</p>
 <blockquote>
 <div><p><strong>get</strong> <strong>blocks</strong>(): readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L423">editor/src/matchClaims.svelte.ts:423</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L423">editor/src/matchClaims.svelte.ts:423</a></p>
 <p>The blocks holding a table, in the order their tables were loaded.</p>
 </section>
 <section id="id1">
@@ -594,7 +596,7 @@ no files, the files a manifest names are not looked for beside it.</p>
 <blockquote>
 <div><p><strong>get</strong> <strong>changed</strong>(): readonly <a class="reference internal" href="#changedtable"><code class="docutils literal notranslate"><span class="pre">ChangedTable</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L428">editor/src/matchClaims.svelte.ts:428</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L428">editor/src/matchClaims.svelte.ts:428</a></p>
 <p>The tables holding beliefs not saved yet, in the order they were loaded.</p>
 </section>
 <section id="id3">
@@ -609,7 +611,7 @@ no files, the files a manifest names are not looked for beside it.</p>
 <blockquote>
 <div><p><strong>get</strong> <strong>unavailable</strong>(): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L391">editor/src/matchClaims.svelte.ts:391</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L391">editor/src/matchClaims.svelte.ts:391</a></p>
 <p>Why no server can read a table now, <code class="docutils literal notranslate"><span class="pre">HOW_TO_START_A_SERVER</span></code> after the
 failure of the server’s health check where it failed: no server is
 given, or it has not answered its health check; <code class="docutils literal notranslate"><span class="pre">null</span></code> while one can,
@@ -628,7 +630,7 @@ table then.</p>
 <blockquote>
 <div><p><strong>get</strong> <strong>waiting</strong>(): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L399">editor/src/matchClaims.svelte.ts:399</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L399">editor/src/matchClaims.svelte.ts:399</a></p>
 <p>Whether the server given has not answered its health check yet, nor
 failed it: nobody can tell yet whether it will read tables.</p>
 </section>
@@ -645,7 +647,7 @@ failed it: nobody can tell yet whether it will read tables.</p>
 <blockquote>
 <div><p><strong>believe</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">belief</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L740">editor/src/matchClaims.svelte.ts:740</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L740">editor/src/matchClaims.svelte.ts:740</a></p>
 <p>Record <code class="docutils literal notranslate"><span class="pre">belief</span></code> in block <code class="docutils literal notranslate"><span class="pre">block</span></code>’s table through the server, checked
 against <code class="docutils literal notranslate"><span class="pre">manifest</span></code>: the server answers the new file, which is read again
 and held as the block’s table, marked changed. <code class="docutils literal notranslate"><span class="pre">null</span></code> once it is held,
@@ -676,7 +678,7 @@ nothing, <code class="docutils literal notranslate"><span class="pre">unavailabl
 <blockquote>
 <div><p><strong>choose</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">manifest</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<a class="reference internal" href="#tablemessages"><code class="docutils literal notranslate"><span class="pre">TableMessages</span></code></a>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L543">editor/src/matchClaims.svelte.ts:543</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L543">editor/src/matchClaims.svelte.ts:543</a></p>
 <p>Let the user choose the MatchClaim table of block <code class="docutils literal notranslate"><span class="pre">block</span></code>’s manifest
 <code class="docutils literal notranslate"><span class="pre">manifest</span></code> (Load MatchClaims…): its file, located in the file dialog
 (picked in the browser’s picker where the server offers no files), or
@@ -703,7 +705,7 @@ a table nothing is asked and <code class="docutils literal notranslate"><span cl
 <blockquote>
 <div><p><strong>clear</strong>(): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L501">editor/src/matchClaims.svelte.ts:501</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L501">editor/src/matchClaims.svelte.ts:501</a></p>
 <p>Forget every table and where every manifest came from: another workspace was opened.</p>
 <section id="id14">
 <h6>Returns<a class="headerlink" href="#id14" title="Link to this heading">#</a></h6>
@@ -715,7 +717,7 @@ a table nothing is asked and <code class="docutils literal notranslate"><span cl
 <blockquote>
 <div><p><strong>events</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">claims</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;readonly <a class="reference internal" href="../tilie-client/claimEvents.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ClaimEvents</span></code></span></a>[]&gt; | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L708">editor/src/matchClaims.svelte.ts:708</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L708">editor/src/matchClaims.svelte.ts:708</a></p>
 <p>The events on both sides of the MatchClaims <code class="docutils literal notranslate"><span class="pre">claims</span></code> of block <code class="docutils literal notranslate"><span class="pre">block</span></code>’s
 table, in that order (<code class="docutils literal notranslate"><span class="pre">ClaimEvents</span></code>: each side’s timeline, event ID and
 name; the certainty; whether it states synchrony), read through the
@@ -749,7 +751,7 @@ or without a table.</p>
 <blockquote>
 <div><p><strong>hold</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">loaded</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L435">editor/src/matchClaims.svelte.ts:435</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L435">editor/src/matchClaims.svelte.ts:435</a></p>
 <p>Hold <code class="docutils literal notranslate"><span class="pre">loaded</span></code> as the table of block <code class="docutils literal notranslate"><span class="pre">block</span></code>, replacing any held.</p>
 <section id="id19">
 <h6>Parameters<a class="headerlink" href="#id19" title="Link to this heading">#</a></h6>
@@ -772,7 +774,7 @@ or without a table.</p>
 <blockquote>
 <div><p><strong>load</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">file</span></code>, <code class="docutils literal notranslate"><span class="pre">name</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L654">editor/src/matchClaims.svelte.ts:654</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L654">editor/src/matchClaims.svelte.ts:654</a></p>
 <p>Read the MatchClaim table <code class="docutils literal notranslate"><span class="pre">file</span></code>, called <code class="docutils literal notranslate"><span class="pre">name</span></code>, through the server,
 checked against <code class="docutils literal notranslate"><span class="pre">manifest</span></code> (written as its file writes it), as the
 table of block <code class="docutils literal notranslate"><span class="pre">block</span></code>: <code class="docutils literal notranslate"><span class="pre">null</span></code> once it is held, else why not
@@ -807,7 +809,7 @@ server refuses it or fails).</p>
 <blockquote>
 <div><p><strong>loadNamed</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">manifest</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<a class="reference internal" href="#tablemessages"><code class="docutils literal notranslate"><span class="pre">TableMessages</span></code></a>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L517">editor/src/matchClaims.svelte.ts:517</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L517">editor/src/matchClaims.svelte.ts:517</a></p>
 <p>Load the MatchClaim table block <code class="docutils literal notranslate"><span class="pre">block</span></code>’s manifest <code class="docutils literal notranslate"><span class="pre">manifest</span></code> names,
 when it names one and the block holds none (what Show matches asks):
 named by an absolute <code class="docutils literal notranslate"><span class="pre">http</span></code> or <code class="docutils literal notranslate"><span class="pre">https</span></code> URL, fetched from there;
@@ -838,7 +840,7 @@ says it once (<code class="docutils literal notranslate"><span class="pre">Works
 <blockquote>
 <div><p><strong>locate</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">source</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L441">editor/src/matchClaims.svelte.ts:441</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L441">editor/src/matchClaims.svelte.ts:441</a></p>
 <p>Block <code class="docutils literal notranslate"><span class="pre">block</span></code>’s manifest came from <code class="docutils literal notranslate"><span class="pre">source</span></code> (an example): the files it names are read from there.</p>
 <section id="id30">
 <h6>Parameters<a class="headerlink" href="#id30" title="Link to this heading">#</a></h6>
@@ -861,7 +863,7 @@ says it once (<code class="docutils literal notranslate"><span class="pre">Works
 <blockquote>
 <div><p><strong>of</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>): <a class="reference internal" href="#loadedtable"><code class="docutils literal notranslate"><span class="pre">LoadedTable</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L418">editor/src/matchClaims.svelte.ts:418</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L418">editor/src/matchClaims.svelte.ts:418</a></p>
 <p>The table of block <code class="docutils literal notranslate"><span class="pre">block</span></code>; <code class="docutils literal notranslate"><span class="pre">null</span></code> while none is loaded.</p>
 <section id="id33">
 <h6>Parameters<a class="headerlink" href="#id33" title="Link to this heading">#</a></h6>
@@ -880,7 +882,7 @@ says it once (<code class="docutils literal notranslate"><span class="pre">Works
 <blockquote>
 <div><p><strong>provenance</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">claims</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;readonly <a class="reference internal" href="../tilie-client/claimProvenance.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ClaimProvenance</span></code></span></a>[]&gt; | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L673">editor/src/matchClaims.svelte.ts:673</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L673">editor/src/matchClaims.svelte.ts:673</a></p>
 <p>The provenance of the MatchClaims <code class="docutils literal notranslate"><span class="pre">claims</span></code> of block <code class="docutils literal notranslate"><span class="pre">block</span></code>’s table, in
 that order, read through the server with <code class="docutils literal notranslate"><span class="pre">manifest</span></code>: asked once per
 table and list of claims, the promise kept while the table is held (a
@@ -912,7 +914,7 @@ or without a table.</p>
 <blockquote>
 <div><p><strong>save</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L763">editor/src/matchClaims.svelte.ts:763</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L763">editor/src/matchClaims.svelte.ts:763</a></p>
 <p>Save block <code class="docutils literal notranslate"><span class="pre">block</span></code>’s changed table, offered under its file’s name: the
 name it was saved under, after which it is no longer changed (if still
 held); <code class="docutils literal notranslate"><span class="pre">null</span></code> when it is not changed or the viewer cancelled. A failure
@@ -936,7 +938,7 @@ to write throws.</p>
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="changedtable">
 <h3>ChangedTable<a class="headerlink" href="#changedtable" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L69">editor/src/matchClaims.svelte.ts:69</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L69">editor/src/matchClaims.svelte.ts:69</a></p>
 <p>A block’s table holding beliefs the user has not saved yet.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -945,21 +947,21 @@ to write throws.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>block</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L70">editor/src/matchClaims.svelte.ts:70</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L70">editor/src/matchClaims.svelte.ts:70</a></p>
 </section>
 <section id="id45">
 <h5>loaded<a class="headerlink" href="#id45" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>loaded</strong>: <a class="reference internal" href="#loadedtable"><code class="docutils literal notranslate"><span class="pre">LoadedTable</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L71">editor/src/matchClaims.svelte.ts:71</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L71">editor/src/matchClaims.svelte.ts:71</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="loadedtable">
 <h3>LoadedTable<a class="headerlink" href="#loadedtable" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L59">editor/src/matchClaims.svelte.ts:59</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L59">editor/src/matchClaims.svelte.ts:59</a></p>
 <p>What a block’s table is read from: its file’s name, the server’s answer and the file.</p>
 <section id="id46">
 <h4>Properties<a class="headerlink" href="#id46" title="Link to this heading">#</a></h4>
@@ -968,7 +970,7 @@ to write throws.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>changed</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L65">editor/src/matchClaims.svelte.ts:65</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L65">editor/src/matchClaims.svelte.ts:65</a></p>
 <p>Whether <code class="docutils literal notranslate"><span class="pre">file</span></code> holds beliefs the user has not saved yet.</p>
 </section>
 <section id="id48">
@@ -976,7 +978,7 @@ to write throws.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>file</strong>: <code class="docutils literal notranslate"><span class="pre">Blob</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L63">editor/src/matchClaims.svelte.ts:63</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L63">editor/src/matchClaims.svelte.ts:63</a></p>
 <p>The Parquet file the table was read from: the picked one, or the server’s after a belief.</p>
 </section>
 <section id="id49">
@@ -984,21 +986,21 @@ to write throws.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>name</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L60">editor/src/matchClaims.svelte.ts:60</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L60">editor/src/matchClaims.svelte.ts:60</a></p>
 </section>
 <section id="table">
 <h5>table<a class="headerlink" href="#table" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>table</strong>: <a class="reference internal" href="../tilie-client/matchClaims.html#matchclaimtable"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MatchClaimTable</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L61">editor/src/matchClaims.svelte.ts:61</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L61">editor/src/matchClaims.svelte.ts:61</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="manifestplaces">
 <h3>ManifestPlaces<a class="headerlink" href="#manifestplaces" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L114">editor/src/matchClaims.svelte.ts:114</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L114">editor/src/matchClaims.svelte.ts:114</a></p>
 <p>The user’s files on the server, as the tables reach them: read by path
 from the server’s root, the path of the file each block’s manifest came
 from (the workspace states it), and the editor’s file dialog.</p>
@@ -1009,7 +1011,7 @@ from (the workspace states it), and the editor’s file dialog.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>files</strong>: <a class="reference internal" href="files.html#filereader"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">FileReader</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L115">editor/src/matchClaims.svelte.ts:115</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L115">editor/src/matchClaims.svelte.ts:115</a></p>
 </section>
 </section>
 <section id="id51">
@@ -1019,7 +1021,7 @@ from (the workspace states it), and the editor’s file dialog.</p>
 <blockquote>
 <div><p><strong>choose</strong>(<code class="docutils literal notranslate"><span class="pre">kinds</span></code>, <code class="docutils literal notranslate"><span class="pre">near</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L125">editor/src/matchClaims.svelte.ts:125</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L125">editor/src/matchClaims.svelte.ts:125</a></p>
 <p>Let the user choose a file of one of <code class="docutils literal notranslate"><span class="pre">kinds</span></code> in the editor’s file
 dialog, starting in the folder of the file <code class="docutils literal notranslate"><span class="pre">near</span></code> (else where the
 dialog starts); its path, <code class="docutils literal notranslate"><span class="pre">null</span></code> when they cancel.</p>
@@ -1044,7 +1046,7 @@ dialog starts); its path, <code class="docutils literal notranslate"><span class
 <blockquote>
 <div><p><strong>located</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L119">editor/src/matchClaims.svelte.ts:119</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L119">editor/src/matchClaims.svelte.ts:119</a></p>
 <p>The user located block <code class="docutils literal notranslate"><span class="pre">block</span></code>’s manifest at the file <code class="docutils literal notranslate"><span class="pre">path</span></code>: the workspace keeps it.</p>
 <section id="id55">
 <h6>Parameters<a class="headerlink" href="#id55" title="Link to this heading">#</a></h6>
@@ -1067,7 +1069,7 @@ dialog starts); its path, <code class="docutils literal notranslate"><span class
 <blockquote>
 <div><p><strong>pathOf</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L117">editor/src/matchClaims.svelte.ts:117</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L117">editor/src/matchClaims.svelte.ts:117</a></p>
 <p>The path of the file block <code class="docutils literal notranslate"><span class="pre">block</span></code>’s manifest came from; <code class="docutils literal notranslate"><span class="pre">null</span></code> where the workspace states none.</p>
 <section id="id58">
 <h6>Parameters<a class="headerlink" href="#id58" title="Link to this heading">#</a></h6>
@@ -1086,7 +1088,7 @@ dialog starts); its path, <code class="docutils literal notranslate"><span class
 <hr class="docutils" />
 <section id="manifestsource">
 <h3>ManifestSource<a class="headerlink" href="#manifestsource" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L90">editor/src/matchClaims.svelte.ts:90</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L90">editor/src/matchClaims.svelte.ts:90</a></p>
 <p>Where a block’s manifest came from, as far as the files it names can be
 read from there: a served example, or the folder of its file on the
 server. A manifest picked from the user’s system has none.</p>
@@ -1097,7 +1099,7 @@ server. A manifest picked from the user’s system has none.</p>
 <blockquote>
 <div><p><strong>read</strong>(<code class="docutils literal notranslate"><span class="pre">url</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Blob</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L96">editor/src/matchClaims.svelte.ts:96</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L96">editor/src/matchClaims.svelte.ts:96</a></p>
 <p>The file at <code class="docutils literal notranslate"><span class="pre">url</span></code>, a location as the manifest’s <code class="docutils literal notranslate"><span class="pre">resources</span></code> state it
 (relative to the manifest); <code class="docutils literal notranslate"><span class="pre">null</span></code> when it cannot be reached from
 there. Rejects when reading it failed.</p>
@@ -1118,7 +1120,7 @@ there. Rejects when reading it failed.</p>
 <hr class="docutils" />
 <section id="namedtable">
 <h3>NamedTable<a class="headerlink" href="#namedtable" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L81">editor/src/matchClaims.svelte.ts:81</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L81">editor/src/matchClaims.svelte.ts:81</a></p>
 <p>The MatchClaim table a manifest names: its location (<code class="docutils literal notranslate"><span class="pre">null</span></code> where it names none).</p>
 <section id="id64">
 <h4>Properties<a class="headerlink" href="#id64" title="Link to this heading">#</a></h4>
@@ -1127,14 +1129,14 @@ there. Rejects when reading it failed.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>url</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L82">editor/src/matchClaims.svelte.ts:82</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L82">editor/src/matchClaims.svelte.ts:82</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="tablemessages">
 <h3>TableMessages<a class="headerlink" href="#tablemessages" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L156">editor/src/matchClaims.svelte.ts:156</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L156">editor/src/matchClaims.svelte.ts:156</a></p>
 <p>What a load has to say in the message bar: information, and the failures, shown as errors.</p>
 <section id="id66">
 <h4>Properties<a class="headerlink" href="#id66" title="Link to this heading">#</a></h4>
@@ -1143,21 +1145,21 @@ there. Rejects when reading it failed.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>failed</strong>: readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L158">editor/src/matchClaims.svelte.ts:158</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L158">editor/src/matchClaims.svelte.ts:158</a></p>
 </section>
 <section id="informed">
 <h5>informed<a class="headerlink" href="#informed" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>informed</strong>: readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L157">editor/src/matchClaims.svelte.ts:157</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L157">editor/src/matchClaims.svelte.ts:157</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="tablerequest">
 <h3>TableRequest<a class="headerlink" href="#tablerequest" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L146">editor/src/matchClaims.svelte.ts:146</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L146">editor/src/matchClaims.svelte.ts:146</a></p>
 <p>What the user is asked to choose: the MatchClaim table of the manifest called <code class="docutils literal notranslate"><span class="pre">manifest</span></code>.</p>
 <section id="id67">
 <h4>Properties<a class="headerlink" href="#id67" title="Link to this heading">#</a></h4>
@@ -1166,28 +1168,28 @@ there. Rejects when reading it failed.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>manifest</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L147">editor/src/matchClaims.svelte.ts:147</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L147">editor/src/matchClaims.svelte.ts:147</a></p>
 </section>
 <section id="question">
 <h5>question<a class="headerlink" href="#question" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>question</strong>: <a class="reference internal" href="#tablequestion"><code class="docutils literal notranslate"><span class="pre">TableQuestion</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L149">editor/src/matchClaims.svelte.ts:149</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L149">editor/src/matchClaims.svelte.ts:149</a></p>
 </section>
 <section id="id69">
 <h5>table<a class="headerlink" href="#id69" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>table</strong>: <a class="reference internal" href="#namedtable"><code class="docutils literal notranslate"><span class="pre">NamedTable</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L148">editor/src/matchClaims.svelte.ts:148</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L148">editor/src/matchClaims.svelte.ts:148</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="tablesoptions">
 <h3>TablesOptions<a class="headerlink" href="#tablesoptions" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L330">editor/src/matchClaims.svelte.ts:330</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L330">editor/src/matchClaims.svelte.ts:330</a></p>
 <p>What the tables know of their server now, and how they ask the user; every member optional.</p>
 <section id="id70">
 <h4>Properties<a class="headerlink" href="#id70" title="Link to this heading">#</a></h4>
@@ -1196,7 +1198,7 @@ there. Rejects when reading it failed.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>ask?</strong>: <a class="reference internal" href="#asktables"><code class="docutils literal notranslate"><span class="pre">AskTables</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L332">editor/src/matchClaims.svelte.ts:332</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L332">editor/src/matchClaims.svelte.ts:332</a></p>
 <p>Ask the user for the files of tables; without it never asked, as if they cancelled.</p>
 </section>
 <section id="computes">
@@ -1204,7 +1206,7 @@ there. Rejects when reading it failed.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>computes?</strong>: () =&gt; <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L337">editor/src/matchClaims.svelte.ts:337</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L337">editor/src/matchClaims.svelte.ts:337</a></p>
 <p>Whether the server answered its health check now, so it computes: a
 table is read through it only then. Without it, never.</p>
 <section id="id71">
@@ -1217,7 +1219,7 @@ table is read through it only then. Without it, never.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>failure?</strong>: () =&gt; <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L344">editor/src/matchClaims.svelte.ts:344</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L344">editor/src/matchClaims.svelte.ts:344</a></p>
 <p>Why the server’s health check failed now, <code class="docutils literal notranslate"><span class="pre">null</span></code> while it has not. Without it, never.</p>
 <section id="id72">
 <h6>Returns<a class="headerlink" href="#id72" title="Link to this heading">#</a></h6>
@@ -1229,7 +1231,7 @@ table is read through it only then. Without it, never.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>places?</strong>: () =&gt; <a class="reference internal" href="#manifestplaces"><code class="docutils literal notranslate"><span class="pre">ManifestPlaces</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L342">editor/src/matchClaims.svelte.ts:342</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L342">editor/src/matchClaims.svelte.ts:342</a></p>
 <p>The user’s files on the server as far as it offers them now (<code class="docutils literal notranslate"><span class="pre">null</span></code>:
 it offers none, or has not answered yet). Without it, never.</p>
 <section id="id73">
@@ -1247,7 +1249,7 @@ it offers none, or has not answered yet). Without it, never.</p>
 <blockquote>
 <div><p><strong>AskTables</strong> = (<code class="docutils literal notranslate"><span class="pre">request</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<a class="reference internal" href="#tablechoice"><code class="docutils literal notranslate"><span class="pre">TableChoice</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L153">editor/src/matchClaims.svelte.ts:153</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L153">editor/src/matchClaims.svelte.ts:153</a></p>
 <p>Ask the user for the file of <code class="docutils literal notranslate"><span class="pre">request</span></code>’s table: what they chose, <code class="docutils literal notranslate"><span class="pre">null</span></code> when they cancel.</p>
 <section id="id74">
 <h4>Parameters<a class="headerlink" href="#id74" title="Link to this heading">#</a></h4>
@@ -1267,7 +1269,7 @@ it offers none, or has not answered yet). Without it, never.</p>
 <blockquote>
 <div><p><strong>Located</strong> = { <code class="docutils literal notranslate"><span class="pre">path</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; } | { <code class="docutils literal notranslate"><span class="pre">file</span></code>: <code class="docutils literal notranslate"><span class="pre">File</span></code>; }</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L104">editor/src/matchClaims.svelte.ts:104</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L104">editor/src/matchClaims.svelte.ts:104</a></p>
 <p>A file the user located: the path of a file on the server, the
 manifest’s or the table’s as the question asked (<code class="docutils literal notranslate"><span class="pre">TableQuestion</span></code>), or a
 table’s file picked in the browser, which has no path.</p>
@@ -1278,7 +1280,7 @@ table’s file picked in the browser, which has no path.</p>
 <blockquote>
 <div><p><strong>MatchClaimServer</strong> = <code class="docutils literal notranslate"><span class="pre">Pick</span></code>&lt;<a class="reference internal" href="../tilie-client/index-1.html#server"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Server</span></code></span></a>, <code class="docutils literal notranslate"><span class="pre">&quot;matchClaims&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;matchClaimProvenance&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;believeMatchClaim&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;matchClaimEvents&quot;</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L75">editor/src/matchClaims.svelte.ts:75</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L75">editor/src/matchClaims.svelte.ts:75</a></p>
 <p>What the tables need of a server: the table route, the provenance routes and the events route.</p>
 </section>
 <hr class="docutils" />
@@ -1287,7 +1289,7 @@ table’s file picked in the browser, which has no path.</p>
 <blockquote>
 <div><p><strong>TableChoice</strong> = { <code class="docutils literal notranslate"><span class="pre">url</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; } | <a class="reference internal" href="#id76"><code class="docutils literal notranslate"><span class="pre">Located</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L107">editor/src/matchClaims.svelte.ts:107</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L107">editor/src/matchClaims.svelte.ts:107</a></p>
 <p>What the user chose: a URL of the table, or a file located (<code class="docutils literal notranslate"><span class="pre">Located</span></code>).</p>
 </section>
 <hr class="docutils" />
@@ -1296,7 +1298,7 @@ table’s file picked in the browser, which has no path.</p>
 <blockquote>
 <div><p><strong>TableQuestion</strong> = { <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;manifest&quot;</span></code>; <code class="docutils literal notranslate"><span class="pre">locate</span></code>: () =&gt; <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<a class="reference internal" href="#id76"><code class="docutils literal notranslate"><span class="pre">Located</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code>&gt;; } | { <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;table&quot;</span></code>; <code class="docutils literal notranslate"><span class="pre">locate</span></code>: () =&gt; <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<a class="reference internal" href="#id76"><code class="docutils literal notranslate"><span class="pre">Located</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code>&gt;; <code class="docutils literal notranslate"><span class="pre">missing</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code>; }</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L137">editor/src/matchClaims.svelte.ts:137</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L137">editor/src/matchClaims.svelte.ts:137</a></p>
 <p>The question the user is asked: where the manifest lies (<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, for
 a block whose manifest’s file the workspace does not state), or the
 table’s file (<code class="docutils literal notranslate"><span class="pre">table</span></code>; <code class="docutils literal notranslate"><span class="pre">missing</span></code> the manifest’s path where the table is
@@ -1313,7 +1315,7 @@ a table, in the browser’s picker; <code class="docutils literal notranslate"><
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>HOW_TO_START_A_SERVER</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L245">editor/src/matchClaims.svelte.ts:245</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L245">editor/src/matchClaims.svelte.ts:245</a></p>
 <p>While no server can read a table, what is said wherever matches are
 asked for (Show matches turned on, Load MatchClaims… without a server,
 the disabled controls’ hints): that sentence,
@@ -1326,7 +1328,7 @@ it from the source tree with). Plain text: every place shows it as such.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>MATCHES_NEED_A_SERVER</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;Matches</span> <span class="pre">need</span> <span class="pre">a</span> <span class="pre">running</span> <span class="pre">tilie-server.&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;Matches</span> <span class="pre">need</span> <span class="pre">a</span> <span class="pre">running</span> <span class="pre">tilie-server.&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L233">editor/src/matchClaims.svelte.ts:233</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L233">editor/src/matchClaims.svelte.ts:233</a></p>
 <p>The first sentence of <code class="docutils literal notranslate"><span class="pre">HOW_TO_START_A_SERVER</span></code>: why matches cannot be shown.</p>
 </section>
 <hr class="docutils" />
@@ -1335,7 +1337,7 @@ it from the source tree with). Plain text: every place shows it as such.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>NO_MATCHES</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;No</span> <span class="pre">MatchClaim</span> <span class="pre">table</span> <span class="pre">loaded.&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;No</span> <span class="pre">MatchClaim</span> <span class="pre">table</span> <span class="pre">loaded.&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L236">editor/src/matchClaims.svelte.ts:236</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L236">editor/src/matchClaims.svelte.ts:236</a></p>
 <p>The information turning Show matches on gives where no block holds a MatchClaim table then.</p>
 </section>
 </section>
@@ -1346,7 +1348,7 @@ it from the source tree with). Plain text: every place shows it as such.</p>
 <blockquote>
 <div><p><strong>beliefFailure</strong>(<code class="docutils literal notranslate"><span class="pre">claim</span></code>, <code class="docutils literal notranslate"><span class="pre">error</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L279">editor/src/matchClaims.svelte.ts:279</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L279">editor/src/matchClaims.svelte.ts:279</a></p>
 <p>Why the belief in <code class="docutils literal notranslate"><span class="pre">claim</span></code> was not recorded, from the server’s failure <code class="docutils literal notranslate"><span class="pre">error</span></code>.</p>
 <section id="id77">
 <h4>Parameters<a class="headerlink" href="#id77" title="Link to this heading">#</a></h4>
@@ -1370,7 +1372,7 @@ it from the source tree with). Plain text: every place shows it as such.</p>
 <blockquote>
 <div><p><strong>eventsFailure</strong>(<code class="docutils literal notranslate"><span class="pre">error</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L293">editor/src/matchClaims.svelte.ts:293</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L293">editor/src/matchClaims.svelte.ts:293</a></p>
 <p>Why the events of MatchClaims were not read, from the server’s failure <code class="docutils literal notranslate"><span class="pre">error</span></code>.</p>
 <section id="id79">
 <h4>Parameters<a class="headerlink" href="#id79" title="Link to this heading">#</a></h4>
@@ -1390,7 +1392,7 @@ it from the source tree with). Plain text: every place shows it as such.</p>
 <blockquote>
 <div><p><strong>fileNameOf</strong>(<code class="docutils literal notranslate"><span class="pre">url</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L178">editor/src/matchClaims.svelte.ts:178</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L178">editor/src/matchClaims.svelte.ts:178</a></p>
 <p>The last part of a location: the file name a picker gives for it.</p>
 <section id="id82">
 <h4>Parameters<a class="headerlink" href="#id82" title="Link to this heading">#</a></h4>
@@ -1410,7 +1412,7 @@ it from the source tree with). Plain text: every place shows it as such.</p>
 <blockquote>
 <div><p><strong>loadFailure</strong>(<code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">error</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L270">editor/src/matchClaims.svelte.ts:270</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L270">editor/src/matchClaims.svelte.ts:270</a></p>
 <p>Why <code class="docutils literal notranslate"><span class="pre">name</span></code> was not loaded, from the server’s failure <code class="docutils literal notranslate"><span class="pre">error</span></code>.</p>
 <section id="id85">
 <h4>Parameters<a class="headerlink" href="#id85" title="Link to this heading">#</a></h4>
@@ -1434,7 +1436,7 @@ it from the source tree with). Plain text: every place shows it as such.</p>
 <blockquote>
 <div><p><strong>manifestTitle</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L183">editor/src/matchClaims.svelte.ts:183</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L183">editor/src/matchClaims.svelte.ts:183</a></p>
 <p>How a manifest is called in a message or the dialog’s title: its name, else its ID, else “The manifest”.</p>
 <section id="id89">
 <h4>Parameters<a class="headerlink" href="#id89" title="Link to this heading">#</a></h4>
@@ -1454,7 +1456,7 @@ it from the source tree with). Plain text: every place shows it as such.</p>
 <blockquote>
 <div><p><strong>namedTable</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L167">editor/src/matchClaims.svelte.ts:167</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L167">editor/src/matchClaims.svelte.ts:167</a></p>
 <p>The location of the MatchClaim table <code class="docutils literal notranslate"><span class="pre">manifest</span></code> names in its <code class="docutils literal notranslate"><span class="pre">resources</span></code>
 (the first resource of type <code class="docutils literal notranslate"><span class="pre">MatchClaim</span></code>), <code class="docutils literal notranslate"><span class="pre">null</span></code> where it names none.</p>
 <section id="id93">
@@ -1475,7 +1477,7 @@ it from the source tree with). Plain text: every place shows it as such.</p>
 <blockquote>
 <div><p><strong>provenanceFailure</strong>(<code class="docutils literal notranslate"><span class="pre">error</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L288">editor/src/matchClaims.svelte.ts:288</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L288">editor/src/matchClaims.svelte.ts:288</a></p>
 <p>Why the provenance was not read, from the server’s failure <code class="docutils literal notranslate"><span class="pre">error</span></code>.</p>
 <section id="id96">
 <h4>Parameters<a class="headerlink" href="#id96" title="Link to this heading">#</a></h4>
@@ -1495,7 +1497,7 @@ it from the source tree with). Plain text: every place shows it as such.</p>
 <blockquote>
 <div><p><strong>saveFailure</strong>(<code class="docutils literal notranslate"><span class="pre">error</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L302">editor/src/matchClaims.svelte.ts:302</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L302">editor/src/matchClaims.svelte.ts:302</a></p>
 <p>Why a table was not saved, from the failure <code class="docutils literal notranslate"><span class="pre">error</span></code>.</p>
 <section id="id99">
 <h4>Parameters<a class="headerlink" href="#id99" title="Link to this heading">#</a></h4>
@@ -1515,7 +1517,7 @@ it from the source tree with). Plain text: every place shows it as such.</p>
 <blockquote>
 <div><p><strong>unsavedQuestion</strong>(<code class="docutils literal notranslate"><span class="pre">workspace</span></code>, <code class="docutils literal notranslate"><span class="pre">tables</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/matchClaims.svelte.ts#L318">editor/src/matchClaims.svelte.ts:318</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/matchClaims.svelte.ts#L318">editor/src/matchClaims.svelte.ts:318</a></p>
 <p>The one question asked before unsaved work is dropped, naming it: the
 workspace’s file <code class="docutils literal notranslate"><span class="pre">workspace</span></code> when the workspace has unsaved changes
 (<code class="docutils literal notranslate"><span class="pre">null</span></code> when it has none), then the changed MatchClaim tables <code class="docutils literal notranslate"><span class="pre">tables</span></code>

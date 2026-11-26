@@ -44,7 +44,7 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="inspector/claimProvenance" href="inspector/claimProvenance.html" />
+    <link rel="next" title="flowServer" href="flowServer.html" />
     <link rel="prev" title="fixtureWorkspace" href="fixtureWorkspace.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
@@ -409,6 +409,7 @@
 <li class="toctree-l2"><a class="reference internal" href="files.html">files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="fixtureWorkspace.html">fixtureWorkspace</a></li>
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">fixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowServer.html">flowServer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/claimProvenance.html">inspector/claimProvenance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/codec.html">inspector/codec</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/display.html">inspector/display</a></li>
@@ -434,6 +435,7 @@
 <li class="toctree-l2"><a class="reference internal" href="inspector/properties.html">inspector/properties</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/propertyDrafts.svelte.html">inspector/propertyDrafts.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/provenance.html">inspector/provenance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="inspector/regions.html">inspector/regions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/selection.html">inspector/selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/stamps/commands.html">inspector/stamps/commands</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/stamps/drafts.svelte.html">inspector/stamps/drafts.svelte</a></li>
@@ -541,7 +543,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>FIXTURES</strong>: readonly <a class="reference internal" href="examples.html#example"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Example</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/fixtures.ts#L119">editor/src/fixtures.ts:119</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/fixtures.ts#L119">editor/src/fixtures.ts:119</a></p>
 <p>The fixture menu’s entries, sorted by label; empty in a production build without the test
 hook (<code class="docutils literal notranslate"><span class="pre">VITE_TILIE_TEST_HOOK</span></code>).</p>
 </section>
@@ -553,7 +555,7 @@ hook (<code class="docutils literal notranslate"><span class="pre">VITE_TILIE_TE
 <blockquote>
 <div><p><strong>fixtures</strong>(<code class="docutils literal notranslate"><span class="pre">workspaces</span></code>, <code class="docutils literal notranslate"><span class="pre">manifests</span></code>, <code class="docutils literal notranslate"><span class="pre">tables</span></code>): <a class="reference internal" href="examples.html#example"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Example</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/fixtures.ts#L79">editor/src/fixtures.ts:79</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/fixtures.ts#L79">editor/src/fixtures.ts:79</a></p>
 <p>The menu’s entries in code-unit order of their labels: every workspace
 file, every manifest fixture of <code class="docutils literal notranslate"><span class="pre">SCHEMA_VERSION</span></code> and every warning case
 of that version among <code class="docutils literal notranslate"><span class="pre">manifests</span></code>, and the table fixture’s manifest of
@@ -585,7 +587,7 @@ other versions are skipped.</p>
 <blockquote>
 <div><p><strong>servedSource</strong>(<code class="docutils literal notranslate"><span class="pre">served</span></code>): <a class="reference internal" href="matchClaims.svelte.html#manifestsource"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ManifestSource</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/fixtures.ts#L43">editor/src/fixtures.ts:43</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/fixtures.ts#L43">editor/src/fixtures.ts:43</a></p>
 <p>Where the table fixture’s files are served: the location <code class="docutils literal notranslate"><span class="pre">url</span></code> resolved
 against the fixture’s directory, read from the one of <code class="docutils literal notranslate"><span class="pre">served</span></code> (path →
 the URL it is served at) whose path is that file’s; <code class="docutils literal notranslate"><span class="pre">null</span></code> for a file
@@ -625,11 +627,11 @@ that is not served.</p>
       </div>
     </a>
     <a class="right-next"
-       href="inspector/claimProvenance.html"
+       href="flowServer.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">inspector/claimProvenance</p>
+        <p class="prev-next-title">flowServer</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

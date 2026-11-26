@@ -407,6 +407,7 @@
 <li class="toctree-l2"><a class="reference internal" href="animation/unfold.html">animation/unfold</a></li>
 <li class="toctree-l2"><a class="reference internal" href="animation/unfolding.svelte.html">animation/unfolding.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arrangeMenu.html">arrangeMenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="axisValues.html">axisValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="bands.html">bands</a></li>
 <li class="toctree-l2"><a class="reference internal" href="blockDrag.html">blockDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="boxes.html">boxes</a></li>
@@ -418,13 +419,19 @@
 <li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowEditor.html">flowEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowEditor.svelte.html">flowEditor.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowEditorRows.html">flowEditorRows</a></li>
 <li class="toctree-l2"><a class="reference internal" href="flowOverlay.html">flowOverlay</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowSwitch.html">flowSwitch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowSwitchMotion.svelte.html">flowSwitchMotion.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="focus.html">focus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gaps.html">gaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gesture.html">gesture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/arranged.html">gestures/arranged</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/band.html">gestures/band</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/canvas.html">gestures/canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/flowDrag.html">gestures/flowDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/gap.html">gestures/gap</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
@@ -448,6 +455,7 @@
 <li class="toctree-l2"><a class="reference internal" href="project.html">project</a></li>
 <li class="toctree-l2"><a class="reference internal" href="reorder.html">reorder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="resize.html">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ribbons.html">ribbons</a></li>
 <li class="toctree-l2"><a class="reference internal" href="roving.html">roving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="selection.html">selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="selectionRules.html">selectionRules</a></li>
@@ -524,7 +532,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="keycontext">
 <h3>KeyContext<a class="headerlink" href="#keycontext" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L54">arranger/src/keys.ts:54</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L54">arranger/src/keys.ts:54</a></p>
 <p>What a key acts on and through: the canvas at the moment the key is pressed.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -533,14 +541,14 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>editing</strong>: <a class="reference internal" href="editing.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Editing</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L57">arranger/src/keys.ts:57</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L57">arranger/src/keys.ts:57</a></p>
 </section>
 <section id="editors">
 <h5>editors<a class="headerlink" href="#editors" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>editors</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L73">arranger/src/keys.ts:73</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L73">arranger/src/keys.ts:73</a></p>
 <p>How many editors are open: Escape closes the innermost.</p>
 </section>
 <section id="gapedge">
@@ -548,7 +556,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>gapEdge</strong>: <a class="reference internal" href="cardAxis.html#gapedge"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">GapEdge</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L70">arranger/src/keys.ts:70</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L70">arranger/src/keys.ts:70</a></p>
 <p>The edge of a selected elision the arrows move: <code class="docutils literal notranslate"><span class="pre">[</span></code> chooses the start, <code class="docutils literal notranslate"><span class="pre">]</span></code> the end.</p>
 </section>
 <section id="gapmodes">
@@ -556,7 +564,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>gapModes</strong>: <a class="reference internal" href="gaps.html#gapmodes"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">GapModes</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L66">arranger/src/keys.ts:66</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L66">arranger/src/keys.ts:66</a></p>
 <p>What a selected elision’s handles and arrows change (the gap mode menu’s toggles).</p>
 </section>
 <section id="granularity">
@@ -564,7 +572,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>granularity</strong>: <a class="reference internal" href="../tilie-core/workspace/view.html#granularity"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Granularity</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L64">arranger/src/keys.ts:64</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L64">arranger/src/keys.ts:64</a></p>
 <p>How finely a key moving an elision’s edge picks its value: the canvas’s granularity.</p>
 </section>
 <section id="metrics">
@@ -572,14 +580,14 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>metrics</strong>: <code class="docutils literal notranslate"><span class="pre">FontMetrics</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L60">arranger/src/keys.ts:60</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L60">arranger/src/keys.ts:60</a></p>
 </section>
 <section id="pane">
 <h5>pane<a class="headerlink" href="#pane" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>pane</strong>: <a class="reference internal" href="pane.html#panesource"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PaneSource</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L62">arranger/src/keys.ts:62</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L62">arranger/src/keys.ts:62</a></p>
 <p>The pane the canvas’s drawings are fitted to (<code class="docutils literal notranslate"><span class="pre">Pane.view</span></code>).</p>
 </section>
 <section id="rules">
@@ -587,7 +595,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>rules</strong>: <a class="reference internal" href="containers.html#levelrules"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LevelRules</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L59">arranger/src/keys.ts:59</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L59">arranger/src/keys.ts:59</a></p>
 <p>The canvas’s rules now (<code class="docutils literal notranslate"><span class="pre">rulesOf</span></code>).</p>
 </section>
 <section id="selection">
@@ -595,14 +603,14 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>selection</strong>: <a class="reference internal" href="selection.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Selection</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L56">arranger/src/keys.ts:56</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L56">arranger/src/keys.ts:56</a></p>
 </section>
 <section id="view">
 <h5>view<a class="headerlink" href="#view" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>view</strong>: <a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L55">arranger/src/keys.ts:55</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L55">arranger/src/keys.ts:55</a></p>
 </section>
 </section>
 <section id="methods">
@@ -612,7 +620,7 @@
 <blockquote>
 <div><p><strong>abortGesture</strong>(): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L89">arranger/src/keys.ts:89</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L89">arranger/src/keys.ts:89</a></p>
 <p>Ends a gesture in progress (<code class="docutils literal notranslate"><span class="pre">GestureSlot.abort</span></code>); whether there was one.</p>
 <section id="returns">
 <h6>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h6>
@@ -624,7 +632,7 @@
 <blockquote>
 <div><p><strong>chooseGapEdge</strong>(<code class="docutils literal notranslate"><span class="pre">edge</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L71">arranger/src/keys.ts:71</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L71">arranger/src/keys.ts:71</a></p>
 <section id="parameters">
 <h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
 </section>
@@ -642,7 +650,7 @@
 <blockquote>
 <div><p><strong>dispatch</strong>(<code class="docutils literal notranslate"><span class="pre">command</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L76">arranger/src/keys.ts:76</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L76">arranger/src/keys.ts:76</a></p>
 <p>Runs a command; whether the store accepted it (a refusal is reported to the canvas’s host).</p>
 <section id="id2">
 <h6>Parameters<a class="headerlink" href="#id2" title="Link to this heading">#</a></h6>
@@ -661,7 +669,7 @@
 <blockquote>
 <div><p><strong>done</strong>(): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L91">arranger/src/keys.ts:91</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L91">arranger/src/keys.ts:91</a></p>
 <p>Closes the innermost editor.</p>
 <section id="id4">
 <h6>Returns<a class="headerlink" href="#id4" title="Link to this heading">#</a></h6>
@@ -673,7 +681,7 @@
 <blockquote>
 <div><p><strong>fit</strong>(): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L87">arranger/src/keys.ts:87</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L87">arranger/src/keys.ts:87</a></p>
 <section id="id5">
 <h6>Returns<a class="headerlink" href="#id5" title="Link to this heading">#</a></h6>
 <p><code class="docutils literal notranslate"><span class="pre">void</span></code></p>
@@ -684,7 +692,7 @@
 <blockquote>
 <div><p><strong>open</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L93">arranger/src/keys.ts:93</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L93">arranger/src/keys.ts:93</a></p>
 <p>Opens the editor of <code class="docutils literal notranslate"><span class="pre">target</span></code>.</p>
 <section id="id6">
 <h6>Parameters<a class="headerlink" href="#id6" title="Link to this heading">#</a></h6>
@@ -703,7 +711,7 @@
 <blockquote>
 <div><p><strong>openable</strong>(): <a class="reference internal" href="../tilie-core/workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L95">arranger/src/keys.ts:95</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L95">arranger/src/keys.ts:95</a></p>
 <p>The editor Enter opens (<code class="docutils literal notranslate"><span class="pre">openable</span></code>); <code class="docutils literal notranslate"><span class="pre">null</span></code> when the selection opens none.</p>
 <section id="id8">
 <h6>Returns<a class="headerlink" href="#id8" title="Link to this heading">#</a></h6>
@@ -715,7 +723,7 @@
 <blockquote>
 <div><p><strong>pressed</strong>(): <a class="reference internal" href="selection.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Selection</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L97">arranger/src/keys.ts:97</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L97">arranger/src/keys.ts:97</a></p>
 <p>What a press on the focused element (the key’s target) selects, as a click would.</p>
 <section id="id9">
 <h6>Returns<a class="headerlink" href="#id9" title="Link to this heading">#</a></h6>
@@ -727,7 +735,7 @@
 <blockquote>
 <div><p><strong>refuse</strong>(<code class="docutils literal notranslate"><span class="pre">message</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L78">arranger/src/keys.ts:78</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L78">arranger/src/keys.ts:78</a></p>
 <p>Reports a refusal that no command produced to the canvas’s host.</p>
 <section id="id10">
 <h6>Parameters<a class="headerlink" href="#id10" title="Link to this heading">#</a></h6>
@@ -746,7 +754,7 @@
 <blockquote>
 <div><p><strong>select</strong>(<code class="docutils literal notranslate"><span class="pre">next</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L74">arranger/src/keys.ts:74</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L74">arranger/src/keys.ts:74</a></p>
 <section id="id12">
 <h6>Parameters<a class="headerlink" href="#id12" title="Link to this heading">#</a></h6>
 </section>
@@ -764,7 +772,7 @@
 <blockquote>
 <div><p><strong>setMode</strong>(<code class="docutils literal notranslate"><span class="pre">mode</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L79">arranger/src/keys.ts:79</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L79">arranger/src/keys.ts:79</a></p>
 <section id="id14">
 <h6>Parameters<a class="headerlink" href="#id14" title="Link to this heading">#</a></h6>
 </section>
@@ -782,7 +790,7 @@
 <blockquote>
 <div><p><strong>toggleCoordinates</strong>(): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L82">arranger/src/keys.ts:82</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L82">arranger/src/keys.ts:82</a></p>
 <p>Turns “Show coordinates” on or off.</p>
 <section id="id16">
 <h6>Returns<a class="headerlink" href="#id16" title="Link to this heading">#</a></h6>
@@ -794,7 +802,7 @@
 <blockquote>
 <div><p><strong>toggleGapMode</strong>(<code class="docutils literal notranslate"><span class="pre">mode</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L68">arranger/src/keys.ts:68</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L68">arranger/src/keys.ts:68</a></p>
 <p>Presses or releases one of the gap modes; releasing the last pressed one does nothing.</p>
 <section id="id17">
 <h6>Parameters<a class="headerlink" href="#id17" title="Link to this heading">#</a></h6>
@@ -813,7 +821,7 @@
 <blockquote>
 <div><p><strong>toggleLock</strong>(): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L80">arranger/src/keys.ts:80</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L80">arranger/src/keys.ts:80</a></p>
 <section id="id20">
 <h6>Returns<a class="headerlink" href="#id20" title="Link to this heading">#</a></h6>
 <p><code class="docutils literal notranslate"><span class="pre">void</span></code></p>
@@ -824,7 +832,7 @@
 <blockquote>
 <div><p><strong>toggleMatches</strong>(): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L84">arranger/src/keys.ts:84</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L84">arranger/src/keys.ts:84</a></p>
 <p>Turns “Show matches” on or off.</p>
 <section id="id21">
 <h6>Returns<a class="headerlink" href="#id21" title="Link to this heading">#</a></h6>
@@ -836,7 +844,7 @@
 <blockquote>
 <div><p><strong>zoomIn</strong>(): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L85">arranger/src/keys.ts:85</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L85">arranger/src/keys.ts:85</a></p>
 <section id="id22">
 <h6>Returns<a class="headerlink" href="#id22" title="Link to this heading">#</a></h6>
 <p><code class="docutils literal notranslate"><span class="pre">void</span></code></p>
@@ -847,7 +855,7 @@
 <blockquote>
 <div><p><strong>zoomOut</strong>(): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L86">arranger/src/keys.ts:86</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L86">arranger/src/keys.ts:86</a></p>
 <section id="id23">
 <h6>Returns<a class="headerlink" href="#id23" title="Link to this heading">#</a></h6>
 <p><code class="docutils literal notranslate"><span class="pre">void</span></code></p>
@@ -858,7 +866,7 @@
 <hr class="docutils" />
 <section id="keyrow">
 <h3>KeyRow<a class="headerlink" href="#keyrow" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L101">arranger/src/keys.ts:101</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L101">arranger/src/keys.ts:101</a></p>
 <p>One row of the key table.</p>
 <section id="id24">
 <h4>Methods<a class="headerlink" href="#id24" title="Link to this heading">#</a></h4>
@@ -867,7 +875,7 @@
 <blockquote>
 <div><p><strong>match</strong>(<code class="docutils literal notranslate"><span class="pre">event</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L102">arranger/src/keys.ts:102</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L102">arranger/src/keys.ts:102</a></p>
 <section id="id25">
 <h6>Parameters<a class="headerlink" href="#id25" title="Link to this heading">#</a></h6>
 </section>
@@ -885,7 +893,7 @@
 <blockquote>
 <div><p><strong>run</strong>(<code class="docutils literal notranslate"><span class="pre">context</span></code>, <code class="docutils literal notranslate"><span class="pre">event</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L104">arranger/src/keys.ts:104</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L104">arranger/src/keys.ts:104</a></p>
 <p>Act; whether the key was the canvas’s (it is then taken from the page).</p>
 <section id="id27">
 <h6>Parameters<a class="headerlink" href="#id27" title="Link to this heading">#</a></h6>
@@ -913,7 +921,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>KEYS</strong>: readonly <a class="reference internal" href="#keyrow"><code class="docutils literal notranslate"><span class="pre">KeyRow</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L283">arranger/src/keys.ts:283</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L283">arranger/src/keys.ts:283</a></p>
 <p>The key table, in the order the rows are read.</p>
 </section>
 <hr class="docutils" />
@@ -922,7 +930,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>LARGE_STEP</strong>: <code class="docutils literal notranslate"><span class="pre">8</span></code> = <code class="docutils literal notranslate"><span class="pre">8</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L51">arranger/src/keys.ts:51</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L51">arranger/src/keys.ts:51</a></p>
 <p>Arrow keys move by one grid step; with Shift by this many.</p>
 </section>
 </section>
@@ -933,7 +941,7 @@
 <blockquote>
 <div><p><strong>arrangedStep</strong>(<code class="docutils literal notranslate"><span class="pre">arranged</span></code>, <code class="docutils literal notranslate"><span class="pre">key</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L196">arranger/src/keys.ts:196</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L196">arranger/src/keys.ts:196</a></p>
 <p>How many places an arrow moves a content of an arrangement: along it,
 Up and Down one place in a column, Left and Right in a row, and in a
 matrix Left and Right one place in its row, Up and Down one row (the
@@ -960,7 +968,7 @@ number of columns); 0 for an arrow across a column or a row.</p>
 <blockquote>
 <div><p><strong>handleKey</strong>(<code class="docutils literal notranslate"><span class="pre">context</span></code>, <code class="docutils literal notranslate"><span class="pre">event</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L458">arranger/src/keys.ts:458</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L458">arranger/src/keys.ts:458</a></p>
 <p>Run the row a key matches; <code class="docutils literal notranslate"><span class="pre">false</span></code> when the key means nothing on the canvas.</p>
 <section id="id33">
 <h4>Parameters<a class="headerlink" href="#id33" title="Link to this heading">#</a></h4>
@@ -984,7 +992,7 @@ number of columns); 0 for an arrow across a column or a row.</p>
 <blockquote>
 <div><p><strong>inToolbar</strong>(<code class="docutils literal notranslate"><span class="pre">event</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L480">arranger/src/keys.ts:480</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L480">arranger/src/keys.ts:480</a></p>
 <p>Whether arrows, Home and End belong to a toolbar the target lies in, moving between its buttons.</p>
 <section id="id37">
 <h4>Parameters<a class="headerlink" href="#id37" title="Link to this heading">#</a></h4>
@@ -1004,7 +1012,7 @@ number of columns); 0 for an arrow across a column or a row.</p>
 <blockquote>
 <div><p><strong>isTextInput</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L464">arranger/src/keys.ts:464</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L464">arranger/src/keys.ts:464</a></p>
 <p>Whether <code class="docutils literal notranslate"><span class="pre">target</span></code> takes typed text: a text field, a list box or an editable element.</p>
 <section id="id40">
 <h4>Parameters<a class="headerlink" href="#id40" title="Link to this heading">#</a></h4>
@@ -1024,7 +1032,7 @@ number of columns); 0 for an arrow across a column or a row.</p>
 <blockquote>
 <div><p><strong>within</strong>(<code class="docutils literal notranslate"><span class="pre">root</span></code>, <code class="docutils literal notranslate"><span class="pre">target</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/keys.ts#L475">arranger/src/keys.ts:475</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/keys.ts#L475">arranger/src/keys.ts:475</a></p>
 <p>Whether <code class="docutils literal notranslate"><span class="pre">target</span></code> lies in <code class="docutils literal notranslate"><span class="pre">root</span></code> (or is it).</p>
 <section id="id43">
 <h4>Parameters<a class="headerlink" href="#id43" title="Link to this heading">#</a></h4>

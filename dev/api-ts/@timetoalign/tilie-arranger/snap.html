@@ -407,6 +407,7 @@
 <li class="toctree-l2"><a class="reference internal" href="animation/unfold.html">animation/unfold</a></li>
 <li class="toctree-l2"><a class="reference internal" href="animation/unfolding.svelte.html">animation/unfolding.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arrangeMenu.html">arrangeMenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="axisValues.html">axisValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="bands.html">bands</a></li>
 <li class="toctree-l2"><a class="reference internal" href="blockDrag.html">blockDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="boxes.html">boxes</a></li>
@@ -418,13 +419,19 @@
 <li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowEditor.html">flowEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowEditor.svelte.html">flowEditor.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowEditorRows.html">flowEditorRows</a></li>
 <li class="toctree-l2"><a class="reference internal" href="flowOverlay.html">flowOverlay</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowSwitch.html">flowSwitch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowSwitchMotion.svelte.html">flowSwitchMotion.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="focus.html">focus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gaps.html">gaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gesture.html">gesture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/arranged.html">gestures/arranged</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/band.html">gestures/band</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/canvas.html">gestures/canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/flowDrag.html">gestures/flowDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/gap.html">gestures/gap</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
@@ -448,6 +455,7 @@
 <li class="toctree-l2"><a class="reference internal" href="project.html">project</a></li>
 <li class="toctree-l2"><a class="reference internal" href="reorder.html">reorder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="resize.html">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ribbons.html">ribbons</a></li>
 <li class="toctree-l2"><a class="reference internal" href="roving.html">roving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="selection.html">selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="selectionRules.html">selectionRules</a></li>
@@ -524,7 +532,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="box">
 <h3>Box<a class="headerlink" href="#box" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/snap.ts#L7">arranger/src/snap.ts:7</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/snap.ts#L7">arranger/src/snap.ts:7</a></p>
 <p>A block’s box on the canvas.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -533,21 +541,21 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>height</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/snap.ts#L12">arranger/src/snap.ts:12</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/snap.ts#L12">arranger/src/snap.ts:12</a></p>
 </section>
 <section id="id">
 <h5>id<a class="headerlink" href="#id" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>id</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/snap.ts#L8">arranger/src/snap.ts:8</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/snap.ts#L8">arranger/src/snap.ts:8</a></p>
 </section>
 <section id="origin">
 <h5>origin<a class="headerlink" href="#origin" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>origin</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/snap.ts#L14">arranger/src/snap.ts:14</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/snap.ts#L14">arranger/src/snap.ts:14</a></p>
 <p>The canvas x of the start of the root’s line.</p>
 </section>
 <section id="width">
@@ -555,28 +563,28 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>width</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/snap.ts#L11">arranger/src/snap.ts:11</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/snap.ts#L11">arranger/src/snap.ts:11</a></p>
 </section>
 <section id="x">
 <h5>x<a class="headerlink" href="#x" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>x</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/snap.ts#L9">arranger/src/snap.ts:9</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/snap.ts#L9">arranger/src/snap.ts:9</a></p>
 </section>
 <section id="y">
 <h5>y<a class="headerlink" href="#y" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>y</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/snap.ts#L10">arranger/src/snap.ts:10</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/snap.ts#L10">arranger/src/snap.ts:10</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="guide">
 <h3>Guide<a class="headerlink" href="#guide" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/snap.ts#L18">arranger/src/snap.ts:18</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/snap.ts#L18">arranger/src/snap.ts:18</a></p>
 <p>A line drawn while a block is aligned to it.</p>
 <section id="id1">
 <h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
@@ -585,14 +593,14 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>at</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/snap.ts#L20">arranger/src/snap.ts:20</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/snap.ts#L20">arranger/src/snap.ts:20</a></p>
 </section>
 <section id="axis">
 <h5>axis<a class="headerlink" href="#axis" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>axis</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/snap.ts#L19">arranger/src/snap.ts:19</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/snap.ts#L19">arranger/src/snap.ts:19</a></p>
 </section>
 </section>
 </section>
@@ -604,7 +612,7 @@
 <blockquote>
 <div><p><strong>snap</strong>(<code class="docutils literal notranslate"><span class="pre">moving</span></code>, <code class="docutils literal notranslate"><span class="pre">others</span></code>, <code class="docutils literal notranslate"><span class="pre">grid</span></code>, <code class="docutils literal notranslate"><span class="pre">tolerance</span></code>): <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/snap.ts#L31">arranger/src/snap.ts:31</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/snap.ts#L31">arranger/src/snap.ts:31</a></p>
 <p>Where <code class="docutils literal notranslate"><span class="pre">moving</span></code> lands: its position quantized to the grid (or to
 <code class="docutils literal notranslate"><span class="pre">GRID_FREE</span></code> when it does not snap), then, horizontally, its left edge or
 its origin moved onto the nearest left edge or origin of <code class="docutils literal notranslate"><span class="pre">others</span></code> lying

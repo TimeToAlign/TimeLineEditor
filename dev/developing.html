@@ -532,7 +532,7 @@ format’s side):</p>
 </tr>
 <tr class="row-even"><td><p>timeline</p></td>
 <td><p><strong>card</strong></p></td>
-<td><p>a timeline drawn as a root: an ungrouped root’s card lies in the block, a member has one in the frame of each group that has it as a member</p></td>
+<td><p>a timeline drawn as a root: an ungrouped root’s card lies in the block, a member has one in the frame of each group that has it as a member; a virtual timeline is drawn the same way, in its groups’ frames or, placed by the block, in the block</p></td>
 </tr>
 <tr class="row-odd"><td><p>facet</p></td>
 <td><p><strong>band</strong></p></td>
@@ -605,7 +605,7 @@ rectangle and the range of elements it drew; the arranger and the editor
 read that list and derive nothing from element order;</p></li>
 <li><p>the arranger’s level table (<code class="docutils literal notranslate"><span class="pre">containers.ts</span></code>) says, per level of the
 canvas (the arranger, the bundle editor, the group editor, the timeline
-editor), what may be moved, reordered, resized, removed and opened, and
+editor, the flow editor), what may be moved, reordered, resized, removed and opened, and
 how each kind of box resizes.</p></li>
 </ul>
 <p>“Item” is a role (a frame or a block-held card is placed freely in the
@@ -620,22 +620,27 @@ reserved word (TimeToShare’s README, “Identity”). TiLiE never parses an ID
 and names a timeline, group or manifest without a <code class="docutils literal notranslate"><span class="pre">name</span></code> by its whole ID.
 Where core creates an element itself (the first segment of an empty
 segment line, the default timestamps, a named timestamp, an elision, a
-named MatchStamp with its anchors, a group added without an ID), it mints
+named MatchStamp with its anchors, and a group, region, conversion map,
+flow-control element, FlowMap or virtual timeline added without an ID), it mints
 the ID as timetoalign does: the type prefix, <code class="docutils literal notranslate"><span class="pre">_</span></code> and 13 random base-36
 characters (<code class="docutils literal notranslate"><span class="pre">timestamp_3b7gu4iwqkg9i</span></code>). <code class="docutils literal notranslate"><span class="pre">dispatch</span></code> mints these IDs before
 the command is applied and journals them in the command’s <code class="docutils literal notranslate"><span class="pre">ids</span></code>, so a
 replay reads them and mints nothing; a minted ID is never renamed or
-reissued. Any other element a command adds carries its ID.</p>
+reissued. Any other element a command adds (a timeline, a child, a
+measure map) carries its ID.</p>
 <p>An address names anything a command can target, and it is an object,
 never a string composed from IDs: <code class="docutils literal notranslate"><span class="pre">{}</span></code> the workspace, <code class="docutils literal notranslate"><span class="pre">{block}</span></code> a block,
 and <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id?,</span> <span class="pre">facet?,</span> <span class="pre">part?}</span></code> an element of the block’s manifest, its
 members those of the manifest’s own address (TimeToShare’s drawing
 specification, section 2.2): <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">X}</span></code> a timeline, group, measure
-map, conversion map, region, flow-control element, named timestamp (its
-wedge), named MatchStamp, alignment anchor (its line) or stored elision
-(every gap drawn of it); <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">T,</span> <span class="pre">part:</span> <span class="pre">[&quot;elision&quot;]}</span></code> the gaps a
-card derives on <code class="docutils literal notranslate"><span class="pre">T</span></code>, which have no ID; <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">T,</span> <span class="pre">facet:</span> <span class="pre">F}</span></code> the band drawing facet <code class="docutils literal notranslate"><span class="pre">F</span></code> of timeline <code class="docutils literal notranslate"><span class="pre">T</span></code>; <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">T,</span> <span class="pre">part:</span> <span class="pre">[&quot;card&quot;]}</span></code> every card of <code class="docutils literal notranslate"><span class="pre">T</span></code>; <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">part:</span> <span class="pre">[&quot;name&quot;]}</span></code> the
-manifest’s title; and a part of an element its address with <code class="docutils literal notranslate"><span class="pre">start</span></code>,
+map, conversion map, region, flow-control element, FlowMap, virtual
+timeline, named timestamp (its wedge), named MatchStamp, alignment anchor
+(its line) or stored elision (every gap drawn of it); <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">T,</span> <span class="pre">part:</span> <span class="pre">[&quot;elision&quot;]}</span></code> the gaps a
+card derives on <code class="docutils literal notranslate"><span class="pre">T</span></code>, which have no ID; <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">T,</span> <span class="pre">facet:</span> <span class="pre">F}</span></code> the band drawing facet <code class="docutils literal notranslate"><span class="pre">F</span></code> of timeline <code class="docutils literal notranslate"><span class="pre">T</span></code>; <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">T,</span> <span class="pre">part:</span> <span class="pre">[&quot;card&quot;]}</span></code> every card of <code class="docutils literal notranslate"><span class="pre">T</span></code>, a virtual timeline’s too; <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">V,</span> <span class="pre">facet:</span> <span class="pre">&quot;regions&quot;,</span> <span class="pre">part:</span> <span class="pre">[k]}</span></code> the chunk <code class="docutils literal notranslate"><span class="pre">k</span></code> (from 0) that the
+virtual card of <code class="docutils literal notranslate"><span class="pre">V</span></code> draws, or the switched card of <code class="docutils literal notranslate"><span class="pre">T</span></code> with <code class="docutils literal notranslate"><span class="pre">T</span></code> in place
+of <code class="docutils literal notranslate"><span class="pre">V</span></code>, the one address where <code class="docutils literal notranslate"><span class="pre">facet</span></code> stands with <code class="docutils literal notranslate"><span class="pre">part</span></code>, its part
+beginning with the chunk index; <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">part:</span> <span class="pre">[&quot;name&quot;]}</span></code> the manifest’s
+title; and a part of an element its address with <code class="docutils literal notranslate"><span class="pre">start</span></code>,
 <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">label</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">coordinate</span></code>, <code class="docutils literal notranslate"><span class="pre">line</span></code> or <code class="docutils literal notranslate"><span class="pre">ellipsis</span></code> appended to <code class="docutils literal notranslate"><span class="pre">part</span></code>
 (a named timestamp’s line, a groupstamp’s across every frame drawing it
 included, is <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">X,</span> <span class="pre">part:</span> <span class="pre">[&quot;line&quot;]}</span></code>). An element drawn more than
@@ -645,7 +650,8 @@ Two addresses are equal when they are equal as whole objects, and
 <code class="docutils literal notranslate"><span class="pre">addressKey(address)</span></code> is an address’s one string form, the only key a map
 or a Svelte keyed block takes for it. Core’s <code class="docutils literal notranslate"><span class="pre">resolveAddress(view,</span> <span class="pre">address)</span></code> is the one place that decides what an address names, returning
 a discriminated record (workspace, block, title, frame, timeline, card,
-band, entry, measure map, timestamp, elision, MatchStamp, anchor, part); a part
+band, entry, measure map, timestamp, elision, MatchStamp, anchor, FlowMap,
+virtual timeline, virtual card, virtual band, chunk, part); a part
 names something only where it is drawn. Nothing reads an ID or an address out of
 a string. A statement has neither an ID nor an address: it is changed
 through the element holding it, by one <code class="docutils literal notranslate"><span class="pre">set</span></code> of that element’s whole

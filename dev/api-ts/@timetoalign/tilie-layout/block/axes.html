@@ -435,8 +435,10 @@
 <li class="toctree-l2"><a class="reference internal" href="../rows.html">rows</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../slots.html">slots</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../stacks.html">stacks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../switched.html">switched</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../timeline.html">timeline</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../traversal.html">traversal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../virtual.html">virtual</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tilie-writers/index.html">@timetoalign/tilie-writers</a></li>
@@ -515,7 +517,7 @@
 <blockquote>
 <div><p><strong>axesOf</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">member</span></code>, <code class="docutils literal notranslate"><span class="pre">card</span></code>, <code class="docutils literal notranslate"><span class="pre">drawn</span></code>, <code class="docutils literal notranslate"><span class="pre">x0</span></code>, <code class="docutils literal notranslate"><span class="pre">L</span></code>, <code class="docutils literal notranslate"><span class="pre">elided</span></code>): <a class="reference internal" href="../boxes.html#drawnaxis"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnAxis</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/layout/src/block/axes.ts#L112">layout/src/block/axes.ts:112</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/block/axes.ts#L126">layout/src/block/axes.ts:126</a></p>
 <p>The axes of the lines <code class="docutils literal notranslate"><span class="pre">drawn</span></code> draws for <code class="docutils literal notranslate"><span class="pre">member</span></code> of <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, started at
 <code class="docutils literal notranslate"><span class="pre">x0</span></code> and <code class="docutils literal notranslate"><span class="pre">L</span></code> long, in item coordinates and in the order of their elements,
 each timeline’s or child’s line with where a coordinate marker of it lies
@@ -533,9 +535,10 @@ length (section 3.4), and the maps drawn at its line, its own and those of
 its segments without a line (section 6.4, Segments without a line), in
 the order they are drawn, each with the timeline it spans.</p>
 <p>On the elided axis <code class="docutils literal notranslate"><span class="pre">elided</span></code> of a card drawing gaps (sections 3.2 and
-8.9), a line is drawn in full runs between its gaps, and has one axis
-per run, each linear, from the run’s start to its end at their elided x
-(a run starting at a seam at the start of the run right of it),
+8.9), or run gaps (section 8.10, Runs), a line is drawn in full runs
+between them, and has one axis per run, each linear, from the run’s start
+to its end at their drawn x (a run starting at a seam at the start of the
+run right of it, one starting at a run gap’s end <code class="docutils literal notranslate"><span class="pre">b</span></code> at <code class="docutils literal notranslate"><span class="pre">x(a)</span></code>),
 with the coordinates there, every one with the timeline’s address (<code class="docutils literal notranslate"><span class="pre">run</span></code>
 telling them apart from the second on) and the named timestamps whose
 cross-section lines lie on it.</p>
@@ -572,6 +575,50 @@ cross-section lines lie on it.</p>
 </section>
 <section id="returns">
 <h4>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../boxes.html#drawnaxis"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnAxis</span></code></span></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="unfoldedaxes">
+<h3>unfoldedAxes()<a class="headerlink" href="#unfoldedaxes" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>unfoldedAxes</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">card</span></code>, <code class="docutils literal notranslate"><span class="pre">drawn</span></code>, <code class="docutils literal notranslate"><span class="pre">x0</span></code>): <a class="reference internal" href="../boxes.html#drawnaxis"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnAxis</span></code></span></a>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/layout/src/block/axes.ts#L315">layout/src/block/axes.ts:315</a></p>
+<p>The axes of the lines <code class="docutils literal notranslate"><span class="pre">drawn</span></code> draws for the switched card, or card of a
+switched frame, traversed as <code class="docutils literal notranslate"><span class="pre">scope</span></code> (section 8.10), in item coordinates
+and in the order of their elements, <code class="docutils literal notranslate"><span class="pre">x0</span></code> their start; an ancestor line of
+a carried member has one axis per piece it is drawn in, over the stretch
+of its own axis drawn there (<code class="docutils literal notranslate"><span class="pre">MemberDrawn.ancestorAxes</span></code>), with its mark,
+numbered by <code class="docutils literal notranslate"><span class="pre">run</span></code> from the second on. Each line drawn in
+one piece is linear there and has one axis, from the coordinate of its
+timeline’s own axis at its drawn start to that at its drawn end: 0 and its
+length, or, at an end cut at the piece’s, the coordinate played there. The
+line of the switched card’s root is drawn across every piece and has one
+axis per drawn piece, from <code class="docutils literal notranslate"><span class="pre">a</span></code> to <code class="docutils literal notranslate"><span class="pre">b</span></code> of its stretch (<code class="docutils literal notranslate"><span class="pre">run</span></code> telling them
+apart from the second on), none for a piece a run drawn once hides. Each
+axis holds the named timestamps it reaches, each in the first that does.</p>
+<section id="id1">
+<h4>Parameters<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
+<section id="scope">
+<h5>scope<a class="headerlink" href="#scope" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../traversal.html#scope"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Scope</span></code></span></a></p>
+</section>
+<section id="id2">
+<h5>card<a class="headerlink" href="#id2" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/manifest/containers.html#placekey"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PlaceKey</span></code></span></a></p>
+</section>
+<section id="id3">
+<h5>drawn<a class="headerlink" href="#id3" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../member.html#memberdrawn"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MemberDrawn</span></code></span></a></p>
+</section>
+<section id="id4">
+<h5>x0<a class="headerlink" href="#id4" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+</section>
+<section id="id5">
+<h4>Returns<a class="headerlink" href="#id5" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="../boxes.html#drawnaxis"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnAxis</span></code></span></a>[]</p>
 </section>
 </section>
@@ -638,6 +685,17 @@ cross-section lines lie on it.</p>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#unfoldedaxes">unfoldedAxes()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#scope">scope</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">card</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">drawn</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">x0</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Returns</a></li>
 </ul>
 </li>
 </ul>

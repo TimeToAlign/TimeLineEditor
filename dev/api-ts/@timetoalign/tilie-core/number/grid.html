@@ -398,6 +398,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../commands/add.html">commands/add</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/apply.html">commands/apply</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/elisions.html">commands/elisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../commands/flowmaps.html">commands/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/matchstamps.html">commands/matchstamps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/mutations.html">commands/mutations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/parse.html">commands/parse</a></li>
@@ -422,6 +423,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../manifest/elisions.html">manifest/elisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/files.html">manifest/files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/flow.html">manifest/flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/flowmaps.html">manifest/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/invariants.html">manifest/invariants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/io.html">manifest/io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/locks.html">manifest/locks</a></li>
@@ -429,8 +431,10 @@
 <li class="toctree-l2"><a class="reference internal" href="../manifest/remove.html">manifest/remove</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/segments.html">manifest/segments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/statements.html">manifest/statements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/switched.html">manifest/switched</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/tree.html">manifest/tree</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/types.html">manifest/types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/virtual.html">manifest/virtual</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/compile.html">maps/compile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/express.html">maps/express</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/invert.html">maps/invert</a></li>
@@ -538,7 +542,7 @@
 <blockquote>
 <div><p><strong>clampValue</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">start</span></code>, <code class="docutils literal notranslate"><span class="pre">end</span></code>): <a class="reference internal" href="rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/grid.ts#L124">number/grid.ts:124</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/grid.ts#L124">number/grid.ts:124</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">value</span></code> held to <code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">end]</span></code>; an <code class="docutils literal notranslate"><span class="pre">end</span></code> of <code class="docutils literal notranslate"><span class="pre">null</span></code> (unknown) holds only below.</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
@@ -566,7 +570,7 @@
 <blockquote>
 <div><p><strong>nearest</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">denominator</span></code>): <a class="reference internal" href="rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/grid.ts#L26">number/grid.ts:26</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/grid.ts#L26">number/grid.ts:26</a></p>
 <p>The nearest multiple of <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">/</span> <span class="pre">denominator</span></code> to <code class="docutils literal notranslate"><span class="pre">value</span></code>, a tie going up.</p>
 <section id="id1">
 <h4>Parameters<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
@@ -590,7 +594,7 @@
 <blockquote>
 <div><p><strong>snapValue</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">reach</span></code>, <code class="docutils literal notranslate"><span class="pre">numberType</span></code>, <code class="docutils literal notranslate"><span class="pre">granularity</span></code>): <a class="reference internal" href="rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/grid.ts#L107">number/grid.ts:107</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/grid.ts#L107">number/grid.ts:107</a></p>
 <p>The value a pointer picks at <code class="docutils literal notranslate"><span class="pre">value</span></code> on an axis of <code class="docutils literal notranslate"><span class="pre">numberType</span></code>, <code class="docutils literal notranslate"><span class="pre">reach</span></code>
 being half a device pixel on that axis:</p>
 <ul class="simple">

@@ -398,6 +398,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../commands/add.html">commands/add</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/apply.html">commands/apply</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/elisions.html">commands/elisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../commands/flowmaps.html">commands/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/matchstamps.html">commands/matchstamps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/mutations.html">commands/mutations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/parse.html">commands/parse</a></li>
@@ -422,6 +423,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../manifest/elisions.html">manifest/elisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/files.html">manifest/files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/flow.html">manifest/flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/flowmaps.html">manifest/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/invariants.html">manifest/invariants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/io.html">manifest/io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/locks.html">manifest/locks</a></li>
@@ -429,8 +431,10 @@
 <li class="toctree-l2"><a class="reference internal" href="../manifest/remove.html">manifest/remove</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/segments.html">manifest/segments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/statements.html">manifest/statements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/switched.html">manifest/switched</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/tree.html">manifest/tree</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/types.html">manifest/types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/virtual.html">manifest/virtual</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/compile.html">maps/compile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/express.html">maps/express</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/invert.html">maps/invert</a></li>
@@ -535,7 +539,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="coordinatedict">
 <h3>CoordinateDict<a class="headerlink" href="#coordinatedict" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/display.ts#L70">number/display.ts:70</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/display.ts#L70">number/display.ts:70</a></p>
 <p>A coordinate dict: a value on an axis, its value written as the number type selects.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -544,21 +548,21 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>number_type</strong>: <code class="docutils literal notranslate"><span class="pre">NumberType</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/display.ts#L72">number/display.ts:72</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/display.ts#L72">number/display.ts:72</a></p>
 </section>
 <section id="unit">
 <h5>unit<a class="headerlink" href="#unit" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>unit</strong>: <code class="docutils literal notranslate"><span class="pre">TimeUnit</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/display.ts#L71">number/display.ts:71</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/display.ts#L71">number/display.ts:71</a></p>
 </section>
 <section id="value">
 <h5>value<a class="headerlink" href="#value" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>value</strong>: <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code> | readonly [<code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>, <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/display.ts#L73">number/display.ts:73</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/display.ts#L73">number/display.ts:73</a></p>
 </section>
 </section>
 </section>
@@ -570,7 +574,7 @@
 <blockquote>
 <div><p><strong>coordinateDict</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">unit</span></code>, <code class="docutils literal notranslate"><span class="pre">numberType</span></code>): <a class="reference internal" href="#coordinatedict"><code class="docutils literal notranslate"><span class="pre">CoordinateDict</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/display.ts#L304">number/display.ts:304</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/display.ts#L304">number/display.ts:304</a></p>
 <p>The coordinate dict <code class="docutils literal notranslate"><span class="pre">{unit,</span> <span class="pre">number_type,</span> <span class="pre">value}</span></code> of a value, the value
 written as a bare value of its number type (a Fraction as its pair).</p>
 <section id="parameters">
@@ -603,7 +607,7 @@ written as a bare value of its number type (a Fraction as its pair).</p>
 <blockquote>
 <div><p><strong>copyValue</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">numberType</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/display.ts#L263">number/display.ts:263</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/display.ts#L263">number/display.ts:263</a></p>
 <p>The text Copy puts on the clipboard: the whole value, a fraction <code class="docutils literal notranslate"><span class="pre">n/d</span></code>
 (<code class="docutils literal notranslate"><span class="pre">n</span></code> when the denominator is 1), a float as spelled, an int its digits.</p>
 <section id="id4">
@@ -632,7 +636,7 @@ written as a bare value of its number type (a Fraction as its pair).</p>
 <blockquote>
 <div><p><strong>prettyText</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">numberType</span></code>, <code class="docutils literal notranslate"><span class="pre">unit</span></code>, <code class="docutils literal notranslate"><span class="pre">decimals?</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/display.ts#L287">number/display.ts:287</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/display.ts#L287">number/display.ts:287</a></p>
 <p>The pretty text of a coordinate: its pretty number, a space and its
 pretty unit (<code class="docutils literal notranslate"><span class="pre">13</span> <span class="pre">11/16</span> <span class="pre">♩</span></code>, <code class="docutils literal notranslate"><span class="pre">514</span> <span class="pre">041</span> <span class="pre">smp</span></code>), seconds split as <code class="docutils literal notranslate"><span class="pre">1′15.5″</span></code>, a
 value without a unit (<code class="docutils literal notranslate"><span class="pre">null</span></code>) its number alone. Exact without <code class="docutils literal notranslate"><span class="pre">decimals</span></code>;
@@ -671,7 +675,7 @@ with <code class="docutils literal notranslate"><span class="pre">decimals</span
 <blockquote>
 <div><p><strong>prettyUnit</strong>(<code class="docutils literal notranslate"><span class="pre">unit</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/display.ts#L253">number/display.ts:253</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/display.ts#L253">number/display.ts:253</a></p>
 <p>The pretty unit of <code class="docutils literal notranslate"><span class="pre">unit</span></code>: <code class="docutils literal notranslate"><span class="pre">♩</span></code> for quarters, <code class="docutils literal notranslate"><span class="pre">𝅝</span></code> for whole notes, <code class="docutils literal notranslate"><span class="pre">ms</span></code>,
 <code class="docutils literal notranslate"><span class="pre">s</span></code>, <code class="docutils literal notranslate"><span class="pre">min</span></code>, <code class="docutils literal notranslate"><span class="pre">smp</span></code>, <code class="docutils literal notranslate"><span class="pre">ticks</span></code>, <code class="docutils literal notranslate"><span class="pre">px</span></code>, <code class="docutils literal notranslate"><span class="pre">pt</span></code>, <code class="docutils literal notranslate"><span class="pre">m</span></code>, <code class="docutils literal notranslate"><span class="pre">cm</span></code>, <code class="docutils literal notranslate"><span class="pre">mm</span></code>, <code class="docutils literal notranslate"><span class="pre">in</span></code>, <code class="docutils literal notranslate"><span class="pre">uu</span></code> for user
 units, any other unit its name.</p>
@@ -693,7 +697,7 @@ units, any other unit its name.</p>
 <blockquote>
 <div><p><strong>rawText</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">numberType</span></code>, <code class="docutils literal notranslate"><span class="pre">unit</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/display.ts#L275">number/display.ts:275</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/display.ts#L275">number/display.ts:275</a></p>
 <p>The raw text of a coordinate: <code class="docutils literal notranslate"><span class="pre">copyValue</span></code>, a space and the unit’s schema
 name (<code class="docutils literal notranslate"><span class="pre">219/16</span> <span class="pre">quarters</span></code>, <code class="docutils literal notranslate"><span class="pre">0.1</span> <span class="pre">seconds</span></code>, <code class="docutils literal notranslate"><span class="pre">514041</span> <span class="pre">samples</span></code>).</p>
 <section id="id18">

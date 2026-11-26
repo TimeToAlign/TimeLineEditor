@@ -398,6 +398,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../commands/add.html">commands/add</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/apply.html">commands/apply</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/elisions.html">commands/elisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../commands/flowmaps.html">commands/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/matchstamps.html">commands/matchstamps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/mutations.html">commands/mutations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/parse.html">commands/parse</a></li>
@@ -422,6 +423,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../manifest/elisions.html">manifest/elisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/files.html">manifest/files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/flow.html">manifest/flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/flowmaps.html">manifest/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/invariants.html">manifest/invariants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/io.html">manifest/io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/locks.html">manifest/locks</a></li>
@@ -429,8 +431,10 @@
 <li class="toctree-l2"><a class="reference internal" href="../manifest/remove.html">manifest/remove</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/segments.html">manifest/segments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/statements.html">manifest/statements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/switched.html">manifest/switched</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/tree.html">manifest/tree</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/types.html">manifest/types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/virtual.html">manifest/virtual</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/compile.html">maps/compile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/express.html">maps/express</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/invert.html">maps/invert</a></li>
@@ -535,7 +539,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="user">
 <h3>User<a class="headerlink" href="#user" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/workspace/user.ts#L11">workspace/user.ts:11</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/workspace/user.ts#L11">workspace/user.ts:11</a></p>
 <p>A user: a name and, optionally, the bare ORCID iD (<code class="docutils literal notranslate"><span class="pre">0000-0002-1825-0097</span></code>).</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -544,14 +548,14 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>name</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/workspace/user.ts#L12">workspace/user.ts:12</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/workspace/user.ts#L12">workspace/user.ts:12</a></p>
 </section>
 <section id="orcid">
 <h5>orcid<a class="headerlink" href="#orcid" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>orcid</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/workspace/user.ts#L13">workspace/user.ts:13</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/workspace/user.ts#L13">workspace/user.ts:13</a></p>
 </section>
 </section>
 </section>
@@ -563,7 +567,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>DEFAULT_USER</strong>: <a class="reference internal" href="#user"><code class="docutils literal notranslate"><span class="pre">User</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/workspace/user.ts#L17">workspace/user.ts:17</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/workspace/user.ts#L17">workspace/user.ts:17</a></p>
 <p>The user before anyone gives a name: the journal’s default author, without an iD.</p>
 </section>
 <hr class="docutils" />
@@ -572,7 +576,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>TILIE_AGENT</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;https://github.com/TimeToAlign/TimeLineEditor&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;https://github.com/TimeToAlign/TimeLineEditor&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/workspace/user.ts#L20">workspace/user.ts:20</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/workspace/user.ts#L20">workspace/user.ts:20</a></p>
 <p>The IRI stating what the editor itself proposes, as <code class="docutils literal notranslate"><span class="pre">stated_by</span></code> of a provenance entry.</p>
 </section>
 <hr class="docutils" />
@@ -581,7 +585,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>USER_TAG</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;tag:timetoalign.github.io,2026:tilie:user:&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;tag:timetoalign.github.io,2026:tilie:user:&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/workspace/user.ts#L23">workspace/user.ts:23</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/workspace/user.ts#L23">workspace/user.ts:23</a></p>
 <p>The beginning of the tag IRI naming a user without an ORCID iD, followed by the encoded name.</p>
 </section>
 </section>
@@ -592,7 +596,7 @@
 <blockquote>
 <div><p><strong>readOrcid</strong>(<code class="docutils literal notranslate"><span class="pre">text</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/workspace/user.ts#L42">workspace/user.ts:42</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/workspace/user.ts#L42">workspace/user.ts:42</a></p>
 <p>The bare ORCID iD <code class="docutils literal notranslate"><span class="pre">text</span></code> gives: the iD itself (<code class="docutils literal notranslate"><span class="pre">0000-0002-1825-0097</span></code>) or
 its address (<code class="docutils literal notranslate"><span class="pre">https://orcid.org/…</span></code>, <code class="docutils literal notranslate"><span class="pre">http://orcid.org/…</span></code>, <code class="docutils literal notranslate"><span class="pre">orcid.org/…</span></code>),
 white space around it trimmed, its check character verified; <code class="docutils literal notranslate"><span class="pre">null</span></code> for
@@ -615,7 +619,7 @@ any other text.</p>
 <blockquote>
 <div><p><strong>statedBy</strong>(<code class="docutils literal notranslate"><span class="pre">user</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/workspace/user.ts#L56">workspace/user.ts:56</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/workspace/user.ts#L56">workspace/user.ts:56</a></p>
 <p>The IRI naming <code class="docutils literal notranslate"><span class="pre">user</span></code> as <code class="docutils literal notranslate"><span class="pre">stated_by</span></code> of what they state: their ORCID iD’s
 address, else a tag IRI holding their name (a name is no IRI).</p>
 <section id="id1">

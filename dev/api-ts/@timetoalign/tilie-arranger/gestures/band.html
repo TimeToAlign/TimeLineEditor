@@ -407,6 +407,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../animation/unfold.html">animation/unfold</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../animation/unfolding.svelte.html">animation/unfolding.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../arrangeMenu.html">arrangeMenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../axisValues.html">axisValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../bands.html">bands</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../blockDrag.html">blockDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../boxes.html">boxes</a></li>
@@ -418,13 +419,19 @@
 <li class="toctree-l2"><a class="reference internal" href="../editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowEditor.html">flowEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowEditor.svelte.html">flowEditor.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowEditorRows.html">flowEditorRows</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../flowOverlay.html">flowOverlay</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowSwitch.html">flowSwitch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowSwitchMotion.svelte.html">flowSwitchMotion.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../focus.html">focus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gaps.html">gaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gesture.html">gesture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arranged.html">gestures/arranged</a></li>
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">gestures/band</a></li>
 <li class="toctree-l2"><a class="reference internal" href="canvas.html">gestures/canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowDrag.html">gestures/flowDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gap.html">gestures/gap</a></li>
 <li class="toctree-l2"><a class="reference internal" href="held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="host.html">gestures/host</a></li>
@@ -448,6 +455,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../project.html">project</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reorder.html">reorder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../resize.html">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ribbons.html">ribbons</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../roving.html">roving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../selection.html">selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../selectionRules.html">selectionRules</a></li>
@@ -524,7 +532,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="bandpress">
 <h3>BandPress<a class="headerlink" href="#bandpress" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/gestures/band.ts#L16">arranger/src/gestures/band.ts:16</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/gestures/band.ts#L16">arranger/src/gestures/band.ts:16</a></p>
 <p>What a press on a band holds.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -533,14 +541,14 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>band</strong>: <a class="reference internal" href="../boxes.html#bandbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">BandBox</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/gestures/band.ts#L22">arranger/src/gestures/band.ts:22</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/gestures/band.ts#L22">arranger/src/gestures/band.ts:22</a></p>
 </section>
 <section id="drawing">
 <h5>drawing<a class="headerlink" href="#drawing" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>drawing</strong>: <a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/gestures/band.ts#L21">arranger/src/gestures/band.ts:21</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/gestures/band.ts#L21">arranger/src/gestures/band.ts:21</a></p>
 <p>The drawing at the press, which every drop is read against, never a preview’s.</p>
 </section>
 <section id="order">
@@ -548,7 +556,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>order</strong>: readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/gestures/band.ts#L24">arranger/src/gestures/band.ts:24</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/gestures/band.ts#L24">arranger/src/gestures/band.ts:24</a></p>
 <p>The timeline’s band order at the press (core’s <code class="docutils literal notranslate"><span class="pre">bandOrderOf</span></code>).</p>
 </section>
 <section id="timeline">
@@ -556,14 +564,14 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>timeline</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/gestures/band.ts#L19">arranger/src/gestures/band.ts:19</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/gestures/band.ts#L19">arranger/src/gestures/band.ts:19</a></p>
 </section>
 <section id="view">
 <h5>view<a class="headerlink" href="#view" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>view</strong>: <a class="reference internal" href="../../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/gestures/band.ts#L18">arranger/src/gestures/band.ts:18</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/gestures/band.ts#L18">arranger/src/gestures/band.ts:18</a></p>
 <p>The view as stored at the press, which the command is built on.</p>
 </section>
 </section>
@@ -576,7 +584,7 @@
 <blockquote>
 <div><p><strong>bandGesture</strong>(<code class="docutils literal notranslate"><span class="pre">host</span></code>): <a class="reference internal" href="../gesture.html#gesturestrategy"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">GestureStrategy</span></code></span></a>&lt;<a class="reference internal" href="#bandpress"><code class="docutils literal notranslate"><span class="pre">BandPress</span></code></a>, readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/gestures/band.ts#L40">arranger/src/gestures/band.ts:40</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/gestures/band.ts#L40">arranger/src/gestures/band.ts:40</a></p>
 <p>The band drag of a block node, attached to the drawing’s <code class="docutils literal notranslate"><span class="pre">&lt;svg&gt;</span></code>: a band
 draws nothing of its own to attach to. It takes a press only where the
 press hits an offered band of the edited timeline (<code class="docutils literal notranslate"><span class="pre">hitOf</span></code>, which hits a

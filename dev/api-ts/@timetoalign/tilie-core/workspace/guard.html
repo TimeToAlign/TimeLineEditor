@@ -398,6 +398,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../commands/add.html">commands/add</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/apply.html">commands/apply</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/elisions.html">commands/elisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../commands/flowmaps.html">commands/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/matchstamps.html">commands/matchstamps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/mutations.html">commands/mutations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/parse.html">commands/parse</a></li>
@@ -422,6 +423,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../manifest/elisions.html">manifest/elisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/files.html">manifest/files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/flow.html">manifest/flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/flowmaps.html">manifest/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/invariants.html">manifest/invariants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/io.html">manifest/io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/locks.html">manifest/locks</a></li>
@@ -429,8 +431,10 @@
 <li class="toctree-l2"><a class="reference internal" href="../manifest/remove.html">manifest/remove</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/segments.html">manifest/segments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/statements.html">manifest/statements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/switched.html">manifest/switched</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/tree.html">manifest/tree</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/types.html">manifest/types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/virtual.html">manifest/virtual</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/compile.html">maps/compile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/express.html">maps/express</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/invert.html">maps/invert</a></li>
@@ -533,16 +537,55 @@
 <h1>workspace/guard<a class="headerlink" href="#workspace-guard" title="Link to this heading">#</a></h1>
 <section id="functions">
 <h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<section id="editorsideeffect">
+<h3>editorSideEffect()<a class="headerlink" href="#editorsideeffect" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>editorSideEffect</strong>(<code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">after</span></code>, <code class="docutils literal notranslate"><span class="pre">editor</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code>, <code class="docutils literal notranslate"><span class="pre">changes?</span></code>): <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/workspace/guard.ts#L625">workspace/guard.ts:625</a></p>
+<p>The refusal of <code class="docutils literal notranslate"><span class="pre">command</span></code>, which led from <code class="docutils literal notranslate"><span class="pre">before</span></code> to <code class="docutils literal notranslate"><span class="pre">after</span></code>, by the
+innermost open editor <code class="docutils literal notranslate"><span class="pre">editor</span></code>: for a flow editor, a <code class="docutils literal notranslate"><span class="pre">side_effect</span></code> for
+the first address it does not admit (<code class="docutils literal notranslate"><span class="pre">flowRefused</span></code>); for any other, the
+first change outside its target (<code class="docutils literal notranslate"><span class="pre">sideEffect</span></code>).</p>
+<section id="parameters">
+<h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
+<section id="before">
+<h5>before<a class="headerlink" href="#before" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</section>
+<section id="after">
+<h5>after<a class="headerlink" href="#after" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</section>
+<section id="editor">
+<h5>editor<a class="headerlink" href="#editor" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="sessions.html#openeditor"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">OpenEditor</span></code></span></a></p>
+</section>
+<section id="command">
+<h5>command<a class="headerlink" href="#command" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
+</section>
+<section id="changes">
+<h5>changes?<a class="headerlink" href="#changes" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../commands/mutations.html#changeset"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ChangeSet</span></code></span></a></p>
+</section>
+</section>
+<section id="returns">
+<h4>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
 <section id="ruleinside">
 <h3>ruleInside()<a class="headerlink" href="#ruleinside" title="Link to this heading">#</a></h3>
 <blockquote>
 <div><p><strong>ruleInside</strong>(<code class="docutils literal notranslate"><span class="pre">manifests</span></code>, <code class="docutils literal notranslate"><span class="pre">element</span></code>): (<code class="docutils literal notranslate"><span class="pre">rule</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/workspace/guard.ts#L168">workspace/guard.ts:168</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/workspace/guard.ts#L177">workspace/guard.ts:177</a></p>
 <p>Whether a rule lies inside <code class="docutils literal notranslate"><span class="pre">element</span></code>: every element it matches, in
 each of <code class="docutils literal notranslate"><span class="pre">manifests</span></code>, is contained by <code class="docutils literal notranslate"><span class="pre">element</span></code> there.</p>
-<section id="parameters">
-<h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
+<section id="id1">
+<h4>Parameters<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
 <section id="manifests">
 <h5>manifests<a class="headerlink" href="#manifests" title="Link to this heading">#</a></h5>
 <p>readonly <a class="reference internal" href="../manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a>[]</p>
@@ -552,8 +595,8 @@ each of <code class="docutils literal notranslate"><span class="pre">manifests</
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 </section>
-<section id="returns">
-<h4>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h4>
+<section id="id2">
+<h4>Returns<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
 <p>(<code class="docutils literal notranslate"><span class="pre">rule</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </section>
 </section>
@@ -563,7 +606,7 @@ each of <code class="docutils literal notranslate"><span class="pre">manifests</
 <blockquote>
 <div><p><strong>sideEffect</strong>(<code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">after</span></code>, <code class="docutils literal notranslate"><span class="pre">target</span></code>, <code class="docutils literal notranslate"><span class="pre">changes?</span></code>): <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/workspace/guard.ts#L471">workspace/guard.ts:471</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/workspace/guard.ts#L485">workspace/guard.ts:485</a></p>
 <p>The first change from <code class="docutils literal notranslate"><span class="pre">before</span></code> to <code class="docutils literal notranslate"><span class="pre">after</span></code> that lies outside <code class="docutils literal notranslate"><span class="pre">target</span></code>, the
 innermost open editor’s target, as a <code class="docutils literal notranslate"><span class="pre">side_effect</span></code> refusal; <code class="docutils literal notranslate"><span class="pre">null</span></code> when
 every change lies inside it. In this order: the workspace’s name, its
@@ -576,27 +619,27 @@ contains its group or timeline). A block’s editor changes anything in its
 own block but its removal. With <code class="docutils literal notranslate"><span class="pre">changes</span></code>, the change set of the command
 that led from <code class="docutils literal notranslate"><span class="pre">before</span></code> to <code class="docutils literal notranslate"><span class="pre">after</span></code>, only the workspace and the blocks it names
 are compared; the refusal is the same.</p>
-<section id="id1">
-<h4>Parameters<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
-<section id="before">
-<h5>before<a class="headerlink" href="#before" title="Link to this heading">#</a></h5>
+<section id="id3">
+<h4>Parameters<a class="headerlink" href="#id3" title="Link to this heading">#</a></h4>
+<section id="id4">
+<h5>before<a class="headerlink" href="#id4" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </section>
-<section id="after">
-<h5>after<a class="headerlink" href="#after" title="Link to this heading">#</a></h5>
+<section id="id5">
+<h5>after<a class="headerlink" href="#id5" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </section>
 <section id="target">
 <h5>target<a class="headerlink" href="#target" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a></p>
 </section>
-<section id="changes">
-<h5>changes?<a class="headerlink" href="#changes" title="Link to this heading">#</a></h5>
+<section id="id6">
+<h5>changes?<a class="headerlink" href="#id6" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../commands/mutations.html#changeset"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ChangeSet</span></code></span></a></p>
 </section>
 </section>
-<section id="id2">
-<h4>Returns<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
+<section id="id7">
+<h4>Returns<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
 </section>
@@ -651,24 +694,36 @@ are compared; the refusal is the same.</p>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ruleinside">ruleInside()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editorsideeffect">editorSideEffect()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#manifests">manifests</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#element">element</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#before">before</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#after">after</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#editor">editor</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#command">command</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#changes">changes?</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sideeffect">sideEffect()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ruleinside">ruleInside()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#before">before</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#after">after</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#target">target</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#changes">changes?</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#manifests">manifests</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#element">element</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sideeffect">sideEffect()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">before</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">after</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#target">target</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">changes?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">Returns</a></li>
 </ul>
 </li>
 </ul>

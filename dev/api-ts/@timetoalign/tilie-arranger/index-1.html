@@ -407,6 +407,7 @@
 <li class="toctree-l2"><a class="reference internal" href="animation/unfold.html">animation/unfold</a></li>
 <li class="toctree-l2"><a class="reference internal" href="animation/unfolding.svelte.html">animation/unfolding.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arrangeMenu.html">arrangeMenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="axisValues.html">axisValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="bands.html">bands</a></li>
 <li class="toctree-l2"><a class="reference internal" href="blockDrag.html">blockDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="boxes.html">boxes</a></li>
@@ -418,13 +419,19 @@
 <li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowEditor.html">flowEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowEditor.svelte.html">flowEditor.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowEditorRows.html">flowEditorRows</a></li>
 <li class="toctree-l2"><a class="reference internal" href="flowOverlay.html">flowOverlay</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowSwitch.html">flowSwitch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowSwitchMotion.svelte.html">flowSwitchMotion.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="focus.html">focus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gaps.html">gaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gesture.html">gesture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/arranged.html">gestures/arranged</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/band.html">gestures/band</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/canvas.html">gestures/canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/flowDrag.html">gestures/flowDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/gap.html">gestures/gap</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
@@ -448,6 +455,7 @@
 <li class="toctree-l2"><a class="reference internal" href="project.html">project</a></li>
 <li class="toctree-l2"><a class="reference internal" href="reorder.html">reorder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="resize.html">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ribbons.html">ribbons</a></li>
 <li class="toctree-l2"><a class="reference internal" href="roving.html">roving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="selection.html">selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="selectionRules.html">selectionRules</a></li>
@@ -527,7 +535,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>name</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;&#64;timetoalign/tilie-arranger&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/index.ts#L7">arranger/src/index.ts:7</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/index.ts#L7">arranger/src/index.ts:7</a></p>
 <p>&#64;timetoalign/tilie-arranger: the canvas. A workspace view becomes one
 Svelte Flow node per block; every completed gesture on those nodes
 becomes one workspace command.</p>
@@ -558,6 +566,11 @@ becomes one workspace command.</p>
 <section id="axisbase">
 <h3>AxisBase<a class="headerlink" href="#axisbase" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="cardAxis.html#axisbase"><span class="std std-ref">AxisBase</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="axisvalueat">
+<h3>axisValueAt<a class="headerlink" href="#axisvalueat" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="axisValues.html#axisvalueat"><span class="std std-ref">axisValueAt</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="blockbox">
@@ -645,6 +658,16 @@ becomes one workspace command.</p>
 <p>Re-exports <a class="reference internal" href="containers.html#fieldsof"><span class="std std-ref">fieldsOf</span></a></p>
 </section>
 <hr class="docutils" />
+<section id="flowfindings">
+<h3>FlowFindings<a class="headerlink" href="#flowfindings" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="flowEditor.html#flowfindings"><span class="std std-ref">FlowFindings</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="flowserver">
+<h3>FlowServer<a class="headerlink" href="#flowserver" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="flowEditor.svelte.html#flowserver"><span class="std std-ref">FlowServer</span></a></p>
+</section>
+<hr class="docutils" />
 <section id="gapchange">
 <h3>GapChange<a class="headerlink" href="#gapchange" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="gaps.html#gapchange"><span class="std std-ref">GapChange</span></a></p>
@@ -722,7 +745,7 @@ becomes one workspace command.</p>
 <hr class="docutils" />
 <section id="knotsof">
 <h3>KnotsOf<a class="headerlink" href="#knotsof" title="Link to this heading">#</a></h3>
-<p>Re-exports <a class="reference internal" href="coordinates.html#id65"><span class="std std-ref">KnotsOf</span></a></p>
+<p>Re-exports <a class="reference internal" href="coordinates.html#id76"><span class="std std-ref">KnotsOf</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="level">
@@ -920,6 +943,11 @@ becomes one workspace command.</p>
 <p>Re-exports <a class="reference internal" href="node.html#transientcommand"><span class="std std-ref">TransientCommand</span></a></p>
 </section>
 <hr class="docutils" />
+<section id="typedvalue">
+<h3>typedValue<a class="headerlink" href="#typedvalue" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="axisValues.html#typedvalue"><span class="std std-ref">typedValue</span></a></p>
+</section>
+<hr class="docutils" />
 <section id="within">
 <h3>within<a class="headerlink" href="#within" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="keys.html#within"><span class="std std-ref">within</span></a></p>
@@ -989,6 +1017,7 @@ becomes one workspace command.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#arrangemenuof">arrangeMenuOf</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#arrangemenuprops">ArrangeMenuProps</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#axisbase">AxisBase</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#axisvalueat">axisValueAt</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#blockbox">blockBox</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#blockof">blockOf</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#blocksinorder">blocksInOrder</a></li>
@@ -1006,6 +1035,8 @@ becomes one workspace command.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#existing">existing</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#exposureat">exposureAt</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fieldsof">fieldsOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowfindings">FlowFindings</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowserver">FlowServer</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gapchange">GapChange</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gapcommand">gapCommand</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gapedge">GapEdge</a></li>
@@ -1061,6 +1092,7 @@ becomes one workspace command.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#subjectof">subjectOf</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timelinepin">timelinePin</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#transientcommand">TransientCommand</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#typedvalue">typedValue</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#within">within</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#zeroof">zeroOf</a></li>
 </ul>

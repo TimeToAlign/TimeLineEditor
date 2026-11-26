@@ -477,7 +477,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="fileserver">
 <h3>FileServer<a class="headerlink" href="#fileserver" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L34">files.ts:34</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L34">files.ts:34</a></p>
 <p>The file calls of a <code class="docutils literal notranslate"><span class="pre">Server</span></code>.</p>
 <section id="extended-by">
 <h4>Extended by<a class="headerlink" href="#extended-by" title="Link to this heading">#</a></h4>
@@ -492,7 +492,7 @@
 <blockquote>
 <div><p><strong>listFolder</strong>(<code class="docutils literal notranslate"><span class="pre">path</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<a class="reference internal" href="#folderlisting"><code class="docutils literal notranslate"><span class="pre">FolderListing</span></code></a>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L42">files.ts:42</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L42">files.ts:42</a></p>
 <p>The folder <code class="docutils literal notranslate"><span class="pre">path</span></code> lists: its folders, then its workspace, manifest and
 table files, hidden names and links leading out of the root left out.
 Rejects with a <code class="docutils literal notranslate"><span class="pre">ServerError</span></code> whose <code class="docutils literal notranslate"><span class="pre">refusal</span></code> is the server’s (<code class="docutils literal notranslate"><span class="pre">no</span> <span class="pre">such</span> <span class="pre">folder</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span> <span class="pre">outside</span> <span class="pre">the</span> <span class="pre">root</span></code>, <code class="docutils literal notranslate"><span class="pre">hidden</span> <span class="pre">files</span> <span class="pre">are</span> <span class="pre">not</span> <span class="pre">served</span></code>,
@@ -514,7 +514,7 @@ Rejects with a <code class="docutils literal notranslate"><span class="pre">Serv
 <blockquote>
 <div><p><strong>readFile</strong>(<code class="docutils literal notranslate"><span class="pre">path</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Blob</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L47">files.ts:47</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L47">files.ts:47</a></p>
 <p>The bytes of the workspace, manifest or table file <code class="docutils literal notranslate"><span class="pre">path</span></code>. Rejects as
 <code class="docutils literal notranslate"><span class="pre">listFolder</span></code> does, for <code class="docutils literal notranslate"><span class="pre">no</span> <span class="pre">such</span> <span class="pre">file</span></code>, and for a file of another kind.</p>
 <section id="id1">
@@ -534,7 +534,7 @@ Rejects with a <code class="docutils literal notranslate"><span class="pre">Serv
 <blockquote>
 <div><p><strong>writeFile</strong>(<code class="docutils literal notranslate"><span class="pre">path</span></code>, <code class="docutils literal notranslate"><span class="pre">content</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<a class="reference internal" href="#writtenfile"><code class="docutils literal notranslate"><span class="pre">WrittenFile</span></code></a>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L53">files.ts:53</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L53">files.ts:53</a></p>
 <p>Write <code class="docutils literal notranslate"><span class="pre">content</span></code> into the workspace file <code class="docutils literal notranslate"><span class="pre">path</span></code>, replacing it whole: a
 string as its UTF-8 bytes, a <code class="docutils literal notranslate"><span class="pre">Blob</span></code> unchanged. Rejects as <code class="docutils literal notranslate"><span class="pre">listFolder</span></code>
 does, and for a file that is no workspace file.</p>
@@ -559,7 +559,7 @@ does, and for a file that is no workspace file.</p>
 <hr class="docutils" />
 <section id="folderentry">
 <h3>FolderEntry<a class="headerlink" href="#folderentry" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L16">files.ts:16</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L16">files.ts:16</a></p>
 <p>One entry of a folder: a folder, or a file of a kind the editor opens.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -568,21 +568,21 @@ does, and for a file that is no workspace file.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>kind</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;folder&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;file&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L18">files.ts:18</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L18">files.ts:18</a></p>
 </section>
 <section id="name">
 <h5>name<a class="headerlink" href="#name" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>name</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L17">files.ts:17</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L17">files.ts:17</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="folderlisting">
 <h3>FolderListing<a class="headerlink" href="#folderlisting" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L22">files.ts:22</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L22">files.ts:22</a></p>
 <p>A folder’s entries, folders first, then files, each group sorted by code point.</p>
 <section id="id7">
 <h4>Properties<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>
@@ -591,21 +591,21 @@ does, and for a file that is no workspace file.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>entries</strong>: readonly <a class="reference internal" href="#folderentry"><code class="docutils literal notranslate"><span class="pre">FolderEntry</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L24">files.ts:24</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L24">files.ts:24</a></p>
 </section>
 <section id="id8">
 <h5>path<a class="headerlink" href="#id8" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>path</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L23">files.ts:23</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L23">files.ts:23</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="transport">
 <h3>Transport<a class="headerlink" href="#transport" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L57">files.ts:57</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L57">files.ts:57</a></p>
 <p>What the file calls take of <code class="docutils literal notranslate"><span class="pre">connect</span></code>.</p>
 <section id="id9">
 <h4>Properties<a class="headerlink" href="#id9" title="Link to this heading">#</a></h4>
@@ -614,7 +614,7 @@ does, and for a file that is no workspace file.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>headers</strong>: <code class="docutils literal notranslate"><span class="pre">Readonly</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Record</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, <code class="docutils literal notranslate"><span class="pre">string</span></code>&gt;&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L59">files.ts:59</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L59">files.ts:59</a></p>
 <p>The headers every request carries (the bearer token).</p>
 </section>
 </section>
@@ -625,7 +625,7 @@ does, and for a file that is no workspace file.</p>
 <blockquote>
 <div><p><strong>malformed</strong>(<code class="docutils literal notranslate"><span class="pre">status</span></code>, <code class="docutils literal notranslate"><span class="pre">message</span></code>, <code class="docutils literal notranslate"><span class="pre">cause?</span></code>): <code class="docutils literal notranslate"><span class="pre">Error</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L63">files.ts:63</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L63">files.ts:63</a></p>
 <p>The error for a 2xx answer of <code class="docutils literal notranslate"><span class="pre">status</span></code> that is not of its route’s form.</p>
 <section id="id11">
 <h6>Parameters<a class="headerlink" href="#id11" title="Link to this heading">#</a></h6>
@@ -652,7 +652,7 @@ does, and for a file that is no workspace file.</p>
 <blockquote>
 <div><p><strong>request</strong>(<code class="docutils literal notranslate"><span class="pre">route</span></code>, <code class="docutils literal notranslate"><span class="pre">init</span></code>, <code class="docutils literal notranslate"><span class="pre">explained</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">Response</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L61">files.ts:61</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L61">files.ts:61</a></p>
 <p>The 2xx answer to the request of <code class="docutils literal notranslate"><span class="pre">route</span></code> below the server’s base URL; rejects otherwise.</p>
 <section id="id13">
 <h6>Parameters<a class="headerlink" href="#id13" title="Link to this heading">#</a></h6>
@@ -679,7 +679,7 @@ does, and for a file that is no workspace file.</p>
 <hr class="docutils" />
 <section id="writtenfile">
 <h3>WrittenFile<a class="headerlink" href="#writtenfile" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L28">files.ts:28</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L28">files.ts:28</a></p>
 <p>A file written: its path and its size in bytes.</p>
 <section id="id15">
 <h4>Properties<a class="headerlink" href="#id15" title="Link to this heading">#</a></h4>
@@ -688,14 +688,14 @@ does, and for a file that is no workspace file.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>path</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L29">files.ts:29</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L29">files.ts:29</a></p>
 </section>
 <section id="size">
 <h5>size<a class="headerlink" href="#size" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>size</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L30">files.ts:30</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L30">files.ts:30</a></p>
 </section>
 </section>
 </section>
@@ -707,7 +707,7 @@ does, and for a file that is no workspace file.</p>
 <blockquote>
 <div><p><strong>fileCalls</strong>(<code class="docutils literal notranslate"><span class="pre">__namedParameters</span></code>): <a class="reference internal" href="#fileserver"><code class="docutils literal notranslate"><span class="pre">FileServer</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/client/src/files.ts#L116">files.ts:116</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/client/src/files.ts#L116">files.ts:116</a></p>
 <p>The three file calls over <code class="docutils literal notranslate"><span class="pre">connect</span></code>’s transport.</p>
 <section id="id17">
 <h4>Parameters<a class="headerlink" href="#id17" title="Link to this heading">#</a></h4>

@@ -398,6 +398,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../commands/add.html">commands/add</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/apply.html">commands/apply</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/elisions.html">commands/elisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../commands/flowmaps.html">commands/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/matchstamps.html">commands/matchstamps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/mutations.html">commands/mutations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/parse.html">commands/parse</a></li>
@@ -422,6 +423,7 @@
 <li class="toctree-l2"><a class="reference internal" href="elisions.html">manifest/elisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="files.html">manifest/files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="flow.html">manifest/flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowmaps.html">manifest/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="invariants.html">manifest/invariants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="io.html">manifest/io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="locks.html">manifest/locks</a></li>
@@ -429,8 +431,10 @@
 <li class="toctree-l2"><a class="reference internal" href="remove.html">manifest/remove</a></li>
 <li class="toctree-l2"><a class="reference internal" href="segments.html">manifest/segments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="statements.html">manifest/statements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="switched.html">manifest/switched</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tree.html">manifest/tree</a></li>
 <li class="toctree-l2"><a class="reference internal" href="types.html">manifest/types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="virtual.html">manifest/virtual</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/compile.html">maps/compile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/express.html">maps/express</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/invert.html">maps/invert</a></li>
@@ -538,7 +542,7 @@
 <blockquote>
 <div><p><strong>BandOrderEntry</strong> = <em>typeof</em> <a class="reference internal" href="#line"><code class="docutils literal notranslate"><span class="pre">LINE</span></code></a> | <code class="docutils literal notranslate"><span class="pre">Facet</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/order.ts#L35">manifest/order.ts:35</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/manifest/order.ts#L35">manifest/order.ts:35</a></p>
 <p>An entry of a band order: a timeline’s own line or one of its facets.</p>
 </section>
 </section>
@@ -549,7 +553,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>DEFAULT_BAND_ORDER</strong>: readonly <a class="reference internal" href="#bandorderentry"><code class="docutils literal notranslate"><span class="pre">BandOrderEntry</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/order.ts#L42">manifest/order.ts:42</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/manifest/order.ts#L42">manifest/order.ts:42</a></p>
 <p>The default band order (drawing.md section 4), which a root without an
 entry in <code class="docutils literal notranslate"><span class="pre">graphical.order</span></code> follows: its children and conversion maps
 above its line, its markers, regions and flow control below.</p>
@@ -560,7 +564,7 @@ above its line, its markers, regions and flow control below.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>LINE</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;line&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;line&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/order.ts#L32">manifest/order.ts:32</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/manifest/order.ts#L32">manifest/order.ts:32</a></p>
 <p>A band order’s entry for a timeline’s own line, beside its five facets.</p>
 </section>
 </section>
@@ -571,11 +575,13 @@ above its line, its markers, regions and flow control below.</p>
 <blockquote>
 <div><p><strong>bandOrderOf</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">timelineId</span></code>): readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/order.ts#L105">manifest/order.ts:105</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/manifest/order.ts#L107">manifest/order.ts:107</a></p>
 <p>The band order the timeline <code class="docutils literal notranslate"><span class="pre">timelineId</span></code> is drawn with, <code class="docutils literal notranslate"><span class="pre">line</span></code> and all
 five facets: its own entry in <code class="docutils literal notranslate"><span class="pre">graphical.order</span></code> completed against the
-order it inherits (<code class="docutils literal notranslate"><span class="pre">inheritedBandOrder</span></code>), else that order. An ID no
-timeline carries gets the default band order.</p>
+order it inherits (<code class="docutils literal notranslate"><span class="pre">inheritedBandOrder</span></code>), else that order. A virtual
+timeline, which lies in no tree, completes its own entry against the
+default band order, as a root does (drawing.md section 8.10). Any other
+ID gets the default band order.</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
 <section id="manifest">
@@ -598,7 +604,7 @@ timeline carries gets the default band order.</p>
 <blockquote>
 <div><p><strong>bandOrderProblem</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">timelineId</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/order.ts#L130">manifest/order.ts:130</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/manifest/order.ts#L136">manifest/order.ts:136</a></p>
 <p>The first problem of <code class="docutils literal notranslate"><span class="pre">value</span></code> as the band order of the timeline
 <code class="docutils literal notranslate"><span class="pre">timelineId</span></code>, its entry in <code class="docutils literal notranslate"><span class="pre">graphical.order</span></code>, in the terms and the order
 of TimeToShare’s README and validators, IDs and entries in single quotes;
@@ -607,8 +613,8 @@ and its repeats come first, then the identity rules’:</p>
 <ol class="arabic simple">
 <li><p>a value that is not an array of strings: <code class="docutils literal notranslate"><span class="pre">the</span> <span class="pre">band</span> <span class="pre">order</span> <span class="pre">of</span> <span class="pre">'&lt;id&gt;'</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">an</span> <span class="pre">array</span> <span class="pre">of</span> <span class="pre">strings</span></code>;</p></li>
 <li><p>an entry repeating an earlier one: <code class="docutils literal notranslate"><span class="pre">'&lt;entry&gt;'</span> <span class="pre">is</span> <span class="pre">repeated</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">band</span> <span class="pre">order</span> <span class="pre">of</span> <span class="pre">'&lt;id&gt;'</span></code>;</p></li>
-<li><p>an ID no timeline carries (a group’s ID is a display order’s key,
-never asked here): <code class="docutils literal notranslate"><span class="pre">'&lt;id&gt;'</span> <span class="pre">names</span> <span class="pre">no</span> <span class="pre">group</span> <span class="pre">or</span> <span class="pre">timeline</span> <span class="pre">of</span> <span class="pre">this</span> <span class="pre">manifest</span></code>;</p></li>
+<li><p>an ID no timeline and no virtual timeline carries (a group’s ID is a
+display order’s key, never asked here): <code class="docutils literal notranslate"><span class="pre">'&lt;id&gt;'</span> <span class="pre">names</span> <span class="pre">no</span> <span class="pre">group,</span> <span class="pre">timeline</span> <span class="pre">or</span> <span class="pre">virtual</span> <span class="pre">timeline</span> <span class="pre">of</span> <span class="pre">this</span> <span class="pre">manifest</span></code>;</p></li>
 <li><p>the first entry that is neither <code class="docutils literal notranslate"><span class="pre">line</span></code> nor a facet: <code class="docutils literal notranslate"><span class="pre">'&lt;entry&gt;'</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">'line'</span> <span class="pre">or</span> <span class="pre">a</span> <span class="pre">facet,</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">band</span> <span class="pre">order</span> <span class="pre">of</span> <span class="pre">'&lt;id&gt;'</span></code>;</p></li>
 <li><p>a value without <code class="docutils literal notranslate"><span class="pre">line</span></code>: <code class="docutils literal notranslate"><span class="pre">'line'</span> <span class="pre">is</span> <span class="pre">missing</span> <span class="pre">from</span> <span class="pre">the</span> <span class="pre">band</span> <span class="pre">order</span> <span class="pre">of</span> <span class="pre">'&lt;id&gt;'</span></code>. A facet the value leaves out is no problem: it takes its place
 from the order the timeline follows without an entry (<code class="docutils literal notranslate"><span class="pre">bandOrderOf</span></code>).</p></li>
@@ -639,7 +645,7 @@ from the order the timeline follows without an entry (<code class="docutils lite
 <blockquote>
 <div><p><strong>displayOrder</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">group</span></code>): readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/order.ts#L25">manifest/order.ts:25</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/manifest/order.ts#L25">manifest/order.ts:25</a></p>
 <p>The display order of the group <code class="docutils literal notranslate"><span class="pre">group</span></code>: its entry in <code class="docutils literal notranslate"><span class="pre">graphical.order</span></code>,
 else its <code class="docutils literal notranslate"><span class="pre">members</span></code>; empty for an id no group carries.</p>
 <section id="id5">
@@ -664,7 +670,7 @@ else its <code class="docutils literal notranslate"><span class="pre">members</s
 <blockquote>
 <div><p><strong>inheritedBandOrder</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">timelineId</span></code>): readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/order.ts#L81">manifest/order.ts:81</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/manifest/order.ts#L81">manifest/order.ts:81</a></p>
 <p>The band order the timeline <code class="docutils literal notranslate"><span class="pre">timelineId</span></code> follows without an entry of its
 own in <code class="docutils literal notranslate"><span class="pre">graphical.order</span></code>: a root the default band order, every other
 timeline its parent’s band order (<code class="docutils literal notranslate"><span class="pre">bandOrderOf</span></code>), completed. A member that

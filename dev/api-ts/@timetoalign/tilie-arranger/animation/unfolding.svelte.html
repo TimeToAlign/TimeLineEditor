@@ -407,6 +407,7 @@
 <li class="toctree-l2"><a class="reference internal" href="unfold.html">animation/unfold</a></li>
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">animation/unfolding.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../arrangeMenu.html">arrangeMenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../axisValues.html">axisValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../bands.html">bands</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../blockDrag.html">blockDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../boxes.html">boxes</a></li>
@@ -418,13 +419,19 @@
 <li class="toctree-l2"><a class="reference internal" href="../editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowEditor.html">flowEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowEditor.svelte.html">flowEditor.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowEditorRows.html">flowEditorRows</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../flowOverlay.html">flowOverlay</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowSwitch.html">flowSwitch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowSwitchMotion.svelte.html">flowSwitchMotion.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../focus.html">focus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gaps.html">gaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gesture.html">gesture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gestures/arranged.html">gestures/arranged</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gestures/band.html">gestures/band</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gestures/canvas.html">gestures/canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/flowDrag.html">gestures/flowDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gestures/gap.html">gestures/gap</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gestures/held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gestures/host.html">gestures/host</a></li>
@@ -448,6 +455,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../project.html">project</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reorder.html">reorder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../resize.html">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ribbons.html">ribbons</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../roving.html">roving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../selection.html">selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../selectionRules.html">selectionRules</a></li>
@@ -524,7 +532,7 @@
 <h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
 <section id="unfolding">
 <h3>Unfolding<a class="headerlink" href="#unfolding" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/unfolding.svelte.ts#L23">arranger/src/animation/unfolding.svelte.ts:23</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/unfolding.svelte.ts#L23">arranger/src/animation/unfolding.svelte.ts:23</a></p>
 <p>Follows <code class="docutils literal notranslate"><span class="pre">raised</span></code>, the root the open editor raises (<code class="docutils literal notranslate"><span class="pre">raisedRoot</span></code>, else
 <code class="docutils literal notranslate"><span class="pre">null</span></code>): a newly raised root unfolds from 0 to 1; a root no longer raised
 folds back from where its motion stands to 0 and is shown raised until it
@@ -541,7 +549,7 @@ when the component is destroyed.</p>
 <blockquote>
 <div><p><strong>new Unfolding</strong>(<code class="docutils literal notranslate"><span class="pre">raised</span></code>, <code class="docutils literal notranslate"><span class="pre">reduced</span></code>): <a class="reference internal" href="#unfolding"><code class="docutils literal notranslate"><span class="pre">Unfolding</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/unfolding.svelte.ts#L29">arranger/src/animation/unfolding.svelte.ts:29</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/unfolding.svelte.ts#L29">arranger/src/animation/unfolding.svelte.ts:29</a></p>
 <section id="parameters">
 <h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
 </section>
@@ -568,7 +576,7 @@ when the component is destroyed.</p>
 <blockquote>
 <div><p><strong>get</strong> <strong>moving</strong>(): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/unfolding.svelte.ts#L66">arranger/src/animation/unfolding.svelte.ts:66</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/unfolding.svelte.ts#L66">arranger/src/animation/unfolding.svelte.ts:66</a></p>
 <p>Whether the shown root’s cards are moving: shown and not at rest.</p>
 </section>
 <section id="id1">
@@ -583,7 +591,7 @@ when the component is destroyed.</p>
 <blockquote>
 <div><p><strong>get</strong> <strong>progress</strong>(): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/unfolding.svelte.ts#L61">arranger/src/animation/unfolding.svelte.ts:61</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/unfolding.svelte.ts#L61">arranger/src/animation/unfolding.svelte.ts:61</a></p>
 <p>How far the shown root’s cards have unfolded, eased: 0 at the member card’s places, 1 at rest.</p>
 </section>
 <section id="id3">
@@ -598,7 +606,7 @@ when the component is destroyed.</p>
 <blockquote>
 <div><p><strong>get</strong> <strong>root</strong>(): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/unfolding.svelte.ts#L54">arranger/src/animation/unfolding.svelte.ts:54</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/unfolding.svelte.ts#L54">arranger/src/animation/unfolding.svelte.ts:54</a></p>
 <p>The root whose ancestor cards are shown raised: the raised one, else the one folding back, else <code class="docutils literal notranslate"><span class="pre">null</span></code>.</p>
 </section>
 <section id="id5">

@@ -398,6 +398,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../commands/add.html">commands/add</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/apply.html">commands/apply</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/elisions.html">commands/elisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../commands/flowmaps.html">commands/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/matchstamps.html">commands/matchstamps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/mutations.html">commands/mutations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../commands/parse.html">commands/parse</a></li>
@@ -422,6 +423,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../manifest/elisions.html">manifest/elisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/files.html">manifest/files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/flow.html">manifest/flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/flowmaps.html">manifest/flowmaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/invariants.html">manifest/invariants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/io.html">manifest/io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/locks.html">manifest/locks</a></li>
@@ -429,8 +431,10 @@
 <li class="toctree-l2"><a class="reference internal" href="../manifest/remove.html">manifest/remove</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/segments.html">manifest/segments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/statements.html">manifest/statements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/switched.html">manifest/switched</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/tree.html">manifest/tree</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../manifest/types.html">manifest/types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manifest/virtual.html">manifest/virtual</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/compile.html">maps/compile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/express.html">maps/express</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../maps/invert.html">maps/invert</a></li>
@@ -538,7 +542,7 @@
 <blockquote>
 <div><p><strong>Real</strong> = <a class="reference internal" href="rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/real.ts#L19">number/real.ts:19</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/real.ts#L19">number/real.ts:19</a></p>
 <p>An exact value (int or Fraction) or a float.</p>
 </section>
 </section>
@@ -549,7 +553,7 @@
 <blockquote>
 <div><p><strong>addReal</strong>(<code class="docutils literal notranslate"><span class="pre">left</span></code>, <code class="docutils literal notranslate"><span class="pre">right</span></code>): <a class="reference internal" href="#real"><code class="docutils literal notranslate"><span class="pre">Real</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/real.ts#L129">number/real.ts:129</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/real.ts#L129">number/real.ts:129</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">left</span> <span class="pre">+</span> <span class="pre">right</span></code>: exact when both are exact, otherwise a float.</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
@@ -573,7 +577,7 @@
 <blockquote>
 <div><p><strong>compareReal</strong>(<code class="docutils literal notranslate"><span class="pre">left</span></code>, <code class="docutils literal notranslate"><span class="pre">right</span></code>): <code class="docutils literal notranslate"><span class="pre">-1</span></code> | <code class="docutils literal notranslate"><span class="pre">0</span></code> | <code class="docutils literal notranslate"><span class="pre">1</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/real.ts#L137">number/real.ts:137</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/real.ts#L142">number/real.ts:142</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">-1</span></code>, <code class="docutils literal notranslate"><span class="pre">0</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>; a float and an exact value compare exactly.</p>
 <section id="id1">
 <h4>Parameters<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
@@ -597,7 +601,7 @@
 <blockquote>
 <div><p><strong>exactCoordinate</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">unit</span></code>, <code class="docutils literal notranslate"><span class="pre">numberType</span></code>): <a class="reference internal" href="coordinate.html#coordinate"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Coordinate</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/real.ts#L148">number/real.ts:148</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/real.ts#L153">number/real.ts:153</a></p>
 <p>A value as a coordinate on an axis, only when the axis’s number type holds
 it exactly (and within int64); otherwise <code class="docutils literal notranslate"><span class="pre">undefined</span></code>.</p>
 <section id="id5">
@@ -626,7 +630,7 @@ it exactly (and within int64); otherwise <code class="docutils literal notransla
 <blockquote>
 <div><p><strong>fromFloat</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>): <a class="reference internal" href="rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/real.ts#L76">number/real.ts:76</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/real.ts#L76">number/real.ts:76</a></p>
 <p>The exact value of a double, as Python’s <code class="docutils literal notranslate"><span class="pre">Fraction(float)</span></code>. For arithmetic
 that must be exact on a float’s value (a page transform); a coordinate is
 never re-expressed through it.</p>
@@ -648,7 +652,7 @@ never re-expressed through it.</p>
 <blockquote>
 <div><p><strong>realOf</strong>(<code class="docutils literal notranslate"><span class="pre">coordinate</span></code>): <a class="reference internal" href="#real"><code class="docutils literal notranslate"><span class="pre">Real</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/real.ts#L122">number/real.ts:122</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/real.ts#L122">number/real.ts:122</a></p>
 <p>A coordinate’s value as Python holds it.</p>
 <section id="id10">
 <h4>Parameters<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
@@ -668,7 +672,7 @@ never re-expressed through it.</p>
 <blockquote>
 <div><p><strong>roundFloat</strong>(<code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">places</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/real.ts#L108">number/real.ts:108</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/real.ts#L108">number/real.ts:108</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">x</span></code> rounded to <code class="docutils literal notranslate"><span class="pre">places</span></code> decimal places as Python’s <code class="docutils literal notranslate"><span class="pre">round(x,</span> <span class="pre">places)</span></code>:
 the exact value of the double times <code class="docutils literal notranslate"><span class="pre">10^places</span></code>, rounded to an integer
 half to even, and the double nearest to that integer over <code class="docutils literal notranslate"><span class="pre">10^places</span></code>.
@@ -695,22 +699,46 @@ given.</p>
 </section>
 </section>
 <hr class="docutils" />
+<section id="subtractreal">
+<h3>subtractReal()<a class="headerlink" href="#subtractreal" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>subtractReal</strong>(<code class="docutils literal notranslate"><span class="pre">left</span></code>, <code class="docutils literal notranslate"><span class="pre">right</span></code>): <a class="reference internal" href="#real"><code class="docutils literal notranslate"><span class="pre">Real</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/real.ts#L137">number/real.ts:137</a></p>
+<p><code class="docutils literal notranslate"><span class="pre">left</span> <span class="pre">−</span> <span class="pre">right</span></code>, as <code class="docutils literal notranslate"><span class="pre">left</span> <span class="pre">+</span> <span class="pre">(−right)</span></code>: exact when both are exact, otherwise a float.</p>
+<section id="id14">
+<h4>Parameters<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
+<section id="id15">
+<h5>left<a class="headerlink" href="#id15" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#real"><code class="docutils literal notranslate"><span class="pre">Real</span></code></a></p>
+</section>
+<section id="id16">
+<h5>right<a class="headerlink" href="#id16" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#real"><code class="docutils literal notranslate"><span class="pre">Real</span></code></a></p>
+</section>
+</section>
+<section id="id17">
+<h4>Returns<a class="headerlink" href="#id17" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#real"><code class="docutils literal notranslate"><span class="pre">Real</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
 <section id="tofloat">
 <h3>toFloat()<a class="headerlink" href="#tofloat" title="Link to this heading">#</a></h3>
 <blockquote>
 <div><p><strong>toFloat</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/real.ts#L47">number/real.ts:47</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/real.ts#L47">number/real.ts:47</a></p>
 <p>The double nearest to an exact value, ties to even, as Python’s <code class="docutils literal notranslate"><span class="pre">float(Fraction)</span></code>.</p>
-<section id="id14">
-<h4>Parameters<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
-<section id="id15">
-<h5>value<a class="headerlink" href="#id15" title="Link to this heading">#</a></h5>
+<section id="id18">
+<h4>Parameters<a class="headerlink" href="#id18" title="Link to this heading">#</a></h4>
+<section id="id19">
+<h5>value<a class="headerlink" href="#id19" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a></p>
 </section>
 </section>
-<section id="id16">
-<h4>Returns<a class="headerlink" href="#id16" title="Link to this heading">#</a></h4>
+<section id="id20">
+<h4>Returns<a class="headerlink" href="#id20" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </section>
 </section>
@@ -720,18 +748,18 @@ given.</p>
 <blockquote>
 <div><p><strong>toRational</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>): <a class="reference internal" href="rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/number/real.ts#L94">number/real.ts:94</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/core/src/number/real.ts#L94">number/real.ts:94</a></p>
 <p>The exact value of a coordinate value or a <code class="docutils literal notranslate"><span class="pre">Real</span></code>: a Fraction as it is, an
 int as the Fraction <code class="docutils literal notranslate"><span class="pre">n/1</span></code>, a float by its exact binary value (<code class="docutils literal notranslate"><span class="pre">fromFloat</span></code>).</p>
-<section id="id17">
-<h4>Parameters<a class="headerlink" href="#id17" title="Link to this heading">#</a></h4>
-<section id="id18">
-<h5>value<a class="headerlink" href="#id18" title="Link to this heading">#</a></h5>
+<section id="id21">
+<h4>Parameters<a class="headerlink" href="#id21" title="Link to this heading">#</a></h4>
+<section id="id22">
+<h5>value<a class="headerlink" href="#id22" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="coordinate.html#coordinatevalue"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">CoordinateValue</span></code></span></a></p>
 </section>
 </section>
-<section id="id19">
-<h4>Returns<a class="headerlink" href="#id19" title="Link to this heading">#</a></h4>
+<section id="id23">
+<h4>Returns<a class="headerlink" href="#id23" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a></p>
 </section>
 </section>
@@ -844,20 +872,29 @@ int as the Fraction <code class="docutils literal notranslate"><span class="pre"
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#throws">Throws</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tofloat">toFloat()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#subtractreal">subtractReal()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">value</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">left</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">right</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tofloat">toFloat()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">value</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#torational">toRational()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">value</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">value</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">Returns</a></li>
 </ul>
 </li>
 </ul>

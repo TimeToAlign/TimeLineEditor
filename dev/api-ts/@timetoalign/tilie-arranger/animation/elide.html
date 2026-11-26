@@ -407,6 +407,7 @@
 <li class="toctree-l2"><a class="reference internal" href="unfold.html">animation/unfold</a></li>
 <li class="toctree-l2"><a class="reference internal" href="unfolding.svelte.html">animation/unfolding.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../arrangeMenu.html">arrangeMenu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../axisValues.html">axisValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../bands.html">bands</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../blockDrag.html">blockDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../boxes.html">boxes</a></li>
@@ -418,13 +419,19 @@
 <li class="toctree-l2"><a class="reference internal" href="../editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editors.html">editors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowEditor.html">flowEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowEditor.svelte.html">flowEditor.svelte</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowEditorRows.html">flowEditorRows</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../flowOverlay.html">flowOverlay</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowSwitch.html">flowSwitch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../flowSwitchMotion.svelte.html">flowSwitchMotion.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../focus.html">focus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gaps.html">gaps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gesture.html">gesture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gestures/arranged.html">gestures/arranged</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gestures/band.html">gestures/band</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gestures/canvas.html">gestures/canvas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gestures/flowDrag.html">gestures/flowDrag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gestures/gap.html">gestures/gap</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gestures/held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../gestures/host.html">gestures/host</a></li>
@@ -448,6 +455,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../project.html">project</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reorder.html">reorder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../resize.html">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ribbons.html">ribbons</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../roving.html">roving</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../selection.html">selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../selectionRules.html">selectionRules</a></li>
@@ -524,7 +532,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="blockmotion">
 <h3>BlockMotion<a class="headerlink" href="#blockmotion" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L92">arranger/src/animation/elide.ts:92</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L92">arranger/src/animation/elide.ts:92</a></p>
 <p>What moves when a block’s drawing changes: the containers that stay or appear, and the cards that leave.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -533,21 +541,21 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>cards</strong>: readonly <a class="reference internal" href="#cardmotion"><code class="docutils literal notranslate"><span class="pre">CardMotion</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L93">arranger/src/animation/elide.ts:93</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L93">arranger/src/animation/elide.ts:93</a></p>
 </section>
 <section id="leaving">
 <h5>leaving<a class="headerlink" href="#leaving" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>leaving</strong>: readonly <a class="reference internal" href="#leavingcard"><code class="docutils literal notranslate"><span class="pre">LeavingCard</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L94">arranger/src/animation/elide.ts:94</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L94">arranger/src/animation/elide.ts:94</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="cardmotion">
 <h3>CardMotion<a class="headerlink" href="#cardmotion" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L71">arranger/src/animation/elide.ts:71</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L71">arranger/src/animation/elide.ts:71</a></p>
 <p>How the elements of one container of the drawing after a change move: a
 card’s, or a frame’s own (its rectangle, title and gaps), each element it
 holds by <code class="docutils literal notranslate"><span class="pre">motionOf</span></code>.</p>
@@ -558,7 +566,7 @@ holds by <code class="docutils literal notranslate"><span class="pre">motionOf</
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L73">arranger/src/animation/elide.ts:73</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L73">arranger/src/animation/elide.ts:73</a></p>
 <p>The container’s place key text (<code class="docutils literal notranslate"><span class="pre">placeKeyText</span></code>).</p>
 </section>
 </section>
@@ -569,7 +577,7 @@ holds by <code class="docutils literal notranslate"><span class="pre">motionOf</
 <blockquote>
 <div><p><strong>holds</strong>(<code class="docutils literal notranslate"><span class="pre">element</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L75">arranger/src/animation/elide.ts:75</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L75">arranger/src/animation/elide.ts:75</a></p>
 <p>Whether the element at <code class="docutils literal notranslate"><span class="pre">element</span></code> is one this motion moves.</p>
 <section id="parameters">
 <h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
@@ -588,7 +596,7 @@ holds by <code class="docutils literal notranslate"><span class="pre">motionOf</
 <blockquote>
 <div><p><strong>motionOf</strong>(<code class="docutils literal notranslate"><span class="pre">element</span></code>): <a class="reference internal" href="unfold.html#motion"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Motion</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L76">arranger/src/animation/elide.ts:76</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L76">arranger/src/animation/elide.ts:76</a></p>
 <section id="id2">
 <h6>Parameters<a class="headerlink" href="#id2" title="Link to this heading">#</a></h6>
 </section>
@@ -606,7 +614,7 @@ holds by <code class="docutils literal notranslate"><span class="pre">motionOf</
 <hr class="docutils" />
 <section id="drawn">
 <h3>Drawn<a class="headerlink" href="#drawn" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L60">arranger/src/animation/elide.ts:60</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L60">arranger/src/animation/elide.ts:60</a></p>
 <p>A drawing with what it was drawn from and what draws it.</p>
 <section id="id5">
 <h4>Properties<a class="headerlink" href="#id5" title="Link to this heading">#</a></h4>
@@ -615,28 +623,28 @@ holds by <code class="docutils literal notranslate"><span class="pre">motionOf</
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>descriptors</strong>: readonly <a class="reference internal" href="../../tilie-writers/descriptors.html#descriptor"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Descriptor</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L63">arranger/src/animation/elide.ts:63</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L63">arranger/src/animation/elide.ts:63</a></p>
 </section>
 <section id="drawing">
 <h5>drawing<a class="headerlink" href="#drawing" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>drawing</strong>: <a class="reference internal" href="../../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L62">arranger/src/animation/elide.ts:62</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L62">arranger/src/animation/elide.ts:62</a></p>
 </section>
 <section id="manifest">
 <h5>manifest<a class="headerlink" href="#manifest" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>manifest</strong>: <a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L61">arranger/src/animation/elide.ts:61</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L61">arranger/src/animation/elide.ts:61</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="leavingcard">
 <h3>LeavingCard<a class="headerlink" href="#leavingcard" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L85">arranger/src/animation/elide.ts:85</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L85">arranger/src/animation/elide.ts:85</a></p>
 <p>A card the drawing after a change no longer draws, folding back into its
 member card: its descriptors in the drawing before, each placed at a
 progress by <code class="docutils literal notranslate"><span class="pre">placedAt</span></code> (at rest at 0, folded at 1), on the canvas of the
@@ -648,14 +656,14 @@ drawing after.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>descriptors</strong>: readonly <a class="reference internal" href="../../tilie-writers/descriptors.html#descriptor"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Descriptor</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L87">arranger/src/animation/elide.ts:87</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L87">arranger/src/animation/elide.ts:87</a></p>
 </section>
 <section id="id8">
 <h5>key<a class="headerlink" href="#id8" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L86">arranger/src/animation/elide.ts:86</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L86">arranger/src/animation/elide.ts:86</a></p>
 </section>
 </section>
 <section id="id9">
@@ -665,7 +673,7 @@ drawing after.</p>
 <blockquote>
 <div><p><strong>placedAt</strong>(<code class="docutils literal notranslate"><span class="pre">descriptor</span></code>, <code class="docutils literal notranslate"><span class="pre">t</span></code>): <a class="reference internal" href="unfold.html#placed"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Placed</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L88">arranger/src/animation/elide.ts:88</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L88">arranger/src/animation/elide.ts:88</a></p>
 <section id="id10">
 <h6>Parameters<a class="headerlink" href="#id10" title="Link to this heading">#</a></h6>
 </section>
@@ -692,7 +700,7 @@ drawing after.</p>
 <blockquote>
 <div><p><strong>blockMotion</strong>(<code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">after</span></code>, <code class="docutils literal notranslate"><span class="pre">measure</span></code>): <a class="reference internal" href="#blockmotion"><code class="docutils literal notranslate"><span class="pre">BlockMotion</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L581">arranger/src/animation/elide.ts:581</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L581">arranger/src/animation/elide.ts:581</a></p>
 <p>What moves when a block is drawn <code class="docutils literal notranslate"><span class="pre">after</span></code> instead of <code class="docutils literal notranslate"><span class="pre">before</span></code>: first every
 item whose place changed travels whole (<code class="docutils literal notranslate"><span class="pre">itemMotions</span></code>), its contents taking
 no motion of their own; then each card
@@ -731,7 +739,7 @@ instead. Nothing else moves.</p>
 <blockquote>
 <div><p><strong>cardKnots</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">card</span></code>): <a class="reference internal" href="unfold.html#knot"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Knot</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L177">arranger/src/animation/elide.ts:177</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L177">arranger/src/animation/elide.ts:177</a></p>
 <p>The knots of the card <code class="docutils literal notranslate"><span class="pre">card</span></code> of <code class="docutils literal notranslate"><span class="pre">drawing</span></code>: both ends of every line layout
 records in it (<code class="docutils literal notranslate"><span class="pre">lineAxes</span></code>, one per run of an elided line), an end at a
 seam whose position lies on the other run marked <code class="docutils literal notranslate"><span class="pre">across</span></code> (<code class="docutils literal notranslate"><span class="pre">holdsAt</span></code>),
@@ -766,7 +774,7 @@ sorted by abscissa.</p>
 <blockquote>
 <div><p><strong>elisionsText</strong>(<code class="docutils literal notranslate"><span class="pre">exposure</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L234">arranger/src/animation/elide.ts:234</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L234">arranger/src/animation/elide.ts:234</a></p>
 <p>What a container’s elisions are, to tell whether a change moved them: its
 drawn mode and the words its derived gaps show, then each gap’s address,
 elided coordinates and widths, in order; empty for a container recording
@@ -789,7 +797,7 @@ none.</p>
 <blockquote>
 <div><p><strong>frameKnots</strong>(<code class="docutils literal notranslate"><span class="pre">exposure</span></code>): <a class="reference internal" href="unfold.html#knot"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Knot</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L219">arranger/src/animation/elide.ts:219</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L219">arranger/src/animation/elide.ts:219</a></p>
 <p>The knots of a frame’s own axis: both ends of every run, at their proportions.</p>
 <section id="id21">
 <h4>Parameters<a class="headerlink" href="#id21" title="Link to this heading">#</a></h4>
@@ -809,7 +817,7 @@ none.</p>
 <blockquote>
 <div><p><strong>frameMotion</strong>(<code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">was</span></code>, <code class="docutils literal notranslate"><span class="pre">after</span></code>, <code class="docutils literal notranslate"><span class="pre">now</span></code>, <code class="docutils literal notranslate"><span class="pre">measure</span></code>): <a class="reference internal" href="#cardmotion"><code class="docutils literal notranslate"><span class="pre">CardMotion</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L385">arranger/src/animation/elide.ts:385</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L385">arranger/src/animation/elide.ts:385</a></p>
 <p>How the frame <code class="docutils literal notranslate"><span class="pre">frame</span></code> of the drawing <code class="docutils literal notranslate"><span class="pre">after</span></code> moves from the frame under
 the same key <code class="docutils literal notranslate"><span class="pre">before</span></code> draws (<code class="docutils literal notranslate"><span class="pre">was</span></code>): its own elements (its rectangle and
 title, every element its range holds outside its member cards) and its
@@ -850,7 +858,7 @@ right border with them.</p>
 <blockquote>
 <div><p><strong>itemMotions</strong>(<code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">after</span></code>): <a class="reference internal" href="#cardmotion"><code class="docutils literal notranslate"><span class="pre">CardMotion</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L543">arranger/src/animation/elide.ts:543</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L543">arranger/src/animation/elide.ts:543</a></p>
 <p>How every item of <code class="docutils literal notranslate"><span class="pre">after</span></code> (a group’s frame, an ungrouped root’s card)
 whose place on the canvas <code class="docutils literal notranslate"><span class="pre">before</span></code> drew elsewhere moves: each element of
 its range translated, from where <code class="docutils literal notranslate"><span class="pre">before</span></code> drew the item (its place less
@@ -878,7 +886,7 @@ it; an item drawn at the same place moves nothing.</p>
 <blockquote>
 <div><p><strong>placedAttributes</strong>(<code class="docutils literal notranslate"><span class="pre">placed</span></code>, <code class="docutils literal notranslate"><span class="pre">own</span></code>): <code class="docutils literal notranslate"><span class="pre">Record</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, <code class="docutils literal notranslate"><span class="pre">string</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L635">arranger/src/animation/elide.ts:635</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L635">arranger/src/animation/elide.ts:635</a></p>
 <p>The attributes an element drawn at <code class="docutils literal notranslate"><span class="pre">placed</span></code> adds to its own: the map as
 a <code class="docutils literal notranslate"><span class="pre">transform</span></code> (<code class="docutils literal notranslate"><span class="pre">matrix</span></code>, or <code class="docutils literal notranslate"><span class="pre">translate</span></code> without stretching) and its
 opacity <code class="docutils literal notranslate"><span class="pre">own</span></code> times the placed one; nothing at rest.</p>
@@ -904,7 +912,7 @@ opacity <code class="docutils literal notranslate"><span class="pre">own</span><
 <blockquote>
 <div><p><strong>sidewaysMotion</strong>(<code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">was</span></code>, <code class="docutils literal notranslate"><span class="pre">after</span></code>, <code class="docutils literal notranslate"><span class="pre">card</span></code>, <code class="docutils literal notranslate"><span class="pre">measure</span></code>): <a class="reference internal" href="#cardmotion"><code class="docutils literal notranslate"><span class="pre">CardMotion</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L346">arranger/src/animation/elide.ts:346</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L346">arranger/src/animation/elide.ts:346</a></p>
 <p>How the card <code class="docutils literal notranslate"><span class="pre">card</span></code> of the drawing <code class="docutils literal notranslate"><span class="pre">after</span></code> moves from the card under the
 same place key <code class="docutils literal notranslate"><span class="pre">before</span></code> draws (<code class="docutils literal notranslate"><span class="pre">was</span></code>): rows kept but where elision labels
 shown or hidden move them (<code class="docutils literal notranslate"><span class="pre">rowShifts</span></code>, the card top’s move for an element
@@ -946,7 +954,7 @@ the move of the card’s top (<code class="docutils literal notranslate"><span c
 <blockquote>
 <div><p><strong>unfoldingMotion</strong>(<code class="docutils literal notranslate"><span class="pre">drawn</span></code>, <code class="docutils literal notranslate"><span class="pre">card</span></code>, <code class="docutils literal notranslate"><span class="pre">measure</span></code>): <a class="reference internal" href="#cardmotion"><code class="docutils literal notranslate"><span class="pre">CardMotion</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/arranger/src/animation/elide.ts#L448">arranger/src/animation/elide.ts:448</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/arranger/src/animation/elide.ts#L448">arranger/src/animation/elide.ts:448</a></p>
 <p>How the ancestor card <code class="docutils literal notranslate"><span class="pre">card</span></code> of <code class="docutils literal notranslate"><span class="pre">drawn</span></code> unfolds out of the member card it
 is aligned to when it is shown: each element travels down as a raise
 moves it (<code class="docutils literal notranslate"><span class="pre">raiseUnfold</span></code>: its row’s shift, entering where its row does or

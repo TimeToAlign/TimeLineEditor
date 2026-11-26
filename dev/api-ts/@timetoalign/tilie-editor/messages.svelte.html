@@ -409,6 +409,7 @@
 <li class="toctree-l2"><a class="reference internal" href="files.html">files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="fixtureWorkspace.html">fixtureWorkspace</a></li>
 <li class="toctree-l2"><a class="reference internal" href="fixtures.html">fixtures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="flowServer.html">flowServer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/claimProvenance.html">inspector/claimProvenance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/codec.html">inspector/codec</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/display.html">inspector/display</a></li>
@@ -434,6 +435,7 @@
 <li class="toctree-l2"><a class="reference internal" href="inspector/properties.html">inspector/properties</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/propertyDrafts.svelte.html">inspector/propertyDrafts.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/provenance.html">inspector/provenance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="inspector/regions.html">inspector/regions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/selection.html">inspector/selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/stamps/commands.html">inspector/stamps/commands</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inspector/stamps/drafts.svelte.html">inspector/stamps/drafts.svelte</a></li>
@@ -538,7 +540,7 @@
 <h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
 <section id="messages">
 <h3>Messages<a class="headerlink" href="#messages" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L50">editor/src/messages.svelte.ts:50</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L50">editor/src/messages.svelte.ts:50</a></p>
 <p>The messages shown, in the order posted.</p>
 <section id="constructors">
 <h4>Constructors<a class="headerlink" href="#constructors" title="Link to this heading">#</a></h4>
@@ -560,7 +562,7 @@
 <blockquote>
 <div><p><strong>shown</strong>: readonly <a class="reference internal" href="#message"><code class="docutils literal notranslate"><span class="pre">Message</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L52">editor/src/messages.svelte.ts:52</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L52">editor/src/messages.svelte.ts:52</a></p>
 <p>The messages shown, oldest first.</p>
 </section>
 </section>
@@ -571,7 +573,7 @@
 <blockquote>
 <div><p><strong>dismiss</strong>(<code class="docutils literal notranslate"><span class="pre">id</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L80">editor/src/messages.svelte.ts:80</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L80">editor/src/messages.svelte.ts:80</a></p>
 <p>Dismiss the message <code class="docutils literal notranslate"><span class="pre">id</span></code>.</p>
 <section id="parameters">
 <h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
@@ -590,7 +592,7 @@
 <blockquote>
 <div><p><strong>dispose</strong>(): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L87">editor/src/messages.svelte.ts:87</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L87">editor/src/messages.svelte.ts:87</a></p>
 <p>Cancel every pending self-dismissal; the messages are not used afterwards.</p>
 <section id="id2">
 <h6>Returns<a class="headerlink" href="#id2" title="Link to this heading">#</a></h6>
@@ -602,7 +604,7 @@
 <blockquote>
 <div><p><strong>post</strong>(<code class="docutils literal notranslate"><span class="pre">level</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code>, <code class="docutils literal notranslate"><span class="pre">problems?</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L63">editor/src/messages.svelte.ts:63</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L63">editor/src/messages.svelte.ts:63</a></p>
 <p>Show a message. Information is dismissed after <code class="docutils literal notranslate"><span class="pre">infoDurationOf</span></code> its text, and
 replaces information of the same text still shown (posted again, it
 shows once, timed from now); a warning or an error stays until
@@ -634,7 +636,7 @@ dismissed. Editing goes on either way.</p>
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="message">
 <h3>Message<a class="headerlink" href="#message" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L19">editor/src/messages.svelte.ts:19</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L19">editor/src/messages.svelte.ts:19</a></p>
 <p>One message: its level, its text, and the reader’s problems when there are any.</p>
 <section id="id5">
 <h4>Properties<a class="headerlink" href="#id5" title="Link to this heading">#</a></h4>
@@ -643,28 +645,28 @@ dismissed. Editing goes on either way.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>id</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L20">editor/src/messages.svelte.ts:20</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L20">editor/src/messages.svelte.ts:20</a></p>
 </section>
 <section id="id7">
 <h5>level<a class="headerlink" href="#id7" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>level</strong>: <a class="reference internal" href="#messagelevel"><code class="docutils literal notranslate"><span class="pre">MessageLevel</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L21">editor/src/messages.svelte.ts:21</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L21">editor/src/messages.svelte.ts:21</a></p>
 </section>
 <section id="id8">
 <h5>problems<a class="headerlink" href="#id8" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>problems</strong>: readonly <a class="reference internal" href="../tilie-core/errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L23">editor/src/messages.svelte.ts:23</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L23">editor/src/messages.svelte.ts:23</a></p>
 </section>
 <section id="id9">
 <h5>text<a class="headerlink" href="#id9" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>text</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L22">editor/src/messages.svelte.ts:22</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L22">editor/src/messages.svelte.ts:22</a></p>
 </section>
 </section>
 </section>
@@ -676,7 +678,7 @@ dismissed. Editing goes on either way.</p>
 <blockquote>
 <div><p><strong>MessageLevel</strong> = <code class="docutils literal notranslate"><span class="pre">&quot;info&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;warning&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;error&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L16">editor/src/messages.svelte.ts:16</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L16">editor/src/messages.svelte.ts:16</a></p>
 <p>How much a message weighs: information passes by itself, a warning says
 what the user must know although nothing failed, an error reports an
 operation that failed. Warnings and errors stay until dismissed.</p>
@@ -687,7 +689,7 @@ operation that failed. Warnings and errors stay until dismissed.</p>
 <blockquote>
 <div><p><strong>Post</strong> = (<code class="docutils literal notranslate"><span class="pre">level</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code>, <code class="docutils literal notranslate"><span class="pre">problems?</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L47">editor/src/messages.svelte.ts:47</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L47">editor/src/messages.svelte.ts:47</a></p>
 <p>Post one message at <code class="docutils literal notranslate"><span class="pre">level</span></code>, with the problems that explain it.</p>
 <section id="id11">
 <h4>Parameters<a class="headerlink" href="#id11" title="Link to this heading">#</a></h4>
@@ -717,7 +719,7 @@ operation that failed. Warnings and errors stay until dismissed.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>INFO_DURATION_MS</strong>: <code class="docutils literal notranslate"><span class="pre">3000</span></code> = <code class="docutils literal notranslate"><span class="pre">3000</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L27">editor/src/messages.svelte.ts:27</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L27">editor/src/messages.svelte.ts:27</a></p>
 <p>The least time a message of level <code class="docutils literal notranslate"><span class="pre">info</span></code> is shown.</p>
 </section>
 <hr class="docutils" />
@@ -726,7 +728,7 @@ operation that failed. Warnings and errors stay until dismissed.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>INFO_MS_PER_WORD</strong>: <code class="docutils literal notranslate"><span class="pre">300</span></code> = <code class="docutils literal notranslate"><span class="pre">300</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L34">editor/src/messages.svelte.ts:34</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L34">editor/src/messages.svelte.ts:34</a></p>
 <p>The time one word of information takes to read: 200 words a minute, the
 reading speed commonly assumed for text on a screen, which leaves room to
 notice the message before reading it.</p>
@@ -739,7 +741,7 @@ notice the message before reading it.</p>
 <blockquote>
 <div><p><strong>infoDurationOf</strong>(<code class="docutils literal notranslate"><span class="pre">text</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L41">editor/src/messages.svelte.ts:41</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L41">editor/src/messages.svelte.ts:41</a></p>
 <p>How long information of <code class="docutils literal notranslate"><span class="pre">text</span></code> is shown: <code class="docutils literal notranslate"><span class="pre">INFO_DURATION_MS</span></code>, or for a
 longer text <code class="docutils literal notranslate"><span class="pre">INFO_MS_PER_WORD</span></code> for each of its words (words being parts
 apart from one another by white space), whichever is longer.</p>
@@ -761,7 +763,7 @@ apart from one another by white space), whichever is longer.</p>
 <blockquote>
 <div><p><strong>messageOf</strong>(<code class="docutils literal notranslate"><span class="pre">error</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L118">editor/src/messages.svelte.ts:118</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L118">editor/src/messages.svelte.ts:118</a></p>
 <p>The text of a failure to show the viewer: an error’s message, else the value as text.</p>
 <section id="id19">
 <h4>Parameters<a class="headerlink" href="#id19" title="Link to this heading">#</a></h4>
@@ -781,7 +783,7 @@ apart from one another by white space), whichever is longer.</p>
 <blockquote>
 <div><p><strong>postContext</strong>(<code class="docutils literal notranslate"><span class="pre">post</span></code>): <code class="docutils literal notranslate"><span class="pre">Map</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">symbol</span></code>, <a class="reference internal" href="#id10"><code class="docutils literal notranslate"><span class="pre">Post</span></code></a>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L113">editor/src/messages.svelte.ts:113</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L113">editor/src/messages.svelte.ts:113</a></p>
 <p>The component context that provides <code class="docutils literal notranslate"><span class="pre">post</span></code>, for a component mounted on its own (<code class="docutils literal notranslate"><span class="pre">mount</span></code>’s <code class="docutils literal notranslate"><span class="pre">context</span></code>).</p>
 <section id="id21">
 <h4>Parameters<a class="headerlink" href="#id21" title="Link to this heading">#</a></h4>
@@ -801,7 +803,7 @@ apart from one another by white space), whichever is longer.</p>
 <blockquote>
 <div><p><strong>postOf</strong>(): <a class="reference internal" href="#id10"><code class="docutils literal notranslate"><span class="pre">Post</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L106">editor/src/messages.svelte.ts:106</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L106">editor/src/messages.svelte.ts:106</a></p>
 <p>The <code class="docutils literal notranslate"><span class="pre">post</span></code> a component above the calling one provides; called while the
 component is made.</p>
 <section id="id24">
@@ -819,7 +821,7 @@ component is made.</p>
 <blockquote>
 <div><p><strong>providePost</strong>(<code class="docutils literal notranslate"><span class="pre">post</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/editor/src/messages.svelte.ts#L96">editor/src/messages.svelte.ts:96</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/25c52f2db1f2eecb57883851b0af9aa4c0cd1d84/app/packages/editor/src/messages.svelte.ts#L96">editor/src/messages.svelte.ts:96</a></p>
 <p>Give the components below the calling one <code class="docutils literal notranslate"><span class="pre">post</span></code>; called while the component is made.</p>
 <section id="id25">
 <h4>Parameters<a class="headerlink" href="#id25" title="Link to this heading">#</a></h4>
