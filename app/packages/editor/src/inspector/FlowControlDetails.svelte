@@ -3,7 +3,7 @@
  * One selected flow-control element in the Properties tab: its read-only
  * rows (`flowRows`: its role, its coordinate, how it is notated, its
  * status under the user's reading, `readingOf`), its
- * display toggles (`elementToggles`), a jump's destinations, one button
+ * display controls (`elementControls`), a jump's destinations, one button
  * each (`destinationRows`: the place it leads to by the kind, name, ID and
  * coordinate of what stands there, its conditions, how it is notated),
  * whose press selects the jump with what the destination leads to, so the
@@ -24,7 +24,7 @@ import { postOf } from "../messages.svelte.ts";
 import { profilesOf } from "../profiles/profiles.svelte.ts";
 import { userOf } from "../user.svelte.ts";
 import DisplayGroups from "./DisplayGroups.svelte";
-import { elementToggles } from "./display.ts";
+import { elementControls } from "./display.ts";
 import type { DestinationRow, FlowSubject } from "./flow.ts";
 import { beliefCommand, destinationRows, flowProvenance, flowRows, readingOf } from "./flow.ts";
 import { dayOf } from "./metadata/edits.ts";
@@ -55,7 +55,7 @@ const profiles = profilesOf();
 /** Which elements the user's flows read: their belief, else the block's belief filter. */
 const reading = $derived(readingOf(view, flow.block, user.state.user));
 const rows = $derived(flowRows(flow, reading));
-const toggles = $derived(elementToggles(view, flow));
+const controls = $derived(elementControls(view, flow));
 const destinations = $derived(destinationRows(flow));
 
 /** The destination last chosen, and the addresses its press selected. */
@@ -98,7 +98,7 @@ function believe(belief: Belief): void {
   {/each}
 </dl>
 
-<DisplayGroups {view} {store} block={flow.block} groups={toggles} />
+<DisplayGroups {view} {store} block={flow.block} groups={controls} />
 
 {#if destinations.length > 0}
   <section class="destinations" aria-labelledby="{uid}-destinations" data-testid="flow-destinations">

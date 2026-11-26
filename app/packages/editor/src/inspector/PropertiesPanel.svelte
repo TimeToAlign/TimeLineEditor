@@ -9,15 +9,20 @@
  * inspector's `PropertyDrafts`; a commit or a step is one `set`. Below, the
  * group memberships of the selected timelines or group, and the New group
  * button (`groups.ts`), each click one command. One selected flow-control
- * element shows, below its name, its read-only rows, its display toggles,
+ * element shows, below its name, its read-only rows, its display controls,
  * a jump's destinations and its provenance with the user's belief
  * (`FlowControlDetails`); the jump stays inspected while a destination's
- * marks are selected with it. A selected band shows its display toggles
- * below its rows, and a region its start, end and length. A selected
- * timeline card (the card, its line, or one of its bands alone) lists its
- * bands with a Visible checkbox each (`BandList`). One selected virtual
- * timeline, or its card, offers "Delete virtual timeline", which removes
- * it (Delete on the canvas only hides its card).
+ * marks are selected with it. A selected band shows its display controls
+ * below its rows, and a region its start, end and length. Every display
+ * control is declared once (`display.ts`): one that changes nothing drawn
+ * now is disabled with its reason. A selected timeline, every timeline
+ * alike (a root, a child, a virtual timeline; its card, its line, or one
+ * of its bands alone), lists its bands with a Visible checkbox each
+ * (`BandList`). A selected bundle lists its cards (`TimelineList`), a
+ * virtual timeline's with a Visible checkbox, so a hidden card can be shown
+ * again. One selected virtual timeline, or its card, offers "Delete
+ * virtual timeline", which removes it (Delete on the canvas only hides its
+ * card).
  */
 import type {
   Editing,
@@ -42,7 +47,7 @@ import { postOf } from "../messages.svelte.ts";
 import { paneOf } from "../pane.ts";
 import BandList from "./BandList.svelte";
 import DisplayGroups from "./DisplayGroups.svelte";
-import { bandList, bandToggles } from "./display.ts";
+import { bandControls, bandList } from "./display.ts";
 import FlowControlDetails from "./FlowControlDetails.svelte";
 import { flowOf } from "./flow.ts";
 import { groupsOf, membersOf, newGroupOf } from "./groups.ts";
@@ -59,6 +64,8 @@ import {
   virtualDeletionOf,
 } from "./properties.ts";
 import type { PropertyDrafts } from "./propertyDrafts.svelte.ts";
+import TimelineList from "./TimelineList.svelte";
+import { timelineList } from "./timelineList.ts";
 
 let {
   view,
@@ -122,11 +129,14 @@ const geometry = $derived(
 /** The read-only rows of the one band selected; else `null`. */
 const band = $derived(shown === null ? null : bandRows(inspected, shown));
 
-/** The display toggles of the one band selected; else `null`. */
-const toggles = $derived(band === null ? null : bandToggles(view, inspected));
+/** The display controls of the one band selected; else `null`. */
+const controls = $derived(band === null ? null : bandControls(view, inspected));
 
-/** The bands of the selected timeline card, each with its Visible checkbox; else `null`. */
+/** The bands of the selected timeline, each with its Visible checkbox; else `null`. */
 const bands = $derived(block === null ? null : bandList(view, inspected));
+
+/** The cards of the selected bundle, a virtual timeline's with its Visible checkbox; else `null`. */
+const timelines = $derived(block === null ? null : timelineList(view, inspected));
 
 /** The start, end and length of the one region selected; else `null`. */
 const region = $derived(regionRows(inspected));
@@ -349,7 +359,7 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   {/if}
 {:else if band !== null}
   {@render rows(band, "band-rows")}
-  <DisplayGroups {view} {store} {block} groups={toggles ?? []} />
+  <DisplayGroups {view} {store} {block} groups={controls ?? []} />
 {:else if region !== null}
   {@render rows(region, "region-rows")}
 {:else if flow !== null}
@@ -380,6 +390,9 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
 
 {#if block !== null && bands !== null}
   <BandList {view} {store} {block} rows={bands} />
+{/if}
+{#if timelines !== null}
+  <TimelineList {store} rows={timelines} />
 {/if}
 
 {#if memberships !== null}

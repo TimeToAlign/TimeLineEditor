@@ -3,12 +3,18 @@
  * The toggles of what a stamp's line shows (a timestamp's `display`, an
  * alignment anchor's): one button per word, in the order given, pressed
  * while `display` holds its word. A press reports the word (`ontoggle`);
- * the caller sends the command. Disabled, the toggles show greyed.
+ * the caller sends the command. Disabled, the toggles show greyed; a word
+ * with a reason it changes nothing (`inert`) is disabled alone, the reason
+ * its button's tooltip.
  */
 
 interface Props {
-  /** The words, each with its button's label, in their order. */
-  words: readonly { readonly word: Word; readonly label: string }[];
+  /** The words, each with its button's label and the reason it is disabled, if any, in their order. */
+  words: readonly {
+    readonly word: Word;
+    readonly label: string;
+    readonly inert?: string | null;
+  }[];
   /** The words shown now. */
   display: readonly Word[];
   disabled: boolean;
@@ -31,12 +37,13 @@ let { words, display, disabled, label, labelledby, describedby, ontoggle }: Prop
   aria-labelledby={labelledby}
   aria-describedby={describedby}
 >
-  {#each words as { word, label: text } (word)}
+  {#each words as { word, label: text, inert = null } (word)}
     <button
       type="button"
       class="toggle"
       aria-pressed={display.includes(word)}
-      {disabled}
+      disabled={disabled || inert !== null}
+      title={inert ?? undefined}
       onclick={() => ontoggle(word)}>{text}</button
     >
   {/each}
