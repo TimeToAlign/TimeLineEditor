@@ -538,7 +538,7 @@
 <blockquote>
 <div><p><strong>BandOrderEntry</strong> = <em>typeof</em> <a class="reference internal" href="#line"><code class="docutils literal notranslate"><span class="pre">LINE</span></code></a> | <code class="docutils literal notranslate"><span class="pre">Facet</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/44d14a215a73eec068046de892a7e864abb68ac1/app/packages/core/src/manifest/order.ts#L35">manifest/order.ts:35</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/order.ts#L35">manifest/order.ts:35</a></p>
 <p>An entry of a band order: a timeline’s own line or one of its facets.</p>
 </section>
 </section>
@@ -549,7 +549,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>DEFAULT_BAND_ORDER</strong>: readonly <a class="reference internal" href="#bandorderentry"><code class="docutils literal notranslate"><span class="pre">BandOrderEntry</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/44d14a215a73eec068046de892a7e864abb68ac1/app/packages/core/src/manifest/order.ts#L42">manifest/order.ts:42</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/order.ts#L42">manifest/order.ts:42</a></p>
 <p>The default band order (drawing.md section 4), which a root without an
 entry in <code class="docutils literal notranslate"><span class="pre">graphical.order</span></code> follows: its children and conversion maps
 above its line, its markers, regions and flow control below.</p>
@@ -560,7 +560,7 @@ above its line, its markers, regions and flow control below.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>LINE</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;line&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;line&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/44d14a215a73eec068046de892a7e864abb68ac1/app/packages/core/src/manifest/order.ts#L32">manifest/order.ts:32</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/order.ts#L32">manifest/order.ts:32</a></p>
 <p>A band order’s entry for a timeline’s own line, beside its five facets.</p>
 </section>
 </section>
@@ -571,7 +571,7 @@ above its line, its markers, regions and flow control below.</p>
 <blockquote>
 <div><p><strong>bandOrderOf</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">timelineId</span></code>): readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/44d14a215a73eec068046de892a7e864abb68ac1/app/packages/core/src/manifest/order.ts#L105">manifest/order.ts:105</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/order.ts#L105">manifest/order.ts:105</a></p>
 <p>The band order the timeline <code class="docutils literal notranslate"><span class="pre">timelineId</span></code> is drawn with, <code class="docutils literal notranslate"><span class="pre">line</span></code> and all
 five facets: its own entry in <code class="docutils literal notranslate"><span class="pre">graphical.order</span></code> completed against the
 order it inherits (<code class="docutils literal notranslate"><span class="pre">inheritedBandOrder</span></code>), else that order. An ID no
@@ -598,7 +598,7 @@ timeline carries gets the default band order.</p>
 <blockquote>
 <div><p><strong>bandOrderProblem</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">timelineId</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/44d14a215a73eec068046de892a7e864abb68ac1/app/packages/core/src/manifest/order.ts#L130">manifest/order.ts:130</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/order.ts#L130">manifest/order.ts:130</a></p>
 <p>The first problem of <code class="docutils literal notranslate"><span class="pre">value</span></code> as the band order of the timeline
 <code class="docutils literal notranslate"><span class="pre">timelineId</span></code>, its entry in <code class="docutils literal notranslate"><span class="pre">graphical.order</span></code>, in the terms and the order
 of TimeToShare’s README and validators, IDs and entries in single quotes;
@@ -639,7 +639,7 @@ from the order the timeline follows without an entry (<code class="docutils lite
 <blockquote>
 <div><p><strong>displayOrder</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">group</span></code>): readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/44d14a215a73eec068046de892a7e864abb68ac1/app/packages/core/src/manifest/order.ts#L25">manifest/order.ts:25</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/order.ts#L25">manifest/order.ts:25</a></p>
 <p>The display order of the group <code class="docutils literal notranslate"><span class="pre">group</span></code>: its entry in <code class="docutils literal notranslate"><span class="pre">graphical.order</span></code>,
 else its <code class="docutils literal notranslate"><span class="pre">members</span></code>; empty for an id no group carries.</p>
 <section id="id5">
@@ -664,7 +664,7 @@ else its <code class="docutils literal notranslate"><span class="pre">members</s
 <blockquote>
 <div><p><strong>inheritedBandOrder</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">timelineId</span></code>): readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/44d14a215a73eec068046de892a7e864abb68ac1/app/packages/core/src/manifest/order.ts#L81">manifest/order.ts:81</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4c95efdd2762173bb8a5c5af4d0d819d5fbac224/app/packages/core/src/manifest/order.ts#L81">manifest/order.ts:81</a></p>
 <p>The band order the timeline <code class="docutils literal notranslate"><span class="pre">timelineId</span></code> follows without an entry of its
 own in <code class="docutils literal notranslate"><span class="pre">graphical.order</span></code>: a root the default band order, every other
 timeline its parent’s band order (<code class="docutils literal notranslate"><span class="pre">bandOrderOf</span></code>), completed. A member that

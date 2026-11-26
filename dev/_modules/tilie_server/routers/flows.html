@@ -772,6 +772,12 @@
 <span class="sd">        belief ``false`` of the request's ``actor`` on the request's</span>
 <span class="sd">        ``date`` (the server's day without one) in its type statement; the</span>
 <span class="sd">        computed FlowMaps keep their IDs and list the sections standing now.</span>
+<span class="sd">        The Regions and FlowMaps written anew get random IDs, minted in that</span>
+<span class="sd">        order from one seed: ``seed_from`` of the manifest as timetoalign</span>
+<span class="sd">        writes it before the call (its minimal JSON text), the timeline's</span>
+<span class="sd">        ID, ``believer`` and ``beliefs`` (``None`` where not given), so one</span>
+<span class="sd">        request is answered alike in either form of its manifest and on</span>
+<span class="sd">        every asking.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        Refusal: 501 as :func:`flow_engine`; 422 as :func:`read_request`,</span>
@@ -783,14 +789,27 @@
 <span class="sd">            more and the request names no ``actor`` to reject it.</span>
 <span class="sd">    """</span>
     <span class="n">flow_engine</span><span class="p">()</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">timetoalign.core.ids</span><span class="w"> </span><span class="kn">import</span> <span class="n">seed_from</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">timetoshare</span><span class="w"> </span><span class="kn">import</span> <span class="n">dumps</span>
 
     <span class="n">parameters</span><span class="p">,</span> <span class="n">manifest</span><span class="p">,</span> <span class="n">bare</span> <span class="o">=</span> <span class="n">read_request</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">WRITING_PARAMETERS</span><span class="p">)</span>
     <span class="n">reading</span> <span class="o">=</span> <span class="n">asked_reading</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
     <span class="n">actor</span><span class="p">,</span> <span class="n">date</span> <span class="o">=</span> <span class="n">asked_rejection</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
     <span class="n">bundle</span><span class="p">,</span> <span class="n">timeline</span> <span class="o">=</span> <span class="n">asked_timeline</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">manifest</span><span class="p">,</span> <span class="n">bare</span><span class="p">)</span>
+    <span class="c1"># The IDs written anew are seeded by what decides the flows: the manifest as</span>
+    <span class="c1"># timetoalign reads it, the timeline and the reading. One request is answered</span>
+    <span class="c1"># alike in either form of its manifest and whatever the process answered</span>
+    <span class="c1"># before; another reading, which may cut other sections, mints other IDs.</span>
+    <span class="n">seed</span> <span class="o">=</span> <span class="n">seed_from</span><span class="p">(</span>
+        <span class="n">dumps</span><span class="p">(</span><span class="n">bundle</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">"json"</span><span class="p">),</span>
+        <span class="n">timeline</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"believer"</span><span class="p">),</span>
+        <span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"beliefs"</span><span class="p">),</span>
+    <span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">timeline</span><span class="o">.</span><span class="n">create_flow_maps_from_flow_control</span><span class="p">(</span><span class="n">actor</span><span class="o">=</span><span class="n">actor</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">date</span><span class="p">,</span> <span class="o">**</span><span class="n">reading</span><span class="p">)</span>
+        <span class="n">timeline</span><span class="o">.</span><span class="n">create_flow_maps_from_flow_control</span><span class="p">(</span>
+            <span class="n">actor</span><span class="o">=</span><span class="n">actor</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">date</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="o">**</span><span class="n">reading</span>
+        <span class="p">)</span>
     <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([</span><span class="s2">"timeline"</span><span class="p">],</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">))</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
     <span class="k">return</span> <span class="n">dumps</span><span class="p">(</span><span class="n">bundle</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">"json"</span><span class="p">)</span></div>

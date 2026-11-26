@@ -714,7 +714,13 @@ stretch is still one keeps its Region, a new stretch gets a new
 Region, and a Region whose stretch is none any more stays, with the
 belief <code class="docutils literal notranslate"><span class="pre">false</span></code> of the request’s <code class="docutils literal notranslate"><span class="pre">actor</span></code> on the request’s
 <code class="docutils literal notranslate"><span class="pre">date</span></code> (the server’s day without one) in its type statement; the
-computed FlowMaps keep their IDs and list the sections standing now.</p>
+computed FlowMaps keep their IDs and list the sections standing now.
+The Regions and FlowMaps written anew get random IDs, minted in that
+order from one seed: <code class="docutils literal notranslate"><span class="pre">seed_from</span></code> of the manifest as timetoalign
+writes it before the call (its minimal JSON text), the timeline’s
+ID, <code class="docutils literal notranslate"><span class="pre">believer</span></code> and <code class="docutils literal notranslate"><span class="pre">beliefs</span></code> (<code class="docutils literal notranslate"><span class="pre">None</span></code> where not given), so one
+request is answered alike in either form of its manifest and on
+every asking.</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="tilie_server.manifests.html#tilie_server.manifests.Refusal" title="tilie_server.manifests.Refusal"><strong>Refusal</strong></a> – 501 as <a class="reference internal" href="#tilie_server.routers.flows.flow_engine" title="tilie_server.routers.flows.flow_engine"><code class="xref py py-func docutils literal notranslate"><span class="pre">flow_engine()</span></code></a>; 422 as <a class="reference internal" href="#tilie_server.routers.flows.read_request" title="tilie_server.routers.flows.read_request"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_request()</span></code></a>,
