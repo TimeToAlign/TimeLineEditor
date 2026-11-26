@@ -892,16 +892,16 @@ roots and groups".
 
 ## Flow control, FlowMaps and virtual timelines (`flow.test.ts`)
 
-The oracle is TimeToShare's schema and its ten `flow/` fixtures, which
+The oracle is TimeToShare's schema and its twelve `flow/` fixtures, which
 core's fixture list holds beside the others (so every suite that iterates
 the manifest fixtures reads them: the round trips of
 `manifest.test.ts` and `manifest-file.test.ts` in three serializations, the
 drawn elements of `address.test.ts`, the properties and the budgets). The
-ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
+twelve are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
 `ossia`, `repairs`, `repeat_end_and_dal_segno`, `sections`,
-`sonata_exposition` and `volta_passes`.
+`sonata_exposition`, `switched_card`, `virtual_cards` and `volta_passes`.
 
-1. **Kept through an edit of something else.** Each of the ten, held in a
+1. **Kept through an edit of something else.** Each of the twelve, held in a
    block whose manifest's `name` is set to `Edited`, is saved in the
    complete form as TimeToShare's `dumps` writes the fixture's own value
    with that one member changed, byte for byte: the five roles with their
@@ -939,10 +939,10 @@ ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
 3. **Words.** In a workspace of one block an element is worded by its role
    and its ID: "break 'break_1'", "section break 'section_break_1'", "jump
    'jump_1'", "barline 'barline_1'", "jump target 'jump_target_1'".
-4. **FlowMaps and virtual timelines** are neither drawn nor addressed:
+4. **FlowMaps and virtual timelines** are addressed by their IDs:
    `flow/sonata_exposition`'s `flow_map_1`, `flow_map_2`, `flow_map_3` and
    `virtual_1` are IDs of the manifest (`manifestIds`) that `resolveElement`
-   gives nothing for, and adding a region under one of them is
+   resolves to `flow_map` and `virtual_timeline`, and adding a region under one of them is
    `duplicate_id` at the region's `id`. They go with the root timeline
    they belong to: `removedBy` of `score` is the twelve IDs `score`, its
    three regions, its four flow-control elements, the three FlowMaps and
@@ -1167,8 +1167,8 @@ the schema agree by construction.
    entries in single quotes: `"line"`, `null`, `{}` and `["line", 1]` give
    `the band order of 'clt_3' is not an array of strings`; `D` with `line`
    appended `'line' is repeated in the band order of 'clt_3'`; `D` as the
-   order of `nothing` `'nothing' names no group or timeline of this
-   manifest`; `D` with `region` appended `'region' is not 'line' or a
+   order of `nothing` `'nothing' names no group, timeline or virtual
+   timeline of this manifest`; `D` with `region` appended `'region' is not 'line' or a
    facet, in the band order of 'clt_3'`, and so for the timeline's own ID
    in place of `line` and for the former band address `clt_3/regions_1` in
    place of `regions` (a stranger comes before what is missing); `D`
@@ -2507,8 +2507,8 @@ left without `addresses` goes.
     `fragment` in `recording`'s children, in `group_2`'s members and in its
     display order, its band order still keyed `excerpt`, is refused:
     `schema_violation` at `["bundle0001", "manifest", "graphical", "order",
-    "excerpt"]`, message `'excerpt' names no group or timeline of this
-    manifest`. The same with the entry rekeyed `fragment: E` is accepted
+    "excerpt"]`, message `'excerpt' names no group, timeline or virtual
+    timeline of this manifest`. The same with the entry rekeyed `fragment: E` is accepted
     (a band order names no ID, so it moves unchanged), and the rule is
     kept exactly as written, still addressing `{id: "excerpt", facet:
     "regions"}`.
@@ -4896,7 +4896,14 @@ and the named timestamps: an `add` of one into a timeline or elsewhere
 (its coordinate drawn like any other, an empty name, a missing coordinate,
 an `id` given, a `display` in any order, with an unknown or repeated
 word), a `set` of its `name`, `coordinate`, `display` or `timeline`, and
-its `remove`, on the manifest's timestamps and an unknown one.
+its `remove`, on the manifest's timestamps and an unknown one; and the
+FlowMaps and virtual timelines: an `add` of a FlowMap into a root, another
+timeline or the block (chunks drawn from the regions, timelines and virtual
+timelines, gaps on the root's axis, unknown IDs; an ID given or taken), a
+`set` of its `chunks` or `name`, an `add` of a virtual timeline (into the
+block or a timeline, applying a FlowMap, a conversion map or an unknown ID,
+a length given or not, `through`), a `set` of its `name`, `place` or
+`groups`, and the `remove` of either, computed FlowMaps included.
 Each manifest fixture starts as block `A` beside a block `B` of
 `bare.yaml`, in a store with an injected clock, for ten sequences.
 
@@ -4914,7 +4921,7 @@ Each manifest fixture starts as block `A` beside a block `B` of
    targets: over a fixed sample (seed `20261011`, 150 sequences per fixture,
    each fixture's sequences applied with one minter of seed `20261011`, as
    a store mints, so no command is refused for the IDs it lacks)
-   the set of codes observed is exactly `child_exceeds_parent`, `cycle`, `duplicate_id`, `duplicate_index`,
+   the set of codes observed is exactly `child_exceeds_parent`, `computed_flow_map`, `cycle`, `duplicate_id`, `duplicate_index`,
    `elision_exceeds_length`, `id_not_settable`, `invalid_address`, `invalid_coordinate`,
    `invalid_index`, `invalid_order`, `invalid_value`,
    `length_below_content`, `locked`, `negative_child_offset`,
@@ -4942,8 +4949,10 @@ Each manifest fixture starts as block `A` beside a block `B` of
 
 **Editing sequences.** The same fixtures, in the same store, run sequences
 of up to 30 steps, ten per fixture, each step a seed with an operation: a
-command, opening an editor, a reopen (the target of the latest session of
-the innermost level, so the reopen rule unfolds it), a whole session (open,
+command, opening an editor (every fifth opening asks for the flow
+editor, which opens on a root timeline only), a reopen (the target and the
+kind of the latest session of the innermost level, so the reopen rule
+unfolds it), a whole session (open,
 one or two commands, Done), an unfold (reopen, undo until nothing is left to
 undo or one step, Done), Done, Cancel, undo and redo. A command in an open
 editor is mostly one that stays inside it (a name or a band order of a
@@ -4951,7 +4960,8 @@ timeline it holds, its place's `x`, `scale`, `spacing`, `margin` or `width`, a g
 display order, for a member its group's `length` and `scale`, the block's
 width, the name of a named timestamp lying on a timeline it holds, or a
 named timestamp added to such a timeline), sometimes any generated command, so the guard both accepts and
-refuses; a target to open is mostly one the innermost editor holds, so
+refuses; in a flow editor mostly a command over its root's FlowMaps and
+virtual timelines; a target to open is mostly one the innermost editor holds, so
 editors nest, sometimes one outside it, one without an editor or one naming
 nothing.
 
@@ -6064,6 +6074,107 @@ off core's output.
    n/4 below the virtual length, `fold` gives null exactly inside a gap,
    and otherwise `unfold` of the written position contains the played
    one.
+
+## Commands over FlowMaps, virtual timelines and the flow editor (`flowmap-commands.test.ts`)
+
+What proves a command over FlowMaps and virtual timelines is the manifest it
+leaves, checked whole by TimeToShare's schema and validators (core's
+`schemaProblems`, which runs them: an empty list), and, for a refusal, its
+exact code and path. The manifests are the schema package's fixtures:
+`flow/flow_map_by_hand.yaml` (root `set`, children `first` [0, 8) and
+`second` [8, 20) in quarters, the hand-made FlowMap `flow_map_1`, chunks
+`second`, a gap of 4, `first`) and `flow/sonata_exposition.yaml` (root
+`score`, 24 quarters, Regions `region_1` [0, 12), `region_2` [12, 16) and
+`region_3` [16, 24); the computed FlowMaps `flow_map_1` (`default`:
+`region_1 region_2 region_1 region_3`), `flow_map_2` (`single`:
+`region_1 region_3`) and `flow_map_3` (`printed`), each with a provenance
+entry of method `inferred`; the virtual timeline `virtual_1` applying
+`flow_map_1` to `score`, 36 quarters). IDs the tests give are speaking
+(`encore`, `single_card`); where a test lets a command mint, the expected
+ID is the one a minter of the same seed mints for the expected prefix,
+never a spelled-out random literal.
+
+1. **FlowMaps.** `add {into: set, flow_map: {chunks: [first, {gap: [2,
+   1]}, second], name: "Encore"}}` with `ids: [encore]` leaves
+   `flow_maps` holding `encore` in its complete form (`timeline: set`,
+   `canonical: false`) beside `flow_map_1`, and the manifest valid. Its
+   `timeline`, left out, is the root it goes into. Refused, each at
+   `[<address key of into>, "flow_map", …]`: a chunk naming the root
+   itself (`schema_violation`, the validators' `'set' names no region,
+   child timeline or virtual timeline in the tree of 'set'`, at `chunks,
+   0`), a `timeline` naming another timeline (`invalid_value` at
+   `timeline`), no `chunks` (`invalid_value`), an unknown member
+   (`unknown_property`), an ID the manifest holds (`duplicate_id` at
+   `id`); into the child `first`, `wrong_target_kind`; without `ids` and
+   without a minter, `invalid_command` at `["ids"]`. Left without an ID
+   it is given the minter's `flow_…`. `set {chunks}` on the hand-made
+   FlowMap stores the new list; `set {name}` its name; the same list again
+   is "the command changes nothing"; a chunk naming nothing is
+   `schema_violation` at `[<address key of the FlowMap>, "chunks", k]`.
+   Every `set` on a computed FlowMap (`flow_map_2`) is `computed_flow_map`
+   at `[<its address key>, <property>]`.
+2. **Virtual timelines.** `add {into: <block>, virtual_timeline: {map:
+   flow_map_2, timeline: score, name: "As played once"}}` with `ids:
+   [single_card]` leaves the entry with unit `quarters`, number type
+   `fraction` and length `[20, 1]` (12 + 8, the played length of `single`),
+   all computed, and the manifest valid; a given length equal to it
+   (`[40, 2]`) is accepted and written `[20, 1]`, one that differs
+   (`[24, 1]`) is `invalid_value` at `length`, its message naming `20 ♩`;
+   `unit` or `number_type` given is `unknown_property`; a `map` naming
+   nothing is `invalid_value` at `map`; with `through` and no length,
+   `invalid_value` at `length`. Left without an ID it is given the
+   minter's `clt_…`, the prefix of its unit's timeline class. `set {name}`
+   renames it. `remove` of `flow_map_1` is `not_removable` at its address
+   key, naming `'virtual_1'`; removing both in one command is accepted;
+   `virtual_1` named as a chunk by a FlowMap is `not_removable` naming that
+   FlowMap. Removing `virtual_1` takes it out of every group's `members`
+   and display order, its place and every rule naming its address, and a
+   rule's `flow` naming it, so a switched card is drawn as written again.
+3. **Regions get minted IDs.** `add {into: score, region: {start: [0,
+   1], end: [4, 1], name: "Intro"}}` without an ID is given the minter's
+   `region_…`; a map without one the minter's `cmap_…`.
+4. **Groups admit virtual timelines.** `add group {members: [score,
+   virtual_1]}` with `ids: [both]` gives the group those members, a frame
+   holding a card for each, `virtual_1`'s holding exactly its markers and
+   regions bands; `{id: virtual_1}` resolves to `virtual_timeline`,
+   `{id: virtual_1, facet: "regions"}` to `virtual_band`, `{id: virtual_1,
+   facet: "children"}` to nothing, and `{id: virtual_1, part: ["card"]}`
+   to nothing too, a part resolving only where the drawing's elements list
+   it (`manifestElements` lists no virtual card yet); `contains(manifest, both, {id: virtual_1, part:
+   ["card"]})` holds; `placedElement` of the key `{item: both, member:
+   virtual_1}` is `virtual_1`. `set {groups: []}` on it leaves the group
+   with `score` alone; `set {order}` on the group lists the virtual member,
+   and `set {order: [regions, line, markers]}` on the virtual timeline
+   states its band order. A virtual member lies inside its group's
+   editor (a `set` of its name accepted there) and outside the timeline
+   editor of `score` (`side_effect` at its address key).
+   In no group, the virtual timeline has one block-held card keyed by its
+   ID: `set {place: {x: 10, y: 20}}` on its address states
+   `places[virtual_1]`, and `set {place: {x: null, y: null}}` removes that
+   place (the card hidden), the virtual timeline kept.
+5. **The `flow` property.** `style {select: {addresses: [{id: score, part:
+   ["card"]}]}, set: {flow: flow_map_2}}` embeds the rule in the manifest's
+   own `rules` and the manifest stays valid; `flow: region_1` is
+   `schema_violation` (the validators' `flow_rule`), and `flow: null`
+   removes the rule ("As written").
+6. **The flow editor.** `open(score, "flow")` opens an editor of kind
+   `flow`; `open(first, "flow")` on a child is `no_editor`; inside it, an
+   `add` of a FlowMap into `score`, of a Region into `score` and of a
+   virtual timeline applying one of its FlowMaps, and a `set` of that
+   virtual timeline's `place`, are accepted; a `set` of `score`'s name is
+   `side_effect` at `[<address key of score>, "name"]`, a `style` at the
+   key of `score`; opening any editor inside it is `not_inside`. Done
+   journals one session entry whose session states `kind: "flow"`, the
+   workspace file writes and reads it back equal, and the journal replays
+   to the same view, the minted IDs carried. Reopening `score` as a
+   timeline editor starts a new session; reopening it as a flow editor
+   unfolds the flow session. A flow editor opens inside the timeline
+   editor of its own root.
+
+Core's property suite (`generate.ts`) also draws FlowMap and virtual
+timeline commands (`add`, `set` of `chunks` and `name`, `remove`) over
+`flow/sonata_exposition.yaml` and `flow/flow_map_by_hand.yaml`, so replay and
+undo are checked on them.
 
 ## External gates
 

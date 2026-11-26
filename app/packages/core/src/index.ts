@@ -17,6 +17,7 @@ export const name = "@timetoalign/tilie-core" as const;
 
 export type { ManifestWarning, UnknownKey } from "@timetoalign/timetoshare";
 export { apply } from "./commands/apply.ts";
+export { isComputedFlowMap } from "./commands/flowmaps.ts";
 export type { AnchorValue } from "./commands/matchstamps.ts";
 export { matchStampSpec, namedAsGroupstamp } from "./commands/matchstamps.ts";
 export { preview } from "./commands/preview.ts";
@@ -166,6 +167,7 @@ export type {
   ConversionMap,
   Elision,
   FlowControlElement,
+  FlowMap,
   Group,
   JumpDestination,
   Manifest,
@@ -178,6 +180,7 @@ export type {
   Statements,
   TimelineManifest,
   TimestampDisplay,
+  VirtualTimeline,
 } from "./manifest/types.ts";
 export type {
   FlowVirtualTimeline,
@@ -319,6 +322,7 @@ export type {
   ListedEntry,
   OpenEditor,
   Session,
+  StatedEditorKind,
 } from "./workspace/sessions.ts";
 export { editorKindOf, isSessionEntry, listEntries } from "./workspace/sessions.ts";
 export type { SettingsChange, Store, StoreOptions, Workspace } from "./workspace/store.ts";

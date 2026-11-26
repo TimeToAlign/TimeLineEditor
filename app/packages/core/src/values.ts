@@ -292,7 +292,11 @@ export function readRule(
   set: Json,
   path: readonly PathSegment[],
 ): { readonly select: Selector; readonly set: Declaration } | Problem {
-  const graphical = { rules: [{ select, set }] };
+  // A `flow` names a FlowMap or a virtual timeline of the manifest the rule goes into, which the
+  // empty host lacks: it is checked as an ID here, and against that manifest when it is settled.
+  const flow = isJsonObject(set) ? set.flow : undefined;
+  const own = flow === undefined || !isJsonObject(set) ? set : withoutMember(set, "flow");
+  const graphical = { rules: [{ select, set: own }] };
   const checked = schemaChecked({ timetoshare: SCHEMA_VERSION, timelines: [], graphical });
   const at = ["graphical", "rules", 0] as const;
   if ("code" in checked) return located(checked, at, path);
@@ -302,7 +306,21 @@ export function readRule(
   }
   const declaration = plainDeclaration(rule.set, [...at, "set"]);
   if ("code" in declaration) return located(declaration, at, path);
-  return { select: plainSelector(rule.select), set: declaration };
+  if (flow === undefined) return { select: plainSelector(rule.select), set: declaration };
+  if (typeof flow !== "string" || flow === "" || [...flow].some((c) => c.charCodeAt(0) < 0x20)) {
+    return problem(ErrorCode.schemaViolation, "flow is the ID of a FlowMap or a virtual timeline", [
+      ...path,
+      "set",
+      "flow",
+    ]);
+  }
+  return { select: plainSelector(rule.select), set: { ...declaration, flow } };
+}
+
+/** `object` without its member `member`. */
+function withoutMember(object: JsonObject, member: string): JsonObject {
+  const { [member]: _, ...rest } = object;
+  return rest;
 }
 
 /** A reader of one member: its value as stored, a problem, or `undefined` when it pushed its problems. */

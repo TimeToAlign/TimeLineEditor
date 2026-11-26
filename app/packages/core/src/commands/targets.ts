@@ -9,8 +9,20 @@ import type { CommandError } from "../errors.ts";
 import { assertNever, isCommandError } from "../errors.ts";
 import type { EntryKind } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
-import type { Group, MeasureMap, NamedTimestamp, TimelineManifest } from "../manifest/types.ts";
-import type { Address, AnchorFound, ElisionFound, MatchStampFound } from "../workspace/address.ts";
+import type {
+  Group,
+  MeasureMap,
+  NamedTimestamp,
+  TimelineManifest,
+  VirtualTimeline,
+} from "../manifest/types.ts";
+import type {
+  Address,
+  AnchorFound,
+  ElisionFound,
+  FlowMapFound,
+  MatchStampFound,
+} from "../workspace/address.ts";
 import { namesNothing, resolveAddress } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
 import type { View } from "../workspace/view.ts";
@@ -98,6 +110,23 @@ export interface AnchorTarget extends AnchorFound {
   readonly block: Block;
 }
 
+/** A FlowMap of a block's manifest. */
+export interface FlowMapTarget extends FlowMapFound {
+  readonly kind: "flow_map";
+  readonly address: Address;
+  readonly block: Block;
+}
+
+/** A virtual timeline of a block's manifest. */
+export interface VirtualTarget {
+  readonly kind: "virtual_timeline";
+  readonly address: Address;
+  readonly block: Block;
+  /** Its index in the manifest's `virtual_timelines`. */
+  readonly index: number;
+  readonly virtual: VirtualTimeline;
+}
+
 /** What an address resolves to, discriminated by its `kind`. */
 export type Target =
   | WorkspaceTarget
@@ -109,7 +138,9 @@ export type Target =
   | TimestampTarget
   | ElisionTarget
   | MatchStampTarget
-  | AnchorTarget;
+  | AnchorTarget
+  | FlowMapTarget
+  | VirtualTarget;
 /** The kind of a target. */
 export type TargetKind = Target["kind"];
 
@@ -128,12 +159,15 @@ export interface TargetOfKind {
   readonly elision: ElisionTarget;
   readonly matchstamp: MatchStampTarget;
   readonly anchor: AnchorTarget;
+  readonly flow_map: FlowMapTarget;
+  readonly virtual_timeline: VirtualTarget;
 }
 
 /**
  * The target an address names in `view`: `unknown_target` for a title,
  * cards, a band and a part, a derived elision included (it is a part of its
- * timeline and has no stored object to change).
+ * timeline and has no stored object to change), a virtual timeline's cards
+ * and bands among them.
  */
 export function targetOf(view: View, address: Address): Target | CommandError {
   const resolved = resolveAddress(view, address);
@@ -173,9 +207,19 @@ export function targetOf(view: View, address: Address): Target | CommandError {
       const { block, index, matchstamp, position, anchor } = resolved;
       return { kind: "anchor", address, block, index, matchstamp, position, anchor };
     }
+    case "flow_map": {
+      const { block, index, flowMap } = resolved;
+      return { kind: "flow_map", address, block, index, flowMap };
+    }
+    case "virtual_timeline": {
+      const { block, index, virtual } = resolved;
+      return { kind: "virtual_timeline", address, block, index, virtual };
+    }
     case "title":
     case "card":
     case "band":
+    case "virtual_card":
+    case "virtual_band":
     case "part":
       return namesNothing(view, address);
     default:

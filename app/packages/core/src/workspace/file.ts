@@ -166,8 +166,25 @@ function readEntries(problems: Problem[]): Reader {
   });
 }
 
+/**
+ * A session: `{target, entries}`, and `kind: "flow"` for a flow editor's,
+ * whose target, a root timeline, would open the timeline editor; the kind
+ * is written only there.
+ */
 function readSessions(problems: Problem[]): Reader {
-  const session: Reader = (value, path) =>
+  const session: Reader = (value, path) => {
+    if (!isJsonObject(value) || !Object.hasOwn(value, "kind")) return exact(value, path);
+    const { kind, ...rest } = value;
+    if (kind !== "flow") {
+      problems.push(
+        problem(ErrorCode.invalidValue, "a session states only the kind flow", [...path, "kind"]),
+      );
+      return undefined;
+    }
+    const read = exact(rest, path);
+    return read === undefined ? undefined : { target: read.target, kind, entries: read.entries };
+  };
+  const exact = (value: unknown, path: readonly PathSegment[]) =>
     readExact(
       value,
       path,

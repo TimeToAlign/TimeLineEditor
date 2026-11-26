@@ -7,7 +7,10 @@
  * card of the root of a member that is a child timeline, which the block
  * holds behind that member's frame and which has no place and no bands; and
  * the five bands of every timeline drawn in a card, once in each card that
- * draws it. One table
+ * draws it. A virtual timeline is drawn as a root too: its card in the
+ * frame of each group that has it as a member, and, in no group, one card
+ * held by the block, drawn where the block's `places` holds its ID; it has
+ * only its markers and regions bands. One table
  * (`CONTAINERS`) states what each kind is styled as and which place members
  * it may state; one listing (`containersOf`) names every container of a
  * manifest with its holder, so a rule about containers reads the table and
@@ -15,11 +18,13 @@
  */
 
 import type { ElementType } from "@timetoalign/timetoshare";
+import { compareCodePoints } from "../json.ts";
 import type { ElementAddress, Facet } from "./address.ts";
 import { BUNDLE_ADDRESS, bandAddress, cardAddress, FACETS, idAddress } from "./address.ts";
 import { orderedChildren } from "./elements.ts";
 import type { AncestorCard } from "./files.ts";
 import { memberDrawings } from "./files.ts";
+import { displayOrder } from "./order.ts";
 import type { Manifest, TimelineManifest } from "./types.ts";
 
 /** The kinds of container in a drawing, the boxes, from the block to a band. */
@@ -240,6 +245,15 @@ export interface AncestorCardRef {
   readonly card: AncestorCard;
 }
 
+/**
+ * The bands of a virtual timeline's card: it has no children, conversion
+ * maps or flow control, so only its markers and its regions, which hold its
+ * chunks (`docs/drawing.md` section 8.10).
+ */
+export const VIRTUAL_FACETS: readonly Facet[] = FACETS.filter(
+  (facet) => facet === "markers" || facet === "regions",
+);
+
 /** Every container of a manifest, indexed by its place key and its timeline. */
 export interface Containers {
   readonly block: ContainerRef;
@@ -283,7 +297,12 @@ const BLOCK: ContainerRef = {
  * timeline's five bands follow in `FACETS` order, the timelines in
  * pre-order, children by offset then ID. A timeline drawn in no card (a root that holds
  * a member, and the descendants of such a root that hold none) has no
- * bands here: nothing draws them.
+ * bands here: nothing draws them. A virtual timeline a group has as a member
+ * has its card in the frame at its place in the display order; every
+ * virtual timeline in no group has a block-held card after the ungrouped
+ * roots', by ID, keyed by its ID: the block draws it where its `places`
+ * states that key, and a `set` of its place states it. A virtual card holds
+ * its markers and regions bands (`VIRTUAL_FACETS`).
  */
 export function containersOf(manifest: Manifest): Containers {
   const known = listed.get(manifest);
@@ -307,40 +326,50 @@ export function containersOf(manifest: Manifest): Containers {
     all.push(ref);
     if (ref.key !== null && holdingOf(ref) !== "ancestor") byKey.set(placeKeyText(ref.key), ref);
   };
-  const bandsOf = (card: ContainerRef, timeline: TimelineManifest) => {
-    let own = bands.get(timeline.id);
+  const facetsOf = (card: ContainerRef, id: string, facets: readonly Facet[]) => {
+    let own = bands.get(id);
     if (own === undefined) {
       own = new Map();
-      bands.set(timeline.id, own);
+      bands.set(id, own);
     }
-    for (const facet of FACETS) {
-      const address = bandAddress(timeline.id, facet);
+    for (const facet of facets) {
+      const address = bandAddress(id, facet);
       const ref: ContainerRef = {
         kind: "band",
         key: null,
         address,
         holder: card,
-        timeline: timeline.id,
+        timeline: id,
         facet,
       };
       add(ref);
       listIn(own, facet, ref);
     }
+  };
+  const bandsOf = (card: ContainerRef, timeline: TimelineManifest) => {
+    facetsOf(card, timeline.id, FACETS);
     for (const child of orderedChildren(timeline)) if (!carded.has(child.id)) bandsOf(card, child);
   };
-  const card = (timeline: TimelineManifest, holder: ContainerRef, key: PlaceKey) => {
+  const cardOf = (id: string, holder: ContainerRef, key: PlaceKey): ContainerRef => {
     const ref: ContainerRef = {
       kind: "card",
       key,
-      address: cardAddress(timeline.id),
+      address: cardAddress(id),
       holder,
-      timeline: timeline.id,
+      timeline: id,
       facet: null,
     };
     add(ref);
-    listIn(cards, timeline.id, ref);
-    bandsOf(ref, timeline);
+    listIn(cards, id, ref);
+    return ref;
   };
+  const card = (timeline: TimelineManifest, holder: ContainerRef, key: PlaceKey) => {
+    bandsOf(cardOf(timeline.id, holder, key), timeline);
+  };
+  const virtualCard = (id: string, holder: ContainerRef, key: PlaceKey) => {
+    facetsOf(cardOf(id, holder, key), id, VIRTUAL_FACETS);
+  };
+  const virtualIds = new Set((manifest.virtual_timelines ?? []).map(({ id }) => id));
   const ancestorCards = drawn.ancestorCards.map((card): AncestorCardRef => {
     const { group, root } = card;
     const ref: ContainerRef = {
@@ -366,12 +395,20 @@ export function containersOf(manifest: Manifest): Containers {
     };
     add(frame);
     frames.set(group.id, frame);
-    for (const member of members) {
-      card(member.timeline, frame, { item: group.id, member: member.timeline.id });
+    const timelines = new Map(members.map((member) => [member.timeline.id, member.timeline]));
+    for (const id of displayOrder(manifest, group.id)) {
+      const timeline = timelines.get(id);
+      const key = { item: group.id, member: id };
+      if (timeline !== undefined) card(timeline, frame, key);
+      else if (virtualIds.has(id)) virtualCard(id, frame, key);
     }
   }
   for (const member of drawn.ungrouped) {
     card(member.timeline, BLOCK, { item: member.timeline.id });
+  }
+  const grouped = new Set(manifest.groups.flatMap((group) => group.members));
+  for (const id of [...virtualIds].filter((item) => !grouped.has(item)).sort(compareCodePoints)) {
+    virtualCard(id, BLOCK, { item: id });
   }
   const containers: Containers = {
     block: BLOCK,

@@ -190,7 +190,7 @@ describe("band order problems", () => {
 
   it("refuses an ID no timeline carries", () => {
     expect(bandOrderProblem(manifest, "nothing", D)).toBe(
-      "'nothing' names no group or timeline of this manifest",
+      "'nothing' names no group, timeline or virtual timeline of this manifest",
     );
   });
 
