@@ -55,7 +55,12 @@ import type { CoordinateValue } from "@timetoalign/tilie-core/numbers";
 import { axisValueOf, toRational } from "@timetoalign/tilie-core/numbers";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { Belief } from "@timetoalign/timetoshare";
-import { ANCHOR_DISPLAY, defaultCatalogue } from "@timetoalign/timetoshare";
+import {
+  ANCHOR_DISPLAY,
+  CHUNK_SENTINEL,
+  defaultCatalogue,
+  NOMATCH_SENTINEL,
+} from "@timetoalign/timetoshare";
 import { iriNames } from "../iris.ts";
 import type { Format, Text } from "./formats.svelte.ts";
 import { writeText } from "./formats.svelte.ts";
@@ -584,8 +589,8 @@ export type Sentinel = "CHUNK" | "NOMATCH";
  * anchor states it), `NOMATCH_SENTINEL` no counterpart.
  */
 const SENTINELS: ReadonlyMap<string, Sentinel> = new Map([
-  ["CHUNK_SENTINEL", "CHUNK"],
-  ["NOMATCH_SENTINEL", "NOMATCH"],
+  [CHUNK_SENTINEL, "CHUNK"],
+  [NOMATCH_SENTINEL, "NOMATCH"],
 ]);
 
 /** What the tab says a sentinel is, in plain words. */
