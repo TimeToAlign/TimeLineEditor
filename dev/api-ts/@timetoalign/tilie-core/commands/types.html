@@ -535,13 +535,45 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="carriedids">
 <h3>CarriedIds<a class="headerlink" href="#carriedids" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/types.ts#L18">commands/types.ts:18</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/core/src/commands/types.ts#L52">commands/types.ts:52</a></p>
 <p>The IDs of the elements a command creates, in the order it creates them:
 every command may carry them. The reducer mints nothing; it takes each ID
 from this list, and refuses a command whose list is too short or holds an
 ID it does not take. The store fills the list of a command it dispatches,
 after the IDs the command carries, and journals the command with it, so
 replaying the journal creates the same IDs.</p>
+<p>Which elements take an ID from the list: those whose ID the editor
+mints, never one the command’s value states. A timeline, a child, a map,
+a region, a measure map or a flow-control element is added with its own
+<code class="docutils literal notranslate"><span class="pre">id</span></code> and takes none; a <code class="docutils literal notranslate"><span class="pre">group</span></code> takes one only where its value leaves <code class="docutils literal notranslate"><span class="pre">id</span></code>
+out; a named timestamp, an elision, a named MatchStamp, an alignment
+anchor, a match timestamp, a default timestamp and a segment a segment
+line is given always take one. In the order they are created:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">add</span></code> of a <code class="docutils literal notranslate"><span class="pre">block</span></code>, or <code class="docutils literal notranslate"><span class="pre">set</span> <span class="pre">manifest</span></code> of one: the first segment of each
+segment line of known length that holds none, in the order of the
+lines, depth first.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">add</span></code> of a root <code class="docutils literal notranslate"><span class="pre">timeline</span></code>: those segments of its own lines, then its
+default timestamps, <code class="docutils literal notranslate"><span class="pre">origin</span></code> before <code class="docutils literal notranslate"><span class="pre">length</span></code> (none for an unknown
+length). <code class="docutils literal notranslate"><span class="pre">add</span></code> of a <code class="docutils literal notranslate"><span class="pre">child</span></code>: the segments of its lines.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">add</span></code> of a <code class="docutils literal notranslate"><span class="pre">timestamp</span></code> or of an <code class="docutils literal notranslate"><span class="pre">elision</span></code> into a timeline: its ID; of
+an <code class="docutils literal notranslate"><span class="pre">elision</span></code> into a block: one for each, in list order.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">add</span></code> of a <code class="docutils literal notranslate"><span class="pre">matchstamp</span></code>: the MatchStamp’s ID; then, anchor by anchor in
+screen order and the left end before the right, the ID of each match
+timestamp it needs that is not there yet (one already at the
+coordinate is reused and takes none); then each anchor’s ID in screen
+order. <code class="docutils literal notranslate"><span class="pre">set</span> <span class="pre">anchors</span></code> of a named MatchStamp: the new match timestamps
+as for <code class="docutils literal notranslate"><span class="pre">add</span></code>, then each new anchor’s ID (an anchor it keeps takes
+none).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">set</span> <span class="pre">groups</span></code> that makes a child timeline join a group: its <code class="docutils literal notranslate"><span class="pre">origin</span></code>
+and <code class="docutils literal notranslate"><span class="pre">length</span></code> groupstamps, in that order.</p></li>
+</ul>
+<p>After the command’s own elements, every command, a <code class="docutils literal notranslate"><span class="pre">remove</span></code> or a <code class="docutils literal notranslate"><span class="pre">set</span></code>
+included, takes one ID for each segment line of known length its change
+leaves without a segment (removing a line’s only segment, <code class="docutils literal notranslate"><span class="pre">set</span> <span class="pre">is_segment_line</span></code>): the line is given a first segment covering it, in
+the order of the lines, depth first, block by block in the order the
+command changed them. So a command that names no new element may still
+need IDs.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
 <section id="ids">
@@ -549,7 +581,7 @@ replaying the journal creates the same IDs.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>ids?</strong>: readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/types.ts#L19">commands/types.ts:19</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/core/src/commands/types.ts#L53">commands/types.ts:53</a></p>
 </section>
 </section>
 </section>
@@ -561,7 +593,7 @@ replaying the journal creates the same IDs.</p>
 <blockquote>
 <div><p><strong>AddCommand</strong> = <code class="docutils literal notranslate"><span class="pre">object</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">{</span> <span class="pre">readonly</span> <span class="pre">[kind</span> <span class="pre">in</span> <span class="pre">AddKind]?:</span> <span class="pre">unknown</span> <span class="pre">}</span></code> &amp; <a class="reference internal" href="#carriedids"><code class="docutils literal notranslate"><span class="pre">CarriedIds</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/types.ts#L57">commands/types.ts:57</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/core/src/commands/types.ts#L92">commands/types.ts:92</a></p>
 <p>Add one thing <code class="docutils literal notranslate"><span class="pre">into</span></code> a target: a <code class="docutils literal notranslate"><span class="pre">block</span></code> into <code class="docutils literal notranslate"><span class="pre">workspace</span></code>; a root
 <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, a <code class="docutils literal notranslate"><span class="pre">group</span></code> or a <code class="docutils literal notranslate"><span class="pre">measure_map</span></code> into a block; a <code class="docutils literal notranslate"><span class="pre">child</span></code>, a
 <code class="docutils literal notranslate"><span class="pre">map</span></code>, a <code class="docutils literal notranslate"><span class="pre">region</span></code> or a <code class="docutils literal notranslate"><span class="pre">flow_control</span></code> element into a timeline. The value
@@ -574,8 +606,9 @@ lies on the timeline it is added into; an
 <code class="docutils literal notranslate"><span class="pre">elision</span></code> into a block is a non-empty list of <code class="docutils literal notranslate"><span class="pre">{timeline,</span> <span class="pre">start,</span> <span class="pre">end,</span> <span class="pre">width?,</span> <span class="pre">display?}</span></code>, every one added by the one command, each given the
 next ID in list order. A <code class="docutils literal notranslate"><span class="pre">group</span></code> without an <code class="docutils literal notranslate"><span class="pre">id</span></code> is given one. A
 <code class="docutils literal notranslate"><span class="pre">matchstamp</span></code> into a block names a potential MatchStamp: <code class="docutils literal notranslate"><span class="pre">{name,</span> <span class="pre">anchors,</span> <span class="pre">match_claims}</span></code>, its anchors pairs of <code class="docutils literal notranslate"><span class="pre">{timeline,</span> <span class="pre">coordinate}</span></code> in screen
-order; its ID, its anchors’ and those of the match timestamps it needs
-are given to it. Every ID given is the next of the command’s <code class="docutils literal notranslate"><span class="pre">ids</span></code>.</p>
+order; it is given its ID, then the IDs of the match timestamps it
+needs, then its anchors’ IDs. Every ID given is the next of the
+command’s <code class="docutils literal notranslate"><span class="pre">ids</span></code>, in the order <code class="docutils literal notranslate"><span class="pre">CarriedIds</span></code> states for each kind.</p>
 <section id="type-declaration">
 <h4>Type Declaration<a class="headerlink" href="#type-declaration" title="Link to this heading">#</a></h4>
 <section id="into">
@@ -598,7 +631,7 @@ are given to it. Every ID given is the next of the command’s <code class="docu
 <blockquote>
 <div><p><strong>AddKind</strong> = <em>typeof</em> <a class="reference internal" href="#add-kinds"><code class="docutils literal notranslate"><span class="pre">ADD_KINDS</span></code></a>[<code class="docutils literal notranslate"><span class="pre">number</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/types.ts#L37">commands/types.ts:37</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/core/src/commands/types.ts#L71">commands/types.ts:71</a></p>
 <p>A kind of thing <code class="docutils literal notranslate"><span class="pre">add</span></code> can put into a target.</p>
 </section>
 <hr class="docutils" />
@@ -607,7 +640,7 @@ are given to it. Every ID given is the next of the command’s <code class="docu
 <blockquote>
 <div><p><strong>Change</strong> = <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/types.ts#L66">commands/types.ts:66</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/core/src/commands/types.ts#L101">commands/types.ts:101</a></p>
 <p>One target and the properties a <code class="docutils literal notranslate"><span class="pre">set</span></code> gives it. The properties are their
 own member, so no property of any element can collide with <code class="docutils literal notranslate"><span class="pre">target</span></code>.</p>
 <section id="id1">
@@ -617,14 +650,14 @@ own member, so no property of any element can collide with <code class="docutils
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>target</strong>: <a class="reference internal" href="../workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/types.ts#L67">commands/types.ts:67</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/core/src/commands/types.ts#L102">commands/types.ts:102</a></p>
 </section>
 <section id="values">
 <h5>values<a class="headerlink" href="#values" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>values</strong>: <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/types.ts#L68">commands/types.ts:68</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/core/src/commands/types.ts#L103">commands/types.ts:103</a></p>
 <section id="index-signature">
 <h6>Index Signature<a class="headerlink" href="#index-signature" title="Link to this heading">#</a></h6>
 <p>[<code class="docutils literal notranslate"><span class="pre">property</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>]: <code class="docutils literal notranslate"><span class="pre">unknown</span></code></p>
@@ -638,7 +671,7 @@ own member, so no property of any element can collide with <code class="docutils
 <blockquote>
 <div><p><strong>Command</strong> = <a class="reference internal" href="#addcommand"><code class="docutils literal notranslate"><span class="pre">AddCommand</span></code></a> | <a class="reference internal" href="#setcommand"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></a> | <a class="reference internal" href="#removecommand"><code class="docutils literal notranslate"><span class="pre">RemoveCommand</span></code></a> | <a class="reference internal" href="#stylecommand"><code class="docutils literal notranslate"><span class="pre">StyleCommand</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/types.ts#L97">commands/types.ts:97</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/core/src/commands/types.ts#L132">commands/types.ts:132</a></p>
 <p>A command over a workspace: <code class="docutils literal notranslate"><span class="pre">add</span></code>, <code class="docutils literal notranslate"><span class="pre">set</span></code>, <code class="docutils literal notranslate"><span class="pre">remove</span></code> or <code class="docutils literal notranslate"><span class="pre">style</span></code>.</p>
 </section>
 <hr class="docutils" />
@@ -647,7 +680,7 @@ own member, so no property of any element can collide with <code class="docutils
 <blockquote>
 <div><p><strong>CommandType</strong> = <a class="reference internal" href="#command"><code class="docutils literal notranslate"><span class="pre">Command</span></code></a>[<code class="docutils literal notranslate"><span class="pre">&quot;type&quot;</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/types.ts#L99">commands/types.ts:99</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/core/src/commands/types.ts#L134">commands/types.ts:134</a></p>
 <p>The <code class="docutils literal notranslate"><span class="pre">type</span></code> naming a command.</p>
 </section>
 <hr class="docutils" />
@@ -656,7 +689,7 @@ own member, so no property of any element can collide with <code class="docutils
 <blockquote>
 <div><p><strong>RemoveCommand</strong> = <code class="docutils literal notranslate"><span class="pre">object</span></code> &amp; <a class="reference internal" href="#carriedids"><code class="docutils literal notranslate"><span class="pre">CarriedIds</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/types.ts#L78">commands/types.ts:78</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/core/src/commands/types.ts#L113">commands/types.ts:113</a></p>
 <p>Remove blocks and elements, mixed.</p>
 <section id="id2">
 <h4>Type Declaration<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
@@ -680,7 +713,7 @@ own member, so no property of any element can collide with <code class="docutils
 <blockquote>
 <div><p><strong>SetCommand</strong> = <code class="docutils literal notranslate"><span class="pre">object</span></code> &amp; <a class="reference internal" href="#carriedids"><code class="docutils literal notranslate"><span class="pre">CarriedIds</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/types.ts#L72">commands/types.ts:72</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/core/src/commands/types.ts#L107">commands/types.ts:107</a></p>
 <p>Set properties of one or more targets: one gesture, one command.</p>
 <section id="id4">
 <h4>Type Declaration<a class="headerlink" href="#id4" title="Link to this heading">#</a></h4>
@@ -704,7 +737,7 @@ own member, so no property of any element can collide with <code class="docutils
 <blockquote>
 <div><p><strong>StyleCommand</strong> = <code class="docutils literal notranslate"><span class="pre">object</span></code> &amp; <a class="reference internal" href="#carriedids"><code class="docutils literal notranslate"><span class="pre">CarriedIds</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/types.ts#L88">commands/types.ts:88</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/core/src/commands/types.ts#L123">commands/types.ts:123</a></p>
 <p>Embed one rule in block manifests: those of <code class="docutils literal notranslate"><span class="pre">blocks</span></code>, or of every
 block holding an element <code class="docutils literal notranslate"><span class="pre">select</span></code> matches. A <code class="docutils literal notranslate"><span class="pre">null</span></code> property removes it;
 with <code class="docutils literal notranslate"><span class="pre">name</span></code>, the declaration becomes a named style of each manifest.</p>
@@ -750,7 +783,7 @@ with <code class="docutils literal notranslate"><span class="pre">name</span></c
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>ADD_KINDS</strong>: readonly [<code class="docutils literal notranslate"><span class="pre">&quot;block&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;timeline&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;group&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;measure_map&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;child&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;map&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;region&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;flow_control&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;timestamp&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;elision&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;matchstamp&quot;</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/types.ts#L23">commands/types.ts:23</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/core/src/commands/types.ts#L57">commands/types.ts:57</a></p>
 <p>What <code class="docutils literal notranslate"><span class="pre">add</span></code> can put into a target, by the member naming it.</p>
 </section>
 <hr class="docutils" />
@@ -759,7 +792,7 @@ with <code class="docutils literal notranslate"><span class="pre">name</span></c
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>COMMAND_TYPES</strong>: readonly [<code class="docutils literal notranslate"><span class="pre">&quot;add&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;set&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;remove&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;style&quot;</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/types.ts#L102">commands/types.ts:102</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/core/src/commands/types.ts#L137">commands/types.ts:137</a></p>
 <p>The type of each command.</p>
 </section>
 </section>

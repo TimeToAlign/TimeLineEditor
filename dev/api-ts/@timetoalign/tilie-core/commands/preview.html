@@ -536,17 +536,18 @@
 <section id="preview">
 <h3>preview()<a class="headerlink" href="#preview" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>preview</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code>): <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
+<div><p><strong>preview</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code>, <code class="docutils literal notranslate"><span class="pre">minter?</span></code>): <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/preview.ts#L20">commands/preview.ts:20</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/core/src/commands/preview.ts#L22">commands/preview.ts:22</a></p>
 <p>The reducer without the schema check and the invariants: what a gesture
 shows before release. The command is applied as <code class="docutils literal notranslate"><span class="pre">applyParsed</span></code> applies it,
 every manifest it changes completed and put in canonical order and its
 block’s places fitted, so a preview never differs from what the command
 stores; a value only the schema or an invariant would refuse is shown, and
 a <code class="docutils literal notranslate"><span class="pre">set</span></code> that changes nothing gives the view back. The IDs of what it
-creates past the command’s <code class="docutils literal notranslate"><span class="pre">ids</span></code> are minted by a fresh minter, so they are
-not those the store mints when the command is dispatched.</p>
+creates past the command’s <code class="docutils literal notranslate"><span class="pre">ids</span></code> are minted by <code class="docutils literal notranslate"><span class="pre">minter</span></code>, a fresh one by
+default; given the store’s copy (<code class="docutils literal notranslate"><span class="pre">Store.minter</span></code>), they are the IDs the
+store’s dispatch of the command stores.</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
 <section id="view">
@@ -556,6 +557,10 @@ not those the store mints when the command is dispatched.</p>
 <section id="command">
 <h5>command<a class="headerlink" href="#command" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
+</section>
+<section id="minter">
+<h5>minter?<a class="headerlink" href="#minter" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../workspace/ids.html#idminter"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">IdMinter</span></code></span></a> = <code class="docutils literal notranslate"><span class="pre">...</span></code></p>
 </section>
 </section>
 <section id="returns">
@@ -618,6 +623,7 @@ not those the store mints when the command is dispatched.</p>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#view">view</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#command">command</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#minter">minter?</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>

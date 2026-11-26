@@ -541,7 +541,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>MUSICBRAINZ_ENDPOINT</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;reconcile/musicbrainz&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;reconcile/musicbrainz&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/editor/src/lookup/musicbrainz.ts#L25">editor/src/lookup/musicbrainz.ts:25</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/editor/src/lookup/musicbrainz.ts#L25">editor/src/lookup/musicbrainz.ts:25</a></p>
 <p>The server’s endpoint, relative to its API URL.</p>
 </section>
 <hr class="docutils" />
@@ -550,7 +550,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>MUSICBRAINZ_SERVICE</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;https://musicbrainz.org/ws/2/&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;https://musicbrainz.org/ws/2/&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/editor/src/lookup/musicbrainz.ts#L22">editor/src/lookup/musicbrainz.ts:22</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/editor/src/lookup/musicbrainz.ts#L22">editor/src/lookup/musicbrainz.ts:22</a></p>
 <p>MusicBrainz’s web service, the <code class="docutils literal notranslate"><span class="pre">service</span></code> of every MusicBrainz candidate.</p>
 </section>
 <hr class="docutils" />
@@ -559,7 +559,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>RECONCILE_LIMIT</strong>: <code class="docutils literal notranslate"><span class="pre">3</span></code> = <code class="docutils literal notranslate"><span class="pre">3</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/editor/src/lookup/musicbrainz.ts#L28">editor/src/lookup/musicbrainz.ts:28</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/editor/src/lookup/musicbrainz.ts#L28">editor/src/lookup/musicbrainz.ts:28</a></p>
 <p>The candidates a reconciliation query asks for.</p>
 </section>
 </section>
@@ -570,7 +570,7 @@
 <blockquote>
 <div><p><strong>musicbrainzClient</strong>(<code class="docutils literal notranslate"><span class="pre">server</span></code>, <code class="docutils literal notranslate"><span class="pre">fetcher</span></code>): <a class="reference internal" href="reconciliation.html#reconciliationclient"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ReconciliationClient</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/editor/src/lookup/musicbrainz.ts#L31">editor/src/lookup/musicbrainz.ts:31</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/editor/src/lookup/musicbrainz.ts#L31">editor/src/lookup/musicbrainz.ts:31</a></p>
 <p>The client of the server’s MusicBrainz endpoint, with the run’s token.</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
@@ -594,7 +594,7 @@
 <blockquote>
 <div><p><strong>reconcileMusicBrainz</strong>(<code class="docutils literal notranslate"><span class="pre">client</span></code>, <code class="docutils literal notranslate"><span class="pre">kind</span></code>, <code class="docutils literal notranslate"><span class="pre">texts</span></code>, <code class="docutils literal notranslate"><span class="pre">signal?</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;readonly (<a class="reference internal" href="kinds.html#candidate"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Candidate</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code>)[]&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/editor/src/lookup/musicbrainz.ts#L83">editor/src/lookup/musicbrainz.ts:83</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/editor/src/lookup/musicbrainz.ts#L83">editor/src/lookup/musicbrainz.ts:83</a></p>
 <p>The best candidate for each text, with the service’s <code class="docutils literal notranslate"><span class="pre">match</span></code>: one
 request for all texts. A kind without a type, or blank text, gives
 <code class="docutils literal notranslate"><span class="pre">null</span></code> without asking.</p>
@@ -628,7 +628,7 @@ request for all texts. A kind without a type, or blank text, gives
 <blockquote>
 <div><p><strong>resolveMusicBrainz</strong>(<code class="docutils literal notranslate"><span class="pre">context</span></code>, <code class="docutils literal notranslate"><span class="pre">client</span></code>, <code class="docutils literal notranslate"><span class="pre">iri</span></code>, <code class="docutils literal notranslate"><span class="pre">signal?</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<a class="reference internal" href="kinds.html#candidate"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Candidate</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/editor/src/lookup/musicbrainz.ts#L115">editor/src/lookup/musicbrainz.ts:115</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/editor/src/lookup/musicbrainz.ts#L115">editor/src/lookup/musicbrainz.ts:115</a></p>
 <p>The entity an IRI names, with its name and the cross-references its URL
 relationships give (the IRIs the catalogue recognises); <code class="docutils literal notranslate"><span class="pre">null</span></code> for an
 IRI outside the service’s identifier space or an entity it has no row
@@ -663,7 +663,7 @@ or name for.</p>
 <blockquote>
 <div><p><strong>searchMusicBrainz</strong>(<code class="docutils literal notranslate"><span class="pre">client</span></code>, <code class="docutils literal notranslate"><span class="pre">kind</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code>, <code class="docutils literal notranslate"><span class="pre">signal?</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;readonly <a class="reference internal" href="kinds.html#candidate"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Candidate</span></code></span></a>[]&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/editor/src/lookup/musicbrainz.ts#L65">editor/src/lookup/musicbrainz.ts:65</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/editor/src/lookup/musicbrainz.ts#L65">editor/src/lookup/musicbrainz.ts:65</a></p>
 <p>The entities of <code class="docutils literal notranslate"><span class="pre">kind</span></code> the service suggests for <code class="docutils literal notranslate"><span class="pre">text</span></code>. A kind
 MusicBrainz has no type for, or blank text, answers none without a
 request.</p>

@@ -527,7 +527,7 @@
 <blockquote>
 <div><p><strong>BandDirection</strong> = <code class="docutils literal notranslate"><span class="pre">&quot;up&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;down&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/bands.ts#L30">arranger/src/bands.ts:30</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/arranger/src/bands.ts#L30">arranger/src/bands.ts:30</a></p>
 <p>The direction of a step (<code class="docutils literal notranslate"><span class="pre">bandStep</span></code>): the arrow pressed with Ctrl or Cmd.</p>
 </section>
 </section>
@@ -538,7 +538,7 @@
 <blockquote>
 <div><p><strong>bandDrop</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">band</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code>, <code class="docutils literal notranslate"><span class="pre">order</span></code>): readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[] | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/bands.ts#L89">arranger/src/bands.ts:89</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/arranger/src/bands.ts#L89">arranger/src/bands.ts:89</a></p>
 <p>Where a drag of <code class="docutils literal notranslate"><span class="pre">band</span></code> released at the drawing ordinate <code class="docutils literal notranslate"><span class="pre">y</span></code> lands: the new
 own band order of its timeline, or <code class="docutils literal notranslate"><span class="pre">null</span></code> when nothing changes. <code class="docutils literal notranslate"><span class="pre">order</span></code> is
 the timeline’s effective band order (core’s <code class="docutils literal notranslate"><span class="pre">bandOrderOf</span></code>). Of the visible
@@ -578,7 +578,7 @@ rule, <code class="docutils literal notranslate"><span class="pre">line</span></
 <blockquote>
 <div><p><strong>bandMoveCommand</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">order</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/bands.ts#L131">arranger/src/bands.ts:131</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/arranger/src/bands.ts#L131">arranger/src/bands.ts:131</a></p>
 <p>The one <code class="docutils literal notranslate"><span class="pre">set</span></code> that gives <code class="docutils literal notranslate"><span class="pre">timeline</span></code> of block <code class="docutils literal notranslate"><span class="pre">block</span></code> the band order
 <code class="docutils literal notranslate"><span class="pre">order</span></code>: one change <code class="docutils literal notranslate"><span class="pre">{target:</span> <span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">timeline},</span> <span class="pre">values:</span> <span class="pre">{order:</span> <span class="pre">X}}</span></code>,
 <code class="docutils literal notranslate"><span class="pre">X</span></code> being <code class="docutils literal notranslate"><span class="pre">order</span></code>, or <code class="docutils literal notranslate"><span class="pre">null</span></code> when <code class="docutils literal notranslate"><span class="pre">order</span></code> equals the timeline’s inherited
@@ -615,7 +615,7 @@ undo step.</p>
 <blockquote>
 <div><p><strong>bandStep</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">band</span></code>, <code class="docutils literal notranslate"><span class="pre">direction</span></code>, <code class="docutils literal notranslate"><span class="pre">order</span></code>): readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[] | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/bands.ts#L107">arranger/src/bands.ts:107</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/arranger/src/bands.ts#L107">arranger/src/bands.ts:107</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">band</span></code> moved past the next visible entry in <code class="docutils literal notranslate"><span class="pre">direction</span></code>, the timeline’s
 line included, so every step changes what is seen: the new own band order
 of its timeline, or <code class="docutils literal notranslate"><span class="pre">null</span></code> when no visible entry lies that way (the top or
@@ -650,7 +650,7 @@ the bottom). <code class="docutils literal notranslate"><span class="pre">order<
 <blockquote>
 <div><p><strong>bandStepCommand</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">address</span></code>, <code class="docutils literal notranslate"><span class="pre">direction</span></code>, <code class="docutils literal notranslate"><span class="pre">editing</span></code>, <code class="docutils literal notranslate"><span class="pre">metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">pane?</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/bands.ts#L158">arranger/src/bands.ts:158</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/arranger/src/bands.ts#L158">arranger/src/bands.ts:158</a></p>
 <p>The <code class="docutils literal notranslate"><span class="pre">set</span></code> that steps the selected band <code class="docutils literal notranslate"><span class="pre">address</span></code> past the next band or
 line drawn in <code class="docutils literal notranslate"><span class="pre">direction</span></code> (<code class="docutils literal notranslate"><span class="pre">bandStep</span></code>, <code class="docutils literal notranslate"><span class="pre">bandMoveCommand</span></code>): <code class="docutils literal notranslate"><span class="pre">null</span></code> unless
 <code class="docutils literal notranslate"><span class="pre">address</span></code> names a band the view offers under <code class="docutils literal notranslate"><span class="pre">editing</span></code> (<code class="docutils literal notranslate"><span class="pre">offersBand</span></code>)
