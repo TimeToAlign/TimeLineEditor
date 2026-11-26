@@ -22,13 +22,18 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-/** The button for `selected` on `store` under `editing`, mounted. */
-function show(store: Store, selected: readonly Address[], editing: Editing | null = null): void {
+/** The button for `selected` on `store` under `editing`, on a canvas opening editors or not, mounted. */
+function show(
+  store: Store,
+  selected: readonly Address[],
+  editing: Editing | null = null,
+  opens = true,
+): void {
   const subjects = resolveSelection(store.view, selectionOf(selected), editing, fontMetrics);
   app = mount(EditButton, {
     target: document.body,
     context: posting(),
-    props: { view: store.view, store, subjects, editing },
+    props: { view: store.view, store, subjects, editing, opens },
   });
   flushSync();
 }
@@ -70,5 +75,12 @@ describe("the Edit button", () => {
     if (error !== null) throw new Error(error.message);
     show(store, [SCORE_CARD], { target: SCORE, kind: "timeline" });
     expect(button()).toBeNull();
+  });
+
+  it("shows nothing where the canvas opens no editor", () => {
+    const store = storeOf("bundles/bundle_mixed");
+    show(store, [SCORE_CARD], null, false);
+    expect(button()).toBeNull();
+    expect(path(store)).toEqual([]);
   });
 });

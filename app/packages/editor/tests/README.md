@@ -95,7 +95,10 @@ one button "Edit" titled `Open the editor of Score`, and a press opens
 `{block: A, id: "group_1"}` selected it opens the group editor of
 `group_1`; with two addresses selected, and with nothing selected, it
 shows no button. Inside `score`'s timeline editor, `score`'s card selected
-(the edited element) shows no button. The Properties tab shows it below
+(the edited element) shows no button. Where the canvas opens no editor
+(its rules' `open` false, a read-only canvas), `opens` is false and
+`score`'s card selected shows no button either, so the button never
+offers what a double-click there would not do. The Properties tab shows it below
 the name field, for every selection (a band selected alone shows it, as
 a double-click on the band opens its timeline's editor).
 
@@ -4400,7 +4403,12 @@ name, and `timestamp_3` "Take 2, bar 2"; the ordinary timestamp
    session holding a group session of two), ", k undone" while partly
    undone, and without a kind word once its target is gone ("Removed
    'group_1' in bundle 'Mixed'", then "Edited 'group_1' in bundle 'Mixed'
-   (1 change)").
+   (1 change)"). A flow-control editor's session is worded as the flow
+   control of its root: on the three-block store, the flow-control editor
+   of `score` in block `A` opened, `jump_1` named "Volta" in it and Done,
+   the newest row reads "Edited flow control of Score (1 change)", and the
+   session, unfolded, holds the one row "Set name of jump 'Volta' in
+   bundle 'Mixed'" (the element by its new name).
 4. **Order.** Rows run newest first at every depth, undone ones at the top;
    in an editor its own rows, then the earlier session of the same target
    read only; with two editors open, the inner level only; a session's rows

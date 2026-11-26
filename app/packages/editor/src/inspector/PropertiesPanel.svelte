@@ -81,6 +81,7 @@ let {
   placement,
   drafts,
   onselect = () => {},
+  opens = true,
 }: {
   view: View;
   store: Store;
@@ -95,6 +96,8 @@ let {
   drafts: PropertyDrafts;
   /** Select `addresses` on the canvas: the marks of a jump's destination. */
   onselect?: (addresses: readonly Address[]) => void;
+  /** Whether the canvas opens editors (its rules' `open`): the Edit button is shown only then. */
+  opens?: boolean;
 } = $props();
 
 const uid = $props.id();
@@ -316,7 +319,7 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     <p class="problem" id="{uid}-problem-name">{problem}</p>
   {/if}
 {/if}
-<EditButton {view} {store} {subjects} {editing} />
+<EditButton {view} {store} {subjects} {editing} {opens} />
 
 {#snippet locked()}
   {#if lock !== null}
