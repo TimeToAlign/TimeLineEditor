@@ -1,6 +1,6 @@
 /**
- * The canvas's own pointer: what a click, a marquee, a double-click and a
- * double tap on the canvas do. Each event's target is read once into a
+ * The canvas's own pointer: what a click, a marquee, a double-click, a
+ * double tap and a long press on the canvas do. Each event's target is read once into a
  * `Pressed` (its node, its descriptor, the drawing point under the
  * pointer), and the selection rules (`selectionRules.ts`) decide; the
  * gestures inside a drawing and on the resize handles are the engine's
@@ -40,7 +40,12 @@ export interface PointerHost {
    * element again (`RECENTRE`), or open the editor of an address.
    */
   act(action: DoubleClick): void;
+  /** A touch held on `pressed` (`LONG_PRESS_MS`) at the client point `client`: list the editors under it. */
+  longPress(pressed: Pressed, client: Point): void;
 }
+
+/** A touch held this many milliseconds within the click distance of its press is a long press. */
+export const LONG_PRESS_MS = 500;
 
 /**
  * Where, on what and by which kind of pointer the last primary press on the
@@ -63,6 +68,10 @@ export class CanvasPointer {
   #press: Press | null = null;
   /** The last tap of a touch that could act as a double-click. */
   #tap: Tap | null = null;
+  /** The timer of a touch press that may become a long press; `null` while none is held. */
+  #holding: ReturnType<typeof setTimeout> | null = null;
+  /** Whether the touch now released was a long press, whose release is no tap. */
+  #held = false;
 
   constructor(host: PointerHost) {
     this.#host = host;
@@ -190,6 +199,12 @@ export class CanvasPointer {
   /** Two taps act as a double-click (`doubleTap`); a tap is a touch released as a click. */
   readonly pointerupcapture = (event: PointerEvent): void => {
     if (event.pointerType !== "touch" || !event.isPrimary) return;
+    this.#release();
+    if (this.#held) {
+      this.#held = false;
+      this.#tap = null;
+      return;
+    }
     const host = this.#host;
     const client = { x: event.clientX, y: event.clientY };
     const press = this.#press;
@@ -206,15 +221,46 @@ export class CanvasPointer {
     }
   };
 
-  /** A primary press records itself. */
+  /**
+   * A primary press records itself; a primary touch also starts its long
+   * press, which lists the editors under it (`longPress`) once it has been
+   * held `LONG_PRESS_MS` within the click distance.
+   */
   readonly pointerdowncapture = (event: PointerEvent): void => {
+    this.#release();
     if (!event.isPrimary || event.button !== 0) return;
     const client = { x: event.clientX, y: event.clientY };
+    const target = event.target;
     this.#press = {
       ...client,
       at: this.#host.toCanvas(client) ?? null,
-      target: event.target,
+      target,
       pointerType: event.pointerType,
     };
+    this.#held = false;
+    if (event.pointerType !== "touch") return;
+    this.#holding = setTimeout(() => {
+      this.#holding = null;
+      this.#held = true;
+      this.#host.longPress(this.pressedAt(target, client), client);
+    }, LONG_PRESS_MS);
   };
+
+  /** A touch moved beyond the click distance is no long press. */
+  readonly pointermove = (event: PointerEvent): void => {
+    const press = this.#press;
+    if (this.#holding !== null && press !== null && !isClick(press, event)) this.#release();
+  };
+
+  /** A cancelled touch is no long press. */
+  readonly pointercancel = (): void => {
+    this.#release();
+  };
+
+  /** Stop waiting for a long press. */
+  #release(): void {
+    if (this.#holding === null) return;
+    clearTimeout(this.#holding);
+    this.#holding = null;
+  }
 }

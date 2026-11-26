@@ -1040,8 +1040,9 @@ coordinates are layout's.
   and its named timestamps `timestamp_1` and `timestamp_2` (`origin`,
   `length`) with their coordinate labels.
 - **What the pointer highlights** is the box on top by its place key
-  (`placeKeyText`), the boundary pressed and the band pressed by their
-  addresses' keys (`addressKey`): on `group_child_member` without its
+  (`placeKeyText`), the boundary pressed by its address's key and the band
+  under the pointer (`bandUnder`) by its address's key and its holding
+  card's place key: on `group_child_member` without its
   ancestor card the line `recording` highlights `{item: "group_1", member: "recording"}`, the
   frame's corner `{item: "group_1"}`, the padding nothing.
 - **Enter's hit** of a selected address comes from the drawing alone: the
@@ -1058,7 +1059,23 @@ coordinates are layout's.
   bands, no point, an absent band, another timeline's band, the bundle or
   group editor and the arranger give the card. A band hit selects and
   highlights the band's address `{id: T, facet: F}`, with its card as the
-  box under the point.
+  box under the point, held by the card `{item: "score"}`.
+- **The band under the pointer** (`bandUnder`), which is highlighted and
+  which a double-click opens, in every view, where no drawn element is hit
+  (an element is hit before any band, so a line or a symbol highlights no
+  band): in a timeline editor the band hit, the one a click selects;
+  elsewhere, of the bands held by the card under the point, the last in
+  drawing order holding it, so a child's band before its parent's children
+  band. On S (`bundle_mixed`'s
+  `styled__score`, section "Bands") on the arranger, in the bundle and in
+  a group editor, at (150, 55) the hit is the card `{item: "score"}` and
+  the band under the pointer its children band; at (8, 8), the card's top
+  left corner, which no band holds, none; with `score`'s timeline editor
+  open the band hit, the children band again. On M on the arranger, at
+  (300, 25), where `melody`'s card draws its child `phrase`, it is
+  `phrase`'s conversion maps band, which lies inside `melody`'s children
+  band; at (150, 25) `melody`'s children band. The hover then holds the
+  band's address key and `placeKeyText` of its card's key.
 
 **Which boxes hold part of the selection.** A displayed frame or card
 holds the selection when an element of its range carries a selected
@@ -1553,9 +1570,10 @@ Enter on it selects `{block: A}`.
 ## Editors: what opens and what each level permits (`editors.test.ts`)
 
 An editor is a mode of the canvas on one element. What proves the dispatch
-is that the target comes from the container hit, never from what it
-holds, and that inside an editor nothing outside the edited element, nor
-the element itself, opens. A frame stands for its group and a card for
+is that the target comes from what is hit by one rule in every view (what
+has an editor of its own opens it, what has none the editor of the card
+holding it), never from what it holds, and that inside an editor nothing
+outside the edited element, nor the element itself, opens. A frame stands for its group and a card for
 its timeline, read from the box's place key through core (a member's
 card `{id: "score", part: ["card"]}`, keyed `{item: "group_1", member:
 "score"}`, opens `{block: A, id: "score"}`), and a line, addressed by its
@@ -1580,8 +1598,10 @@ the block's own hit is `{block: A}`.
 | timeline `{block: A, id: "excerpt"}` | the line `dlt_1` | dlt_1 |
 | timeline `{block: A, id: "excerpt"}` | the card of `excerpt`; the line `recording` (its ancestor) | nothing |
 | timeline `{block: A, id: "dlt_1"}` | the line `dlt_1` | nothing |
-| any | a band `{id: "excerpt", facet: "children"}`; a block the view does not hold | nothing |
-| timeline `{block: A, id: R}`, R a root | R's flow control band `{id: R, facet: "flow_control"}`, or an element it draws (a flow-control element of R's tree) | that band, which opens the flow editor of R (section "The flow subeditor") |
+| none | a band `{id: "excerpt", facet: "children"}` | excerpt (a band opens its timeline's editor) |
+| timeline `{block: A, id: "excerpt"}` | the band `{id: "excerpt", facet: "children"}` | nothing (the edited element) |
+| any | a block the view does not hold | nothing |
+| none, bundle, timeline `{block: A, id: R}`, R a root | R's flow control band `{id: R, facet: "flow_control"}`, or an element it draws (a flow-control element of R's tree) | that band, which opens the flow-control editor of R (section "The flow subeditor") |
 | flow `{block: A, id: R}` | anything | nothing |
 
 Two editors are equal by target, compared as a whole address, and kind. **What each level permits** is
@@ -2188,8 +2208,9 @@ conversion_maps, line, markers, regions, flow_control]`. A band is
 present when it draws an element; layout records each present band of
 each line with its facet, its level, its line's ordinate, its element
 count and its rectangle; a band draws nothing. A band is offered, hit,
-highlighted, selected and moved only in its own timeline's editor when
-that editor is innermost. A move writes the timeline's own band order in
+selected and moved only in its own timeline's editor when that editor is
+innermost; it is highlighted under the pointer in every view (section
+"What a press hits", `bandUnder`). A move writes the timeline's own band order in
 one `set` of `order` on the timeline `{block: A, id: T}`, `null` when the
 new order equals what it inherits (a root the default order, a child its
 parent's, verbatim).
@@ -2409,10 +2430,15 @@ apply three of them, none `printed`. IDs minted by the store are never
 written here: a test reads a new FlowMap's, Region's or virtual
 timeline's ID through the result, as the one ID the manifest gained.
 
-**Opening.** The flow editor opens from a root's flow control band on
-the arranger and in the root's timeline editor. On the arranger no band
-is hit (section "What a press hits"): a press on `allegro`'s card hits the
-card, and the drawing point decides: a double-click, a double tap at the
+**Opening.** The flow editor (shown as the flow-control editor) opens
+from a root's flow control band and from every flow-control element of
+its tree, in every view where the root lies inside the edited element:
+on the arranger, in the bundle editor and in the root's timeline editor
+(a group editor holding the root admits it by the same containment as any
+target, section "Editors"). Outside
+the timeline editor no band is hit (section "What a press hits"): a press
+on `allegro`'s card hits the card, and the drawing point decides
+(`bandUnder`): a double-click, a double tap at the
 middle of the flow control band's recorded rectangle (layout's record of
 `{id: "allegro", facet: "flow_control"}`, read from the drawing) names
 that band (`editorTargetOf` with the drawing point), which opens the flow
@@ -2422,17 +2448,26 @@ its own top left corner, outside every band, opens `allegro`'s timeline
 editor, as does the card hit with no point (Enter on the selected card).
 In the timeline editor of `allegro`, a band is hit, and the band hit
 itself names the band; the store then holds two editors, the innermost
-`{target: {block: A, id: "allegro"}, kind: "flow"}`. In both, an element
+`{target: {block: A, id: "allegro"}, kind: "flow"}`; Enter on that band
+selected there (`openable`, the band read from the drawing's records)
+names it too, and nothing without the block's drawing. In both, an element
 that band draws (the volta jump `{id: "volta_jump"}`, hit before the
-band) names the band, with or without the card it lies in, so Enter on
-the selected volta jump opens the flow editor too. Every other band opens
-nothing: `allegro`'s regions band in its timeline editor, the flow control
-band hit in the bundle editor and in another timeline's editor; in the
-bundle editor a press on the card at the band's middle opens the
-timeline editor of `allegro`, as any press on the card there. Inside the
-flow editor nothing opens (the card, its line, the band). Every other
-address opens what it opened before (`editorOf` gives it back unchanged,
-no kind).
+band) names the band, with or without the card it lies in, on the
+arranger and in the bundle editor alike, so Enter on the selected volta
+jump opens the flow editor too. In the bundle editor the flow control
+band hit and a press on the card at the band's middle name the band as
+well. Every other band opens its timeline's editor, so `allegro`'s
+regions band in `allegro`'s own timeline editor opens nothing (the edited
+element itself); the flow control band hit in another block's timeline
+editor opens nothing. Inside the flow editor nothing opens (the card, its
+line, the band). Every other address opens what it opened before
+(`editorOf` gives it back unchanged, no kind). **A long press**
+(`editorsUnder`) on `allegro`'s card at the band's middle on the arranger
+lists, innermost first, `{block: A, id: "allegro", facet:
+"flow_control"}` worded `Flow control of timeline 'Allegro'` (core's
+`addressWords` of the root) and `{block: A, id: "allegro"}` worded
+`Timeline 'Allegro'`; at the card's top left corner the one target
+`{block: A, id: "allegro"}`; inside the flow editor nothing.
 
 **The card's choices** (`cardChoices`, what the card offers without a
 pointer): its Regions A, B and C are each named `A (atomic section)` and
@@ -5091,8 +5126,11 @@ screen position chosen for the case or a value derived above.
    pointer, or a boundary's line with every attribute but its address: on
    `segment_line`, the middle of `b2`'s boundary marks the card of `form`
    and `{id: "b2", part: ["start"]}`. A redraw with a restyled boundary keeps every drawn element
-   and both marks; moving onto the card removes one mark and changes no
-   drawn element, which a mutation observer records. With a button held
+   and both marks; moving onto the card at (52.294921875, 68.953125), in
+   `form`'s markers band, removes the boundary's mark, adds the band's
+   hover mark (`{id: "form", facet: "markers"}`, a band being highlighted
+   in every view) and changes no drawn element, which a mutation observer
+   records. With a button held
    the drawing's matrix is not read; it is read once on the next move. On
    `group_child_member`, its ancestor card hidden (the points are those
    without it), the frame under the pointer is marked, a point on
@@ -5146,7 +5184,13 @@ screen position chosen for the case or a value derived above.
    the drawing at the press, never a preview's. A click, a release in
    place, Escape, a locked canvas, Shift and a press on an element over
    the band (the wedge of `score`'s named timestamp `origin`) store nothing; outside its timeline's editor no band is
-   marked or moved.
+   selected-marked or moved. **The hover mark in every view**: on the
+   arranger, in the bundle editor and in `group_1`'s editor the pointer at
+   (200, 110) on `score`'s card, whose markers band record holds it, marks
+   that band with the hover mark alone (`{id: "score", facet: "markers"}`),
+   a selected band staying unmarked there; in `performance`'s timeline
+   editor `score`'s card lies outside the edited element and no band is
+   marked.
 7. **Fading, keys and slides.** Outside the edited element everything is
    `data-outside`, on the arranger and in the bundle editor nothing;
    another block fades through its node. A reorder keeps every element
@@ -5224,7 +5268,16 @@ Mounted on a store holding `bundle_mixed` at (40, 80) and `bare` at
    opens the box drawn under it. The edited element itself opens nothing
    and closes nothing, while a box inside it opens on top. Enter opens the single selected
    address, read from the drawing and never the document. Two taps within
-   300 ms and 10 px on one target act as one double-click.
+   300 ms and 10 px on one target act as one double-click. **A long press**
+   (a touch held `LONG_PRESS_MS`, 500 ms, within the click distance) on
+   `score`'s card, 2 px inside its top left corner where no band lies,
+   lists the editors under the finger in a menu, innermost first and each
+   once: `Timeline 'Score' in bundle 'Mixed'` (what a double-click there
+   opens, and the card) and `Group 'Performance' in bundle 'Mixed'` (the
+   frame); nothing opens until one is chosen, choosing the group opens
+   `group_1`'s editor and closes the menu, and its release is no tap. A
+   touch moved 20 px before the time is up lists nothing; Escape closes the
+   menu and opens nothing.
 2. **Closing.** A double-click outside the edited element closes the
    innermost editor, as Done does; a double tap there closes one level
    only. On the arranger it does nothing, and nothing is journalled.

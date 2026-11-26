@@ -3,9 +3,10 @@
  * drawing's containers (`docs/drawing.md` in TimeToShare, section 8) are
  * the block's own box, a group's frame, a timeline's card (an item of the
  * block for an ungrouped root, held by its group's frame for a member), a
- * root's ancestor card behind a frame (`isAncestorCard`) and,
- * in a timeline's editor, the bands of its timeline (section 6.4), which
- * the drawing records and never draws. Layout records every one of them,
+ * root's ancestor card behind a frame (`isAncestorCard`) and the bands
+ * of each timeline (section 6.4), which the drawing records and never
+ * draws: a band is hit and selected only in its timeline's editor, and
+ * highlighted under the pointer in every view (`bandUnder`). Layout records every one of them,
  * the block first, as `Drawing.boxes`; this module is the one reader of that
  * list and of the descriptors' sources, and derives nothing from where
  * elements lie or from the order of descriptors.
@@ -285,18 +286,22 @@ export interface Hit {
 /**
  * What the pointer highlights in a block, held by strings so that a redraw
  * keeps it: a box by its place key (`boxKey`), a boundary and a band by
- * their addresses' keys (`addressKey`).
+ * their addresses' keys (`addressKey`), a band also by the place key of the
+ * card holding it, so that of the cards of one timeline only the one under
+ * the pointer shows its band.
  */
 export interface Hover {
   /** A card or a frame. The block itself is never marked: its node shows it. */
   readonly box: string | null;
   readonly boundary: string | null;
-  /** A band of the edited timeline. */
+  /** The band the pointer is on (`bandUnder`), in every view. */
   readonly band: string | null;
+  /** The place key (`placeKeyText`) of the card holding that band; `null` without one. */
+  readonly bandHolder: string | null;
 }
 
 /** Nothing highlighted. */
-export const NO_HOVER: Hover = { box: null, boundary: null, band: null };
+export const NO_HOVER: Hover = { box: null, boundary: null, band: null, bandHolder: null };
 
 /** The boxes holding part of a selection: the block itself, and its frames and cards by `boxKey`. */
 export interface Holding {
@@ -716,16 +721,64 @@ export function pressSelection(
 
 /**
  * What the pointer highlights: the box under it (a card or a frame), the
- * boundary it is on, and the band it is on.
+ * boundary it is on, and `band`, the band it is on (`bandUnder`), which
+ * the caller reads only where the press lies inside the edited element.
  */
-export function hoverOf(hit: Hit): Hover {
+export function hoverOf(hit: Hit, band: BandBox | null): Hover {
   const { element } = addressParts(hit.address);
   const key = element === null ? null : addressKey(element);
   return {
     box: hit.within === null ? null : boxKey(hit.within),
     boundary: hit.boundary ? key : null,
-    band: hit.kind === "band" ? key : null,
+    band: band === null ? null : addressKey(band.address),
+    bandHolder: band?.holder == null ? null : placeKeyText(band.holder),
   };
+}
+
+/**
+ * Whether the band `band` is the one `hover` marks: the hovered band's
+ * address, held by the hovered card.
+ */
+export function isHoveredBand(band: BandBox, hover: Hover): boolean {
+  return (
+    hover.band === addressKey(band.address) &&
+    hover.bandHolder === (band.holder === null ? null : placeKeyText(band.holder))
+  );
+}
+
+/**
+ * The band the pointer is on at `point` (in the drawing's units) of block
+ * `hit.block`, drawn as `drawing`, as the pointer highlights it and as a
+ * double-click opens it, in every view, where `hit` is no drawn element (an
+ * element is hit before any band): in the timeline editor of one of the
+ * block's timelines (`bandTimelineOf`) the band hit (`hitOf`), the one a
+ * click selects; elsewhere, of the bands held by the card under the point
+ * (the displayed card on top, `hit.within`, else the card hit) the last in
+ * drawing order whose rectangle holds the point, so a child's band before
+ * the band of its parent holding the child's line. `null` on an element,
+ * where no band holds the point, and on a frame, an ancestor card (which
+ * offers no band) or the block. Whether the press lies inside the edited
+ * element is the caller's test.
+ */
+export function bandUnder(
+  drawing: Drawing,
+  hit: Hit,
+  point: DrawingPoint,
+  editing: Editing | null,
+): BandBox | null {
+  if (hit.kind === "band") return hit.box !== null && isBand(hit.box) ? hit.box : null;
+  if (hit.kind === "element") return null;
+  // In a timeline editor of this block a band under the point is hit (`hitOf`), never found here.
+  if (bandTimelineOf(hit.block, editing) !== null) return null;
+  const card = hit.within ?? hit.box;
+  if (card === null || !isCard(card)) return null;
+  const { key } = card;
+  return (
+    drawing.boxes.findLast(
+      (box): box is BandBox =>
+        isBand(box) && box.holder !== null && samePlaceKey(box.holder, key) && holds(box, point),
+    ) ?? null
+  );
 }
 
 /**

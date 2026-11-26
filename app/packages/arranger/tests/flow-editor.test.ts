@@ -11,7 +11,7 @@ import type { Hit } from "../src/boxes.ts";
 import { keyedBox } from "../src/boxes.ts";
 import { drawingOf } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
-import { editorOf, editorTargetOf } from "../src/editors.ts";
+import { editorOf, editorsUnder, editorTargetOf } from "../src/editors.ts";
 import { FlowEditorSession, type FlowServer, type FlowTarget } from "../src/flowEditor.svelte.ts";
 import { cardChoices, flowRows, recomputeCommands, sameEntries } from "../src/flowEditor.ts";
 import { flowPaneOf } from "../src/flowEditorRows.ts";
@@ -22,6 +22,8 @@ import {
   twinOpacity,
   unionRect,
 } from "../src/gestures/flowDrag.ts";
+import { selectionOf } from "../src/selection.ts";
+import { openable } from "../src/selectionRules.ts";
 import { A, B, bandsOf, blockIn, changed, load, metrics, storeOf, viewOf } from "./support.ts";
 
 const FIXTURE = "flow/virtual_cards";
@@ -62,6 +64,9 @@ describe("opening the flow editor", () => {
     const band = { block: A, id: ROOT, facet: "flow_control" } as const;
     expect(editorTargetOf(view, bandHit("flow_control"), timelineEditor)).toEqual(band);
     expect(editorOf(band)).toEqual({ target: allegro, kind: "flow" });
+    const selected = selectionOf([band]);
+    expect(openable(view, selected, () => drawing, timelineEditor)).toEqual(band);
+    expect(openable(view, selected, () => undefined, timelineEditor)).toBeNull();
     const store = storeOf(view);
     expect(store.open(allegro)).toBeNull();
     const opened = editorOf(band);
@@ -93,7 +98,28 @@ describe("opening the flow editor", () => {
     expect(editorTargetOf(view, onCard, null, { drawing, point: corner })).toEqual(allegro);
     expect(editorTargetOf(view, onCard, null)).toEqual(allegro);
     const bundle: Editing = { target: { block: A }, kind: "bundle" };
-    expect(editorTargetOf(view, onCard, bundle, { drawing, point: middle })).toEqual(allegro);
+    expect(editorTargetOf(view, onCard, bundle, { drawing, point: middle })).toEqual(band);
+  });
+
+  it("lists the editors under a long press, innermost first", () => {
+    const flow = bandHit("flow_control");
+    const card = keyedBox(drawing, { item: ROOT }) ?? null;
+    if (card === null || flow.box === null) throw new Error("no card");
+    const onCard: Hit = { ...flow, kind: "card", address: inBlock(A, card.address), box: card };
+    const middle = { x: flow.box.x + flow.box.width / 2, y: flow.box.y + flow.box.height / 2 };
+    expect(editorsUnder(view, onCard, null, { drawing, point: middle })).toEqual([
+      {
+        target: { block: A, id: ROOT, facet: "flow_control" },
+        label: "Flow control of timeline 'Allegro'",
+      },
+      { target: allegro, label: "Timeline 'Allegro'" },
+    ]);
+    const corner = { x: card.x, y: card.y };
+    expect(editorsUnder(view, onCard, null, { drawing, point: corner })).toEqual([
+      { target: allegro, label: "Timeline 'Allegro'" },
+    ]);
+    const flowEditor: Editing = { target: allegro, kind: "flow" };
+    expect(editorsUnder(view, onCard, flowEditor, { drawing, point: middle })).toEqual([]);
   });
 
   it("opens from an element the band draws, hit before the band, on the arranger too", () => {
@@ -111,14 +137,15 @@ describe("opening the flow editor", () => {
     const card = keyedBox(drawing, { item: ROOT }) ?? null;
     expect(editorTargetOf(view, { ...jump, within: card }, null)).toEqual(band);
     const bundle: Editing = { target: { block: A }, kind: "bundle" };
-    expect(editorTargetOf(view, { ...jump, within: card }, bundle)).toEqual(allegro);
+    expect(editorTargetOf(view, { ...jump, within: card }, bundle)).toEqual(band);
   });
 
-  it("opens nothing from any other band, without the root's timeline editor, or inside", () => {
+  it("opens from the band in every view, nothing from another band of the edited timeline or inside", () => {
     expect(editorTargetOf(view, bandHit("regions"), timelineEditor)).toBeNull();
+    expect(editorTargetOf(view, bandHit("regions"), null)).toEqual(allegro);
     expect(
       editorTargetOf(view, bandHit("flow_control"), { target: { block: A }, kind: "bundle" }),
-    ).toBeNull();
+    ).toEqual({ block: A, id: ROOT, facet: "flow_control" });
     const other = changed(view, {
       type: "add",
       into: WORKSPACE,

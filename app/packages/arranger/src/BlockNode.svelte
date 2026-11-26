@@ -16,17 +16,20 @@ import { AT_REST, composed, frameAt, framePlaced, rectAt } from "./animation/unf
 import { Unfolding } from "./animation/unfolding.svelte.ts";
 import type { BandBox, Hover, Role } from "./boxes.ts";
 import {
+  bandUnder,
   boxKey,
   hitOf,
   holdingOf,
   hoverOf,
   isAffordance,
+  isBand,
   isDisplayed,
   isHeld,
+  isHoveredBand,
   isItem,
   keyedBox,
   NO_HOVER,
-  offeredBands,
+  pressSelection,
   raisedRoot,
   roleOf,
   shapeBox,
@@ -254,7 +257,12 @@ const shapes = $derived.by(() => {
 let hover: Hover = $state.raw(NO_HOVER);
 
 function show(next: Hover): void {
-  if (next.box !== hover.box || next.boundary !== hover.boundary || next.band !== hover.band) {
+  if (
+    next.box !== hover.box ||
+    next.boundary !== hover.boundary ||
+    next.band !== hover.band ||
+    next.bandHolder !== hover.bandHolder
+  ) {
     hover = next;
   }
 }
@@ -269,7 +277,9 @@ function onpointermove(event: PointerEvent & { currentTarget: SVGSVGElement }) {
   if (point === null) return;
   const source = sourceAt(event.target);
   const hit = hitOf(data.block.id, data.drawing, source, point, data.editing);
-  show(hoverOf(hit));
+  // A band is highlighted in every view, where the press lies inside the edited element.
+  const inside = pressSelection(hit, data.editing, data.inside) !== null;
+  show(hoverOf(hit, inside ? bandUnder(data.drawing, hit, point, data.editing) : null));
   hoverChunk(
     source === null || isAffordance(source) ? null : chunkOf(data.block.manifest, source.address),
   );
@@ -520,19 +530,20 @@ interface BandMark {
 }
 
 /**
- * The bands marked over the drawing, as drawn: every selected band and the
- * band under the pointer among those this block offers, a selected band
- * showing the selection's mark under the pointer too. A band draws nothing
- * of its own; only its mark shows it.
+ * The bands marked over the drawing, as drawn: every selected band among
+ * those this block offers, and in every view the band under the pointer
+ * (`isHoveredBand`), a selected band showing the selection's mark under the
+ * pointer too. A band draws nothing of its own; only its mark shows it.
  */
 const bandMarks: readonly BandMark[] = $derived(
-  bandTimeline === null
-    ? []
-    : offeredBands(data.drawing, bandTimeline).flatMap((band): BandMark[] => {
-        const key = addressKey(band.address);
-        if (data.selectedElements.has(key)) return [{ band, mark: "selection" }];
-        return key === hover.band ? [{ band, mark: "hover" }] : [];
-      }),
+  data.drawing.boxes.flatMap((box): BandMark[] => {
+    if (!isBand(box)) return [];
+    const offered = bandTimeline !== null && box.band.timeline === bandTimeline;
+    if (offered && data.selectedElements.has(addressKey(box.address))) {
+      return [{ band: box, mark: "selection" }];
+    }
+    return isHoveredBand(box, hover) ? [{ band: box, mark: "hover" }] : [];
+  }),
 );
 
 /**

@@ -137,10 +137,10 @@ describe("editorTargetOf", () => {
     expect(editorTargetOf(view, hit("element", id("dlt_1")), timeline("dlt_1"))).toBeNull();
   });
 
-  it("opens nothing on a band", () => {
+  it("opens a band's timeline, never inside that timeline's own editor", () => {
     const band = hit("band", at(bandAddress("excerpt", "children")));
     expect(editorTargetOf(view, band, timeline("excerpt"))).toBeNull();
-    expect(editorTargetOf(view, band, null)).toBeNull();
+    expect(editorTargetOf(view, band, null)).toEqual(id("excerpt"));
   });
 
   it("opens nothing in a block that does not exist", () => {

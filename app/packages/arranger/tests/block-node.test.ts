@@ -385,25 +385,32 @@ describe("the hover marks", () => {
     expect(boundary()?.getAttribute("stroke")).toBe("#FF0000");
     expect(hovered(svg)).toEqual(FORM_AND_BOUNDARY);
 
-    // Leaving the boundary for the card removes the boundary's mark and touches nothing else.
+    // Leaving the boundary for the card, in its markers band, removes the boundary's mark, adds
+    // the band's and touches nothing else.
     const changes = new MutationObserver(() => {});
     changes.observe(svg, { subtree: true, childList: true, attributes: true });
     move(svg, 52.294921875, 68.953125);
     const records = changes.takeRecords();
     changes.disconnect();
-    expect(hovered(svg)).toEqual([tagged("rect", cardAddress("form"))]);
+    expect(hovered(svg)).toEqual([
+      tagged("rect", cardAddress("form")),
+      tagged("rect", bandAddress("form", "markers")),
+    ]);
     expect(records.every(({ type, target }) => type === "childList" && target === svg)).toBe(true);
     const elements = (nodes: NodeList[]) =>
       nodes.flatMap((list) => Array.from(list)).filter((node) => node instanceof Element);
     expect(elements(records.map(({ removedNodes }) => removedNodes)).map(named)).toEqual([
       "line none",
     ]);
-    expect(elements(records.map(({ addedNodes }) => addedNodes))).toEqual([]);
+    expect(elements(records.map(({ addedNodes }) => addedNodes)).map(named)).toEqual(["rect none"]);
 
     matrix.mockClear();
     move(line, 4, 4, 1);
     expect(matrix).toHaveBeenCalledTimes(0);
-    expect(hovered(svg)).toEqual([tagged("rect", cardAddress("form"))]);
+    expect(hovered(svg)).toEqual([
+      tagged("rect", cardAddress("form")),
+      tagged("rect", bandAddress("form", "markers")),
+    ]);
     move(svg, 4, 4);
     expect(matrix).toHaveBeenCalledTimes(1);
     expect(hovered(svg)).toEqual([]);
@@ -1062,18 +1069,23 @@ describe("bands in the timeline editor", () => {
     untaken(wedge, addressed(wedge.svg, idAddress("timestamp_9"))[0] as Element);
   });
 
-  it("marks and moves no band outside its timeline's editor", () => {
+  it("marks the hovered band in every view, but selects and moves none outside its timeline's editor", () => {
     const performance: Editing = { target: inA(idAddress("performance")), kind: "timeline" };
-    const outside: [Editing | null, (node: ReturnType<typeof shown>) => Element][] = [
-      [null, (node) => node.card],
-      [BUNDLE, (node) => node.card],
-      [GROUP, (node) => addressed(node.svg, idAddress("group_1"))[0] as Element],
-      [performance, (node) => node.card],
+    const outside: [Editing | null, (node: ReturnType<typeof shown>) => Element, string[]][] = [
+      [null, (node) => node.card, [`${MARKERS_BAND} hover`]],
+      [BUNDLE, (node) => node.card, [`${MARKERS_BAND} hover`]],
+      [
+        GROUP,
+        (node) => addressed(node.svg, idAddress("group_1"))[0] as Element,
+        [`${MARKERS_BAND} hover`],
+      ],
+      [performance, (node) => node.card, []],
     ];
-    for (const [editing, target] of outside) {
+    for (const [editing, target, hovered] of outside) {
       const marks = shown(editing, { selected: [bandAddress("score", "markers")] });
-      pointer(marks.card, "pointermove", 200, 110);
       expect(bandMarks(marks.svg)).toEqual([]);
+      pointer(marks.card, "pointermove", 200, 110, { buttons: 0 });
+      expect(bandMarks(marks.svg)).toEqual(hovered);
       clear();
       const node = shown(editing);
       untaken(node, target(node));

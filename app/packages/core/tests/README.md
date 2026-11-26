@@ -6472,8 +6472,11 @@ never a spelled-out random literal.
    workspace file writes and reads it back equal, and the journal replays
    to the same view, the minted IDs carried. Reopening `score` as a
    timeline editor starts a new session; reopening it as a flow editor
-   unfolds the flow session. A flow editor opens inside the timeline
-   editor of its own root.
+   unfolds the flow session. A flow editor (the flow-control editor)
+   opens inside the timeline editor of its own root and inside the bundle
+   editor of its block: on `flow/flow_map_by_hand.yaml` the root `set`'s
+   opens inside the bundle editor, and inside the timeline editor of its
+   child `first` it is `not_inside`, since `set` does not lie in `first`.
 7. **Named timestamps on a virtual timeline** (drawing.md §8.10: its
    named timestamps lie on its own axis, from 0 to its length). On
    `groups/virtual_member.yaml` (`allegro_default`, 4241/2 quarters, a

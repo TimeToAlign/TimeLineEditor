@@ -555,6 +555,16 @@ describe("The flow editor", () => {
     expect(store.open(SCORE, "flow")).toBeNull();
     expect(store.editing.map((editor) => editor.kind)).toEqual(["timeline", "flow"]);
   });
+
+  it("opens inside the bundle editor of its block, never inside a child's timeline editor", () => {
+    const bundle = storeOf(byHand());
+    expect(bundle.open({ block: A })).toBeNull();
+    expect(bundle.open(at("set"), "flow")).toBeNull();
+    expect(bundle.editing.map((editor) => editor.kind)).toEqual(["bundle", "flow"]);
+    const child = storeOf(byHand());
+    expect(child.open(at("first"))).toBeNull();
+    expect(refusal(child.open(at("set"), "flow")).code).toBe("not_inside");
+  });
 });
 
 describe("Named timestamps on a virtual timeline", () => {

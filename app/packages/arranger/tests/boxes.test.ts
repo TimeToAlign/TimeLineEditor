@@ -30,6 +30,7 @@ import { describe, expect, it } from "vitest";
 import { affectedBy } from "../src/affected.ts";
 import type { Hit } from "../src/boxes.ts";
 import {
+  bandUnder,
   blockBox,
   boxAt,
   boxOf,
@@ -192,10 +193,11 @@ describe("boxes in a manifest of one root", () => {
   it("highlights the card and the boundary under the pointer", () => {
     const point = { x: 227.294921875, y: 36.4765625 };
     const at = hitOf(A, drawing, sourceOf(drawing, part("b2", "start"), "boundary"), point);
-    expect(hoverOf(at)).toEqual({
+    expect(hoverOf(at, null)).toEqual({
       box: placeKeyText(cardKey("form")),
       boundary: addressKey(part("b2", "start")),
       band: null,
+      bandHolder: null,
     });
   });
 });
@@ -293,18 +295,21 @@ describe("boxes in a manifest with one group", () => {
     const hover = (address: ElementAddress | null, x: number, y: number) =>
       hoverOf(
         hitOf(A, withoutCard, address === null ? null : sourceOf(withoutCard, address), { x, y }),
+        null,
       );
     expect(hover(idAddress("recording"), 120.61962890625, 122.5859375)).toEqual({
       box: placeKeyText(cardKey("group_1", "recording")),
       boundary: null,
       band: null,
+      bandHolder: null,
     });
     expect(hover(idAddress("group_1"), 12, 12)).toEqual({
       box: placeKeyText(cardKey("group_1")),
       boundary: null,
       band: null,
+      bandHolder: null,
     });
-    expect(hover(null, 4, 4)).toEqual({ box: null, boundary: null, band: null });
+    expect(hover(null, 4, 4)).toEqual({ box: null, boundary: null, band: null, bandHolder: null });
   });
 
   it("gives Enter the hit of a selected address from the drawing alone", () => {
@@ -767,11 +772,34 @@ describe("the bands of the edited timeline", () => {
     expect(pressSelection(hit, scoreEditor, new Set())).toEqual(
       inA(bandAddress("score", "children")),
     );
-    expect(hoverOf(hit)).toEqual({
+    expect(hoverOf(hit, bandUnder(STYLED_DRAWN, hit, { x: 150, y: 55 }, scoreEditor))).toEqual({
       box: placeKeyText(cardKey("score")),
       boundary: null,
       band: addressKey(bandAddress("score", "children")),
+      bandHolder: placeKeyText(cardKey("score")),
     });
+  });
+
+  it("finds the band under the pointer in every view", () => {
+    const children = band("children").box;
+    const views: (Editing | null)[] = [
+      null,
+      { target: { block: A }, kind: "bundle" },
+      { target: inA(idAddress("group_1")), kind: "group" },
+      scoreEditor,
+    ];
+    for (const editing of views) {
+      const hit = at(card(), 150, 55, editing);
+      expect(bandUnder(STYLED_DRAWN, hit, { x: 150, y: 55 }, editing)).toBe(children);
+      const corner = at(card(), 8, 8, editing);
+      expect(bandUnder(STYLED_DRAWN, corner, { x: 8, y: 8 }, editing)).toBeNull();
+    }
+    const map = (x: number, y: number) => {
+      const hit = hitOf(A, MAP_DRAWN, sourceOf(MAP_DRAWN, cardAddress("melody")), { x, y }, null);
+      return bandUnder(MAP_DRAWN, hit, { x, y }, null)?.address;
+    };
+    expect(map(300, 25)).toEqual(bandAddress("phrase", "conversion_maps"));
+    expect(map(150, 25)).toEqual(bandAddress("melody", "children"));
   });
 });
 

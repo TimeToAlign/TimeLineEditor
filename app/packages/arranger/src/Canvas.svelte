@@ -37,9 +37,11 @@ import {
   readingAt,
   readsGroup,
 } from "./coordinates.ts";
+import EditorMenu from "./EditorMenu.svelte";
 import type { Editing } from "./editing.ts";
 import { addressParts } from "./editing.ts";
 import { EditorFocus } from "./editorFocus.svelte.ts";
+import type { EditorChoice } from "./editors.ts";
 import { editorOf } from "./editors.ts";
 import Flag from "./Flag.svelte";
 import FlowEditorPane from "./FlowEditorPane.svelte";
@@ -91,7 +93,7 @@ import type { ResizeMode } from "./resize.ts";
 import SnapGuides from "./SnapGuides.svelte";
 import { type Selection, selectionOf } from "./selection.ts";
 import type { Pressed } from "./selectionRules.ts";
-import { DONE, hitAt, openable, RECENTRE, resizableOf } from "./selectionRules.ts";
+import { DONE, editorsAt, hitAt, openable, RECENTRE, resizableOf } from "./selectionRules.ts";
 import type { Guide } from "./snap.ts";
 
 interface Props {
@@ -353,6 +355,9 @@ function flowTargetOf(editor: OpenEditor | undefined): FlowTarget | null {
 /** The open flow editor: the innermost editor where it is one; `null` otherwise. */
 const flowTarget: FlowTarget | null = $derived(flowTargetOf(live.editing.at(-1)));
 
+/** The session of the open flow editor, which changes only when another one opens. */
+const flowOpened = $derived(flowTarget?.session ?? null);
+
 const flowSession = new FlowEditorSession({
   store: () => store,
   dispatch: (command) => dispatch(command),
@@ -363,6 +368,15 @@ const flowSession = new FlowEditorSession({
 
 /** The edited block's node while a flow editor is open. */
 const flowNode = $derived(flowTarget === null ? undefined : nodes.byId.get(flowTarget.block));
+
+// Whichever way a flow editor opened (a double-click, Enter, a long press, the inspector's Edit
+// button), its findings are asked of the server once, as it opens.
+$effect(() => {
+  if (flowOpened === null) return;
+  untrack(() => {
+    if (flowTarget !== null) void flowSession.askFindings(flowTarget);
+  });
+});
 
 /** The flow editor's pane as drawn under the edited card; `null` without a flow editor. */
 const flowPane = $derived.by(() => {
@@ -525,18 +539,20 @@ function dispatch(command: unknown): boolean {
 
 /**
  * Open the editor `target` opens: a root's flow control band, its root's
- * flow editor (`editorOf`), whose findings are then asked of the server.
+ * flow-control editor (`editorOf`).
  */
 function openEditor(target: Address): void {
   const opened = editorOf(target);
   const error = store.open(opened.target, opened.kind);
-  if (error !== null) {
-    onrefuse?.(error.message);
-    return;
-  }
-  const flow = flowTargetOf(store.editing.at(-1));
-  if (flow !== null) void flowSession.askFindings(flow);
+  if (error !== null) onrefuse?.(error.message);
 }
+
+/** The editors a long press listed and where the menu stands; `null` while none is shown. */
+let editorMenu: {
+  readonly choices: readonly EditorChoice[];
+  readonly x: number;
+  readonly y: number;
+} | null = $state.raw(null);
 
 setNodeActions({
   dispatch(command: Command) {
@@ -624,6 +640,10 @@ const pointer = new CanvasPointer({
     else if (action === RECENTRE) {
       if (editing !== null) void editorFocus.focusOn(editing.target);
     } else if (rules.open) openEditor(action);
+  },
+  longPress(pressed, client) {
+    const choices = rules.open ? editorsAt(view, pressed, editing) : [];
+    editorMenu = choices.length === 0 ? null : { choices, x: client.x, y: client.y };
   },
 });
 
@@ -714,6 +734,7 @@ function pixelOf(event: MouseEvent): Point | null {
 
 /** A move with no button held is read; one dragging something reads nothing. */
 function onpointermove(event: PointerEvent) {
+  pointer.pointermove(event);
   if (!coordinates && !showMatches) return;
   frames.push(event.buttons === 0 ? pixelOf(event) : null);
 }
@@ -1136,7 +1157,7 @@ function keyContext(event: KeyboardEvent): KeyContext {
     abortGesture: () => gestures.abort(),
     done: () => store.done(),
     open: openEditor,
-    openable: () => openable(view, selection, nodes.byId, editing),
+    openable: () => openable(view, selection, (id) => nodes.byId.get(id)?.data.drawing, editing),
     // The focused block, reached by Tab, is selected as a click on its background would.
     pressed: () => pointer.pressedBy(event),
   };
@@ -1194,6 +1215,7 @@ function onkeydowncapture(event: KeyboardEvent) {
     if (!inFlowPane(event)) pointer.dblclick(event);
   }}
   onpointermovecapture={onpointermove}
+  onpointercancelcapture={pointer.pointercancel}
   {onpointerleave}
   {@attach shiftWheel((dx) => setViewport({ ...viewport, x: viewport.x + dx }))}
 >
@@ -1344,3 +1366,14 @@ function onkeydowncapture(event: KeyboardEvent) {
   {/if}
   <p class="tilie-announced" data-testid="coordinate-pinned" role="status">{announced}</p>
 </div>
+{#if editorMenu !== null}
+  <EditorMenu
+    choices={editorMenu.choices}
+    x={editorMenu.x}
+    y={editorMenu.y}
+    onchoose={(choice) => {
+      if (rules.open) openEditor(choice.target);
+    }}
+    onclose={() => (editorMenu = null)}
+  />
+{/if}
