@@ -608,6 +608,7 @@ export type TabName =
   | "Group"
   | "Timeline"
   | "Properties"
+  | "Regions"
   | "Metadata"
   | "Manifest"
   | "Journal"

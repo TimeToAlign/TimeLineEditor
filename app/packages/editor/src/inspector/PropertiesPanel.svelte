@@ -13,7 +13,9 @@
  * a jump's destinations and its provenance with the user's belief
  * (`FlowControlDetails`); the jump stays inspected while a destination's
  * marks are selected with it. A selected band shows its display toggles
- * below its rows, and a region its start, end and length.
+ * below its rows, and a region its start, end and length. A selected
+ * timeline card (the card, its line, or one of its bands alone) lists its
+ * bands with a Visible checkbox each (`BandList`).
  */
 import type {
   Editing,
@@ -28,8 +30,9 @@ import { sameAddress } from "@timetoalign/tilie-core";
 import type { Attachment } from "svelte/attachments";
 import { postOf } from "../messages.svelte.ts";
 import { paneOf } from "../pane.ts";
+import BandList from "./BandList.svelte";
 import DisplayGroups from "./DisplayGroups.svelte";
-import { bandToggles } from "./display.ts";
+import { bandList, bandToggles } from "./display.ts";
 import FlowControlDetails from "./FlowControlDetails.svelte";
 import { flowOf } from "./flow.ts";
 import { groupsOf, membersOf, newGroupOf } from "./groups.ts";
@@ -110,6 +113,9 @@ const band = $derived(shown === null ? null : bandRows(inspected, shown));
 
 /** The display toggles of the one band selected; else `null`. */
 const toggles = $derived(band === null ? null : bandToggles(view, inspected));
+
+/** The bands of the selected timeline card, each with its Visible checkbox; else `null`. */
+const bands = $derived(block === null ? null : bandList(view, inspected));
 
 /** The start, end and length of the one region selected; else `null`. */
 const region = $derived(regionRows(inspected));
@@ -343,6 +349,10 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
       {@render locked()}
     </div>
   </form>
+{/if}
+
+{#if block !== null && bands !== null}
+  <BandList {view} {store} {block} rows={bands} />
 {/if}
 
 {#if memberships !== null}

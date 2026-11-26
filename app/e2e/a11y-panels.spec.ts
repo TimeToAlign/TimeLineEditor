@@ -7,8 +7,9 @@
  * Matchstamp tab (a loaded MatchClaim table with its filter, a named
  * MatchStamp with its MatchClaim expanded and its provenance open under
  * Show matches, then the table changed by a belief), in the tables
- * dialog, and on the Elisions tab (a selected group elision's three
- * blocks shown). Derivation in `README.md` ("a11y-panels.spec.ts").
+ * dialog, on the Elisions tab (a selected group elision's three
+ * blocks shown), and on the Regions tab (a timeline's and a descendant's
+ * rows, one marked) and the band list of the Properties tab. Derivation in `README.md` ("a11y-panels.spec.ts").
  */
 
 import { readFileSync } from "node:fs";
@@ -342,6 +343,40 @@ test.describe("the Elisions tab", () => {
       await expect(shown.getByTestId(`${testid}-expand`)).toHaveAttribute("aria-expanded", "true");
     }
     await expect(shown.getByRole("button", { name: "Delete elision" })).toBeVisible();
+    expect(await violations(page)).toEqual([]);
+  });
+});
+
+test.describe("the Regions tab and the band list", () => {
+  test("axe-core reports no violation on the Regions tab and on the band list", async ({
+    page,
+  }) => {
+    const block = await importFixture(page, "styled_score_flow_inner");
+    expect(
+      await dispatch(page, {
+        type: "add",
+        into: { block, id: "b" },
+        region: { id: "motif", name: "motif", start: [1, 1], end: [3, 1] },
+      }),
+    ).toBeNull();
+    await select(page, [{ block, id: "score", part: ["card"] }]);
+    await openInspector(page);
+    await tab(page, "Regions").click();
+    const shown = await panel(page, "Regions");
+    await expect(shown.getByRole("heading", { name: "b" })).toBeVisible();
+    await expect(shown.getByTestId("region-row")).toHaveCount(2);
+    await shown.getByTestId("region-row").first().locator(".select").click();
+    await expect(shown.getByTestId("region-row").first().locator(".select")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(await violations(page)).toEqual([]);
+
+    await select(page, [{ block, id: "score", part: ["card"] }]);
+    await tab(page, "Properties").click();
+    await expect(
+      (await panel(page, "Properties")).getByRole("table", { name: "Bands" }).getByRole("checkbox"),
+    ).toHaveCount(5);
     expect(await violations(page)).toEqual([]);
   });
 });

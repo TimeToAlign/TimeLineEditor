@@ -164,10 +164,11 @@ const CONTENTS: { readonly [word: string]: number } = {
 const titled = (word: string, name: string) => [word, name, `${word} ${name}`, CONTENTS[word]];
 
 describe("the tab rule", () => {
-  it("has the eight tabs, the level tab first and named by its level", () => {
+  it("has the nine tabs, the level tab first and named by its level", () => {
     expect(TABS).toEqual([
       "level",
       "properties",
+      "regions",
       "metadata",
       "manifest",
       "journal",
@@ -177,6 +178,7 @@ describe("the tab rule", () => {
     ]);
     const OTHERS = [
       "Properties",
+      "Regions",
       "Metadata",
       "Manifest",
       "Journal",
@@ -242,6 +244,7 @@ describe("the tab rule", () => {
     expect([
       nextTab("level", key("ArrowRight")),
       nextTab("properties", key("ArrowRight")),
+      nextTab("regions", key("ArrowRight")),
       nextTab("metadata", key("ArrowRight")),
       nextTab("manifest", key("ArrowRight")),
       nextTab("journal", key("ArrowRight")),
@@ -262,6 +265,7 @@ describe("the tab rule", () => {
       nextTab("manifest", key("ArrowRight", { metaKey: true })),
     ]).toEqual([
       "properties",
+      "regions",
       "metadata",
       "manifest",
       "journal",
@@ -286,11 +290,12 @@ describe("the tab rule", () => {
 });
 
 describe("the tab set", () => {
-  it("shows the eight tabs without an editor, each naming its panel", () => {
+  it("shows the nine tabs without an editor, each naming its panel", () => {
     show(mixedStore());
     expect(tabs()).toEqual([
       off("Arranger"),
       on("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       off("Journal"),
@@ -311,6 +316,7 @@ describe("the tab set", () => {
       ["tabpanel", true],
       ["tabpanel", true],
       ["tabpanel", true],
+      ["tabpanel", true],
     ]);
     const ids = [...document.querySelectorAll("[id]")].map((element) => element.id);
     expect(new Set(ids).size).toBe(ids.length);
@@ -321,6 +327,7 @@ describe("the tab set", () => {
     expect(panels()).toEqual([
       ["Arranger", true],
       ["Properties", false],
+      ["Regions", true],
       ["Metadata", true],
       ["Manifest", true],
       ["Journal", true],
@@ -329,10 +336,17 @@ describe("the tab set", () => {
       ["Elisions", true],
     ]);
     expect(
-      ["Arranger", "Metadata", "Manifest", "Journal", "Timestamp", "Matchstamp", "Elisions"].map(
-        (name) => panelOf(name)?.childElementCount,
-      ),
-    ).toEqual([0, 0, 0, 0, 0, 0, 0]);
+      [
+        "Arranger",
+        "Regions",
+        "Metadata",
+        "Manifest",
+        "Journal",
+        "Timestamp",
+        "Matchstamp",
+        "Elisions",
+      ].map((name) => panelOf(name)?.childElementCount),
+    ).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
     click("Journal");
     expect([panelOf("Properties")?.childElementCount, panelOf("Journal")?.hidden]).toEqual([
       0,
@@ -351,6 +365,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       off("Arranger"),
       on("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       off("Journal"),
@@ -371,6 +386,7 @@ describe("the tab set", () => {
     expect(panels()).toEqual([
       ["Arranger", true],
       ["Properties", true],
+      ["Regions", true],
       ["Metadata", true],
       ["Manifest", true],
       ["Journal", false],
@@ -388,6 +404,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       off("Group"),
       on("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       off("Journal"),
@@ -400,6 +417,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       off("Timeline"),
       off("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       on("Journal"),
@@ -411,6 +429,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       off("Group"),
       off("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       on("Journal"),
@@ -422,6 +441,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       off("Arranger"),
       off("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       on("Journal"),
@@ -440,6 +460,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       on("Group"),
       off("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       off("Journal"),
@@ -456,6 +477,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       on("Arranger"),
       off("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       off("Journal"),
@@ -480,6 +502,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       on("Bundle"),
       off("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       off("Journal"),
@@ -512,6 +535,7 @@ describe("with the store's own editors", () => {
     expect(tabs()).toEqual([
       off("Group"),
       on("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       off("Journal"),
@@ -528,6 +552,7 @@ describe("with the store's own editors", () => {
     expect(tabs()).toEqual([
       off("Arranger"),
       on("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       off("Journal"),
@@ -582,6 +607,7 @@ describe("in the drawer", () => {
     expect(tabs()).toEqual([
       on("Group"),
       off("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       off("Journal"),
@@ -602,6 +628,7 @@ describe("in the drawer", () => {
     expect(tabs()).toEqual([
       off("Arranger"),
       off("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       on("Journal"),
@@ -621,6 +648,7 @@ describe("in the drawer", () => {
     expect(tabs()).toEqual([
       off("Group"),
       off("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       on("Journal"),
@@ -632,6 +660,7 @@ describe("in the drawer", () => {
     expect(tabs()).toEqual([
       off("Group"),
       off("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       on("Journal"),
@@ -644,6 +673,7 @@ describe("in the drawer", () => {
     expect(tabs()).toEqual([
       off("Group"),
       off("Properties"),
+      off("Regions"),
       off("Metadata"),
       off("Manifest"),
       on("Journal"),
@@ -710,7 +740,7 @@ describe("the keys", () => {
     });
   }
 
-  it("move over the eight tabs, wrapping, at the top level and in an editor", () => {
+  it("move over the nine tabs, wrapping, at the top level and in an editor", () => {
     const { store, stage } = staged(mixedStore());
     show(store);
     expect(steps("Properties", ["ArrowLeft", "ArrowLeft", "ArrowRight", "End", "Home"])).toEqual([
@@ -731,12 +761,14 @@ describe("the keys", () => {
         "ArrowRight",
         "ArrowRight",
         "ArrowRight",
+        "ArrowRight",
         "ArrowLeft",
         "Home",
         "End",
       ]),
     ).toEqual([
       "Properties",
+      "Regions",
       "Metadata",
       "Manifest",
       "Journal",

@@ -252,13 +252,18 @@ describe("the Properties panel of a band", () => {
     flushSync();
   }
 
-  it("shows the three rows of a band and nothing to edit", () => {
+  it("shows the three rows of a band and nothing to edit but its card's band list", () => {
     const store = storeOf();
     show(store, [bandOf(A, "melody", "markers")]);
     expect(panel().querySelectorAll("dl")).toHaveLength(1);
     expect(texts("dt")).toEqual(["Band", "Level", "Elements"]);
     expect(texts("dd")).toEqual(["Markers", "−1", "4"]);
-    expect(panel().querySelectorAll("form, input, select, textarea, button")).toHaveLength(0);
+    expect(panel().querySelectorAll("form, select, textarea, button")).toHaveLength(0);
+    expect(
+      [...panel().querySelectorAll("input")].map((input) =>
+        input.closest("[data-testid]")?.getAttribute("data-testid"),
+      ),
+    ).toEqual(["band-list", "band-list", "band-list", "band-list", "band-list"]);
     expect(panel().querySelector(".hint")).toBe(null);
 
     openTab("Manifest");
@@ -281,7 +286,11 @@ describe("the Properties panel of a band", () => {
       ]);
     show(storeOf(), [at(A, { id: "melody", part: ["card"] })]);
     const alone = geometry();
-    expect(panel().querySelectorAll('input[name="name"], input[type=checkbox]')).toHaveLength(2);
+    expect(
+      panel().querySelectorAll(
+        'input[name="name"], input[type=checkbox]:not([name="band-visible"])',
+      ),
+    ).toHaveLength(2);
     hide();
 
     show(storeOf(), [bandOf(A, "melody", "markers"), at(A, { id: "melody", part: ["card"] })]);
@@ -295,13 +304,16 @@ describe("the Properties panel of a band", () => {
         (input) => input.name,
       ),
     ).toEqual(["x", "y", "length", "scale", "spacing", "margin", "width", "height"]);
-    expect(panel().querySelectorAll("input[type=checkbox]")).toHaveLength(0);
+    expect(
+      panel().querySelectorAll('input[type=checkbox]:not([name="band-visible"])'),
+    ).toHaveLength(0);
     expect(panel().querySelector("dl")).toBe(null);
   });
 
-  it("shows only the geometry hint for two bands", () => {
+  it("shows only the geometry hint and the card's band list for two bands", () => {
     show(storeOf(), [bandOf(A, "melody", "markers"), bandOf(A, "melody", "conversion_maps")]);
-    expect(panel().textContent?.trim()).toBe(GEOMETRY_HINT);
+    expect(panel().querySelector(".hint")?.textContent).toBe(GEOMETRY_HINT);
+    expect(panel().querySelector('[data-testid="band-list"]')).not.toBe(null);
     expect(panel().querySelector("form")).toBe(null);
     expect(panel().querySelector("dl")).toBe(null);
   });
