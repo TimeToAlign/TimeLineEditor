@@ -107,6 +107,28 @@ export {
   isRead,
   isRejected,
 } from "./manifest/flow.ts";
+export type {
+  FlowChunk,
+  FlowChunkKind,
+  FlowMapErrorCode,
+  FlowRun,
+  FlowVirtualTimeline,
+  MappedVirtualTimeline,
+  Occurrence,
+  PlayedStretch,
+  ResolvedFlowMap,
+  ResolvedVirtualTimeline,
+  Stretch,
+} from "./manifest/flowmaps.ts";
+export {
+  FlowMapError,
+  fold,
+  foldVirtual,
+  resolveFlowMap,
+  resolveVirtualTimeline,
+  unfold,
+  unfoldVirtual,
+} from "./manifest/flowmaps.ts";
 export type { ReadManifestFile } from "./manifest/io.ts";
 export {
   idFormPath,
