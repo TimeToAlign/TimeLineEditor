@@ -6,6 +6,9 @@
  * commands setting the property `flow` (`flowCommands`); the drawing then
  * shows the card on the chosen virtual axis. It stands centred above the
  * box, `offset` screen pixels clear of its top, above the resize modes.
+ * The list is `SWITCH_WIDTH` wide whatever the names: the chosen name is
+ * cut with an ellipsis where it is longer, and every name is shown whole
+ * on hover (the list's and each entry's `title`).
  */
 import type { Block } from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
@@ -13,7 +16,7 @@ import { useStore } from "@xyflow/svelte";
 import { getNodeToolbarTransform, Position } from "@xyflow/system";
 import { tick } from "svelte";
 import type { FlowChoice } from "./flowSwitch.ts";
-import { chosenFlow, flowCommands } from "./flowSwitch.ts";
+import { chosenFlow, flowCommands, SWITCH_WIDTH } from "./flowSwitch.ts";
 import "./menu.css";
 import { getNodeActions } from "./nodeActions.ts";
 
@@ -70,12 +73,14 @@ function onchange(event: Event & { currentTarget: HTMLSelectElement }) {
     <select
       class="tilie-menu-item nodrag nopan nowheel"
       data-testid="flow-switch"
+      style:width={SWITCH_WIDTH}
+      title={choices[chosen]?.label}
       disabled={locked}
       value={String(chosen)}
       {onchange}
     >
       {#each choices as choice, index (`${choice.timeline} ${choice.flow}`)}
-        <option value={String(index)}>{choice.label}</option>
+        <option value={String(index)} title={choice.label}>{choice.label}</option>
       {/each}
     </select>
   </label>
@@ -97,5 +102,12 @@ function onchange(event: Event & { currentTarget: HTMLSelectElement }) {
   .name {
     padding: 0 0.4rem;
     font-size: 0.85rem;
+  }
+
+  /* A name wider than the list is cut, never widening it. */
+  select {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 </style>

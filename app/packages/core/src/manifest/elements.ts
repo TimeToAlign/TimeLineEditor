@@ -475,7 +475,11 @@ function gapElements(
  * drawn entry `k`: a chunk's brace `{id: V, facet: "regions", part: [k]}`
  * of type `region` with its label `[k, "label"]`, and a gap's label alone,
  * keyed as the label of a brace that is not drawn; its line holds, after
- * its name, the boundary `[k, "start"]` of every entry that draws one.
+ * its name, the boundary `[k, "start"]` of every entry that draws one. The
+ * card a block holds of it draws a root whole (`elides`): its line holds,
+ * after its two bands, the gaps of the stored elisions lying on `V`, in
+ * canonical order, as an ungrouped root's card holds its card elisions; a
+ * member's card in a frame draws none.
  */
 function memberElements(
   manifest: Manifest,
@@ -493,8 +497,11 @@ function memberElements(
   keys.push(elementKey(card, cardAddress(root.id), root, holder));
   const line = elementKey("timeline", idAddress(root.id), root, holder);
   const drawn = cardStamps(manifest, member, frame);
+  // A placed virtual card's card elisions are those lying on the virtual timeline (section 8.10).
   const cardElisions =
-    elides && unfolding === null ? new Set(elisionsUnder(manifest, root.id)) : undefined;
+    elides && unfolding === null
+      ? new Set(virtual ? elisionsOn(manifest, root.id) : elisionsUnder(manifest, root.id))
+      : undefined;
   // How often an element at a position or over an extent is drawn: once as written, once in
   // every piece reaching it on an unfolded card (section 8.10), the position read on the
   // member's own axis, from its start `drawn.window[0]` on the axis of its tree's root.
@@ -894,8 +901,10 @@ function rootFlow(manifest: Manifest, member: MemberDrawing): DrawnFlow {
  * ellipsis and no label, keyed as the frame's own gap of it (held by the
  * frame), whose cascaded values it takes; each group's frame, its title
  * and its member drawings in display order; then the roots drawn without a
- * frame; the cards of the ancestor cards and of those roots holding the
- * gaps of the stored card elisions of their timelines (`memberElements`);
+ * frame, then the cards of the virtual timelines no group holds, by ID
+ * (section 8.10); the cards of the ancestor cards and of those roots holding the
+ * gaps of the stored card elisions of their timelines, a virtual
+ * timeline's card those of the elisions lying on it (`memberElements`);
  * then, after every item, the gaps of the frames' group elisions, frame by
  * frame in drawing order and each frame's in canonical order, each `{id:
  * E}` of type `elision` held by the frame with its ellipsis and its labels
@@ -979,7 +988,7 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
     const member = virtualDrawing(ordered, id);
     if (member === undefined) throw new Error(`'${id}' is a virtual timeline`);
     const flow = { ...AS_WRITTEN, chunks: chunkEntries(ordered, id, true) };
-    memberElements(ordered, member, BLOCK_KEY, keys, "card", null, false, flow);
+    memberElements(ordered, member, BLOCK_KEY, keys, "card", null, true, flow);
   }
   // A switched frame draws no group elision (section 8.10).
   for (const { group, frame, switched } of drawnFrames) {

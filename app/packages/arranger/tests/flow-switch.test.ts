@@ -21,6 +21,7 @@ import {
   flowChoices,
   flowCommands,
   morphTransform,
+  SWITCH_WIDTH,
   spanAt,
   switchMorphs,
   switchOffset,
@@ -166,6 +167,26 @@ describe("the select above a card", () => {
     shown.dispatchEvent(new Event("change", { bubbles: true }));
     flushSync();
     expect(calls).toEqual([{ dispatch: flowOn(DEFAULT) }]);
+  });
+
+  it("keeps one width whatever the names and shows each name whole on hover", () => {
+    expect(SWITCH_WIDTH).toBe("11rem");
+    const cases = [
+      [SWITCHED, cardAddress(ROOT), "default"],
+      [VIRTUAL, cardAddress(ROOT), "As written"],
+      [FRAME, idAddress("performance"), "default"],
+    ] as const;
+    for (const [view, address, chosen] of cases) {
+      mountOn(view, address);
+      const shown = select();
+      expect([shown?.style.width, shown?.title]).toEqual(["11rem", chosen]);
+      expect([...(shown?.options ?? [])].map((option) => option.title)).toEqual(
+        ALLEGRO.map((entry) => entry.label),
+      );
+      if (mounted !== undefined) unmount(mounted);
+      mounted = undefined;
+      document.body.innerHTML = "";
+    }
   });
 
   it("is disabled on a locked canvas and absent above a virtual card", () => {

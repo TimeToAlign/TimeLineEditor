@@ -59,6 +59,12 @@ export function switchOffset(menu: number | null): number {
   return menu === null ? MENU_GAP : MENU_GAP + menu + SWITCH_GAP;
 }
 
+/**
+ * The width of the switch's list, the same whatever the names it lists: a
+ * name longer than it is cut with an ellipsis and shown whole on hover.
+ */
+export const SWITCH_WIDTH = "11rem";
+
 /** The list's first entry. */
 export const AS_WRITTEN: FlowChoice = { timeline: null, flow: null, label: "As written" };
 

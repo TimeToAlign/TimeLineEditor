@@ -7,6 +7,7 @@ import { contains } from "../src/manifest/contains.ts";
 import type { ElementKey } from "../src/manifest/elements.ts";
 import { manifestElements, selectorMatches } from "../src/manifest/elements.ts";
 import { elisionsUnder, groupElisions } from "../src/manifest/elisions.ts";
+import { schemaProblems } from "../src/manifest/io.ts";
 import { removedBy } from "../src/manifest/remove.ts";
 import { timelineAncestry } from "../src/manifest/tree.ts";
 import type { Manifest } from "../src/manifest/types.ts";
@@ -522,7 +523,7 @@ describe("many elisions in one journal entry", () => {
         {
           code: "elision_timeline",
           path: path(0, "timeline"),
-          message: "'nowhere' names no timeline of this manifest",
+          message: "'nowhere' names no timeline or virtual timeline of this manifest",
         },
       ],
       [
@@ -806,5 +807,126 @@ describe("elision elements", () => {
     expect(strips.map((item) => [item.address, item.inside])).toEqual([
       [{ id: "elision_1" }, ["block", "timeline"]],
     ]);
+  });
+});
+
+describe("elisions on a virtual timeline", () => {
+  const VIRTUAL = "allegro_default";
+  const cards = () => viewWith(load("flow/virtual_cards.yaml"));
+  const into = element(VIRTUAL);
+  const added = (end: unknown = [4241, 2]) =>
+    apply(cards(), {
+      type: "add",
+      into,
+      elision: { start: [2121, 2], end },
+      ids: ["gap"],
+    });
+  const BEYOND =
+    "end [2121, 1] of 'gap' is beyond the length [4241, 2] of its timeline 'allegro_default'";
+  const stored = (result: ReturnType<typeof apply>): View => {
+    if (isCommandError(result)) throw new Error(`${result.code}: ${result.message}`);
+    return result;
+  };
+
+  it("adds one on the played axis, bounded by the virtual timeline's length", () => {
+    const view = stored(added());
+    expect(elisionsOf(view)).toEqual([
+      {
+        id: "gap",
+        timeline: VIRTUAL,
+        start: [2121, 2],
+        end: [4241, 2],
+        display: DEFAULT_DISPLAY,
+      },
+    ]);
+    expect(schemaProblems(block(view).manifest)).toEqual([]);
+    expect(refused(added([2121, 1]))).toEqual({
+      code: "elision_stretch",
+      path: [key(into), "elision", "end"],
+      message: BEYOND,
+    });
+    const listed = stored(
+      apply(cards(), {
+        type: "add",
+        into: { block: A },
+        elision: [{ timeline: "allegro_single", start: [0, 1], end: [1, 1] }],
+        ids: ["gap"],
+      }),
+    );
+    expect(elisionsOf(listed)).toEqual([
+      {
+        id: "gap",
+        timeline: "allegro_single",
+        start: [0, 1],
+        end: [1, 1],
+        display: DEFAULT_DISPLAY,
+      },
+    ]);
+  });
+
+  it("resolves, sets and removes it", () => {
+    const view = stored(added());
+    expect(shape(resolved(view, element("gap")))).toEqual({
+      elision: "gap",
+      on: VIRTUAL,
+      index: 0,
+    });
+    expect(addressWords(view, element("gap"))).toBe("elision 'gap'");
+    for (const word of ["ellipsis", "name"]) {
+      expect(shape(resolved(view, element("gap", [word])))).toEqual({
+        part: word,
+        of: { elision: "gap", on: VIRTUAL, index: 0 },
+      });
+    }
+    expect(namesNothing(view, element("gap", ["coordinate"]))).toBe("unknown_target");
+    const moved = changed(view, set("gap", { start: [10, 1] }));
+    expect(elisionsOf(moved)?.[0]?.start).toEqual([10, 1]);
+    expect(refused(apply(view, set("gap", { end: [2121, 1] })))).toEqual({
+      code: "elision_stretch",
+      path: [key(at("gap")), "end"],
+      message: BEYOND,
+    });
+    expect(elisionsOf(changed(view, { type: "remove", targets: [at("gap")] }))).toEqual([]);
+  });
+
+  it("goes with the virtual timeline it lies on", () => {
+    const gone = changed(stored(added()), { type: "remove", targets: [into] });
+    expect(elisionsOf(gone)).toEqual([]);
+  });
+
+  it("lists it in the virtual timeline's card alone", () => {
+    const keys = manifestElements(block(stored(added())).manifest);
+    const own = {
+      type: "elision",
+      address: { id: "gap" },
+      timeline: VIRTUAL,
+      domain: "logical",
+      modality: "continuous",
+      class: "ContinuousLogicalTimeline",
+      facet: null,
+      inside: ["block", "timeline"],
+    };
+    expect(keys.filter((item) => item.address.id === "gap")).toEqual([
+      own,
+      {
+        ...own,
+        type: "ellipsis",
+        address: { id: "gap", part: ["ellipsis"] },
+        inside: ["block", "timeline", "elision"],
+      },
+      {
+        ...own,
+        type: "label",
+        address: { id: "gap", part: ["name"] },
+        inside: ["block", "timeline", "elision"],
+      },
+    ]);
+    const gapAt = keys.findIndex((item) => item.address.id === "gap");
+    const band = keys.findIndex(
+      (item) => item.address.id === VIRTUAL && item.address.facet === "regions",
+    );
+    const card = keys.findIndex((item) => item.type === "card" && item.address.id === VIRTUAL);
+    const nextCard = keys.findIndex((item, index) => index > card && item.type === "card");
+    expect([card < band, band < gapAt, gapAt < nextCard]).toEqual([true, true, true]);
   });
 });

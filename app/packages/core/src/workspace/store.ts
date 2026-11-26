@@ -7,7 +7,8 @@
  * own above the journal: its commands are its entries. Done stores the
  * session and journals it as one entry on the level below; Cancel restores
  * that level, the sessions and the view exactly as they were at the
- * opening.
+ * opening. `edit` makes several commands in an editor at once, journalled
+ * as such a session, so that one gesture sending them is one undo step.
  *
  * Undo and redo move by steps on the innermost level, a change being one
  * command at any depth and its owner the innermost session whose own
@@ -150,6 +151,19 @@ export interface Store {
   undo(): void;
   /** Re-apply the innermost level's earliest undone step. */
   redo(): void;
+  /**
+   * Make `commands`, in order, in the editor of `target` (the one it opens,
+   * `editorKindOf`) as if it were opened, the commands dispatched in it and
+   * Done pressed: a new session holding their entries, journalled as one
+   * entry, so undo and redo take them as one step. Inside an open editor the
+   * editor of `target` must open there (else `not_inside`, as `open`);
+   * where the innermost open editor is that editor itself, the commands are
+   * its own entries, a step each, as every change made in an open editor.
+   * Atomic: a refused command (its own error) or an editor that does not
+   * open leaves the store as it was; no commands change nothing. `null`
+   * when every command was accepted.
+   */
+  edit(target: Address, commands: readonly unknown[]): CommandError | null;
   /**
    * Open the editor of `target` inside the innermost open editor, of `kind`
    * where given (the flow editor of a root timeline), else the one the
@@ -482,6 +496,55 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
   const inside = (outer: OpenEditor, target: Address, kind: EditorKind): boolean =>
     opensIn(current(), outer, target, kind);
 
+  /** `not_inside` where the editor of `kind` on `target` does not open in the innermost open editor. */
+  const notInside = (target: Address, kind: EditorKind): CommandError | null => {
+    const { editor } = top();
+    if (editor === null || inside(editor, target, kind)) return null;
+    return problem(
+      ErrorCode.notInside,
+      `${addressWords(current(), target)} does not lie inside ${addressWords(current(), editor.target)}`,
+      [addressKey(target)],
+    );
+  };
+
+  /**
+   * `command` applied to `before` with the store's minter, as the editor
+   * `editor` admits it (`editorSideEffect`; none for the main journal): the
+   * entry journalling it, with every ID it took, and the view it leaves.
+   */
+  const accepted = (
+    before: View,
+    command: unknown,
+    editor: OpenEditor | null,
+  ): { entry: CommandEntry; view: View } | CommandError => {
+    const read = parseCommand(command);
+    if (isCommandError(read)) return read;
+    const stated = withStatedPlacement(before, read);
+    const applied = applyChanges(before, stated, true, minter);
+    if (isCommandError(applied)) return applied;
+    const { taken } = applied.changes.ids;
+    const parsed = taken.length === 0 ? stated : { ...stated, ids: [...taken] };
+    const next = applied.view;
+    if (editor !== null) {
+      const refused = editorSideEffect(before, next, editor, stated, applied.changes);
+      if (refused !== null) return refused;
+    }
+    // Every value of an accepted command has been read, so it has a JSON form.
+    const json = toJson(parsed, []);
+    const stored = isCommandError(json) ? json : parseCommand(json);
+    if (isCommandError(stored))
+      throw new Error(`an accepted command has no JSON form: ${stored.message}`);
+    return { entry: { command: stored, ...stamp() }, view: next };
+  };
+
+  /** Journal `entry`, leading to `view`, as the level's own change: a step of its own. */
+  const push = (level: Level, entry: CommandEntry, view: View) => {
+    level.entries.push(entry);
+    level.changes.push({ entry, owner: level.editor?.session ?? null });
+    level.applied += 1;
+    level.views[level.applied] = view;
+  };
+
   const close = () => {
     levels.pop();
     editing = editing.slice(0, -1);
@@ -531,31 +594,11 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       return level.applied < level.changes.length;
     },
     dispatch(command) {
-      const read = parseCommand(command);
-      if (isCommandError(read)) return read;
-      const before = current();
-      const stated = withStatedPlacement(before, read);
-      const applied = applyChanges(before, stated, true, minter);
-      if (isCommandError(applied)) return applied;
-      const { taken } = applied.changes.ids;
-      const parsed = taken.length === 0 ? stated : { ...stated, ids: [...taken] };
-      const next = applied.view;
       const level = top();
-      if (level.editor !== null) {
-        const refused = editorSideEffect(before, next, level.editor, stated, applied.changes);
-        if (refused !== null) return refused;
-      }
-      // Every value of an accepted command has been read, so it has a JSON form.
-      const json = toJson(parsed, []);
-      const stored = isCommandError(json) ? json : parseCommand(json);
-      if (isCommandError(stored))
-        throw new Error(`an accepted command has no JSON form: ${stored.message}`);
-      const entry: CommandEntry = { command: stored, ...stamp() };
+      const made = accepted(current(), command, level.editor);
+      if (isCommandError(made)) return made;
       discard(level);
-      level.entries.push(entry);
-      level.changes.push({ entry, owner: level.editor?.session ?? null });
-      level.applied += 1;
-      level.views[level.applied] = next;
+      push(level, made.entry, made.view);
       notify();
       return null;
     },
@@ -606,17 +649,54 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       viewAt(level, level.applied);
       notify();
     },
+    edit(target, commands) {
+      const kind = editorKindOf(current(), target);
+      if (isCommandError(kind)) return kind;
+      const level = top();
+      const open = level.editor;
+      const own = open !== null && sameAddress(open.target, target) && open.kind === kind;
+      let editor: OpenEditor;
+      if (own) editor = open;
+      else {
+        const refused = notInside(target, kind);
+        if (refused !== null) return refused;
+        let session = mintSessionId();
+        while (Object.hasOwn(sessions, session)) session = mintSessionId();
+        editor = { session, target, kind, earlier: null };
+      }
+      const made: { entry: CommandEntry; view: View }[] = [];
+      let view = current();
+      for (const command of commands) {
+        const next = accepted(view, command, editor);
+        if (isCommandError(next)) return next;
+        made.push(next);
+        view = next.view;
+      }
+      if (made.length === 0) return null;
+      discard(level);
+      if (own) {
+        for (const { entry, view: after } of made) push(level, entry, after);
+      } else {
+        const entries = made.map(({ entry }) => entry);
+        const { session } = editor;
+        sessions = { ...sessions, [session]: sessionOf(target, kind, entries) };
+        level.entries.push({ session, ...stamp() });
+        // The session's changes, owned by it, form one run: one step.
+        for (const { entry, view: after } of made) {
+          level.changes.push({ entry, owner: session });
+          level.applied += 1;
+          level.views[level.applied] = after;
+        }
+      }
+      notify();
+      return null;
+    },
     open(target, asked) {
       const kind = editorKindOf(current(), target, asked);
       if (isCommandError(kind)) return kind;
+      const refused = notInside(target, kind);
+      if (refused !== null) return refused;
       const original = top();
-      if (original.editor !== null && !inside(original.editor, target, kind)) {
-        return problem(
-          ErrorCode.notInside,
-          `${addressWords(current(), target)} does not lie inside ${addressWords(current(), original.editor.target)}`,
-          [addressKey(target)],
-        );
-      }
       const opened = sessions;
       const below = copyLevel(original);
       levels[levels.length - 1] = below;
