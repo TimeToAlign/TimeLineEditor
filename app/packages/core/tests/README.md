@@ -4053,6 +4053,42 @@ time `clock().toISOString()`. The tests inject a clock from
    `["blocks", A]`. The settings are never compared: the same view with a
    grid of 16 opens, and its store holds that grid. A journal entry the commands refuse (a move of a block that does
    not exist) is that entry, 1, at `["journal", 1]`.
+8. **Several commands as one step** (`edit`). One gesture that sends
+   several commands (the flow switch above a frame, which removes one
+   member's `flow` and sets another's) is one undo step. `edit(target,
+   commands)` makes them in the editor `target` opens as if it were opened,
+   the commands dispatched there and Done pressed, so it is proven by the
+   rules already proven for a closed session ("Editor sessions"): the
+   journal gains exactly one session entry, `sessions` the session `{target,
+   entries}` holding the commands' entries in order, one `undo()` reverts
+   all of them to the very view before (`toBe`) and one `redo()` re-applies
+   them to the very view after, the view between them never shown (a
+   listener hears one view per `edit`, one per `undo`); the snapshot
+   replays and, loaded into a new store, still undoes them in one step
+   (the runs come from the file's sessions). On block `bundle0001`
+   holding `bundles/bundle_mixed.yaml` (`group_1` "Performance" of `score`
+   and `performance`, `group_2` "Facsimile" of `page` and `excerpt`), `G1`
+   and `G2` their addresses, the commands `rename score "S"` and `rename
+   performance "P"`:
+   - `edit(G1, [S, P])` is `null`; the journal is `[add, <session entry>]`;
+     the session is `{target: G1, entries}` with the two commands as
+     dispatched, stamped `…13.418Z` and `…14.418Z`, the session entry
+     `…15.418Z`; `listed` ends with that entry, 2 of 2 changes; `editing`
+     stays `[]` and `openings` 0;
+   - atomic: `edit(G1, [S, rename nowhere "X"])` returns the second's
+     refusal (`unknown_target` at `[nowhere's key]`), `edit(G1, [S, rename
+     annotations "A"])` the guard's (`side_effect` at `[annotations' key]`,
+     `annotations` lying outside `group_1`), `edit({}, [S])` `no_editor`
+     at `["{}"]`; after each the view is the same object, the journal and
+     `sessions` as they were and no listener called; `edit(G1, [])` is
+     `null` and changes nothing either;
+   - inside the open bundle editor (`open bundle0001`), `edit(G1, [S, P])`
+     gives the bundle editor's `entries` one session entry, one `undo()`
+     reverting both; inside the open editor of `group_2`, `edit(G1, …)` is
+     `not_inside` at `[G1's key]`, "group 'Performance' does not lie inside
+     group 'Facsimile'"; inside the open editor of `group_1` itself the two
+     commands are that editor's own entries, `entries` `[S, P]`, undone one
+     at a time like every change of an open editor.
 
 ## Workspace settings (`settings.test.ts`)
 

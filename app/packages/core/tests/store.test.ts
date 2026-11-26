@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 import type { SetCommand } from "../src/commands/types.ts";
 import { JournalMismatchError } from "../src/errors.ts";
 import type { PathSegment } from "../src/json.ts";
+import { addressKey } from "../src/manifest/address.ts";
+import type { Address } from "../src/workspace/address.ts";
+import type { SessionEntry } from "../src/workspace/sessions.ts";
 import { isSessionEntry } from "../src/workspace/sessions.ts";
-import type { Workspace } from "../src/workspace/store.ts";
+import type { Store, Workspace } from "../src/workspace/store.ts";
 import { createStore } from "../src/workspace/store.ts";
 import type { View } from "../src/workspace/view.ts";
 import { createView } from "../src/workspace/view.ts";
-import { A, addBlock, B, testClock } from "./support.ts";
+import { A, addBlock, B, refusal, testClock } from "./support.ts";
 
 const empty = () => ({ view: createView(), journal: [], sessions: {} });
 const move = (block: string, x: number): SetCommand => ({
@@ -191,5 +194,119 @@ describe("opening a workspace", () => {
       entry: 1,
       path: ["journal", 1],
     });
+  });
+});
+
+describe("several commands as one step", () => {
+  const BUNDLE = "bundle0001";
+  const at = (id: string): Address => ({ block: BUNDLE, id });
+  const G1 = at("group_1");
+  const G2 = at("group_2");
+  const rename = (id: string, name: string) => ({
+    type: "set",
+    changes: [{ target: at(id), values: { name } }],
+  });
+  const S = rename("score", "S");
+  const P = rename("performance", "P");
+
+  /** A store whose journal holds the `add` of block `bundle0001` holding `bundle_mixed.yaml`. */
+  function mixed(): Store {
+    const store = createStore(empty(), { clock: testClock() });
+    expect(store.dispatch(addBlock(BUNDLE, "bundles/bundle_mixed.yaml"))).toBeNull();
+    return store;
+  }
+
+  it("journals them as one closed session, undone and redone in one step", () => {
+    const store = mixed();
+    const before = store.view;
+    const seen: View[] = [];
+    store.subscribe((view) => seen.push(view));
+    expect(store.edit(G1, [S, P])).toBeNull();
+    const after = store.view;
+    expect(seen).toEqual([after]);
+    expect(store.journal.length).toBe(2);
+    const entry = store.journal[1] as SessionEntry;
+    expect(isSessionEntry(entry)).toBe(true);
+    expect(entry.time).toBe("2026-10-11T14:03:15.418Z");
+    expect(store.sessions[entry.session]).toEqual({
+      target: G1,
+      entries: [
+        { command: S, author: "Gerhardt", time: "2026-10-11T14:03:13.418Z" },
+        { command: P, author: "Gerhardt", time: "2026-10-11T14:03:14.418Z" },
+      ],
+    });
+    expect(store.listed.map(({ changes, applied }) => [changes, applied])).toEqual([
+      [1, 1],
+      [2, 2],
+    ]);
+    expect([store.editing, store.openings]).toEqual([[], 0]);
+    store.undo();
+    expect(store.view).toBe(before);
+    store.redo();
+    expect(store.view).toBe(after);
+    expect(seen).toEqual([after, before, after]);
+    const loaded = createStore(store.snapshot(), { clock: testClock() });
+    loaded.undo();
+    expect(loaded.view).toEqual(before);
+  });
+
+  it("changes nothing where one of them or the editor is refused", () => {
+    const store = mixed();
+    const { view, journal, sessions } = store;
+    let calls = 0;
+    store.subscribe(() => {
+      calls += 1;
+    });
+    expect(refusal(store.edit(G1, [S, rename("nowhere", "X")]))).toEqual({
+      code: "unknown_target",
+      path: [addressKey(at("nowhere"))],
+    });
+    expect(refusal(store.edit(G1, [S, rename("annotations", "A")]))).toEqual({
+      code: "side_effect",
+      path: [addressKey(at("annotations"))],
+    });
+    expect(refusal(store.edit({}, [S]))).toEqual({ code: "no_editor", path: ["{}"] });
+    expect(store.edit(G1, [])).toBeNull();
+    expect([store.view, store.journal, store.sessions, calls]).toEqual([
+      view,
+      journal,
+      sessions,
+      0,
+    ]);
+    expect(store.view).toBe(view);
+  });
+
+  it("nests in the open editor, and is that editor's own changes in its own", () => {
+    const store = mixed();
+    expect(store.open({ block: BUNDLE })).toBeNull();
+    const opened = store.view;
+    expect(store.edit(G1, [S, P])).toBeNull();
+    expect(store.entries.map(isSessionEntry)).toEqual([true]);
+    store.undo();
+    expect(store.view).toBe(opened);
+    store.cancel();
+    expect(store.open(G2)).toBeNull();
+    expect(store.edit(G1, [S, P])).toEqual({
+      code: "not_inside",
+      message: "group 'Performance' does not lie inside group 'Facsimile'",
+      path: [addressKey(G1)],
+    });
+    store.cancel();
+    expect(store.open(G1)).toBeNull();
+    const own = store.view;
+    expect(store.edit(G1, [S, P])).toBeNull();
+    const renamed = store.view;
+    expect(store.entries.map((item) => (isSessionEntry(item) ? null : item.command))).toEqual([
+      S,
+      P,
+    ]);
+    store.undo();
+    expect([store.view === own, store.view === renamed, store.canUndo]).toEqual([
+      false,
+      false,
+      true,
+    ]);
+    store.undo();
+    expect(store.view).toBe(own);
   });
 });
