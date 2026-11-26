@@ -29,11 +29,12 @@ import {
   type PreparedBand,
   type Side,
 } from "./bands.ts";
+import type { AxisTimestamp } from "./boxes.ts";
 import { P } from "./constants.ts";
 import type { Cut } from "./elements.ts";
 import { type Extent, labelTiers, Rows, tieredFit, widen } from "./fit.ts";
 import { flowControlBand } from "./flow.ts";
-import { type LevelZero, levelZero, ownTiers, type StagedZero } from "./line.ts";
+import { drawnEntries, type LevelZero, levelZero, ownTiers, type StagedZero } from "./line.ts";
 import { conversionMapsBand, drawMaps, type MapMember, mapMembers, type Slots } from "./maps.ts";
 import { type MarkersBand, markersBand, type StagedMarkers, wedgeElement } from "./markers.ts";
 import { regionsAlone, regionsBand, type StagedRegions } from "./regions.ts";
@@ -192,7 +193,9 @@ export interface TimelineDrawing {
  * The timelines whose content the bands of the line `line` draw (section
  * 6.4, Segments without a line): `line` itself, then, when it is a segment
  * line, each of its displayed segments that is no segment line, in
- * traversal order. Such a segment's bands lie at `line`'s line: what each of
+ * traversal order; on a switched card's root (section 8.10), the root and
+ * its drawing in each stretch piece of its FlowMap, in their order. Such a
+ * segment's or piece's bands lie at `line`'s line: what each of
  * its displayed bands holds joins the band of `line` of the same facet, after
  * `line`'s own content; its own band order places nothing. None when `line`
  * is not displayed, which hides its timeline's whole drawing (section 2.4):
@@ -201,7 +204,6 @@ export interface TimelineDrawing {
  */
 export function sourcesOf(scope: Scope, line: Entry): readonly Entry[] {
   if (!line.drawn) return [];
-  if (!line.manifest.is_segment_line) return [line];
   return (scope.index.sourcesByLine.get(line) ?? []).filter((entry) => entry.line || entry.drawn);
 }
 
@@ -267,9 +269,7 @@ export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
   const order = bandOrderOf(scope.manifest, id);
   const sources = sourcesOf(scope, line);
   const children = sources.flatMap((source) =>
-    (scope.index.childrenByParent.get(source.manifest.id) ?? []).filter(
-      (entry) => entry.line && entry.drawn,
-    ),
+    (scope.index.childrenByParent.get(source) ?? []).filter((entry) => entry.line && entry.drawn),
   );
   const maps = mapMembers(scope, sources);
   const stages: Stages = {
@@ -598,16 +598,30 @@ export function layoutTimeline(
             const [first, second] = distances.map((distance) => at.yAt(side, distance));
             return { y1: Math.min(first ?? 0, second ?? 0), y2: Math.max(first ?? 0, second ?? 0) };
           })();
-    const marker: LineMarker = {
-      line: drawnLine,
-      marker: {
-        wedge: { yt: wedge.yt, corners: wedge.corners, style: wedge.style },
-        crossSection: { span: { y1: span[0], y2: span[1] }, gap, style: unnamed.crossSection },
-        descendants,
-      },
-      timestamps: prepared.markers.timestamps(at, span),
+    const marker = {
+      wedge: { yt: wedge.yt, corners: wedge.corners, style: wedge.style },
+      crossSection: { span: { y1: span[0], y2: span[1] }, gap, style: unnamed.crossSection },
+      descendants,
     };
-    return { ...merged, markers: [marker] };
+    const timestamps = prepared.markers.timestamps(at, span);
+    const entries = drawnEntries(scope, line);
+    if (entries.length !== merged.line.length) {
+      throw new Error("a line draws one element for each entry it draws");
+    }
+    if (merged.line.length === 1) {
+      return { ...merged, markers: [{ line: drawnLine, entry: line, marker, timestamps }] };
+    }
+    // A root drawn once in each piece of a switched frame (section 8.10): each piece holds the
+    // timestamps over it, each in the first piece that reaches its abscissa.
+    const taken = new Set<AxisTimestamp>();
+    const markers = merged.line.map((element, index): LineMarker => {
+      const own = timestamps.filter(
+        (item) => !taken.has(item) && element.xs <= item.x && item.x <= element.xe,
+      );
+      for (const item of own) taken.add(item);
+      return { line: element, entry: nth(entries, index), marker, timestamps: own };
+    });
+    return { ...merged, markers };
   };
 
   return {

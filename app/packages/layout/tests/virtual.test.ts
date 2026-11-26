@@ -136,9 +136,10 @@ describe("placed virtual timelines", () => {
     const drawing = drawFixture("flow/virtual_cards", [], PLACED);
     const id = "allegro_by_hand";
     const { xs: x0, xe, y, end, gapLines } = lineOf(drawing, id);
-    const n = lx(1906, 3054) - lx(953 / 2, 3054);
-    const x = (t: number) => x0 + (lx(t, 3054) - (t >= 1906 ? n : 0));
-    expect([xe, end]).toEqual([x0 + (L - n), "circle"]);
+    // After the run gap `[953/2, 1906]` a position lies at `x(953/2) + (L × u − L × u(1906))`.
+    const after = (value: number) => lx(953 / 2, 3054) + (value - lx(1906, 3054));
+    const x = (t: number) => x0 + (t >= 1906 ? after(lx(t, 3054)) : lx(t, 3054));
+    expect([xe, end]).toEqual([x0 + after(L), "circle"]);
     expect(gapLines).toEqual([[x(1906), x(1910)]]);
     expect(chunksOf(drawing, id)).toEqual([
       ["region", [0], x(0), x(953 / 2)],
@@ -149,6 +150,12 @@ describe("placed virtual timelines", () => {
       ["label", [4, "label"], "4 ♩", x(1908)],
       ["label", [5, "label"], "C", x(2482)],
     ]);
+    // The gap entry starts where the run's first entry ends, so its label shares the first row.
+    const baseline = (k: number) => {
+      const label = element(drawing, chunk(id, k, "label"));
+      return label.type === "label" ? label.baseline : label.type;
+    };
+    expect(baseline(4)).toBe(baseline(0));
   });
 
   it("name their cards with the source they unfold", () => {

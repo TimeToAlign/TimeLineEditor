@@ -131,7 +131,8 @@ const believedStyle = (scope: Context, style: Style, element: FlowControlElement
 
 /**
  * The flow-control elements the flow control band of `line` lays out
- * (section 6.4, Flow control): none but for the root of the member drawing,
+ * (section 6.4, Flow control): none on a switched card (section 8.10), and
+ * none but for the root of the member drawing,
  * whose band lays out those of every timeline of its tree in traversal
  * order, each timeline's in the order of its `flow_control`, each at its
  * timeline's start plus its coordinate; for a member that is a child
@@ -148,7 +149,10 @@ const believedStyle = (scope: Context, style: Style, element: FlowControlElement
 function gathered(scope: Scope, line: Entry): readonly Gathered[] {
   const { rootEntry, cascade } = scope;
   const own = rootEntry.bands.flow_control;
-  if (line !== rootEntry || !rootEntry.drawn || !shown(own.style)) return [];
+  // A switched card has no flow control band (section 8.10).
+  if (line !== rootEntry || scope.unfolding !== null || !rootEntry.drawn || !shown(own.style)) {
+    return [];
+  }
   const keyed = (
     type: ElementType | null,
     at: ElementAddress,

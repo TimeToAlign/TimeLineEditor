@@ -2478,8 +2478,9 @@ FlowMaps `default` (A B A C), `single` (A C), `printed` (A B C) and
 single" (3241/2) and `allegro_by_hand` "Allegro, practice" (3054). Every
 x below is `x0 + (L × u − D)`, `x0` the start of the card's line as drawn
 (its `xs`), `L` 400, `u` the exact quotient of the position and the
-virtual length rounded once to a double, `D` the shrinks of the run gaps
-before it (section 3.2); every ordinate of a boundary is the line's `y`
+virtual length rounded once to a double, `D` 0 before every run gap; a
+position at or after the end `b` of a run gap `[a, b]` lies at `x0 + (L ×
+u(a) + (L × u − L × u(b)))` instead (section 8.10, Runs); every ordinate of a boundary is the line's `y`
 less and plus `k` = 8.
 
 1. **Places decide.** `flow/virtual_cards` at the default placement
@@ -2492,7 +2493,8 @@ less and plus `k` = 8.
 2. **The line.** Each virtual card's line is a `timeline` element at
    `{id: V}`, starting in a circle and ending in the end circle of a
    locked root at `x(λ)`: `x0 + 400` for `allegro_default` and
-   `allegro_single`, `x0 + (400 − n)` for `allegro_by_hand`, `n` below. A
+   `allegro_single`, the run-gap rule's `x(3054)` for `allegro_by_hand`
+   (item 5). A
    virtual timeline's line is green as `allegro`'s, its unit's.
 3. **The chunks of `default`.** Pieces `[0, 953/2]` at 0, `[953/2, 500]`
    at 953/2, `[0, 953/2]` at 500, `[500, 1644]` at 1953/2; λ = 4241/2.
@@ -2508,14 +2510,18 @@ less and plus `k` = 8.
 5. **A run drawn once, and a gap: `by_hand`.** Pieces of A at 0, 953/2,
    953, 2859/2, the gap `[1906, 1910]`, C at 1910 to 3054. Entries 0 to 3
    are a run of four in a card the block holds: its run gap spans `[953/2,
-   1906]`, its shrink `n = 400 × u(1906) − 400 × u(953/2)`, so every
-   position from 1906 on lies `n` further left. Brace 0 runs from `x0` to
+   1906]`, so every position `t` from 1906 on lies at `x0 + (400 ×
+   u(953/2) + (400 × u(t) − 400 × u(1906)))`, and 1906 itself exactly where
+   brace 0 ends; the line ends there for `t` = 3054. Brace 0 runs from `x0` to
    `x0 + 400 × u(953/2)` and is labelled `A × 4` (U+00D7); entries 1 to 3
    draw no brace, label or boundary. Entry 4, the gap, draws no brace and
    its label `4 ♩` (the pretty text of its length on `allegro`'s axis)
    centred on `x(1908)`. Brace 5 runs from `x(1910)` to `x(3054)`,
    labelled C. Boundaries at entries 4 and 5, at `x(1906)` and `x(1910)`.
-   The line's `gapLines` are `[[x(1906), x(1910)]]`.
+   The line's `gapLines` are `[[x(1906), x(1910)]]`. Since the gap entry
+   starts exactly where brace 0 ends, its label lies on the first row,
+   at brace 0's label's baseline (a `D` rounded once more would start it an
+   ulp left of that end and move it to a second row).
 6. **The name.** With names drawn whole (`max-width: none`), the cards'
    names read `Allegro, practice · unfolded from Allegro`, `Allegro,
    default · unfolded from Allegro` and `Allegro, single · unfolded from
@@ -2534,6 +2540,91 @@ less and plus `k` = 8.
    C, boundaries at entries 1 to 5, at `x(953/2)`, `x(953)`, `x(2859/2)`,
    `x(1906)`, `x(1910)` with `D` = 0, and the gap line `[[x(1906),
    x(1910)]]`.
+
+## Switched cards (`switched.test.ts`)
+
+Section 8.10 (Switched cards, Switched frames, Runs), with sections 2.4
+and 2.5 (`flow`), is the oracle. The fixtures are `flow/switched_card`
+(the root `allegro` of `flow/virtual_cards`, its card switched to the
+FlowMap `default` by the manifest's own rule) and `groups/switched_frame`
+(the same, `allegro` a member of the frame `performance` with `recording`,
+702.5 seconds, and the named timestamps `timestamp_1` (0) and
+`timestamp_2` (1644) on `allegro`, `timestamp_3` (0.0) and `timestamp_4`
+(702.5) on `recording`); a variant is the fixture with its rule's `flow`,
+its FlowMaps or its timeline's children written onto it, nothing else.
+The pieces of `default` are `[0, 953/2]` at 0, `[953/2, 500]` at 953/2,
+`[0, 953/2]` at 500 and `[500, 1644]` at 1953/2, `Λ` = 4241/2; every x
+below is `x0 + 400 × u`, `x0` the `xs` of the card's first line element,
+`u` the exact quotient of the played position and `Λ` rounded once to a
+double, every ordinate of a boundary the line's `y` less and plus 8. What
+proves the switch is that every position is the played one computed from
+the FlowMap alone, every label the written one, and that a rule outside
+the manifest's own layer or with another selector switches nothing.
+
+1. **The cascade.** A card's `flow` is null unless a rule of the highest
+   layer whose selector names `addresses` alone, each `{id, part:
+   ["card"]}`, sets it: `{flow: "default"}` on `{addresses: [{id:
+   "allegro", part: ["card"]}]}` gives `default` in a one-layer cascade,
+   null when another layer follows it, null with the selector `{addresses:
+   [{id: "allegro"}]}` or `{element: "card"}`; it is not inherited (the
+   card's line reads null).
+2. **The switched card.** `flow/switched_card` draws one `timeline`
+   element `{id: "allegro"}` from `x(0)` to `x(4241/2)`, start and end
+   circles; braces `{id: "allegro", facet: "regions", part: [k]}`, k = 0 …
+   3, from `x(0)`, `x(953/2)`, `x(500)`, `x(1953/2)` to `x(953/2)`,
+   `x(500)`, `x(1953/2)`, `x(4241/2)`, labelled A, B, A, C; boundaries at
+   k = 1, 2, 3 at their starts; the row name `Allegro · default`; no
+   element of its flow control (`volta_jump`, `repeat_end`,
+   `second_ending`, `volta_break`) and no flow control band record.
+3. **Drawn as written.** The same rule in an application layer instead
+   of the manifest's (the manifest's rule removed) draws the card as
+   written: one line from `x0` to `x0 + 400`, no chunk element, the row
+   name `Allegro`, the flow control drawn.
+4. **A virtual timeline named.** `flow` naming `allegro_single` switches
+   to `single`: braces A over `[x(0), x(953/2)]` and C over `[x(953/2),
+   x(3241/2)]` (`Λ` = 3241/2), the row name `Allegro · Allegro, single`.
+5. **A run drawn once.** `flow` naming `by_hand` on the ungrouped card:
+   brace 0 `A × 4` to `x(953/2)`, entries 1 to 3 drawn not, the gap's
+   label `4 ♩`, brace 5 C, the line ending at `x0 + (400 × u(953/2) +
+   (400 − 400 × u(1906)))`, as on the virtual card (Virtual cards, 5).
+6. **Regions unfolded.** With an application layer showing every region
+   (`{element: "region"}` → `display: inline`, over the default hiding of
+   atomic sections), `allegro`'s regions follow the chunks piece by piece:
+   `section_a` over `[x(0), x(953/2)]`, `section_b` over `[x(953/2),
+   x(500)]`, `section_a` over `[x(500), x(1953/2)]`, `section_c` over
+   `[x(1953/2), x(4241/2)]`, each with its label (A, B, A, C).
+7. **A child cut by the pieces.** `allegro` with a locked child `motif`
+   (offset 400, length 200, so over `[400, 600]`): four `child` elements
+   `{id: "motif"}`, over `[x(400), x(953/2)]` (circle, no end mark),
+   `[x(953/2), x(500)]` (no marks), `[x(900), x(1953/2)]` (circle, no end
+   mark) and `[x(1953/2), x(2153/2)]` (no start mark, diamond), all on one
+   row named `motif` once.
+8. **Named timestamps at every played position.** In
+   `groups/switched_frame`, `allegro`'s card draws the wedge of
+   `timestamp_1` at `x(0)` and `x(500)` and of `timestamp_2` at
+   `x(4241/2)` (the last piece holds its end), labelled `0 ♩`, `0 ♩` and
+   `1644 ♩`, the written coordinates.
+9. **A switched frame.** In `groups/switched_frame`, `recording` is
+   carried through the group (`t = m × 1644 / 702.5`) and its line is
+   drawn once per piece: four `timeline` elements `{id: "recording"}` over
+   the four pieces' x, the marks (circle, none), (none, none), (circle,
+   none), (none, arrowhead): a start circle where a piece starts at its
+   zero, its arrowhead at its end. Its timestamps draw at `x(0)`, `x(500)`
+   (`0″` twice) and `x(4241/2)` (`11′42.5″`). Only `allegro`'s card draws
+   chunks; no elision is drawn.
+10. **Two switched cards.** With a region `take` "Take" over the whole of
+    `recording`, `[0.0, 702.5]`, a FlowMap `twice` of `recording`
+    (`["take", "take"]`) and the rule switching `recording`'s card to it
+    beside `allegro`'s, the frame is drawn as written: one line each, no
+    chunk element.
+11. **A carried virtual member.** `groups/virtual_member` with that
+    region, that FlowMap `twice` and `recording`'s card switched to it: the frame is
+    switched by `recording`'s card, `Λ` = 1405.0, and the virtual card of
+    `allegro_default` (4241/2) is carried (`t = m × 702.5 / (4241/2)`): its
+    line is drawn twice, its four chunk braces twice (eight, k = 0, 1, 2,
+    3, 0, 1, 2, 3) and its boundaries k = 1, 2, 3 twice; `recording`'s
+    card draws the braces of `twice`, k = 0 and 1, both labelled `Take`
+    (no run is drawn once in a frame).
 
 ## Named timestamps (`timestamps.test.ts`)
 

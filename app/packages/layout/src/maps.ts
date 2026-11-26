@@ -52,9 +52,12 @@ export interface Slots {
  * they are taken: the displayed maps of each of `sources`, the line first
  * and then each joined segment, each one's in canonical order, each with the
  * extent of the timeline it spans. A map adds nothing to its line's extent.
+ * None on a switched card (section 8.10).
  */
 export function mapMembers(scope: Scope, sources: readonly Entry[]): MapMember[] {
   const { mapped, relativeX, relativeEnd } = scope;
+  // A switched card has no conversion maps band: a map has no form per piece (section 8.10).
+  if (scope.unfolding !== null) return [];
   return sources.flatMap((source) =>
     shown(source.bands.conversion_maps.style)
       ? source.manifest.conversion_maps.flatMap((map) => {
