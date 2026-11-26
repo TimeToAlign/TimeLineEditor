@@ -38,18 +38,12 @@ import {
   placeKeyText,
   prettyText,
   samePlaceKey,
-  snapOnRow,
-  timelineAxisOf,
 } from "@timetoalign/tilie-core";
 import { anchorsOf } from "@timetoalign/tilie-core/drawing";
 import {
-  axisCoordinate,
-  axisValueOf,
-  exactCoordinate,
   fromFloat,
   Rational,
   type Real,
-  realOf,
   toFloat,
   toRational,
 } from "@timetoalign/tilie-core/numbers";
@@ -66,6 +60,7 @@ import type { DrawingPoint, Stacking } from "./boxes.ts";
 import { keyedBox, raisedRoot, stackingOf } from "./boxes.ts";
 import type { CardAxis, GapEdge } from "./cardAxis.ts";
 import { cardAxisOf, zeroOf } from "./cardAxis.ts";
+import { axisValue, exactOn, max, min, snappedOn, timelineTargets } from "./edgeValues.ts";
 import type { BlockNode } from "./node.ts";
 
 export type { GapEdge } from "./cardAxis.ts";
@@ -292,11 +287,6 @@ export function gapText(manifest: Manifest, piece: GapPiece): string {
   return `${timeline.name ?? id}, ${stretchText(timeline, start, end)}, elided`;
 }
 
-/** A value on `timeline`'s own axis read exact. */
-function exactOn(value: Elision["start"], timeline: TimelineManifest): Rational {
-  return toRational(realOf(axisCoordinate(value, timeline)));
-}
-
 /** What the handles and keys of a selected stored elision act on, in one piece. */
 export interface GapSubject {
   readonly piece: GapPiece;
@@ -450,10 +440,6 @@ function memberSpan(
   return [zero, zero.add(end)];
 }
 
-/** The larger and the smaller of two exact values. */
-const max = (a: Rational, b: Rational) => (a.compare(b) >= 0 ? a : b);
-const min = (a: Rational, b: Rational) => (a.compare(b) <= 0 ? a : b);
-
 /**
  * Where the `edge` of `subject` may lie, on its timeline's own axis: from
  * its timeline's start to its known end, never across a kept stretch
@@ -481,33 +467,9 @@ function heldEdge(subject: GapSubject, edge: GapEdge, value: Rational): Rational
  * children, and the ends of every kept stretch.
  */
 function targetsOf(subject: GapSubject): Rational[] {
-  const { timeline } = subject;
-  const targets = [ZERO];
-  if (timeline.length !== null) targets.push(exactOn(timeline.length, timeline));
-  for (const child of timeline.children) {
-    const offset = exactOn(child.offset, timeline);
-    targets.push(offset);
-    if (child.length !== null) targets.push(offset.add(exactOn(child.length, timeline)));
-  }
+  const targets = timelineTargets(subject.timeline);
   for (const [a, b] of subject.kept) targets.push(a, b);
   return targets;
-}
-
-/**
- * The simplest value of `timeline`'s number type within `reach` of `p` on
- * its own axis (core's `snapOnRow` on a spec of that timeline alone: an int
- * axis the nearest integer).
- */
-function snapped(
-  block: BlockId,
-  timeline: TimelineManifest,
-  p: number,
-  reach: number,
-  granularity: Granularity,
-): Rational | null {
-  if (!Number.isFinite(p) || !(reach > 0) || !Number.isFinite(reach)) return null;
-  const spec = { block, granularity, anchor: timelineAxisOf(timeline, []), members: [] };
-  return snapOnRow(spec, { timeline: timeline.id, map: null }, p, reach, "no_server");
 }
 
 /**
@@ -648,7 +610,7 @@ export function gapDrag(
     }
     const found =
       best?.value ??
-      snapped(context.block, subject.timeline, wanted, reach / k, context.granularity);
+      snappedOn(context.block, subject.timeline, wanted, reach / k, context.granularity);
     value = found === null ? null : heldEdge(subject, edge, found);
   }
   const sign = edge === "end" ? 1 : -1;
@@ -680,7 +642,7 @@ export function gapStep(
   let value: Rational | null = null;
   if (modes.coordinates) {
     const units = step / k;
-    const moved = snapped(
+    const moved = snappedOn(
       context.block,
       subject.timeline,
       toFloat(current) + direction * units,
@@ -699,12 +661,6 @@ export function gapStep(
   const sign = edge === "end" ? 1 : -1;
   const grown = (sign * direction * step) / subject.axis.exposure.place.scale;
   return changeOf(subject, edge, modes, value, grown);
-}
-
-/** An exact value on `timeline`'s own axis as a command writes it; `undefined` where its number type cannot hold it. */
-function axisValue(value: Real, timeline: TimelineManifest) {
-  const coordinate = exactCoordinate(value, timeline.unit, timeline.number_type);
-  return coordinate === undefined ? undefined : axisValueOf(coordinate.value);
 }
 
 /** A stored width as a command writes it: a span on its timeline's own axis. */

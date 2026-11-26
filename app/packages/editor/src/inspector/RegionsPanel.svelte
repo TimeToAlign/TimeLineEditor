@@ -3,7 +3,9 @@
  * The Regions tab (`regions.ts`): the regions of the selected timeline,
  * then each descendant's under its name, one row per region with its ID
  * and type, its name, start and end; a press on the row's head selects the
- * region on the canvas, and the selected regions' rows are marked. Name,
+ * region on the canvas, and the selected regions' rows are marked; the
+ * list stays on its timeline while the selection names regions it lists
+ * (`regionsOf`), so a region is pressed and renamed in place. Name,
  * start and end are edited as the Properties tab edits its fields: typed
  * text is a draft of the inspector's `PropertyDrafts`, Enter or leaving
  * the field commits it as one `set`, Escape drops it, a refusal stands
@@ -14,7 +16,7 @@
 import type { Subject } from "@timetoalign/tilie-arranger";
 import type { Address, Block, Command, Manifest, Store } from "@timetoalign/tilie-core";
 import type { PropertyDrafts } from "./propertyDrafts.svelte.ts";
-import type { RegionField, RegionRow } from "./regions.ts";
+import type { Listed, RegionField, RegionRow } from "./regions.ts";
 import { regionFieldCommand, regionsOf } from "./regions.ts";
 
 let {
@@ -36,8 +38,18 @@ let {
 
 const uid = $props.id();
 
+/**
+ * The timeline the tab listed last, which a selection of its regions
+ * keeps; read and written only by `shown`, so it is no state of its own.
+ */
+let listed: Listed | null = null;
+
 /** What the tab lists; `null` without one selected timeline. */
-const shown = $derived(regionsOf(block, subjects));
+const shown = $derived.by(() => {
+  const next = regionsOf(block, subjects, listed);
+  listed = next === null ? null : { block: next.block.id, timeline: next.timeline.id };
+  return next;
+});
 
 /** What the tab says when no timeline is selected. */
 const HINT = "Select a timeline, its card or one of its regions to list its regions.";

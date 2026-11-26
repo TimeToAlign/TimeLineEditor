@@ -8,10 +8,11 @@ import { liveStore, resolveSelection, selectionOf } from "@timetoalign/tilie-arr
 import type { Address, Command, ElementAddress, Problem, Store } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
+import { SvelteMap } from "svelte/reactivity";
 import { afterEach, describe, expect, it } from "vitest";
 import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import RegionsPanel from "../src/inspector/RegionsPanel.svelte";
-import type { RegionRow, RegionsShown } from "../src/inspector/regions.ts";
+import type { Listed, RegionRow, RegionsShown } from "../src/inspector/regions.ts";
 import { addRegionCommand, regionFieldCommand, regionsOf } from "../src/inspector/regions.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
 import { blockId, storeOf } from "./support.ts";
@@ -43,8 +44,17 @@ const subjectsOf = (store: Store, ...elements: ElementAddress[]) =>
   );
 
 function shownOf(store: Store, ...elements: ElementAddress[]): RegionsShown | null {
+  return keptOf(store, null, ...elements);
+}
+
+/** What the tab shows of `elements` with `listed` listed before. */
+function keptOf(
+  store: Store,
+  listed: Listed | null,
+  ...elements: ElementAddress[]
+): RegionsShown | null {
   const subjects = subjectsOf(store, ...elements);
-  return regionsOf(selectedBlock(store.view, subjects), subjects);
+  return regionsOf(selectedBlock(store.view, subjects), subjects, listed);
 }
 
 /** What a row shows, its address and its removal. */
@@ -162,6 +172,37 @@ describe("the timeline listed", () => {
   });
 });
 
+describe("the list kept", () => {
+  const SCORE: Listed = { block: A, timeline: "score" };
+
+  it("stays on the timeline listed before while its regions or its descendants' are selected", () => {
+    const store = styled();
+    const score = [
+      [null, "score", [INTRO]],
+      ["b", "b", [MOTIF_ROW]],
+    ];
+    expect(sectionsOf(keptOf(store, SCORE, { id: "motif" }))).toEqual(score);
+    expect([...(keptOf(store, SCORE, { id: "motif" })?.selected ?? [])]).toEqual(["motif"]);
+    expect(sectionsOf(keptOf(store, SCORE, { id: "intro" }))).toEqual(score);
+    expect(sectionsOf(keptOf(store, SCORE, { id: "intro" }, { id: "motif" }))).toEqual(score);
+    expect(sectionsOf(keptOf(store, SCORE, { id: "motif", part: ["label"] }))).toEqual(score);
+  });
+
+  it("follows a selection naming a timeline or a region not listed", () => {
+    const store = styled();
+    const b = [[null, "b", [MOTIF_ROW]]];
+    expect(sectionsOf(keptOf(store, SCORE, { id: "b" }))).toEqual(b);
+    expect(sectionsOf(keptOf(store, { block: A, timeline: "b" }, { id: "intro" }))).toEqual([
+      [null, "score", [INTRO]],
+      ["b", "b", [MOTIF_ROW]],
+    ]);
+    expect(
+      sectionsOf(keptOf(store, { block: "elsewhere", timeline: "score" }, { id: "motif" })),
+    ).toEqual(b);
+    expect(sectionsOf(keptOf(store, { block: A, timeline: "gone" }, { id: "motif" }))).toEqual(b);
+  });
+});
+
 describe("the commands", () => {
   it("add a region over the whole timeline, or up to its reach, without an ID", () => {
     const store = styled();
@@ -225,12 +266,23 @@ describe("the panel", () => {
     document.body.innerHTML = "";
   });
 
+  /** The selection the mounted panel reads, changed by `select`. */
+  const selection = new SvelteMap<"now", readonly ElementAddress[]>();
+
+  function select(...elements: ElementAddress[]): void {
+    selection.set("now", elements);
+    flushSync();
+  }
+
   function show(store: Store, ...elements: ElementAddress[]): void {
     const live = liveStore(store);
+    selection.set("now", elements);
     const subjects = () =>
       resolveSelection(
         live.view,
-        selectionOf(elements.map((element): Address => ({ block: A, ...element }))),
+        selectionOf(
+          (selection.get("now") ?? []).map((element): Address => ({ block: A, ...element })),
+        ),
         null,
         fontMetrics,
       );
@@ -388,6 +440,46 @@ describe("the panel", () => {
       region: { start: [0, 1], end: [8, 1] },
     });
     expect(status()).toBe(answers.at(-1)?.message ?? "");
+  });
+
+  it("keeps its list while a listed region is pressed, selected and renamed", () => {
+    const store = styled();
+    show(store, { id: "score", part: ["card"] });
+    const entries = store.listed.length;
+    rowNamed("motif").querySelector<HTMLButtonElement>(".select")?.click();
+    expect(selected).toEqual([[at("motif")]]);
+    select({ id: "motif" });
+    const listing = () => [
+      [...document.querySelectorAll("h3")].map((heading) => heading.textContent),
+      rows().map((row) => [
+        row.querySelector(".id")?.textContent,
+        row.classList.contains("selected"),
+      ]),
+    ];
+    expect(listing()).toEqual([
+      ["b"],
+      [
+        ["intro", false],
+        ["motif", true],
+      ],
+    ]);
+    enter(input("motif", "name"), "Motif");
+    expect(store.listed.length).toBe(entries + 1);
+    expect(store.listed.at(-1)?.entry).toMatchObject({
+      command: { type: "set", changes: [{ target: at("motif"), values: { name: "Motif" } }] },
+    });
+    expect([listing(), input("motif", "name").value]).toEqual([
+      [
+        ["b"],
+        [
+          ["intro", false],
+          ["motif", true],
+        ],
+      ],
+      "Motif",
+    ]);
+    select({ id: "b" });
+    expect(listing()).toEqual([[], [["motif", false]]]);
   });
 
   it("shows atomic sections as text", () => {
