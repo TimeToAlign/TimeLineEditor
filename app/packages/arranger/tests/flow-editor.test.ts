@@ -13,7 +13,7 @@ import { drawingOf } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
 import { editorOf, editorTargetOf } from "../src/editors.ts";
 import { FlowEditorSession, type FlowServer, type FlowTarget } from "../src/flowEditor.svelte.ts";
-import { flowRows, recomputeCommands } from "../src/flowEditor.ts";
+import { cardChoices, flowRows, recomputeCommands } from "../src/flowEditor.ts";
 import { flowPaneOf } from "../src/flowEditorRows.ts";
 import {
   dropAt,
@@ -197,6 +197,32 @@ describe("rows", () => {
     expect(found.slice(1)).toEqual(plain.slice(1));
     const one = flowRows(block.manifest, ROOT, new Map([["single", ["only"]]]));
     expect(one[2]?.chips.at(-1)).toEqual({ kind: "findings", text: "1 finding", title: "only" });
+  });
+});
+
+describe("the card's choices", () => {
+  /** The texts of the card's choices of the Regions of `manifest`'s root. */
+  const regionTexts = (manifest: Manifest) =>
+    cardChoices(manifest, ROOT)
+      .filter((choice) => choice.dragged.kind === "element")
+      .map((choice) => choice.text);
+
+  it("name an atomic section so, its class written in any spelling of its IRI", () => {
+    const named = ["A (atomic section)", "B (atomic section)", "C (atomic section)"];
+    expect(regionTexts(block.manifest)).toEqual(named);
+    const [root] = block.manifest.timelines;
+    if (root === undefined) throw new Error("no root");
+    const iri = "https://timetoalign.github.io/timetoshare/ns#AtomicSection";
+    const written: Manifest = {
+      ...block.manifest,
+      timelines: [
+        {
+          ...root,
+          regions: root.regions.map((region) => ({ ...region, statements: { type: [iri] } })),
+        },
+      ],
+    };
+    expect(regionTexts(written)).toEqual(named);
   });
 });
 

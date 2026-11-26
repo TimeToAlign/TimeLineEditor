@@ -26,8 +26,13 @@ import {
   leaderKey,
   type MemberDrawing,
   orderedChildren,
+  type Piece,
+  type PlayedSpan,
+  playedAt,
+  playedSpan,
   reachOf,
   textKey,
+  type Unfolding,
 } from "@timetoalign/tilie-core/drawing";
 import type { Rational, Real } from "@timetoalign/tilie-core/numbers";
 import type { ElementType } from "@timetoalign/timetoshare";
@@ -37,14 +42,7 @@ import { ROW_PITCH } from "./constants.ts";
 import type { GapOrigin, LineEnd, Placement } from "./elements.ts";
 import { cleanText, type TextMeasure } from "./metrics.ts";
 import { add, coordinateValue, lengthValue, proportion, zero } from "./numbers.ts";
-import {
-  type Piece,
-  type PlayedSpan,
-  playedAt,
-  playedSpan,
-  type Unfolding,
-  unfoldedRoot,
-} from "./switched.ts";
+import { unfoldedRoot } from "./switched.ts";
 
 /** A drawn element: its address and its cascaded style. */
 export interface Styled {

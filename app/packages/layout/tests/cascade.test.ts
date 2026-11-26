@@ -1,4 +1,4 @@
-import { addressKey, idAddress, sameAddress } from "@timetoalign/tilie-core";
+import { addressKey, idAddress, type Manifest, sameAddress } from "@timetoalign/tilie-core";
 import { BLOCK_KEY, bandKey, manifestElements } from "@timetoalign/tilie-core/drawing";
 import type { Address, Graphical, Rule, Selector } from "@timetoalign/timetoshare";
 import { describe, expect, it, vi } from "vitest";
@@ -15,6 +15,7 @@ import {
 import {
   at,
   CHILD_REGIONS_HIDDEN,
+  childMemberTwice,
   drawFixture,
   edit,
   element,
@@ -560,82 +561,103 @@ describe("maps by target unit", () => {
   });
 });
 
+/**
+ * That every element `manifest` draws, every ancestor card shown, is listed
+ * by core's `manifestElements` with its type, as often as it is drawn at
+ * least.
+ */
+function expectEnumerated(manifest: Manifest): void {
+  // Keyed by each address's one string form.
+  const listed = new Map<string, string[]>();
+  for (const key of manifestElements(manifest)) {
+    if (key.type === null) continue;
+    const own = addressKey(key.address);
+    listed.set(own, [...(listed.get(own) ?? []), key.type]);
+  }
+  // Every ancestor card shown, so that its drawing is checked with the rest.
+  const drawing = draw(
+    manifest,
+    DEFAULT_PLACEMENT,
+    [
+      DEFAULT_LAYER,
+      { rules: [{ select: { element: "ancestor_card" }, set: { display: "inline" } }] },
+      manifestLayer(manifest),
+    ],
+    metrics,
+  );
+  const cards = drawing.boxes.filter((box) => box.kind === "card");
+  const frames = drawing.boxes.filter((box) => box.kind === "frame");
+  // The jumps, each drawn as one arc per destination, each arc with a label of its own.
+  const jumps = new Set(
+    [...listed].flatMap(([own, types]) => (types.includes("jump") ? [own] : [])),
+  );
+  // One drawing of an address: an element, but the pieces a cross-section line is drawn in
+  // across a card, on either side of its gap, which are one drawing of that card, the arcs of
+  // a jump in a card and their labels, which are one drawing of that card each, and the
+  // pieces a groupstamp's line is drawn in across a frame, outside every card, which are one
+  // drawing of that frame.
+  const drawingOf = (item: DrawnElement, index: number): string => {
+    const inCard = cards.findIndex(({ range }) => range.start <= index && index < range.end);
+    if (item.type === "cross_section" && inCard !== -1) return `card ${inCard}`;
+    const owner = addressKey(idAddress(item.address.id ?? ""));
+    if (jumps.has(owner) && inCard !== -1) return `card ${inCard}`;
+    const frame =
+      item.type !== "cross_section"
+        ? undefined
+        : frames.find(
+            (box) =>
+              box.x <= item.x &&
+              item.x <= box.x + box.width &&
+              box.y <= item.y1 &&
+              item.y2 <= box.y + box.height,
+          );
+    return frame === undefined ? `element ${index}` : `frame ${frames.indexOf(frame)}`;
+  };
+  // A gap is one drawing of its card, or of its frame, wherever its pieces lie, and its
+  // ellipses, which follow it (section 8.5), are one drawing with it: core lists one ellipsis
+  // key per gap, standing for all of them.
+  const gapOf = (item: DrawnElement, index: number): string => {
+    if (item.type !== "elision") return drawingOf(item, index);
+    const inCard = cards.findIndex(({ range }) => range.start <= index && index < range.end);
+    if (inCard !== -1) return `card ${inCard}`;
+    const frame = frames.find(
+      (box) =>
+        box.x <= item.x1 &&
+        item.x2 <= box.x + box.width &&
+        box.y <= item.yt &&
+        item.yb <= box.y + box.height,
+    );
+    return frame === undefined ? `element ${index}` : `frame ${frames.indexOf(frame)}`;
+  };
+  const lastGap = new Map<string, string>();
+  const drawn = new Map<string, { types: string[]; drawings: Set<string> }>();
+  drawing.elements.forEach((item, index) => {
+    // A default elision and its labels depend on the drawing's geometry, so core lists none.
+    if (item.address.part?.[0] === "elision") return;
+    const own = addressKey(item.address);
+    const entry = drawn.get(own) ?? { types: [], drawings: new Set<string>() };
+    entry.types.push(item.type);
+    if (item.type === "elision") lastGap.set(item.address.id ?? "", gapOf(item, index));
+    entry.drawings.add(
+      item.type === "ellipsis" ? `gap ${lastGap.get(item.address.id ?? "")}` : gapOf(item, index),
+    );
+    drawn.set(own, entry);
+  });
+  for (const [address, { types, drawings }] of drawn) {
+    const keys = listed.get(address) ?? [];
+    expect([...new Set(types)], address).toEqual([...new Set(keys)]);
+    expect(drawings.size, address).toBeLessThanOrEqual(keys.length);
+  }
+}
+
 describe("the elements core enumerates", () => {
   it.each(manifestNames())("include every drawn element of %s with its key", (name) => {
-    // Keyed by each address's one string form.
-    const listed = new Map<string, string[]>();
-    for (const key of manifestElements(loadFile(name))) {
-      if (key.type === null) continue;
-      const own = addressKey(key.address);
-      listed.set(own, [...(listed.get(own) ?? []), key.type]);
-    }
-    // Every ancestor card shown, so that its drawing is checked with the rest.
-    const drawing = drawFixture(name, [
-      { rules: [{ select: { element: "ancestor_card" }, set: { display: "inline" } }] },
-    ]);
-    const cards = drawing.boxes.filter((box) => box.kind === "card");
-    const frames = drawing.boxes.filter((box) => box.kind === "frame");
-    // The jumps, each drawn as one arc per destination, each arc with a label of its own.
-    const jumps = new Set(
-      [...listed].flatMap(([own, types]) => (types.includes("jump") ? [own] : [])),
-    );
-    // One drawing of an address: an element, but the pieces a cross-section line is drawn in
-    // across a card, on either side of its gap, which are one drawing of that card, the arcs of
-    // a jump in a card and their labels, which are one drawing of that card each, and the
-    // pieces a groupstamp's line is drawn in across a frame, outside every card, which are one
-    // drawing of that frame.
-    const drawingOf = (item: DrawnElement, index: number): string => {
-      const inCard = cards.findIndex(({ range }) => range.start <= index && index < range.end);
-      if (item.type === "cross_section" && inCard !== -1) return `card ${inCard}`;
-      const owner = addressKey(idAddress(item.address.id ?? ""));
-      if (jumps.has(owner) && inCard !== -1) return `card ${inCard}`;
-      const frame =
-        item.type !== "cross_section"
-          ? undefined
-          : frames.find(
-              (box) =>
-                box.x <= item.x &&
-                item.x <= box.x + box.width &&
-                box.y <= item.y1 &&
-                item.y2 <= box.y + box.height,
-            );
-      return frame === undefined ? `element ${index}` : `frame ${frames.indexOf(frame)}`;
-    };
-    // A gap is one drawing of its card, or of its frame, wherever its pieces lie, and its
-    // ellipses, which follow it (section 8.5), are one drawing with it: core lists one ellipsis
-    // key per gap, standing for all of them.
-    const gapOf = (item: DrawnElement, index: number): string => {
-      if (item.type !== "elision") return drawingOf(item, index);
-      const inCard = cards.findIndex(({ range }) => range.start <= index && index < range.end);
-      if (inCard !== -1) return `card ${inCard}`;
-      const frame = frames.find(
-        (box) =>
-          box.x <= item.x1 &&
-          item.x2 <= box.x + box.width &&
-          box.y <= item.yt &&
-          item.yb <= box.y + box.height,
-      );
-      return frame === undefined ? `element ${index}` : `frame ${frames.indexOf(frame)}`;
-    };
-    const lastGap = new Map<string, string>();
-    const drawn = new Map<string, { types: string[]; drawings: Set<string> }>();
-    drawing.elements.forEach((item, index) => {
-      // A default elision and its labels depend on the drawing's geometry, so core lists none.
-      if (item.address.part?.[0] === "elision") return;
-      const own = addressKey(item.address);
-      const entry = drawn.get(own) ?? { types: [], drawings: new Set<string>() };
-      entry.types.push(item.type);
-      if (item.type === "elision") lastGap.set(item.address.id ?? "", gapOf(item, index));
-      entry.drawings.add(
-        item.type === "ellipsis" ? `gap ${lastGap.get(item.address.id ?? "")}` : gapOf(item, index),
-      );
-      drawn.set(own, entry);
-    });
-    for (const [address, { types, drawings }] of drawn) {
-      const keys = listed.get(address) ?? [];
-      expect([...new Set(types)], address).toEqual([...new Set(keys)]);
-      expect(drawings.size, address).toBeLessThanOrEqual(keys.length);
-    }
+    expectEnumerated(loadFile(name));
+  });
+
+  it("include every drawn element of a switched frame carrying a child member", () => {
+    // groups/group_child_member switched by recording's FlowMap twice (Switched cards, 12).
+    expectEnumerated(childMemberTwice().manifest);
   });
 });
 

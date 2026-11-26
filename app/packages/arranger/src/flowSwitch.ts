@@ -15,19 +15,18 @@
 import type {
   BlockId,
   Coordinate,
-  ElementAddress,
   Manifest,
   PlaceKey,
   PlayedStretch,
   StyleCommand,
 } from "@timetoalign/tilie-core";
 import {
+  cardFlow,
   displayOrder,
   FlowMapError,
   placeKeyText,
   resolveFlowMap,
   resolveVirtualTimeline,
-  sameAddress,
   samePlaceKey,
 } from "@timetoalign/tilie-core";
 import { realOf } from "@timetoalign/tilie-core/numbers";
@@ -63,9 +62,6 @@ export function switchOffset(menu: number | null): number {
 /** The list's first entry. */
 export const AS_WRITTEN: FlowChoice = { timeline: null, flow: null, label: "As written" };
 
-/** The card address the `flow` rule of `timeline` selects. */
-const cardOf = (timeline: string): ElementAddress => ({ id: timeline, part: ["card"] });
-
 /**
  * The FlowMaps and virtual timelines a card of `timeline` may switch to
  * (section 2.4, the validators' `flow_rule`): where it is a root, each
@@ -85,23 +81,6 @@ export function flowsOf(manifest: Manifest, timeline: string): FlowChoice[] {
     flow: item.id,
     label: item.name ?? item.id,
   }));
-}
-
-/**
- * The `flow` the manifest's own rules set on the cards of `timeline`: that of
- * the last rule selecting `{id: timeline, part: ["card"]}` among its
- * addresses and setting `flow`; `null` where none does.
- */
-export function flowOf(manifest: Manifest, timeline: string): string | null {
-  const card = cardOf(timeline);
-  let found: string | null = null;
-  for (const rule of manifest.graphical?.rules ?? []) {
-    if (typeof rule.set === "string" || rule.set.flow === undefined) continue;
-    if ((rule.select.addresses ?? []).some((address) => sameAddress(address, card))) {
-      found = rule.set.flow;
-    }
-  }
-  return found;
 }
 
 /**
@@ -128,12 +107,12 @@ export function flowChoices(manifest: Manifest, box: DrawnBox): FlowChoice[] | n
 
 /**
  * The entry the switch above `box` shows chosen: the one flow its
- * timelines' cards are switched to where exactly one is (`flowOf`), else
+ * timelines' cards are switched to where exactly one is (core's `cardFlow`), else
  * "As written", as the drawing draws a frame with two switched members.
  */
 export function chosenFlow(manifest: Manifest, box: DrawnBox): FlowChoice {
   const switched = switchedBy(manifest, box).flatMap((timeline) => {
-    const flow = flowOf(manifest, timeline);
+    const flow = cardFlow(manifest, timeline);
     return flow === null ? [] : [{ timeline, flow }];
   });
   const [one] = switched;
@@ -154,7 +133,7 @@ function flowCommand(block: BlockId, timeline: string, flow: string | null): Sty
 /**
  * The commands choosing `choice` on the switch above `box` of block
  * `block`: first one removing `flow` from the cards of every other timeline
- * the box switches that sets one (`flowOf`; "As written" removes it from
+ * the box switches that sets one (`cardFlow`; "As written" removes it from
  * all), then, for a FlowMap or virtual timeline, one setting it on its
  * timeline's cards where they set another or none; none where `choice` is
  * what the cards show already.
@@ -167,12 +146,12 @@ export function flowCommands(
 ): StyleCommand[] {
   const commands: StyleCommand[] = [];
   for (const timeline of switchedBy(manifest, box)) {
-    const flow = flowOf(manifest, timeline);
+    const flow = cardFlow(manifest, timeline);
     if (flow !== null && timeline !== choice.timeline) {
       commands.push(flowCommand(block, timeline, null));
     }
   }
-  if (choice.timeline !== null && flowOf(manifest, choice.timeline) !== choice.flow) {
+  if (choice.timeline !== null && cardFlow(manifest, choice.timeline) !== choice.flow) {
     commands.push(flowCommand(block, choice.timeline, choice.flow));
   }
   return commands;
@@ -264,7 +243,7 @@ export function switchMorphs(manifest: Manifest, before: Drawing, after: Drawing
   const morphs: ChunkMorph[] = [];
   for (const [key, { card, timeline, indices }] of chunked(after)) {
     if (was.has(key)) continue;
-    const flow = flowOf(manifest, timeline);
+    const flow = cardFlow(manifest, timeline);
     if (flow === null) continue;
     const written = writtenOf(manifest, flow);
     const own = lines.filter((axis) => axis.timeline === timeline && samePlaceKey(axis.card, card));

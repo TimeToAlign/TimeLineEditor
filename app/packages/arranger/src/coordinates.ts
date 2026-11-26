@@ -65,7 +65,7 @@ import {
   timestampRows,
   unfoldVirtual,
 } from "@timetoalign/tilie-core";
-import { memberDrawings, orderedChildren } from "@timetoalign/tilie-core/drawing";
+import { memberDrawings, orderedChildren, virtualDrawing } from "@timetoalign/tilie-core/drawing";
 import {
   addReal,
   axisCoordinate,
@@ -297,45 +297,13 @@ function crossedAt<T extends TimelineAxis>(
   return { ...axis, ordinate, ...maps };
 }
 
-const virtualRoots = new WeakMap<Manifest, Map<string, TimelineManifest>>();
-
 /**
- * The virtual timeline `id` of `manifest` read as the root its card draws
- * (TimeToShare's `docs/drawing.md`, section 8.10): a locked root of its ID,
- * name (else its ID), unit, number type and length, holding nothing; once
- * per manifest and ID. Undefined where `id` names no virtual timeline.
+ * The timeline `id` of `manifest`: one of its trees', or a virtual timeline
+ * read as the root its card draws (core's `virtualDrawing`, TimeToShare's
+ * `docs/drawing.md`, section 8.10).
  */
-function virtualRoot(manifest: Manifest, id: string): TimelineManifest | undefined {
-  let known = virtualRoots.get(manifest);
-  if (known === undefined) {
-    known = new Map();
-    virtualRoots.set(manifest, known);
-  }
-  const found = known.get(id);
-  if (found !== undefined) return found;
-  const virtual = (manifest.virtual_timelines ?? []).find((item) => item.id === id);
-  if (virtual === undefined) return undefined;
-  const root: TimelineManifest = {
-    id,
-    name: virtual.name ?? id,
-    unit: virtual.unit,
-    number_type: virtual.number_type,
-    length: virtual.length,
-    locked: true,
-    is_segment_line: false,
-    meta: {},
-    children: [],
-    conversion_maps: [],
-    regions: [],
-    flow_control: [],
-  };
-  known.set(id, root);
-  return root;
-}
-
-/** The timeline `id` of `manifest`: one of its trees', or a virtual timeline read as a root (`virtualRoot`). */
 function timelineOrVirtual(manifest: Manifest, id: string): TimelineManifest | undefined {
-  return findTimeline(manifest, id) ?? virtualRoot(manifest, id);
+  return findTimeline(manifest, id) ?? virtualDrawing(manifest, id)?.timeline;
 }
 
 /** The timeline `id` of `manifest`, which a drawing of it draws (`timelineOrVirtual`). */

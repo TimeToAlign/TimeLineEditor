@@ -21,8 +21,8 @@ import type { ElementKey } from "../manifest/elements.ts";
 import { manifestElements } from "../manifest/elements.ts";
 import { defaultElisionTimelines } from "../manifest/elisions.ts";
 import type { EntryKind, ListedElement } from "../manifest/files.ts";
-import { ENTRY_KINDS, ENTRY_LISTS, entriesOf, virtualDrawing } from "../manifest/files.ts";
-import { switchedFlowMap } from "../manifest/switched.ts";
+import { ENTRY_KINDS, ENTRY_LISTS, entriesOf, locateVirtual } from "../manifest/files.ts";
+import { switchOf } from "../manifest/switched.ts";
 import type { Located } from "../manifest/tree.ts";
 import { memberAncestry, timelinesInOrder } from "../manifest/tree.ts";
 import type {
@@ -372,7 +372,7 @@ function heldMaps(map: ConversionMap): readonly (readonly [PathSegment, Conversi
  * it holds at any depth; then the groups', the MeasureMaps', the
  * resources', the FlowMaps', the virtual timelines', the named timestamps', the elisions' and the named
  * MatchStamps', each followed by its alignment anchors'. A named timestamp
- * on a virtual timeline lies on it as on a root (`virtualLocated`). An ID
+ * on a virtual timeline lies on it as on a root (`locateVirtual`). An ID
  * repeated in a manifest the schema refuses keeps its first finding, and a
  * timestamp on neither a timeline nor a virtual timeline, or an elision on
  * a timeline the manifest lacks, which the schema refuses too, is passed
@@ -420,7 +420,7 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
       on?.kind === "timeline"
         ? on.at
         : on?.kind === "virtual_timeline"
-          ? virtualLocated(manifest, on.index, on.virtual)
+          ? locateVirtual(manifest, on.virtual.id)
           : undefined;
     if (at !== undefined) note(timestamp.id, { kind: "timestamp", at, index, timestamp });
   });
@@ -436,18 +436,6 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
   });
   catalogues.set(manifest, found);
   return found;
-}
-
-/**
- * The virtual timeline `virtual`, at `index` in the manifest's
- * `virtual_timelines`, located as the timeline its axis is (`virtualDrawing`,
- * section 8.10): a root holding nothing, at its own place in the manifest,
- * which the named timestamps lying on it read their axis from.
- */
-function virtualLocated(manifest: Manifest, index: number, virtual: VirtualTimeline): Located {
-  const drawing = virtualDrawing(manifest, virtual.id);
-  if (drawing === undefined) throw new Error(`'${virtual.id}' is a virtual timeline`);
-  return { timeline: drawing.timeline, path: ["virtual_timelines", index], parent: undefined };
 }
 
 /**
@@ -662,7 +650,7 @@ export function resolveElement(
 
 /**
  * The entry `part[0]` of the FlowMap the card of the timeline `id` is
- * switched to (`switchedFlowMap`), drawn on its line (section 8.10), as
+ * switched to (`switchOf`), drawn on its line (section 8.10), as
  * `chunkOf` reads it; `undefined` where `id` names no timeline with a
  * switched card.
  */
@@ -673,8 +661,8 @@ function switchedChunkOf(
   part: readonly PartItem[],
 ): ResolvedElement | undefined {
   const found = catalogueOf(manifest).get(id);
-  const flowMap = switchedFlowMap(manifest, id);
-  if (found?.kind !== "timeline" || facet === undefined || flowMap === null) return undefined;
+  const flowMap = switchOf(manifest, id)?.flowMap;
+  if (found?.kind !== "timeline" || facet === undefined || flowMap === undefined) return undefined;
   const cards = containersOf(manifest).cards.get(id) ?? [];
   return chunkOf(manifest, { kind: "timeline", at: found.at, cards }, flowMap, facet, part);
 }

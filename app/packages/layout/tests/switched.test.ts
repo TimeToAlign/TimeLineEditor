@@ -1,6 +1,6 @@
 /**
  * Switched cards and switched frames (`docs/drawing.md` in TimeToShare,
- * section 8.10): the cascade's `flow`, a card drawn on its FlowMap's virtual
+ * section 8.10): the cascade setting no `flow`, a card drawn on its FlowMap's virtual
  * axis with its tree unfolded, and a frame carried onto one member's
  * FlowMap. The strategy and every expected value are in `README.md`,
  * "Switched cards".
@@ -8,14 +8,7 @@
 
 import type { ElementAddress, Manifest } from "@timetoalign/tilie-core";
 import { BLOCK_KEY, elementKey } from "@timetoalign/tilie-core/drawing";
-import {
-  type Address,
-  canonicalOrder,
-  type Graphical,
-  type Rule,
-  validate,
-  withFileIds,
-} from "@timetoalign/timetoshare";
+import type { Address, Graphical, Rule } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { Cascade } from "../src/cascade.ts";
 import {
@@ -29,6 +22,7 @@ import {
 } from "../src/index.ts";
 import {
   boxesOf,
+  childMemberTwice,
   element,
   HIDDEN_ANCESTOR_CARDS,
   load,
@@ -144,24 +138,13 @@ describe("the cascade's flow", () => {
   if (allegro === undefined) throw new Error("allegro");
   const ancestry = new Map([["allegro", ["allegro"]]]);
   const cardKey = elementKey("card", card("allegro"), allegro, BLOCK_KEY);
-  const flowOf = (layers: readonly (Graphical | undefined)[]) =>
-    new Cascade(layers, ancestry).resolve(cardKey, undefined).flow;
 
-  it("is set by the highest layer through a card selector alone", () => {
-    const rule = switching("allegro", "default");
-    expect(flowOf([{ rules: [rule] }])).toBe("default");
-    expect(flowOf([{ rules: [rule] }, { rules: [] }])).toBe(null);
-    expect(flowOf([{ rules: [{ ...rule, select: { addresses: [{ id: "allegro" }] } }] }])).toBe(
-      null,
+  it("is no style: the switch is core's reading of the manifest's own layer", () => {
+    const style = new Cascade([{ rules: [switching("allegro", "default")] }], ancestry).resolve(
+      cardKey,
+      undefined,
     );
-    expect(flowOf([{ rules: [{ ...rule, select: { element: "card" } }] }])).toBe(null);
-  });
-
-  it("is not inherited", () => {
-    const cascade = new Cascade([{ rules: [switching("allegro", "default")] }], ancestry);
-    const style = cascade.resolve(cardKey, undefined);
-    const line = elementKey("timeline", { id: "allegro" }, allegro, cardKey);
-    expect([style.flow, cascade.resolve(line, style).flow]).toEqual(["default", null]);
+    expect(Object.hasOwn(style, "flow")).toBe(false);
   });
 });
 
@@ -352,39 +335,7 @@ describe("a switched frame", () => {
   });
 
   it("unfolds the ancestor lines of a carried child member", () => {
-    const source = loadFile("groups/group_child_member");
-    const graphical = source.graphical ?? { styles: {}, rules: [], order: {} };
-    const timelines = source.timelines.map((timeline) =>
-      timeline.id === "recording"
-        ? { ...timeline, regions: [{ id: "take", name: "Take", start: 0.0, end: 10.0 }] }
-        : timeline,
-    );
-    const twice = {
-      id: "twice",
-      timeline: "recording",
-      chunks: ["take", "take"],
-      provenance: [{ method: "manual" as const }],
-    };
-    const bar = {
-      id: "bar_7",
-      timeline: "piece",
-      coordinate: quarters(12),
-      name: "Bar 7",
-      display: ["wedge" as const, "coordinate" as const],
-      matchstamp: false,
-      groupstamp: false,
-    };
-    const written = canonicalOrder({
-      ...source,
-      timelines,
-      flow_maps: [...(source.flow_maps ?? []), twice],
-      graphical: { ...graphical, timestamps: [...(graphical.timestamps ?? []), bar] },
-    } as Manifest);
-    const manifest = withRules(written, [
-      ...(graphical.rules ?? []),
-      switching("recording", "twice"),
-    ]);
-    validate(withFileIds(manifest));
+    const { written, manifest } = childMemberTwice();
     const drawing = drawn(manifest, [HIDDEN_ANCESTOR_CARDS]);
     const [recording] = linesOf(drawing, "recording");
     if (recording === undefined) throw new Error("recording's line");

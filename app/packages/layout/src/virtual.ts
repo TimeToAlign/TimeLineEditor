@@ -6,15 +6,15 @@
  * braces and its line their gaps and boundaries.
  *
  * A virtual timeline has no children, conversion maps, regions or flow
- * control, so it is drawn as a root that holds none: a timeline of its ID,
- * unit, number type and length, locked (its end is fixed by its map), named
- * as its card names it, and the chunks of its FlowMap carried beside it.
+ * control, so it is drawn as the root that holds none core reads it as
+ * (`virtualDrawing`), in the frames core orders (`withVirtualMembers`),
+ * named as its card names it, and the chunks of its FlowMap carried beside
+ * it.
  */
 
 import type { Places } from "@timetoalign/tilie-core";
 import {
   compareCodePoints,
-  displayOrder,
   FlowMapError,
   type Manifest,
   placeAt,
@@ -26,6 +26,8 @@ import {
   type GroupFrame,
   type MemberDrawing,
   memberDrawings,
+  virtualDrawing,
+  withVirtualMembers,
 } from "@timetoalign/tilie-core/drawing";
 import { compareReal, type Real, realOf } from "@timetoalign/tilie-core/numbers";
 import type { Run } from "./boxes.ts";
@@ -117,9 +119,9 @@ function cardName(manifest: Manifest, virtual: VirtualTimeline): string {
 }
 
 /**
- * The member drawing of the virtual timeline `virtual`: a root of its ID,
- * unit, number type and length, locked and holding nothing, named with its
- * card's name; one object per manifest and ID, so every pass reads the same.
+ * The member drawing of the virtual timeline `virtual`: core's
+ * (`virtualDrawing`), its timeline named with its card's name; one object
+ * per manifest and ID, so every pass reads the same.
  */
 function virtualMember(manifest: Manifest, virtual: VirtualTimeline): MemberDrawing {
   let known = drawnVirtual.get(manifest);
@@ -129,21 +131,12 @@ function virtualMember(manifest: Manifest, virtual: VirtualTimeline): MemberDraw
   }
   const found = known.get(virtual.id);
   if (found !== undefined) return found;
-  const timeline: TimelineManifest = {
-    id: virtual.id,
-    name: cardName(manifest, virtual),
-    unit: virtual.unit,
-    number_type: virtual.number_type,
-    length: virtual.length,
-    locked: true,
-    is_segment_line: false,
-    meta: {},
-    children: [],
-    conversion_maps: [],
-    regions: [],
-    flow_control: [],
+  const core = virtualDrawing(manifest, virtual.id);
+  if (core === undefined) throw new Error(`'${virtual.id}' is a virtual timeline`);
+  const member: MemberDrawing = {
+    ...core,
+    timeline: { ...core.timeline, name: cardName(manifest, virtual) },
   };
-  const member: MemberDrawing = { timeline, ancestors: [] };
   known.set(virtual.id, member);
   return member;
 }
@@ -164,16 +157,14 @@ export function drawnRoots(manifest: Manifest, places: Places): DrawnRoots {
   const virtual = manifest.virtual_timelines ?? [];
   if (virtual.length === 0) return { frames: core.frames, ungrouped: core.ungrouped, placed: [] };
   const byId = new Map(virtual.map((item) => [item.id, item]));
-  const frames = core.frames.map(({ group, members }): GroupFrame => {
-    if (!group.members.some((id) => byId.has(id))) return { group, members };
-    const real = new Map(members.map((member) => [member.timeline.id, member]));
+  const frames = core.frames.map((frame): GroupFrame => {
+    const ordered = withVirtualMembers(manifest, frame);
+    if (ordered === frame) return frame;
     return {
-      group,
-      members: displayOrder(manifest, group.id).flatMap((id) => {
-        const member = real.get(id);
-        if (member !== undefined) return [member];
-        const item = byId.get(id);
-        return item === undefined ? [] : [virtualMember(manifest, item)];
+      group: frame.group,
+      members: ordered.members.map((member) => {
+        const item = byId.get(member.timeline.id);
+        return item === undefined ? member : virtualMember(manifest, item);
       }),
     };
   });
@@ -213,8 +204,7 @@ export function virtualFlow(
  * axis, every other entry's the name of its source (a region's `name`, else
  * its whole ID; a timeline's or virtual timeline's name), a run drawn once
  * labelled by its first entry's text, a space, `×` (U+00D7), a space and its
- * count. A run is a longest sequence of two or more consecutive entries
- * naming one ID; gaps form none.
+ * count, a run being one of `ResolvedFlowMap.runs` of two or more entries.
  */
 export function flowOf(
   manifest: Manifest,
@@ -248,16 +238,9 @@ export function flowOf(
     return nameIn(manifest, source);
   };
   // The length of each run, at its first entry; 0 at every later entry of a run.
-  const { chunks } = resolved;
-  const counts = chunks.map(() => 1);
-  for (let index = 0; index < chunks.length; ) {
-    const source = chunks[index]?.source ?? null;
-    let end = index + 1;
-    while (source !== null && end < chunks.length && chunks[end]?.source === source) end += 1;
-    counts[index] = end - index;
-    for (let later = index + 1; later < end; later += 1) counts[later] = 0;
-    index = end;
-  }
+  const { chunks, runs } = resolved;
+  const counts = chunks.map(() => 0);
+  for (const run of runs) counts[run.chunk.index] = run.count;
   const drawn: DrawnChunk[] = [];
   const runGaps: (readonly [Real, Real])[] = [];
   chunks.forEach((chunk, index) => {

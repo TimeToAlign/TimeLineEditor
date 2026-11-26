@@ -26,6 +26,10 @@ import {
   type GroupFrame,
   type MemberDrawing,
   reachOf,
+  type Switch,
+  switchOf,
+  type Unfolding,
+  unfoldingOf,
   unownedKey,
 } from "@timetoalign/tilie-core/drawing";
 import type { Style } from "../cascade.ts";
@@ -42,7 +46,6 @@ import { layoutScope, type MemberLayout } from "../member.ts";
 import { cleanText } from "../metrics.ts";
 import { cutText, nameOf } from "../names.ts";
 import { lengthValue } from "../numbers.ts";
-import { type Switch, switchOf, type Unfolding, unfoldingOf } from "../switched.ts";
 import {
   type Context,
   type Holder,
@@ -218,11 +221,11 @@ function styledCard(
   return { member, ref, address, style };
 }
 
-/** What the card `card` is switched to (section 8.10): none for a virtual timeline's card. */
+/** What the card `card` is switched to (section 8.10, core's `switchOf`): none for a virtual timeline's card. */
 function switchOfCard(context: Context, card: Styled): Switch | null {
   const { manifest } = context;
   if (isVirtualMember(manifest, card.member)) return null;
-  return switchOf(manifest, card.member.timeline.id, card.style.flow);
+  return switchOf(manifest, card.member.timeline.id);
 }
 
 /** A timeline's length, or its reach where its length is not known (section 3.4). */

@@ -146,7 +146,7 @@ function withSections(expected: ExpectedFlow): Manifest {
 }
 
 describe("the expected flows", () => {
-  it("are the nine of the schema package", () => {
+  it("are the ten of the schema package", () => {
     expect(EXPECTED.map(([name]) => name)).toEqual([
       "da_capo_al_fine.yaml",
       "dal_segno_al_coda.yaml",
@@ -156,6 +156,7 @@ describe("the expected flows", () => {
       "repeat_end_and_dal_segno.yaml",
       "sections.yaml",
       "sonata_exposition.yaml",
+      "virtual_cards.yaml",
       "volta_passes.yaml",
     ]);
   });
@@ -427,34 +428,37 @@ describe("a virtual timeline chunk", () => {
 
 describe("the root itself as a chunk", () => {
   const byHand = load("flow/flow_map_by_hand.yaml");
-  const withChunks = (chunks: readonly string[], length = byHand.timelines[0]?.length ?? null) => {
+  const withChunks = (chunks: readonly string[], first = byHand.timelines[0]?.children[0]) => {
     const [root] = byHand.timelines;
     const [flowMap] = byHand.flow_maps ?? [];
-    if (root === undefined || flowMap === undefined) throw new Error("missing");
+    if (root === undefined || flowMap === undefined || first === undefined) {
+      throw new Error("missing");
+    }
     return {
       ...byHand,
-      timelines: [{ ...root, length }],
+      timelines: [{ ...root, children: [first, ...root.children.slice(1)] }],
       flow_maps: [{ ...flowMap, chunks }],
     };
   };
 
-  it("is a timeline chunk from 0 to its length", () => {
-    const resolved = resolveFlowMap(withChunks(["set"]), "flow_map_1");
-    expect(resolved.chunks).toEqual([
-      {
-        kind: "timeline",
-        index: 0,
-        source: "set",
-        written: span(q(0), q(20)),
-        played: span(q(0), q(20)),
-      },
-    ]);
+  it("is refused, as the validators and timetoalign refuse it", () => {
+    expect(refusal(() => resolveFlowMap(withChunks(["set"]), "flow_map_1"))).toEqual({
+      code: "flow_map_chunk",
+      path: ["flow_maps", 0, "chunks", 0],
+    });
+    expect(refusal(() => resolveFlowMap(withChunks(["first", "set"]), "flow_map_1"))).toEqual({
+      code: "flow_map_chunk",
+      path: ["flow_maps", 0, "chunks", 1],
+    });
   });
 
-  it("is refused where its length is unknown", () => {
-    expect(refusal(() => resolveFlowMap(withChunks(["set"], null), "flow_map_1"))).toEqual({
+  it("leaves a child of unknown length refused", () => {
+    const first = byHand.timelines[0]?.children[0];
+    if (first === undefined) throw new Error("first");
+    const open = withChunks(["second", "first"], { ...first, length: null });
+    expect(refusal(() => resolveFlowMap(open, "flow_map_1"))).toEqual({
       code: "unknown_length",
-      path: ["flow_maps", 0, "chunks", 0],
+      path: ["flow_maps", 0, "chunks", 1],
     });
   });
 
@@ -463,6 +467,83 @@ describe("the root itself as a chunk", () => {
       code: "flow_map_chunk",
       path: ["flow_maps", 0, "chunks", 1],
     });
+  });
+});
+
+describe("a FlowMap with a run and a gap", () => {
+  // flow/virtual_cards' by_hand ("Practice"): A four times, a gap of 4, C. Every value below is
+  // timetoalign's (`FlowMap.resolve` on the fixture's root `allegro`), see the README.
+  const manifest = load("flow/virtual_cards.yaml");
+  const A = span(q(0), q(953, 2));
+  const C = span(q(500), q(1644));
+  const resolved = resolveFlowMap(manifest, "by_hand");
+
+  it("places its stretches as timetoalign does", () => {
+    expect(resolved.stretches).toEqual([
+      { written: A, played: span(q(0), q(953, 2)), chunk: 0 },
+      { written: A, played: span(q(953, 2), q(953)), chunk: 1 },
+      { written: A, played: span(q(953), q(2859, 2)), chunk: 2 },
+      { written: A, played: span(q(2859, 2), q(1906)), chunk: 3 },
+      { written: null, played: span(q(1906), q(1910)), chunk: 4 },
+      { written: C, played: span(q(1910), q(3054)), chunk: 5 },
+    ]);
+    expect(resolved.length).toEqual(q(3054));
+    expect(resolveVirtualTimeline(manifest, "allegro_by_hand").length).toEqual(q(3054));
+  });
+
+  it("forms one run of the four A, the gap and C each alone", () => {
+    expect(resolved.runs.map((run) => [run.chunk.index, run.chunk.source, run.count])).toEqual([
+      [0, "section_a", 4],
+      [4, null, 1],
+      [5, "section_c", 1],
+    ]);
+  });
+
+  it("forms no run of gaps, whatever their lengths", () => {
+    const gaps = changedFixture("flow/virtual_cards.yaml", (value) => {
+      const flowMap = listOf(value, "flow_maps").find((item) => item.id === "by_hand");
+      if (flowMap === undefined) throw new Error("by_hand");
+      flowMap.chunks = [{ gap: [4, 1] }, { gap: [4, 1] }, "section_c", "section_c"];
+      const virtual = listOf(value, "virtual_timelines").find(
+        (item) => item.id === "allegro_by_hand",
+      );
+      if (virtual === undefined) throw new Error("allegro_by_hand");
+      virtual.length = [2296, 1];
+    });
+    const runs = resolveFlowMap(gaps, "by_hand").runs;
+    expect(runs.map((run) => [run.chunk.index, run.chunk.source, run.count])).toEqual([
+      [0, null, 1],
+      [1, null, 1],
+      [2, "section_c", 2],
+    ]);
+  });
+});
+
+describe("a virtual timeline through a group", () => {
+  // groups/switched_frame: allegro (quarters, its FlowMaps) and recording (seconds) in the group
+  // performance; by_hand applied to recording through performance plays on allegro's axis.
+  const through = (length: unknown) =>
+    changedFixture("groups/switched_frame.yaml", (value) => {
+      listOf(value, "virtual_timelines").push({
+        id: "recording_played",
+        map: "by_hand",
+        timeline: "recording",
+        through: "performance",
+        unit: "quarters",
+        number_type: "fraction",
+        length,
+      });
+    });
+
+  it("takes the axis and length of the FlowMap's own root", () => {
+    const resolved = resolveVirtualTimeline(through([3054, 1]), "recording_played");
+    expect([resolved.kind, resolved.source, resolved.unit, resolved.numberType]).toEqual([
+      "flow_map",
+      "allegro",
+      "quarters",
+      "fraction",
+    ]);
+    expect(resolved.length).toEqual(q(3054));
   });
 });
 

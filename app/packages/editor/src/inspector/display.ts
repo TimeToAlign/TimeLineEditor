@@ -28,6 +28,7 @@ import {
   idAddress,
   inBlock,
   indexOf,
+  isAtomicSection,
   isCommandError,
   isFacet,
   preview,
@@ -37,7 +38,6 @@ import type { ElementKey } from "@timetoalign/tilie-core/drawing";
 import { Cascade } from "@timetoalign/tilie-layout";
 import type { Address, ElementType, Selector } from "@timetoalign/timetoshare";
 import type { FlowSubject } from "./flow.ts";
-import { isAtomicSection } from "./regions.ts";
 import { bandWord } from "./words.ts";
 
 /** Whose drawing a toggle shows: a band's elements, one element's, or one rule's. */

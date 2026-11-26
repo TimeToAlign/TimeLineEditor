@@ -11,12 +11,15 @@
  * any more go (`removedBy`). The manifest's rules of MatchStamps
  * (an anchor joining two timelines, its anchors one connected set, a claim
  * ID listed once) are the schema package's check of the settled manifest.
+ * A coordinate may lie on a virtual timeline, read as the root its axis is
+ * (`locateVirtual`), as on any timeline of the manifest.
  */
 
 import { ANCHOR_DISPLAY, DEFAULTS } from "@timetoalign/timetoshare";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
+import { locateVirtual, virtualDrawing } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
 import { findTimeline, locateTimeline } from "../manifest/tree.ts";
 import type {
@@ -64,7 +67,10 @@ function readAnchorCoordinate(
     }
   }
   const { timeline } = object;
-  const at = typeof timeline === "string" ? locateTimeline(manifest, timeline) : undefined;
+  const at =
+    typeof timeline === "string"
+      ? (locateTimeline(manifest, timeline) ?? locateVirtual(manifest, timeline))
+      : undefined;
   if (at === undefined) {
     const named = typeof timeline === "string" ? `'${timeline}'` : "a timeline";
     return problem(ErrorCode.invalidValue, `${named} names no timeline of this manifest`, [
@@ -157,6 +163,11 @@ function withName(display: readonly AnchorDisplay[]): AnchorDisplay[] {
   return ANCHOR_DISPLAY.filter((word) => word === "name" || display.includes(word));
 }
 
+/** The timeline `id` of `manifest`, or its virtual timeline `id` read as the root its axis is. */
+function timelineOrVirtual(manifest: Manifest, id: string): TimelineManifest | undefined {
+  return findTimeline(manifest, id) ?? virtualDrawing(manifest, id)?.timeline;
+}
+
 /** The match timestamp of `timestamps` on `timeline` at `at`, exact on its own axis; none is undefined. */
 function matchTimestampIn(
   timestamps: readonly NamedTimestamp[],
@@ -185,7 +196,7 @@ export function namedAsGroupstamp(
   timeline: string,
   value: CoordinateValue,
 ): boolean {
-  const found = findTimeline(manifest, timeline);
+  const found = timelineOrVirtual(manifest, timeline);
   if (found === undefined) return false;
   const at = realOf({ unit: found.unit, numberType: found.number_type, value });
   const held = matchTimestampIn(manifest.graphical?.timestamps ?? [], found, at);
@@ -322,7 +333,7 @@ export function matchStampSpec(
   const coordinateOf = (id: string) => {
     const timestamp = timestamps.get(id);
     const timeline =
-      timestamp === undefined ? undefined : findTimeline(manifest, timestamp.timeline);
+      timestamp === undefined ? undefined : timelineOrVirtual(manifest, timestamp.timeline);
     if (timestamp === undefined || timeline === undefined) {
       throw new Error(`the anchors of '${matchstamp.id}' name match timestamps`);
     }

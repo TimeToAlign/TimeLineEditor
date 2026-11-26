@@ -29,7 +29,7 @@ import { readOnAxis } from "../manifest/invariants.ts";
 import { readInPlace } from "../manifest/io.ts";
 import { findTimeline } from "../manifest/tree.ts";
 import type { FlowMap, Manifest, TimelineManifest, VirtualTimeline } from "../manifest/types.ts";
-import { resolveVirtualTimeline } from "../manifest/virtual.ts";
+import { resolveVirtualTimeline, throughGroup } from "../manifest/virtual.ts";
 import { compileMap } from "../maps/compile.ts";
 import type { Coordinate } from "../number/coordinate.ts";
 import { toAxisValue } from "../number/coordinate.ts";
@@ -224,10 +224,11 @@ function resolvable(chunks: unknown, root: TimelineManifest | undefined): boolea
 /**
  * The virtual timelines of `manifest` with the length the FlowMap each
  * applies now plays, `flowMap` being the FlowMap just given: every virtual
- * timeline applying a FlowMap of its own root without `through` (the chunks
- * that are virtual timelines resolved in turn) takes `resolveFlowMap`'s
- * length; any other, or one whose FlowMap cannot be resolved (which
- * reading the manifest then refuses), keeps its own. The second member
+ * timeline applying a FlowMap of its own root without `through`, or
+ * through a group to another member (the chunks that are virtual timelines
+ * resolved in turn), takes `resolveFlowMap`'s length; any other, or one
+ * whose FlowMap cannot be resolved (which reading the manifest then
+ * refuses), keeps its own. The second member
  * lists the indices whose length changed.
  */
 function withPlayedLengths(
@@ -241,8 +242,14 @@ function withPlayedLengths(
   const changed: number[] = [];
   const items = virtual.map((item, index) => {
     const applied = (manifest.flow_maps ?? []).find((found) => found.id === item.map);
-    if (applied === undefined || item.through !== undefined) return item;
-    if (item.timeline !== applied.timeline) return item;
+    if (applied === undefined) return item;
+    if (
+      item.through === undefined
+        ? item.timeline !== applied.timeline
+        : !throughGroup(manifest, item.through)
+    ) {
+      return item;
+    }
     let played: Coordinate;
     try {
       played = resolveFlowMap(manifest, applied.id).length;
@@ -460,12 +467,14 @@ function flowMapProblem(error: FlowMapError, path: readonly PathSegment[]): Prob
 /**
  * The axis of a new virtual timeline `{id, map, timeline, through?}` in
  * `manifest`: through a FlowMap, its root's unit and number type and the
- * FlowMap's played length (`resolveFlowMap`); through a conversion map
- * core evaluates, the map's target unit, that unit's default number type
- * and the map's value at the end of the timeline holding it
- * (`resolveVirtualTimeline`); with `through`, which core does not evaluate,
- * the unit and number type of `timeline` and no length, which the value
- * states. A map naming neither is `invalid_value` at `map`.
+ * FlowMap's played length (`resolveFlowMap`), also where `through` a group
+ * carries it to another member, as timetoalign reads it; through a
+ * conversion map core evaluates, the map's target unit, that unit's
+ * default number type and the map's value at the end of the timeline
+ * holding it (`resolveVirtualTimeline`); with `through` anything but a
+ * group (a conversion map), which core does not evaluate, the unit and
+ * number type of `timeline` and no length, which the value states. A map
+ * naming neither is `invalid_value` at `map`.
  */
 function computedAxis(
   manifest: Manifest,
@@ -473,7 +482,11 @@ function computedAxis(
   path: readonly PathSegment[],
 ): ComputedAxis | CommandError {
   const { map, timeline, through } = object;
-  if (through !== undefined) {
+  const isFlowMap = (manifest.flow_maps ?? []).some((item) => item.id === map);
+  const evaluated =
+    through === undefined ||
+    (isFlowMap && typeof through === "string" && throughGroup(manifest, through));
+  if (!evaluated) {
     const axis = axisOf(manifest, timeline);
     if (axis === undefined) {
       return problem(
@@ -485,7 +498,7 @@ function computedAxis(
     return { ...axis, length: null };
   }
   try {
-    if ((manifest.flow_maps ?? []).some((item) => item.id === map)) {
+    if (isFlowMap) {
       const flow = resolveFlowMap(manifest, map);
       return { unit: flow.unit, number_type: flow.numberType, length: flow.length };
     }
@@ -528,7 +541,7 @@ function conversionMap(manifest: Manifest, id: string) {
 /**
  * The length a new virtual timeline is written with: the computed one, a
  * given `length` refused (`invalid_value`) where it is not exactly that;
- * with `through`, the given one, which is then required.
+ * with `through` a conversion map, the given one, which is then required.
  */
 function lengthOf(
   axis: ComputedAxis,

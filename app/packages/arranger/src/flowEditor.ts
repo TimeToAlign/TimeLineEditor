@@ -21,6 +21,7 @@ import {
   findTimeline,
   idAddress,
   inBlock,
+  isAtomicSection,
   isComputedFlowMap,
   parseAxisValue,
   snapOnRow,
@@ -173,12 +174,6 @@ export function entryText(manifest: Manifest, entry: FlowEntry): string {
   return virtual?.name ?? entry;
 }
 
-/** Whether the region states the type `tts:AtomicSection`. */
-function isAtomic(region: TimelineManifest["regions"][number]): boolean {
-  const types = (region.statements as { readonly type?: unknown } | undefined)?.type;
-  return Array.isArray(types) && types.includes("tts:AtomicSection");
-}
-
 /** What the card offers to the new FlowMap without a pointer: one choice of the keyboard's list. */
 export interface CardChoice {
   readonly dragged: Dragged;
@@ -205,7 +200,7 @@ export function cardChoices(manifest: Manifest, root: string): readonly CardChoi
       const name = region.name ?? region.id;
       choices.push({
         dragged: { kind: "element", id: region.id },
-        text: isAtomic(region) ? `${name} (atomic section)` : name,
+        text: isAtomicSection(manifest, region) ? `${name} (atomic section)` : name,
       });
     }
   }
@@ -466,7 +461,7 @@ export function recomputeCommands(
   if (answered === undefined || current === undefined) return [];
   const known = new Set(current.regions.map((region) => region.id));
   const commands: Command[] = answered.regions
-    .filter((region) => isAtomic(region) && !known.has(region.id))
+    .filter((region) => isAtomicSection(answer, region) && !known.has(region.id))
     .map((region) => ({ type: "add", into, region }));
   const held = flowMapsOf(manifest, root).filter(isComputedFlowMap);
   for (const flowMap of flowMapsOf(answer, root).filter(isComputedFlowMap)) {

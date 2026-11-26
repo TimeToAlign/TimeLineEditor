@@ -4,7 +4,7 @@ import type { Rule } from "@timetoalign/timetoshare";
 import type { ChangeSet } from "../commands/mutations.ts";
 import type { Command } from "../commands/types.ts";
 import type { CommandError } from "../errors.ts";
-import { ErrorCode, isCommandError, problem } from "../errors.ts";
+import { assertNever, ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { canonicalText, compareCodePoints, jsonEqual } from "../json.ts";
 import type { ElementAddress } from "../manifest/address.ts";
@@ -611,6 +611,8 @@ function flowRefused(
     }
     case "style":
       return { address: target, property: null };
+    default:
+      return assertNever(command);
   }
 }
 

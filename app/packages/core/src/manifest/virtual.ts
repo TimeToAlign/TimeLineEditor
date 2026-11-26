@@ -65,6 +65,15 @@ export interface MappedVirtualTimeline extends VirtualAxis {
 /** A virtual timeline resolved: through a FlowMap or a conversion map. */
 export type ResolvedVirtualTimeline = FlowVirtualTimeline | MappedVirtualTimeline;
 
+/**
+ * Whether `through` names a group of `manifest`: a FlowMap carried through
+ * it plays on its own root's axis, as timetoalign reads it; through anything
+ * else (a conversion map) it is not evaluated.
+ */
+export function throughGroup(manifest: Manifest, through: string): boolean {
+  return manifest.groups.some((group) => group.id === through);
+}
+
 /** The conversion map `id` among the top-level maps of every timeline, at any depth, with its holder. */
 function conversionMapOf(
   manifest: Manifest,
@@ -83,15 +92,17 @@ function conversionMapOf(
  * The virtual timeline `virtualId` of `manifest` resolved: its unit and
  * number type as stated, its length, and the map it rests on. A FlowMap is
  * resolved against its root (`resolveFlowMap`); its length is the virtual
- * length written in the stated number type, or, where `through` carries
- * the FlowMap to another timeline, the stated length, the FlowMap's
+ * length written in the stated number type, also where `through` a group
+ * carries the FlowMap to another member (its axis is the FlowMap's root's,
+ * as timetoalign reads it); where `through` names anything else (a
+ * conversion map, not evaluated), the stated length, the FlowMap's
  * positions staying on its root's axis. A conversion map of a timeline's
  * `conversion_maps` is evaluated by core into the virtual timeline's unit,
  * its length the map's value at the end of the timeline holding it.
  *
  * @throws {FlowMapError} `unknown_virtual_timeline`; as `resolveFlowMap`
  * and `virtual_unresolved` for a FlowMap; `unit_mismatch` where a FlowMap
- * applied without `through` lies on another unit; `map_not_evaluated`,
+ * applied without `through` or through a group lies on another unit; `map_not_evaluated`,
  * naming the map, where core does not evaluate the conversion map onto the
  * virtual timeline's unit (a measure view, a label, named outputs, another
  * target unit); `unknown_length` where its timeline's length is unknown.
@@ -115,12 +126,16 @@ export function resolveVirtualTimeline(
   };
   const flowMap = (manifest.flow_maps ?? []).find((item) => item.id === virtual.map);
   if (flowMap !== undefined) {
-    if (virtual.through !== undefined) {
+    if (virtual.through !== undefined && !throughGroup(manifest, virtual.through)) {
+      // Through a conversion map, which core does not evaluate: the length stated.
       const flow = resolveFlowMap(manifest, flowMap.id);
       const length = axisCoordinate(virtual.length, virtual, [...at, "length"]);
       return { kind: "flow_map", ...stated, source: flow.timeline, length, flow };
     }
-    const flow = appliedFlowMap(manifest, virtual, flowMap.timeline, [], at);
+    const flow =
+      virtual.through === undefined
+        ? appliedFlowMap(manifest, virtual, flowMap.timeline, [], at)
+        : resolveFlowMap(manifest, flowMap.id);
     if (flow.unit !== axis.unit) {
       throw new FlowMapError(
         "unit_mismatch",

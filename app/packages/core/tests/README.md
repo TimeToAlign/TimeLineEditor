@@ -934,9 +934,15 @@ check of who holds what.
     card, its line, its name and its two bands, held by the block.
 
 16. **Switched cards** (drawing.md §2.4, §8.10). A card's `flow` is read
-    from the manifest's own `rules` alone: the last rule selecting `{id:
+    from the manifest's own `rules` alone (`cardFlow`, the one reading
+    layout and the arranger take too): the last rule selecting `{id:
     T, part: ["card"]}` by `addresses` alone (each a card's address) that
-    sets `flow`, directly or through a named style; a card is switched
+    sets `flow`, directly or through a named style. On
+    `flow/switched_card.yaml` it is `default`; with the rule's selector
+    `{addresses: [{id: allegro}]}` or `{element: card}` it is null; with
+    the rule followed by one setting the named style `played` (`{flow:
+    allegro_single}`) on the same card selector it is `allegro_single`;
+    with no rule null. A card is switched
     where that names a FlowMap of `T` that resolves, or a virtual
     timeline applying one to `T` without `through`. A switched card's
     line holds its FlowMap's entries as a virtual card's, addressed by
@@ -947,12 +953,15 @@ check of who holds what.
     followed by a gap or a stretch not starting at `b`; an extent where
     `max(s, a) < min(e, b)`), a child's name once; no conversion maps or
     flow control band, nothing they hold, and no elision. A frame with
-    exactly one switched card and no member that is a child timeline is
-    switched: every other member is carried onto the FlowMap's root at
-    `t = m × λT / λM` and listed likewise, its line once per piece it
-    reaches, and the frame lists no group elision; a groupstamp's line
-    across it once per played position. Written out from the
-    specification:
+    exactly one switched card is switched: every other member is carried
+    onto the FlowMap's root at `t = m × λT / λM`, `m` on the member's own
+    axis, and listed likewise, its line once per piece it reaches; a
+    member that is a child timeline lists each ancestor line once per piece
+    its stretch of the member's axis (0 to the ancestor's end or the
+    member's length, whichever is less) reaches, its name once, and its
+    timestamps and secondary coordinates once per played position; the
+    frame lists no group elision; a groupstamp's line across it once per
+    played position. Written out from the specification:
     - `flow/switched_card.yaml` (`allegro` switched to `default`: the
       pieces A [0, 953/2) at 0, B [953/2, 500) at 953/2, A again at 500,
       C [500, 1644] at 1953/2): its card, line and name, the boundaries
@@ -966,9 +975,28 @@ check of who holds what.
       line four times, its name once; `timestamp_3` at 0.0 twice,
       `timestamp_4` at 702.5 (carried to 1644) once; no conversion maps
       or flow control band of either, no jump.
+    - `groups/group_child_member.yaml` with the region `take` [0.0,
+      10.0] and the FlowMap `twice` (`take`, `take`) of `recording`, its
+      card switched to `twice`, and the named timestamp `bar_7` "Bar 7" of
+      `piece` at 12 (wedge and coordinate): two pieces [0.0, 10.0]. In the
+      frame: the braces `[0]` and `[1]` of `recording` once each;
+      `second-half`'s line twice, its name once; `piece`'s ancestor line
+      twice (`[0, 8]` of `second-half` carried to `[0.0, 10.0]` reaches
+      both), its name once; `bar_7` (4 of `second-half`, carried to 5.0)
+      a wedge and a coordinate label twice on the ancestor line (primary)
+      and twice in `second-half`'s markers band (secondary). The ancestor
+      card behind the frame draws `piece` as written and is not counted.
     - `flow/switched_card.yaml` after `style` sets `flow: null` on
       `allegro`'s card: no entry, `section_a` once, `volta_jump` and the
       flow control band listed again.
+
+17. **Atomic sections** (`isAtomicSection`, the one test the flow
+    editor and the inspector read): a Region is one where its `type`
+    statement names `tts:AtomicSection` in any spelling standing for its
+    IRI (`regionClasses`). `section_a` of `flow/virtual_cards.yaml`
+    (`type: ["tts:AtomicSection"]`) is one, and so is it typed with the
+    full IRI `https://timetoalign.github.io/timetoshare/ns#AtomicSection`;
+    typed `tts:Section`, or with no `type`, it is none.
 
 The elements of manifests with several roots and groups are in "Several
 roots and groups".
@@ -3788,6 +3816,21 @@ groups, adds `bar4-score`, `bar4-take1`, `bar4-take2`, each with
 `groupstamp: false`. A match timestamp a MatchStamp reuses keeps its own
 `groupstamp` (the Update and reuse cases above, all `false`).
 
+**A coordinate on a virtual timeline** (21): a virtual timeline is a
+timeline of the manifest for an anchor as for a named timestamp (the
+schema and timetoalign admit it), read as the root its axis is. On block
+`A` holding `groups/virtual_member.yaml` (`performance` holds the virtual
+timeline `allegro_default`, 4241/2 quarters, and `recording`, 702.5
+seconds), naming `{name: "Start", anchors: [[recording@0.0,
+allegro_default@[953, 2]]], match_claims: ["claim_1"]}` (`ids` `start`,
+`start-recording`, `start-played`, `start-a1`) adds exactly, in canonical
+order, `match("start-played", "allegro_default", [953, 2])` and
+`match("start-recording", "recording", 0.0)`, each with `groupstamp:
+true` (the virtual timeline is a member of `performance`), and the
+manifest passes the validators; `matchStampSpec` gives its anchor's
+coordinates `recording` 0 and `allegro_default` the exact 953/2, the name
+on it.
+
 ## Statements (`statements.test.ts`)
 
 TimeToShare puts `statements` (property–value pairs about the thing an
@@ -6134,7 +6177,7 @@ and is tested against) and the flow fixtures they name: every expected
 value below is derived from a fixture and its expected flow, never read
 off core's output.
 
-1. **The expected flows, convention by convention.** For each of the nine
+1. **The expected flows, convention by convention.** For each of the ten
    expected flows and each of its conventions (`default`, `single`,
    `printed`), the fixture is changed before loading: its root gains one
    Region per atomic section (`section_A`, …, the section's `start` and
@@ -6148,7 +6191,8 @@ off core's output.
    ones joined on both sides (a run also ends at a jump or a break, as
    the schema package's README says), are the same stretches; the runs of
    equal chunks are the `sections` grouped (`loop`'s `default` is A, then
-   B 128 times, then C: three runs, the second of count 128). At every
+   B 128 times, then C: three runs, the second of count 128; a run is a
+   longest sequence of chunks naming one ID, section 8.10's). At every
    chunk's played start and at its middle, `fold` gives the section's
    start and the start plus half the section's length; at the virtual
    length it is refused. For every atomic section, at its start and its
@@ -6159,7 +6203,9 @@ off core's output.
    `sonata_exposition`'s `single`, D of `ossia`'s `default`) gives none,
    and the root's length gives none. The axis is `fraction` in eight
    cases and `float` (`loop`, seconds) in one; every value compared is a
-   coordinate in the root's unit and number type.
+   coordinate in the root's unit and number type. `virtual_cards` is the
+   tenth: the expected flows of `flow/virtual_cards.yaml`'s `allegro`
+   (A [0, 953/2), B [953/2, 500), C [500, 1644)) resolved as every other.
 2. **The FlowMaps a fixture states.** `flow/sonata_exposition`'s own
    FlowMaps resolve as its expected flow says: `flow_map_1` the regions
    whose bounds are A, B, A, C (`default`), `flow_map_2` A, C (`single`),
@@ -6188,11 +6234,12 @@ off core's output.
    four of `flow_map_1` followed by B, five in all, the length 40.
    `unfold` at 13 gives 13 (1 of 2) and 37 (2 of 2), at 2 gives 2 and 18;
    `fold` at 20 gives 4, at 37 gives 13.
-5. **The root itself as a chunk** is a `timeline` chunk from 0 to its
-   length: `set` of `flow/flow_map_by_hand` as the one chunk gives the
-   written and played stretch [0, 20). (TimeToShare's validators and
-   timetoalign refuse the root as a chunk today, so this manifest is
-   built from the loaded one without being read again.)
+5. **The root itself is no chunk**, as TimeToShare's validators and
+   timetoalign refuse it: `set` of `flow/flow_map_by_hand` as the one
+   chunk is `flow_map_chunk` at `["flow_maps", 0, "chunks", 0]`, and as the
+   second chunk after `first` at `[…, "chunks", 1]` (the manifest is built
+   from the loaded one without being read again, since the validators
+   refuse it).
 6. **Refusals**, each a `FlowMapError` with its exact `code` and `path`:
    an unknown FlowMap ID, `unknown_flow_map` at `["flow_maps"]`; an
    unknown virtual timeline ID, `unknown_virtual_timeline` at
@@ -6201,8 +6248,9 @@ off core's output.
    nothing in the tree, `flow_map_chunk` at `["flow_maps", 0, "chunks",
    1]`; a gap of 1/3 on `loop`'s `float` axis, `gap_number_type` at
    `["flow_maps", 0, "chunks", 0, "gap"]`, while a gap of 4 on a
-   `fraction` axis is read; the root as a chunk with its length
-   unknown, `unknown_length` at `["flow_maps", 0, "chunks", 0]`;
+   `fraction` axis is read; the child `first` as a chunk with its length
+   unknown (after `second`), `unknown_length` at `["flow_maps", 0,
+   "chunks", 1]`;
    `flow_map_1` of `flow/sonata_exposition` changed to the one chunk
    `virtual_1`, which applies it (a manifest TimeToShare reads, the
    length 36 being the chunk's own), `flow_map_cycle` at `["flow_maps",
@@ -6224,7 +6272,27 @@ off core's output.
    naming `cmap_1`; so is one in floating measures applying
    `conversion_maps__maps_quarters.yaml`'s `cmap_3` (a measure view,
    whose MeasureMap rows core is not given).
-8. **Properties** (fast-check, seeded, 200 runs): on
+8. **A run and a gap, as timetoalign places them.** `flow/virtual_cards`'
+   hand-made `by_hand` ("Practice": `section_a` four times, a gap of 4,
+   `section_c`) has the stretches timetoalign gives (`FlowMap.resolve` on
+   the fixture's root, read once with the library and copied here):
+   `section_a` [0, 953/2) played [0, 953/2), [953/2, 953), [953,
+   2859/2) and [2859/2, 1906) (chunks 0 to 3), the gap played [1906,
+   1910) with no written stretch (chunk 4), `section_c` [500, 1644) played
+   [1910, 3054) (chunk 5); the length 3054, also that of its virtual
+   timeline `allegro_by_hand`. Its runs (section 8.10: a longest sequence
+   of chunks naming one ID, gaps forming none) are chunk 0 `section_a` of
+   count 4, the gap (chunk 4) alone and chunk 5 `section_c` alone; the
+   chunks changed to a gap of 4, a gap of 4, `section_c`, `section_c` (the
+   virtual timeline's length 2296) give the runs gap, gap, `section_c` × 2:
+   two equal gaps form none.
+9. **A virtual timeline through a group** takes the axis and length of
+   the FlowMap's own root, as timetoalign reads it: on
+   `groups/switched_frame.yaml`, `recording_played` applying `by_hand` to
+   `recording` (seconds) through the group `performance`, stating
+   quarters, `fraction` and 3054, resolves to the `flow_map` kind with
+   source `allegro`, in quarters, `fraction`, of length 3054.
+10. **Properties** (fast-check, seeded, 200 runs): on
    `flow/sonata_exposition`, FlowMaps of one to eight chunks drawn from
    its three regions, `virtual_1` and gaps of 1/2 to 4 quarters: for every
    written position n/4 from 0 to 24, `fold` of each of its played
@@ -6303,8 +6371,20 @@ never a spelled-out random literal.
    (`[40, 2]`) is accepted and written `[20, 1]`, one that differs
    (`[24, 1]`) is `invalid_value` at `length`, its message naming `20 ♩`;
    `unit` or `number_type` given is `unknown_property`; a `map` naming
-   nothing is `invalid_value` at `map`; with `through` and no length,
-   `invalid_value` at `length`. Left without an ID it is given the
+   nothing is `invalid_value` at `map`; with `through` naming no group
+   (a conversion map's ID, here `gone`) and no length, `invalid_value` at
+   `length`. **Through a group** the axis is the FlowMap's own root's, as
+   timetoalign reads it: on `groups/switched_frame.yaml` (`allegro` in
+   quarters and `recording` in seconds, members of `performance`),
+   `{map: by_hand, timeline: recording, through: performance}` with
+   `ids: [recording_played]` is written in quarters, `fraction`, of length
+   `[3054, 1]` (`by_hand`'s played length, "A FlowMap with a run and a
+   gap" above), and the manifest is valid; a length of `[24, 1]` is
+   `invalid_value` at `length`, its message naming `3054 ♩`; `set
+   {chunks: [section_a, section_c]}` on `by_hand` then writes its length
+   `[3241, 2]` (953/2 + 1144). That such a manifest is one timetoalign
+   reads is checked once outside this suite (the library is no
+   dependency of TiLiE). Left without an ID it is given the
    minter's `clt_…`, the prefix of its unit's timeline class. `set {name}`
    renames it. `remove` of `flow_map_1` is `not_removable` at its address
    key, naming `'virtual_1'`; removing both in one command is accepted;

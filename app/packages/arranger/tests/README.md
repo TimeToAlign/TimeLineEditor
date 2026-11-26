@@ -2407,6 +2407,14 @@ flow editor nothing opens (the card, its line, the band). Every other
 address opens what it opened before (`editorOf` gives it back unchanged,
 no kind).
 
+**The card's choices** (`cardChoices`, what the card offers without a
+pointer): its Regions A, B and C are each named `A (atomic section)` and
+so on, an atomic section being core's (`isAtomicSection`: the class
+`tts:AtomicSection` in any spelling standing for its IRI); with every
+Region's `type` written as the full IRI
+`https://timetoalign.github.io/timetoshare/ns#AtomicSection` instead, the
+same three texts.
+
 **Rows** (`flowRows`): one per FlowMap of `allegro`, the computed ones
 first, each part in the manifest's order: `default`, `printed`, `single`,
 `by_hand`, named `default`, `printed`, `single`, `Practice` (a FlowMap's
@@ -4894,7 +4902,7 @@ card sends one `style` command, `{type: "style", select: {addresses:
 the chosen ID, `null` for "As written"; choosing what is shown sends
 nothing; on a frame "As written" removes the flow of every member setting
 one. Each command applied by core leaves the chosen ID as the card's
-`flow` (`flowOf`) and passes the validators. Mounted above `allegro`'s
+`flow` (core's `cardFlow`) and passes the validators. Mounted above `allegro`'s
 card, the select `flow-switch` lists those labels in that order, the
 chosen one selected; choosing entry 6 ("Allegro, default") dispatches
 exactly that command once; a locked canvas disables it. It stands `10 +

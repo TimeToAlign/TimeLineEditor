@@ -6,6 +6,7 @@
 
 import { compareCodePoints } from "../json.ts";
 import { displayOrder } from "./order.ts";
+import type { Located } from "./tree.ts";
 import type {
   AxisValue,
   ConversionMap,
@@ -186,6 +187,20 @@ export function virtualDrawing(manifest: Manifest, id: string): MemberDrawing | 
   const drawing: MemberDrawing = { timeline: virtualAxis(virtual), ancestors: [] };
   known.set(id, drawing);
   return drawing;
+}
+
+/**
+ * The virtual timeline `id` of `manifest` located as the timeline its axis
+ * is (`virtualDrawing`, section 8.10): a root holding nothing, at its own
+ * place in the manifest's `virtual_timelines`, from which what lies on it (a
+ * named timestamp, a coordinate of an alignment anchor) reads its axis;
+ * `undefined` for an ID no virtual timeline carries.
+ */
+export function locateVirtual(manifest: Manifest, id: string): Located | undefined {
+  const index = (manifest.virtual_timelines ?? []).findIndex((item) => item.id === id);
+  const drawing = virtualDrawing(manifest, id);
+  if (index < 0 || drawing === undefined) return undefined;
+  return { timeline: drawing.timeline, path: ["virtual_timelines", index], parent: undefined };
 }
 
 /**

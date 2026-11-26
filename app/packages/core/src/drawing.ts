@@ -4,8 +4,9 @@
  * manifest draws, the keys a selector tests, the selector test itself, the
  * timelines drawn as roots, the named timestamps each card draws with
  * their primary and secondary coordinates, the stored elisions of each
- * timeline with the words of their labels, and the arrangement of a bundle's
- * items side by side.
+ * timeline with the words of their labels, the arrangement of a bundle's
+ * items side by side, the virtual timelines drawn as roots, and how a
+ * switched card is unfolded onto its FlowMap.
  */
 
 export type { Anchor, ArrangementConflict, Row } from "./manifest/arrangement.ts";
@@ -54,6 +55,8 @@ export {
   groupElisions,
 } from "./manifest/elisions.ts";
 export type { Ancestor, AncestorCard, GroupFrame, MemberDrawing } from "./manifest/files.ts";
-export { memberDrawings } from "./manifest/files.ts";
+export { memberDrawings, virtualDrawing, withVirtualMembers } from "./manifest/files.ts";
 export { flowSymbols, passesText } from "./manifest/flow.ts";
+export type { Piece, PlayedSpan, Switch, Unfolding } from "./manifest/switched.ts";
+export { playedAt, playedSpan, switchOf, unfoldingOf } from "./manifest/switched.ts";
 export { timelineAncestry } from "./manifest/tree.ts";

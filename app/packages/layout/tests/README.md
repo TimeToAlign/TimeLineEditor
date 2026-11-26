@@ -236,7 +236,9 @@ converts to (`conversion_maps__maps_quarters`: the top-level LinearMap
 `cmap_3` logical and continuous; `conversion_maps__maps_seconds`: the
 LinearMap `cmap_1` to samples physical and discrete), a map converting to
 no time axis (the ConstantMap `cmap_11`) taking its timeline's stroke, with
-its type as class (`ConstantMap` matches `cmap_11` alone). For every manifest fixture, every
+its type as class (`ConstantMap` matches `cmap_11` alone). For every manifest fixture, and for
+the switched frame carrying a child member of "Switched cards", 12 (no
+fixture draws one), every
 drawn element's address and type, the block's `{}` included, are among the
 element keys core enumerates, and no address is drawn more often than core
 enumerates it. A drawing is one element, but for the arcs of a jump and
@@ -2579,13 +2581,12 @@ proves the switch is that every position is the played one computed from
 the FlowMap alone, every label the written one, and that a rule outside
 the manifest's own layer or with another selector switches nothing.
 
-1. **The cascade.** A card's `flow` is null unless a rule of the highest
-   layer whose selector names `addresses` alone, each `{id, part:
-   ["card"]}`, sets it: `{flow: "default"}` on `{addresses: [{id:
-   "allegro", part: ["card"]}]}` gives `default` in a one-layer cascade,
-   null when another layer follows it, null with the selector `{addresses:
-   [{id: "allegro"}]}` or `{element: "card"}`; it is not inherited (the
-   card's line reads null).
+1. **The cascade.** `flow` is no style a drawing takes: which card is
+   switched is read by core from the manifest's own layer (`cardFlow`,
+   `switchOf`, core's README, "Elements and selectors", 16), and layout
+   draws by it. The rule `{flow: "default"}` on `{addresses: [{id:
+   "allegro", part: ["card"]}]}` leaves the card's cascaded style without
+   a `flow` member.
 2. **The switched card.** `flow/switched_card` draws one `timeline`
    element `{id: "allegro"}` from `x(0)` to `x(4241/2)`, start and end
    circles; braces `{id: "allegro", facet: "regions", part: [k]}`, k = 0 …
@@ -2674,7 +2675,9 @@ the manifest's own layer or with another selector switches nothing.
     the one at its own x. The ancestor's name `Piece` is drawn once. Drawn
     as written (the rule removed), the frame draws one ancestor line from
     `x0' − 4w` to `x0' + 400` and no chunk (`x0'` the start of its
-    members as written).
+    members as written). Core lists the elements so drawn (`piece`'s
+    ancestor line once per piece), which the cascade's enumeration test
+    checks on this manifest too.
 
 ## Named timestamps (`timestamps.test.ts`)
 

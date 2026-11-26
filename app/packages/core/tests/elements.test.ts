@@ -7,6 +7,7 @@ import {
   BLOCK_KEY,
   bandKey,
   cardStamps,
+  isAtomicSection,
   leaderKey,
   manifestElements,
   selectorMatches,
@@ -15,6 +16,7 @@ import {
   unitDomain,
 } from "../src/manifest/elements.ts";
 import { memberDrawings } from "../src/manifest/files.ts";
+import { cardFlow } from "../src/manifest/switched.ts";
 import { timelineAncestry } from "../src/manifest/tree.ts";
 import type { Manifest } from "../src/manifest/types.ts";
 import { Rational } from "../src/number/rational.ts";
@@ -1180,6 +1182,22 @@ describe("virtual cards", () => {
   });
 });
 
+describe("atomic sections", () => {
+  it("are the Regions whose type names tts:AtomicSection in any spelling of its IRI", () => {
+    // flow/virtual_cards: section_a, section_b, section_c typed tts:AtomicSection.
+    const manifest = load("flow/virtual_cards.yaml");
+    const [root] = manifest.timelines;
+    const [region] = root?.regions ?? [];
+    if (region === undefined) throw new Error("no region");
+    const typed = (type: string) => ({ ...region, statements: { type: [type] } });
+    const iri = "https://timetoalign.github.io/timetoshare/ns#AtomicSection";
+    expect(isAtomicSection(manifest, region)).toBe(true);
+    expect(isAtomicSection(manifest, typed(iri))).toBe(true);
+    expect(isAtomicSection(manifest, typed("tts:Section"))).toBe(false);
+    expect(isAtomicSection(manifest, { ...region, statements: {} })).toBe(false);
+  });
+});
+
 describe("switched cards", () => {
   /** Every key of `manifest` as type, address key and holder chain, in enumeration order. */
   const listing = (manifest: Manifest) =>
@@ -1245,6 +1263,95 @@ describe("switched cards", () => {
       expect(count(manifest, "band", band("recording", facet))).toBe(0);
     }
     expect(count(manifest, "jump", id("volta_jump"))).toBe(0);
+  });
+
+  it("reads a card's flow from the manifest's own rules, through a card selector alone", () => {
+    // flow/switched_card: one rule {addresses: [{id: allegro, part: [card]}]} -> {flow: default}.
+    const manifest = load("flow/switched_card.yaml");
+    const graphical = manifest.graphical ?? { styles: {}, rules: [], order: {} };
+    const ruled = (rules: readonly object[], styles: object = {}) =>
+      ({ ...manifest, graphical: { ...graphical, styles, rules } }) as Manifest;
+    const cards = { addresses: [{ id: "allegro", part: ["card"] }] };
+    expect(cardFlow(manifest, "allegro")).toBe("default");
+    expect(
+      cardFlow(
+        ruled([{ select: { addresses: [{ id: "allegro" }] }, set: { flow: "default" } }]),
+        "allegro",
+      ),
+    ).toBeNull();
+    expect(
+      cardFlow(ruled([{ select: { element: "card" }, set: { flow: "default" } }]), "allegro"),
+    ).toBeNull();
+    expect(
+      cardFlow(
+        ruled(
+          [
+            { select: cards, set: { flow: "default" } },
+            { select: cards, set: "played" },
+          ],
+          { played: { flow: "allegro_single" } },
+        ),
+        "allegro",
+      ),
+    ).toBe("allegro_single");
+    expect(cardFlow(ruled([]), "allegro")).toBeNull();
+  });
+
+  it("carries a child member's ancestor lines through a switched frame", () => {
+    // groups/group_child_member (second-half, 8 quarters at 8 in piece, 16; recording, 10.0 s)
+    // with the region take [0.0, 10.0] and the FlowMap twice (take, take) of recording, its
+    // card switched to twice, and bar_7 of piece at 12: two pieces [0.0, 10.0].
+    const value = manifestValue("groups/group_child_member.yaml");
+    const timelines = value.timelines as { id: string; regions?: unknown[] }[];
+    const recording = timelines.find((timeline) => timeline.id === "recording");
+    if (recording === undefined) throw new Error("recording");
+    recording.regions = [{ id: "take", name: "Take", start: 0.0, end: 10.0 }];
+    value.flow_maps = [{ id: "twice", timeline: "recording", chunks: ["take", "take"] }];
+    value.graphical = {
+      rules: [
+        { select: { addresses: [{ id: "recording", part: ["card"] }] }, set: { flow: "twice" } },
+      ],
+      timestamps: [
+        {
+          id: "bar_7",
+          name: "Bar 7",
+          timeline: "piece",
+          coordinate: [12, 1],
+          display: ["wedge", "coordinate"],
+        },
+      ],
+    };
+    const manifest = loadText(fileText(value));
+    // What the frame lists (the ancestor card behind it draws piece as written).
+    const inFrame = (type: string, address: ElementAddress) =>
+      listing(manifest).filter(
+        ([t, a, inside]) =>
+          t === type && a === addressKey(address) && (inside as string[])[1] === "frame",
+      ).length;
+    const recordingChunk = (k: number): ElementAddress => ({
+      id: "recording",
+      facet: "regions",
+      part: [k],
+    });
+    expect(inFrame("region", recordingChunk(0))).toBe(1);
+    expect(inFrame("region", recordingChunk(1))).toBe(1);
+    expect(inFrame("timeline", id("second-half"))).toBe(2);
+    expect(inFrame("name", id("second-half", "name"))).toBe(1);
+    // piece's line over second-half's span, [0, 8] carried to [0.0, 10.0]: once in each piece.
+    expect(inFrame("ancestor", id("piece"))).toBe(2);
+    expect(inFrame("name", id("piece", "name"))).toBe(1);
+    // bar_7 at 12 of piece, 4 of second-half, carried to 5.0: in each piece once, on piece's
+    // ancestor line (primary) and in second-half's markers band (secondary).
+    const stamp = (type: string, coordinates: string) =>
+      manifestElements(manifest).filter(
+        (key) =>
+          key.type === type &&
+          key.address.id === "bar_7" &&
+          key.inside[1] === "frame" &&
+          key.coordinates === coordinates,
+      ).length;
+    expect([stamp("wedge", "primary"), stamp("label", "primary")]).toEqual([2, 2]);
+    expect([stamp("wedge", "secondary"), stamp("label", "secondary")]).toEqual([2, 2]);
   });
 
   it("lists the card as written again once its flow is removed", () => {

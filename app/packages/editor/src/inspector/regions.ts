@@ -21,7 +21,15 @@ import type {
   ResolvedAddress,
   TimelineManifest,
 } from "@timetoalign/tilie-core";
-import { addressKey, copyValue, idAddress, inBlock, prettyUnit } from "@timetoalign/tilie-core";
+import {
+  addressKey,
+  assertNever,
+  copyValue,
+  idAddress,
+  inBlock,
+  isAtomicSection,
+  prettyUnit,
+} from "@timetoalign/tilie-core";
 import { reachOf } from "@timetoalign/tilie-core/drawing";
 import { axisCoordinate, Rational, realOf } from "@timetoalign/tilie-core/numbers";
 import { ATOMIC_SECTION, expandIri } from "@timetoalign/timetoshare";
@@ -100,17 +108,24 @@ function namedBy(resolved: ResolvedAddress): Named | null {
         : null;
     case "part":
       return namedBy(resolved.owner);
-    default:
+    case "workspace":
+    case "block":
+    case "title":
+    case "frame":
+    case "measure_map":
+    case "timestamp":
+    case "elision":
+    case "matchstamp":
+    case "anchor":
+    case "flow_map":
+    case "virtual_timeline":
+    case "virtual_card":
+    case "virtual_band":
+    case "chunk":
       return null;
+    default:
+      return assertNever(resolved);
   }
-}
-
-/** Whether `region` of `manifest` is an atomic section: its `type` statement names the class. */
-export function isAtomicSection(manifest: Manifest, region: Region): boolean {
-  const context: unknown = manifest["@context"];
-  return (region.statements?.type ?? []).some(
-    (type) => (expandIri(context, type) ?? type) === ATOMIC_SECTION,
-  );
 }
 
 /** The words of the classes `region`'s `type` statement names, joined by ", ". */

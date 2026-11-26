@@ -5,8 +5,9 @@
  *
  * A FlowMap names one root timeline and its chunks in the order played:
  * each the ID of a Region of the root or of a descendant, of a child
- * timeline at any depth, of the root itself, or of a virtual timeline of
- * the root's tree, or a gap `{gap: length}`. Resolved, every chunk is a
+ * timeline at any depth, or of a virtual timeline of the root's tree, or a
+ * gap `{gap: length}`; never the root itself, which the validators and
+ * timetoalign refuse as a chunk. Resolved, every chunk is a
  * stretch of the root's axis, carried there by exact parent–child offset
  * arithmetic in the root's number type, and the stretches are laid end to
  * end on the **virtual axis**, which starts at 0 and has the root's unit and
@@ -31,7 +32,6 @@ import {
   addCoordinates,
   axisCoordinate,
   compareCoordinates,
-  coordinatesEqual,
   subtractCoordinates,
 } from "../number/coordinate.ts";
 import { toRational } from "../number/real.ts";
@@ -46,11 +46,11 @@ export type FlowMapErrorCode =
   | "unknown_virtual_timeline"
   /** A FlowMap's `timeline` names no root timeline. */
   | "flow_map_timeline"
-  /** A chunk names nothing giving an interval in the root's tree. */
+  /** A chunk names nothing giving an interval in the root's tree, or the root itself. */
   | "flow_map_chunk"
   /** A gap's length is no value of the root's number type. */
   | "gap_number_type"
-  /** A chunk is a child timeline, or the root, of unknown length. */
+  /** A chunk is a child timeline of unknown length. */
   | "unknown_length"
   /** FlowMaps name one another as chunks in a circle, through the virtual timelines they apply. */
   | "flow_map_cycle"
@@ -82,7 +82,7 @@ export interface Stretch {
   readonly end: Coordinate;
 }
 
-/** What a chunk names: a Region, a timeline (a child or the root), a virtual timeline, or a gap. */
+/** What a chunk names: a Region, a child timeline, a virtual timeline, or a gap. */
 export type FlowChunkKind = "region" | "timeline" | "virtual" | "gap";
 
 /** One entry of a FlowMap's `chunks`, resolved. */
@@ -113,7 +113,11 @@ export interface PlayedStretch {
   readonly chunk: number;
 }
 
-/** A run of `count` consecutive equal chunks (the same ID, or gaps of one length), named by its first. */
+/**
+ * A run of `count` consecutive chunks (section 8.10, Runs), named by its
+ * first: a longest sequence of chunks naming one ID, gaps forming none, so
+ * that a gap is a run of its own of count 1.
+ */
 export interface FlowRun {
   readonly chunk: FlowChunk;
   readonly count: number;
@@ -132,7 +136,7 @@ export interface ResolvedFlowMap {
   readonly chunks: readonly FlowChunk[];
   /** The stretches in the order played, each placed where the one before it ends. */
   readonly stretches: readonly PlayedStretch[];
-  /** The runs of equal chunks, in order: every chunk lies in exactly one. */
+  /** The runs of chunks naming one ID, in order: every chunk lies in exactly one. */
   readonly runs: readonly FlowRun[];
   /** The length of the virtual axis: the chunks and gaps together. */
   readonly length: Coordinate;
@@ -290,10 +294,11 @@ function ownValue(timeline: TimelineManifest, value: unknown): CoordinateValue {
 }
 
 /**
- * The stretch on the root's axis of the Region, child timeline or root
- * named `id` in the tree of `root`, each bound carried up by adding the
- * offsets of the timelines between, in the root's number type; null when
- * the tree holds no such Region or timeline.
+ * The stretch on the root's axis of the Region or child timeline named `id`
+ * in the tree of `root`, each bound carried up by adding the offsets of the
+ * timelines between, in the root's number type; null when the tree holds no
+ * such Region or child. The root itself is no chunk (`flow_map_chunk`), as
+ * the validators and timetoalign refuse it.
  */
 function stretchInTree(
   root: TimelineManifest,
@@ -302,6 +307,13 @@ function stretchInTree(
   what: string,
   path: readonly PathSegment[],
 ): { kind: "region" | "timeline"; stretch: Stretch } | null {
+  if (root.id === id) {
+    throw new FlowMapError(
+      "flow_map_chunk",
+      `chunk ${quoted(id)} of ${what} names its own timeline: a chunk is a region, a child timeline or a virtual timeline of its tree`,
+      path,
+    );
+  }
   const pending: [TimelineManifest, Coordinate][] = [[root, onAxis(axis, ZERO)]];
   for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
     const [timeline, origin] = next;
@@ -426,25 +438,12 @@ export function appliedFlowMap(
   return resolve(manifest, flowMap.id, visiting);
 }
 
-/** Whether two chunks are equal as written: the same ID, or gaps of one length. */
-function sameChunk(left: FlowChunk, right: FlowChunk): boolean {
-  if (left.kind === "gap" || right.kind === "gap") {
-    return (
-      left.kind === right.kind &&
-      coordinatesEqual(
-        subtractCoordinates(left.played.end, left.played.start),
-        subtractCoordinates(right.played.end, right.played.start),
-      )
-    );
-  }
-  return left.source === right.source;
-}
-
+/** The runs of `chunks` (`FlowRun`): each longest sequence of chunks naming one ID, a gap alone. */
 function runsOf(chunks: readonly FlowChunk[]): FlowRun[] {
   const runs: FlowRun[] = [];
   for (const chunk of chunks) {
     const last = runs.at(-1);
-    if (last !== undefined && sameChunk(last.chunk, chunk)) {
+    if (last !== undefined && chunk.source !== null && last.chunk.source === chunk.source) {
       runs[runs.length - 1] = { chunk: last.chunk, count: last.count + 1 };
     } else runs.push({ chunk, count: 1 });
   }

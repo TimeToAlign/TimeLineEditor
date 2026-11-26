@@ -25,6 +25,10 @@
  * ancestor line) are keyed separately: they match the same `addresses`, `within`
  * and `element`, but each inherits from its own `parent` and matches
  * `inside` by its own chain.
+ *
+ * A declaration's `flow` (section 2.4) is no style a drawing takes: which
+ * card is switched is read from the manifest's own layer by core
+ * (`cardFlow`, `switchOf`), and the cascade leaves it unset.
  */
 
 import { addressKey } from "@timetoalign/tilie-core";
@@ -62,13 +66,6 @@ export interface Style {
    * labels: `none`, or the words `name`, `id` and `label` (section 6.4, Flow labels).
    */
   readonly "label-display": string;
-  /**
-   * The FlowMap or virtual timeline a card is switched to (section 8.10), by ID; null, the
-   * initial value, for a card drawn as written. Set only by a rule of the highest layer, the
-   * manifest's own, whose selector names `addresses` alone, each the address of the cards of a
-   * timeline (section 2.4).
-   */
-  readonly flow: string | null;
 }
 
 /**
@@ -93,7 +90,6 @@ export const INITIAL_STYLE: Style = {
   "elision-depths": "auto",
   "elision-display": "ellipsis name",
   "label-display": "name label",
-  flow: null,
 };
 
 type StyleValues = { -readonly [Property in keyof Style]?: Style[Property] };
@@ -220,12 +216,6 @@ const STYLE_PROPERTIES = {
         values["label-display"] = declaration["label-display"];
     },
   },
-  flow: {
-    inherits: false,
-    set: (values, declaration) => {
-      if (declaration.flow !== undefined) values.flow = declaration.flow;
-    },
-  },
 } satisfies Record<keyof Style, StyleProperty>;
 
 const PROPERTIES: readonly StyleProperty[] = Object.values(STYLE_PROPERTIES);
@@ -236,28 +226,6 @@ interface Ranked {
   readonly set: Declaration;
   readonly rank: readonly number[];
   readonly order: number;
-}
-
-/** `declaration` without its `flow`. */
-function withoutFlow(declaration: Declaration): Declaration {
-  const { flow: _flow, ...rest } = declaration;
-  return rest;
-}
-
-/**
- * Whether `select` names `addresses` alone, each the address `{id: T, part: ["card"]}` of the
- * cards of a timeline: the one selector a rule setting `flow` may have (section 2.4).
- */
-function selectsCards(select: Selector): boolean {
-  const addresses = select.addresses;
-  if (addresses === undefined || Object.keys(select).length !== 1) return false;
-  return addresses.every(
-    (address) =>
-      Object.keys(address).length === 2 &&
-      address.id !== undefined &&
-      address.part?.length === 1 &&
-      address.part[0] === "card",
-  );
 }
 
 function compareRanks(left: readonly number[], right: readonly number[]): number {
@@ -299,16 +267,11 @@ export class Cascade {
             : rule.set;
         // A style name the layer's `styles` does not hold sets nothing.
         if (found === undefined) return;
-        const select = rule.select;
-        // `flow` is set by the manifest's own layer, the highest, through a card selector alone.
-        const set =
-          found.flow === undefined || (level === layers.length - 1 && selectsCards(select))
-            ? found
-            : withoutFlow(found);
+        const { select } = rule;
         const within = select.within === undefined ? 0 : (ancestry.get(select.within)?.length ?? 0);
         ranked.push({
           select,
-          set,
+          set: found,
           rank: [
             level,
             select.addresses === undefined ? 0 : 1,

@@ -7,7 +7,7 @@
  */
 
 import type { ElementAddress, StyleCommand, View } from "@timetoalign/tilie-core";
-import { addressKey, cardAddress, idAddress } from "@timetoalign/tilie-core";
+import { addressKey, cardAddress, cardFlow, idAddress } from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,7 +19,6 @@ import {
   chosenFlow,
   flowChoices,
   flowCommands,
-  flowOf,
   morphTransform,
   spanAt,
   switchMorphs,
@@ -84,7 +83,7 @@ describe("the list", () => {
 
   it("shows the flow the cards are switched to", () => {
     expect(chosenFlow(manifest(VIRTUAL), box(VIRTUAL, cardAddress(ROOT)))).toEqual(AS_WRITTEN);
-    expect(flowOf(manifest(VIRTUAL), ROOT)).toBeNull();
+    expect(cardFlow(manifest(VIRTUAL), ROOT)).toBeNull();
     expect(chosenFlow(manifest(SWITCHED), box(SWITCHED, cardAddress(ROOT)))).toEqual(
       choice("default"),
     );
@@ -100,16 +99,16 @@ describe("the commands", () => {
     const commands = flowCommands(A, manifest(VIRTUAL), card, choice(DEFAULT));
     expect(commands).toEqual([flowOn(DEFAULT)]);
     const next = commands.reduce(changed, VIRTUAL);
-    expect(flowOf(manifest(next), ROOT)).toBe(DEFAULT);
+    expect(cardFlow(manifest(next), ROOT)).toBe(DEFAULT);
   });
 
   it("replaces a flow by one command and removes it for As written", () => {
     const card = box(SWITCHED, cardAddress(ROOT));
     expect(flowCommands(A, manifest(SWITCHED), card, choice("single"))).toEqual([flowOn("single")]);
-    expect(flowOf(manifest(changed(SWITCHED, flowOn("single"))), ROOT)).toBe("single");
+    expect(cardFlow(manifest(changed(SWITCHED, flowOn("single"))), ROOT)).toBe("single");
     const written = flowCommands(A, manifest(SWITCHED), card, AS_WRITTEN);
     expect(written).toEqual([flowOn(null)]);
-    expect(flowOf(manifest(written.reduce(changed, SWITCHED)), ROOT)).toBeNull();
+    expect(cardFlow(manifest(written.reduce(changed, SWITCHED)), ROOT)).toBeNull();
     expect(flowCommands(A, manifest(SWITCHED), card, choice("default"))).toEqual([]);
   });
 

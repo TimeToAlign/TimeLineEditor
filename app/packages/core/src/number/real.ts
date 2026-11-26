@@ -133,6 +133,11 @@ export function addReal(left: Real, right: Real): Real {
   return a + b;
 }
 
+/** `left − right`, as `left + (−right)`: exact when both are exact, otherwise a float. */
+export function subtractReal(left: Real, right: Real): Real {
+  return addReal(left, typeof right === "number" ? -right : Rational.of(0n).subtract(right));
+}
+
 /** `-1`, `0` or `1`; a float and an exact value compare exactly. */
 export function compareReal(left: Real, right: Real): -1 | 0 | 1 {
   if (typeof left === "number" && typeof right === "number") {

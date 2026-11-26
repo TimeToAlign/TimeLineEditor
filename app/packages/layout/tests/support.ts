@@ -25,6 +25,7 @@ import {
 } from "@timetoalign/tilie-core";
 import {
   type Address,
+  canonicalOrder,
   type Graphical,
   fontMetrics as metrics,
   SCHEMA_VERSION,
@@ -361,3 +362,54 @@ export function child(parent: string, id: string, offset: number, length: number
  * written as a quotient, which rounds to the same double as the literal.
  */
 export const SINE_45 = 7071 / 10_000;
+
+/**
+ * `groups/group_child_member` (the frame of the child `second-half`, 8
+ * quarters at 8 in `piece`, and `recording`, 10.0 seconds) with the region
+ * `take` "Take" over `[0.0, 10.0]` of `recording`, the FlowMap `twice` of
+ * `recording` (`take`, `take`) and the named timestamp `bar_7` "Bar 7" of
+ * `piece` at 12 (wedge and coordinate): `written`; and `manifest`, the same
+ * with the manifest's rule switching `recording`'s card to `twice`, so that
+ * the frame is switched and `second-half` carried with its ancestor line.
+ * Both pass the validators.
+ */
+export function childMemberTwice(): { readonly written: Manifest; readonly manifest: Manifest } {
+  const source = loadFile("groups/group_child_member");
+  const graphical = source.graphical ?? { styles: {}, rules: [], order: {} };
+  const timelines = source.timelines.map((timeline) =>
+    timeline.id === "recording"
+      ? { ...timeline, regions: [{ id: "take", name: "Take", start: 0.0, end: 10.0 }] }
+      : timeline,
+  );
+  const twice = {
+    id: "twice",
+    timeline: "recording",
+    chunks: ["take", "take"],
+    provenance: [{ method: "manual" as const }],
+  };
+  const bar = {
+    id: "bar_7",
+    timeline: "piece",
+    coordinate: quarters(12),
+    name: "Bar 7",
+    display: ["wedge" as const, "coordinate" as const],
+    matchstamp: false,
+    groupstamp: false,
+  };
+  const written = canonicalOrder({
+    ...source,
+    timelines,
+    flow_maps: [...(source.flow_maps ?? []), twice],
+    graphical: { ...graphical, timestamps: [...(graphical.timestamps ?? []), bar] },
+  } as Manifest);
+  const rule = {
+    select: { addresses: [{ id: "recording", part: ["card" as const] }] },
+    set: { flow: "twice" },
+  };
+  const manifest = {
+    ...written,
+    graphical: { ...written.graphical, rules: [...(graphical.rules ?? []), rule] },
+  } as Manifest;
+  validate(withFileIds(manifest));
+  return { written, manifest };
+}

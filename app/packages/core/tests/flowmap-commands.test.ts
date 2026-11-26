@@ -275,6 +275,32 @@ describe("Virtual timelines", () => {
     });
   });
 
+  it("adds one through a group on the axis of the FlowMap's own root, its length following", () => {
+    // groups/switched_frame: allegro (quarters) and recording (seconds) in performance.
+    const frame = () => viewOf([A, "groups/switched_frame.yaml"]);
+    const value = { map: "by_hand", timeline: "recording", through: "performance" };
+    const view = changed(frame(), addVirtual(value, ["recording_played"]));
+    const played = (state: View) =>
+      valid(state).virtual_timelines?.find((item) => item.id === "recording_played");
+    expect(played(view)).toEqual({
+      id: "recording_played",
+      map: "by_hand",
+      timeline: "recording",
+      through: "performance",
+      name: null,
+      unit: "quarters",
+      number_type: "fraction",
+      length: [3054, 1],
+    });
+    expect(refused(apply(frame(), addVirtual({ ...value, length: [24, 1] }, ["x"])))).toEqual({
+      code: "invalid_value",
+      path: [key({ block: A }), "virtual_timeline", "length"],
+      message: "the length of a virtual timeline is computed from its map: 3054 ♩, not 24 ♩",
+    });
+    const shorter = changed(view, set(at("by_hand"), { chunks: ["section_a", "section_c"] }));
+    expect(played(shorter)?.length).toEqual([3241, 2]);
+  });
+
   it("renames a virtual timeline", () => {
     const view = changed(sonata(), set(at("virtual_1"), { name: "Repeats played" }));
     expect(valid(view).virtual_timelines?.[0]?.name).toBe("Repeats played");
