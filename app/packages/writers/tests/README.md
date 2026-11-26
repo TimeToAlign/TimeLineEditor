@@ -279,10 +279,13 @@ end `circle`, its gap lines `[20, 24]` and `[30, 31]`, writes `<line
 data-id="v" x1="10" y1="20" x2="20" y2="20" stroke="#00CC00"
 stroke-width="3" stroke-dasharray="3 3"/>`, the same from 24 to 30 and
 from 31 to 50, then `<line data-id="v" x1="20" y1="20" x2="24" y2="20"
-stroke="#00CC00" stroke-width="1.5" stroke-dasharray="1.5 3"/>` and the
-same from 30 to 31 (half the width, `w / 2` on and `w` off, whatever the
-line's own dash), then its two circles of radius 3. In TikZ a gap line is
-`line width=1.5pt,dash pattern=on 1.5pt off 3pt`.
+stroke="#9CA3AF" stroke-width="3" stroke-dasharray="3 3"/>` and the
+same from 30 to 31 (the fixed grey, never the line's `stroke`, with the
+line's own width and dash), then its two circles of radius 3. The same
+line stroked solid (dash `none`) at opacity 0.5 writes its gap lines with
+no `stroke-dasharray` and with `opacity="0.5"`, as its pieces. In TikZ a
+gap line is `draw=ts9CA3AF,line width=3pt,dash pattern=on 3pt off
+3pt`.
 
 **Cross-section lines** (section 7.2) are lines from `(X, y1)` to `(X, y2)`
 as the layout states them, in that order, whichever is the smaller: `{id:

@@ -14,7 +14,7 @@ import type {
   PathCommand,
   Point,
 } from "@timetoalign/tilie-layout";
-import { brace, lineGeometry, wedgePoints } from "@timetoalign/tilie-layout";
+import { brace, GAP_LINE_STROKE, lineGeometry, wedgePoints } from "@timetoalign/tilie-layout";
 import { formatNumber } from "./page.ts";
 import type { DescriptorSource } from "./source.ts";
 
@@ -216,8 +216,8 @@ function writerOf(element: DrawnElement, index: number) {
       ),
     }),
     /**
-     * A gap line from `(x1, y)` to `(x2, y)` (section 6.6, Gap lines): stroked in the line's
-     * `stroke`, half its stroke width, dashed `w / 2` on and `w` off.
+     * A gap line from `(x1, y)` to `(x2, y)` (section 6.6, Gap lines): stroked in the fixed grey
+     * `GAP_LINE_STROKE` with the line's stroke width, dash pattern and opacity.
      */
     gapLine: (x1: number, y: number, x2: number): LineDescriptor => ({
       tag: "line",
@@ -233,7 +233,7 @@ function writerOf(element: DrawnElement, index: number) {
           ["x2", x2],
           ["y2", y],
         ],
-        strokeAttributes(style.stroke, w / 2, `${w / 2} ${w}`),
+        strokeAttributes(GAP_LINE_STROKE, w, style["stroke-dasharray"]),
       ),
     }),
     circle: (cx: number, cy: number, r: number, paint: Attributes): CircleDescriptor => ({

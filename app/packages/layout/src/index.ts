@@ -42,6 +42,7 @@ export type {
 } from "./boxes.ts";
 export type { Style } from "./cascade.ts";
 export { Cascade, INITIAL_STYLE } from "./cascade.ts";
+export { GAP_LINE_STROKE } from "./constants.ts";
 export { DEFAULT_LAYER, manifestLayer } from "./defaults.ts";
 export type {
   AnchorElement,

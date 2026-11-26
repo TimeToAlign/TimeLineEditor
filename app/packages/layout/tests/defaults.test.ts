@@ -21,6 +21,7 @@ import {
   FORK_TEXT_OFFSET,
   FRAME_SPACING,
   G,
+  GAP_LINE_STROKE,
   JUMP_DEPTH,
   JUMP_PITCH,
   K,
@@ -145,8 +146,8 @@ describe("the constants", () => {
     ],
     ["boundary half-height `k`, of a segment's start and of a chunk's alike", `${BOUNDARY}`],
     [
-      "gap line of a FlowMap's gap (section 6.6): stroke width, dash, space",
-      "`w / 2`, `w / 2`, `w`, `w` the stroke width of its line",
+      "gap line of a FlowMap's gap (section 6.6): stroke colour, stroke width, dash pattern",
+      `\`${GAP_LINE_STROKE}\`, \`w\` and the \`stroke-dasharray\` of its line, \`w\` the stroke width of its line`,
     ],
     ["group frame padding `Q`", `${Q}`],
     ["card padding `K`", `${K}`],
