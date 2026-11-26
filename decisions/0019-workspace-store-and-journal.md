@@ -49,7 +49,8 @@ generated command sequences.
 **The journal carries the minted IDs.** An element a command creates
 without an ID of its own (a named timestamp, an elision, a named MatchStamp
 with its anchors and new match timestamps, a new root's default timestamps, a
-segment line's first segment, a group added without `id`) is given a random
+segment line's first segment, a group, region, conversion map, flow-control
+element, FlowMap or virtual timeline added without `id`) is given a random
 ID, its type prefix, `_` and 13 base-36 characters (TimeToShare's README,
 "Identity"). The reducer never mints: it takes each ID, in the order it
 creates the elements, from the command's `ids` list, and refuses a command
@@ -104,6 +105,16 @@ redo stack, a new command discards the undone changes, and an undo past
 the views the store holds applies the changes from the latest view it
 holds, or from the empty workspace at the start of a loaded journal. The
 replay invariant holds as stated.
+
+**Amended (2026-11-26): a session states its kind where its target does
+not.** A fourth editor, the flow editor of a root's FlowMaps, targets the
+root's address, which alone opens the root's timeline editor. A session
+closed in it is written `{target, kind: "flow", entries}`; every other
+session stays `{target, entries}`, its kind the one its target opens, so
+every file written before reads as it did, and the version stays 8. A
+reader refuses any other `kind` (`invalid_value`, "a session states only
+the kind flow"). A session reopens, unfolded, and an earlier session is
+listed, only where both target and kind match.
 
 ## Consequences
 
