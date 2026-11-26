@@ -33,6 +33,21 @@ import {
 const VIEW = { x: 40, y: 40, zoom: 1 };
 
 /**
+ * The viewport at zoom 1 that shows block `block`'s place at canvas pixel
+ * (40, 40): the card, its flow pane with every row and the new one, and the
+ * canvas 80 px below the pane all lie inside the window (at `VIEW` the pane
+ * runs past the window's bottom edge).
+ */
+async function viewAtBlock(page: Page, block: string): Promise<typeof VIEW> {
+  const place = await page.evaluate((id) => {
+    const found = window.__tilie.store().view.blocks[id];
+    return found === undefined ? null : { x: found.x, y: found.y };
+  }, block);
+  if (place === null) throw new Error(`block ${block} is missing`);
+  return { x: 40 - place.x, y: 40 - place.y, zoom: 1 };
+}
+
+/**
  * The commands of the open editor's session from entry `from` on, as JSON
  * (a `bigint` written as its digits); a closed session's entry is `null`.
  */
@@ -60,7 +75,8 @@ test("the flow editor opens from the flow control band, lands, places and folds"
 }) => {
   const block = await importFixture(page, "flow/virtual_cards");
   const allegro = { block, id: "allegro" };
-  await enter(page, allegro, VIEW);
+  const view = await viewAtBlock(page, block);
+  await enter(page, allegro, view);
   const symbol = await partCentre(page, block, { id: "repeat_end", part: ["symbol"] });
   await page.mouse.dblclick(symbol.x, symbol.y);
   await expect
@@ -69,7 +85,7 @@ test("the flow editor opens from the flow control band, lands, places and folds"
       { target: allegro, kind: "timeline" },
       { target: allegro, kind: "flow" },
     ]);
-  await setViewport(page, VIEW);
+  await setViewport(page, view);
 
   const pane = page.getByTestId("flow-pane");
   await expect(pane).toBeVisible();
@@ -140,7 +156,7 @@ test("on the arranger a double-click in the root card's flow control band opens 
   await page.mouse.dblclick(inBand.x, inBand.y);
   await expect.poll(() => editing(page)).toEqual([{ target: allegro, kind: "flow" }]);
   await expect(page.getByTestId("flow-pane")).toBeVisible();
-  await done(page);
+  await done(page, VIEW);
   await expect.poll(() => editing(page)).toEqual([]);
   expect(await journalLength(page)).toBe(journal);
 

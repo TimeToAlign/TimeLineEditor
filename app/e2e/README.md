@@ -1855,9 +1855,14 @@ card of `recording` reaches 121.70361328125 left of its place origin at
 layout's default view, and less in a narrower pane), only
 the selection's mark stays.
 
-**`flow-editor.spec.ts`** (Chromium) proves the flow editor on
-TimeToShare's `flow/virtual_cards` imported as one block, viewport (40, 40),
-zoom 1: in `allegro`'s timeline editor (opened through the hook) a
+**`flow-editor.spec.ts`** (Chromium, Firefox, WebKit) proves the flow
+editor on TimeToShare's `flow/virtual_cards` imported as one block. The
+first case runs at the viewport that shows the block's place at canvas
+pixel (40, 40), zoom 1, read from the store, so that the card, the pane
+with its five rows and the point 80 px below it lie inside the 800-px
+window (at viewport (40, 40) the pane runs past the window's bottom edge,
+where an engine may refuse the click on the new row's Done or the drop):
+in `allegro`'s timeline editor (opened through the hook) a
 double-click on the repeat end's symbol `{id: "repeat_end", part:
 ["symbol"]}`, which `allegro`'s flow control band draws, opens the flow editor, so the store's editing path is
 the timeline editor then the flow editor of `{block, id: "allegro"}`; the
@@ -1871,13 +1876,20 @@ editor's border, stores two entries: the `add` of its virtual timeline
 `{map: "printed", timeline: "allegro"}` and a `set` placing it. Done twice
 closes both editors and the journal gains exactly one entry, the timeline
 editor's session holding the flow editor's. On the arranger, with no
-editor open and the drawing settled at the same viewport, a double-click
+editor open and the drawing settled at viewport (40, 40), zoom 1, a double-click
 at an empty point of `allegro`'s flow control band (`bandPoint`, 2 px
 clear: a press there hits `allegro`'s card) opens the flow editor alone,
 the editing path `[{target: {block, id: "allegro"}, kind: "flow"}]`, its
 pane shown; Done closes it with the journal unchanged (an empty session
-journals nothing); a double-click on the repeat end's symbol then opens
-the same flow editor alone.
+journals nothing) and the canvas back at that viewport (the editor's
+focus moved it to show the pane; the symbol is measured only once it is
+back); a double-click on the repeat end's symbol then opens the same flow
+editor alone. A hand-made row is edited in place: the Edit button of
+`by_hand` (A A A A, a gap of 4, C) makes its row the edited one (Done and
+Cancel in it, no Edit button left, none on the computed rows); Delete on
+its entry 4 (the gap) stores one entry, `{type: "set", changes: [{target:
+{block, id: "by_hand"}, values: {chunks: [section_a ×4, section_c]}}]}`;
+the row's Done keeps it and leaves no edited row.
 
 **`embed.spec.ts`** (Chromium, Firefox, WebKit) proves the embed build in a
 host page it does not own. A route serves the host page at
