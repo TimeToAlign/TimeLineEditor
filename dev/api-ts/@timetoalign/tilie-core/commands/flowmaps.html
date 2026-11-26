@@ -542,7 +542,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>FLOW_MAP_SET</strong>: <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/commands/flowmaps.ts#L415">commands/flowmaps.ts:415</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/dd04099e258a5e11b964690d107845613159ff22/app/packages/core/src/commands/flowmaps.ts#L415">commands/flowmaps.ts:415</a></p>
 <p>What a <code class="docutils literal notranslate"><span class="pre">set</span></code> gives a FlowMap: its <code class="docutils literal notranslate"><span class="pre">chunks</span></code>, the whole list, and its
 <code class="docutils literal notranslate"><span class="pre">name</span></code> (null for none), which a computed FlowMap refuses
 (<code class="docutils literal notranslate"><span class="pre">computed_flow_map</span></code>); and <code class="docutils literal notranslate"><span class="pre">computed</span></code>, a new computation’s <code class="docutils literal notranslate"><span class="pre">{chunks,</span> <span class="pre">provenance}</span></code>, which only a computed FlowMap takes. A change of the
@@ -664,7 +664,7 @@ on one written by hand, whose <code class="docutils literal notranslate"><span c
 <blockquote>
 <div><p><strong>addFlowMap</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">target</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">changes</span></code>): <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/commands/flowmaps.ts#L157">commands/flowmaps.ts:157</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/dd04099e258a5e11b964690d107845613159ff22/app/packages/core/src/commands/flowmaps.ts#L157">commands/flowmaps.ts:157</a></p>
 <p>Add a FlowMap into the root timeline it orders: <code class="docutils literal notranslate"><span class="pre">{id?,</span> <span class="pre">timeline?,</span> <span class="pre">chunks,</span> <span class="pre">name?,</span> <span class="pre">canonical?,</span> <span class="pre">convention?,</span> <span class="pre">provenance?}</span></code>, its <code class="docutils literal notranslate"><span class="pre">timeline</span></code> that root
 (<code class="docutils literal notranslate"><span class="pre">invalid_value</span></code> for another), its ID the one given or the next of the
 command’s <code class="docutils literal notranslate"><span class="pre">ids</span></code>, read where it will lie (<code class="docutils literal notranslate"><span class="pre">readListed</span></code>); a problem lies at
@@ -699,7 +699,7 @@ command’s <code class="docutils literal notranslate"><span class="pre">ids</sp
 <blockquote>
 <div><p><strong>addVirtualTimeline</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">target</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">changes</span></code>): <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/commands/flowmaps.ts#L590">commands/flowmaps.ts:590</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/dd04099e258a5e11b964690d107845613159ff22/app/packages/core/src/commands/flowmaps.ts#L590">commands/flowmaps.ts:590</a></p>
 <p>Add a virtual timeline into a block’s manifest: <code class="docutils literal notranslate"><span class="pre">{id?,</span> <span class="pre">map,</span> <span class="pre">timeline,</span> <span class="pre">name?,</span> <span class="pre">through?,</span> <span class="pre">length?}</span></code>, map and timeline required (<code class="docutils literal notranslate"><span class="pre">invalid_value</span></code>),
 its unit, number type and length computed (<code class="docutils literal notranslate"><span class="pre">computedAxis</span></code>, <code class="docutils literal notranslate"><span class="pre">lengthOf</span></code>),
 its ID the one given or the next of the command’s <code class="docutils literal notranslate"><span class="pre">ids</span></code> (the prefix of
@@ -737,7 +737,7 @@ from itself. A problem lies at <code class="docutils literal notranslate"><span 
 <blockquote>
 <div><p><strong>isComputedFlowMap</strong>(<code class="docutils literal notranslate"><span class="pre">flowMap</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/commands/flowmaps.ts#L188">commands/flowmaps.ts:188</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/dd04099e258a5e11b964690d107845613159ff22/app/packages/core/src/commands/flowmaps.ts#L188">commands/flowmaps.ts:188</a></p>
 <p>Whether a FlowMap is computed from the flow control of its timeline: it
 states the <code class="docutils literal notranslate"><span class="pre">convention</span></code> it follows and a provenance entry of method
 <code class="docutils literal notranslate"><span class="pre">inferred</span></code>.</p>
@@ -759,7 +759,7 @@ states the <code class="docutils literal notranslate"><span class="pre">conventi
 <blockquote>
 <div><p><strong>namedProblem</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">kind</span></code>, <code class="docutils literal notranslate"><span class="pre">gone</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/commands/flowmaps.ts#L672">commands/flowmaps.ts:672</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/dd04099e258a5e11b964690d107845613159ff22/app/packages/core/src/commands/flowmaps.ts#L672">commands/flowmaps.ts:672</a></p>
 <p>Why the elements <code class="docutils literal notranslate"><span class="pre">removed</span></code> of <code class="docutils literal notranslate"><span class="pre">manifest</span></code> cannot go with what else the
 command removes, <code class="docutils literal notranslate"><span class="pre">others</span></code> (the IDs of the other targets in the same
 block): a FlowMap while a virtual timeline left applies it, a virtual
@@ -799,7 +799,7 @@ chunk; <code class="docutils literal notranslate"><span class="pre">not_removabl
 <blockquote>
 <div><p><strong>setVirtualName</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">index</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>, <code class="docutils literal notranslate"><span class="pre">changes</span></code>): <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/commands/flowmaps.ts#L641">commands/flowmaps.ts:641</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/dd04099e258a5e11b964690d107845613159ff22/app/packages/core/src/commands/flowmaps.ts#L641">commands/flowmaps.ts:641</a></p>
 <p>A virtual timeline’s <code class="docutils literal notranslate"><span class="pre">name</span></code> set (null for none), read where it lies;
 nothing written when it holds that name.</p>
 <section id="id32">

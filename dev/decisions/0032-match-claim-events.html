@@ -597,6 +597,16 @@ the dialog. Since the server opens the user’s files by path (decision
 0033), the workspace keeps where each manifest lies and the table is read
 beside it through the server in every session; a table named by an
 absolute URL is fetched without a question.</p>
+<p>Amended 2026-11-26: the MatchClaim table no longer writes a side without
+an event as a null cell. Each event ID cell holds an event’s ID or one of
+the two reserved strings of the sentinels, <code class="docutils literal notranslate"><span class="pre">NOMATCH_SENTINEL</span></code> (no
+counterpart on that timeline) and <code class="docutils literal notranslate"><span class="pre">CHUNK_SENTINEL</span></code> (a position on a
+timeline that holds no event for it, the anchors stating its coordinate),
+and the route answers them as written. In the answer <code class="docutils literal notranslate"><span class="pre">null</span></code> therefore
+stands only for an event without a name; the client refuses a <code class="docutils literal notranslate"><span class="pre">null</span></code>
+event ID or synchrony as malformed. The Matchstamp tab reads a reserved
+string as its sentinel, never as an event, and shows CHUNK or NOMATCH with
+its meaning as a tooltip, where it showed “no event”.</p>
 </section>
 <section id="maintenance-and-dependencies">
 <h2>Maintenance and dependencies<a class="headerlink" href="#maintenance-and-dependencies" title="Link to this heading">#</a></h2>

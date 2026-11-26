@@ -514,8 +514,9 @@ manifest by TimeToShare’s table checks; timetoalign reads it.</p>
 <code class="docutils literal notranslate"><span class="pre">{&quot;id&quot;,</span> <span class="pre">&quot;timeline_a_id&quot;,</span> <span class="pre">&quot;event_a_id&quot;,</span> <span class="pre">&quot;event_a_name&quot;,</span>
 <span class="pre">&quot;timeline_b_id&quot;,</span> <span class="pre">&quot;event_b_id&quot;,</span> <span class="pre">&quot;event_b_name&quot;,</span> <span class="pre">&quot;certainty&quot;,</span>
 <span class="pre">&quot;is_synchronous&quot;}</span></code>, the values as timetoalign reads the MatchClaim
-table (<code class="docutils literal notranslate"><span class="pre">None</span></code> where a cell is null: a side without an event, an
-event without a name).</p>
+table (<code class="docutils literal notranslate"><span class="pre">None</span></code> where a cell is null: an event without a name). A
+side naming no event answers the table’s reserved string as its
+event ID, <code class="docutils literal notranslate"><span class="pre">NOMATCH_SENTINEL</span></code> or <code class="docutils literal notranslate"><span class="pre">CHUNK_SENTINEL</span></code>, and no name.</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="tilie_server.manifests.html#tilie_server.manifests.Refusal" title="tilie_server.manifests.Refusal"><strong>Refusal</strong></a> – As <a class="reference internal" href="tilie_server.routers.claim_provenance.html#tilie_server.routers.claim_provenance.split_parameters" title="tilie_server.routers.claim_provenance.split_parameters"><code class="xref py py-func docutils literal notranslate"><span class="pre">split_parameters()</span></code></a> and the table route for the
