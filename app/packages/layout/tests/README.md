@@ -2540,6 +2540,24 @@ less and plus `k` = 8.
    C, boundaries at entries 1 to 5, at `x(953/2)`, `x(953)`, `x(2859/2)`,
    `x(1906)`, `x(1910)` with `D` = 0, and the gap line `[[x(1906),
    x(1910)]]`.
+9. **The axes follow the run.** What a hover, a pin and the coordinate
+   flag read on a line is its axes (`lineAxes`, read by `abscissaOf`), so
+   on `allegro_by_hand`'s card of 5 the line has one axis per run, as an
+   elided line has one per run between its gaps: run 0 over `[0, 953/2]`
+   from `x0` to `x0 + 400 × u(953/2)`, start 0, length and drawn length
+   953/2; run 1 over `[1906, 3054]` from `x(1906)`, which is exactly
+   `x0 + 400 × u(953/2)` (where brace 0 ends), to `x(3054)`, the line's
+   end, start 1906, length and drawn length 1148. No axis holds a
+   position strictly inside the run gap (`953/2 < t < 1906`), which the
+   drawing does not draw. A position is read on the axis holding it by
+   the one linear rule of `abscissaOf`, `xStart + (t − start) / drawn
+   length × (xEnd − xStart)`, each operand a double: 0 at `x0`, 1906 at
+   run 1's `xStart` (the coordinate the drawing shows where the brace
+   ends), 1908 (the gap's middle) at `xStart + (2 / 1148) × (xEnd −
+   xStart)` of run 1. A single straight axis over `[0, 3054]` would put
+   1906 at `x0 + 400 × u(1906)`, about 187.2 to the right of that end. The
+   virtual cards placed beside it, without a run, keep one axis each, from
+   `x0` to `x0 + 400`.
 
 ## Switched cards (`switched.test.ts`)
 
@@ -2625,6 +2643,38 @@ the manifest's own layer or with another selector switches nothing.
     3, 0, 1, 2, 3) and its boundaries k = 1, 2, 3 twice; `recording`'s
     card draws the braces of `twice`, k = 0 and 1, both labelled `Take`
     (no run is drawn once in a frame).
+12. **A carried child member: its ancestor lines unfolded.**
+    `groups/group_child_member` (the frame `group_1` of `second-half`, 8
+    quarters at offset 8 in `piece`, 16 quarters, and `recording`, 10.0
+    seconds) with a region `take` "Take" over `[0.0, 10.0]` of
+    `recording`, a FlowMap `twice` of `recording` (`["take", "take"]`),
+    the rule switching `recording`'s card to it, and a named timestamp
+    `bar_7` "Bar 7" of `piece` at 12 (display wedge and coordinate), drawn
+    with the ancestor cards hidden (`HIDDEN_ANCESTOR_CARDS`). The frame is
+    switched: pieces `[0.0, 10.0]` at 0.0 and at 10.0, `Λ` = 20.0;
+    `second-half` is carried (`t = m × 10.0 / 8`, in binary64), so its 0,
+    4 and 8 lie at 0.0, 5.0 and 10.0 of `recording`'s axis, played at
+    0.0, 5.0, 10.0 in the first piece and 10.0, 15.0, 20.0 in the second.
+    With `x0` the start of `recording`'s line and `x(t) = x0 + 400 × (t /
+    20.0)`: `recording`'s card draws the braces of `twice`, k = 0 over
+    `[x(0), x(10)]` and k = 1 over `[x(10), x(20)]`, both labelled `Take`;
+    `second-half`'s line is drawn twice. The ancestor line of `piece`
+    (`ts` = −8, so it runs on to the left; `te` = 8 = λ, so it ends with
+    `piece`'s own end, an arrowhead, `piece` being a root) is drawn once
+    per piece, over the played stretch of the member's `[0, 8]`, both
+    ancestor elements at `{id: "piece"}` on one ordinate: from `x(0) −
+    4w` in chevrons to `x(10)` in an arrowhead, and from `x(10) − 4w` in
+    chevrons to `x(20)` in an arrowhead, `w` the ancestor line's stroke
+    width (section 8.10, Switched frames). Its axes are two, `{id:
+    "piece"}` then the same with `run` 1, each from `x(0)` and `x(10)` to
+    `x(10)` and `x(20)`, on `piece`'s own axis from 8 to 16 (start, end
+    and drawn end), each with `piece`'s unit and number type. `bar_7`
+    lies at the member's 4, so its wedge is drawn at `x(5)` and `x(15)`,
+    both labelled `12 ♩` (the written coordinate), and each axis holds
+    the one at its own x. The ancestor's name `Piece` is drawn once. Drawn
+    as written (the rule removed), the frame draws one ancestor line from
+    `x0' − 4w` to `x0' + 400` and no chunk (`x0'` the start of its
+    members as written).
 
 ## Named timestamps (`timestamps.test.ts`)
 

@@ -20,19 +20,24 @@ import {
   proportion,
   zero,
 } from "../numbers.ts";
-import type { CardAxis, Entry, Scope } from "../traversal.ts";
+import { type CardAxis, type Entry, rootPieces, type Scope } from "../traversal.ts";
 
 /**
  * The full runs of a line spanning `start` to `end` on its root's axis, the
- * stretches of the gaps of `axis` elided and the span cut at its seams: what
- * `outside` leaves of the span, or, for a line of drawn length 0, the point
- * itself where no gap holds it (`CardAxis.gapOf`), and nothing where one does.
+ * stretches of the gaps and run gaps of `axis` left out (sections 3.2 and
+ * 8.10) and the span cut at its seams: what `outside` leaves of the span,
+ * or, for a line of drawn length 0, the point itself where no gap or run gap
+ * holds it (`CardAxis.gapOf`, `CardAxis.runGapOf`), and nothing where one does.
  */
 function runsOf(start: Real, end: Real, axis: CardAxis | undefined): Stretch[] {
   if (axis === undefined) return [[start, end]];
-  if (compareReal(start, end) === 0) return axis.gapOf(start) === undefined ? [[start, end]] : [];
+  if (compareReal(start, end) === 0) {
+    const held = axis.gapOf(start) !== undefined || axis.runGapOf(start) !== undefined;
+    return held ? [] : [[start, end]];
+  }
   const stretches = [
     ...axis.gaps.map((gap): Stretch => [gap.a, gap.b]),
+    ...axis.runGaps,
     ...axis.seams.map((seam): Stretch => [seam, seam]),
   ];
   return outside(start, end, stretches);
@@ -110,9 +115,10 @@ function spansOf(manifest: Manifest, root: TimelineManifest, lambda: Real): Map<
  * the order they are drawn, each with the timeline it spans.
  *
  * On the elided axis `elided` of a card drawing gaps (sections 3.2 and
- * 8.9), a line is drawn in full runs between its gaps, and has one axis
- * per run, each linear, from the run's start to its end at their elided x
- * (a run starting at a seam at the start of the run right of it),
+ * 8.9), or run gaps (section 8.10, Runs), a line is drawn in full runs
+ * between them, and has one axis per run, each linear, from the run's start
+ * to its end at their drawn x (a run starting at a seam at the start of the
+ * run right of it, one starting at a run gap's end `b` at `x(a)`),
  * with the coordinates there, every one with the timeline's address (`run`
  * telling them apart from the second on) and the named timestamps whose
  * cross-section lines lie on it.
@@ -294,7 +300,10 @@ export function axesOf(
 /**
  * The axes of the lines `drawn` draws for the switched card, or card of a
  * switched frame, traversed as `scope` (section 8.10), in item coordinates
- * and in the order of their elements, `x0` their start. Each line drawn in
+ * and in the order of their elements, `x0` their start; an ancestor line of
+ * a carried member has one axis per piece it is drawn in, over the stretch
+ * of its own axis drawn there (`MemberDrawn.ancestorAxes`), with its mark,
+ * numbered by `run` from the second on. Each line drawn in
  * one piece is linear there and has one axis, from the coordinate of its
  * timeline's own axis at its drawn start to that at its drawn end: 0 and its
  * length, or, at an end cut at the piece's, the coordinate played there. The
@@ -309,7 +318,7 @@ export function unfoldedAxes(
   drawn: MemberDrawn,
   x0: number,
 ): DrawnAxis[] {
-  const { unfolding, rootEntry, index } = scope;
+  const { unfolding, rootEntry } = scope;
   if (unfolding === null) throw new Error("a card drawn as written has no unfolded axes");
   const x = (value: Real) => {
     const relative = scope.drawnX(value);
@@ -328,7 +337,34 @@ export function unfoldedAxes(
     }
     return add(entry.endCut ? unfolding.uncarry(piece.b) : entry.written.end, negate(from));
   };
+  // Each ancestor line's drawings in their order, numbered by `run` from the second on.
+  const ancestorRuns = new Map<string, number>();
+  const ancestorAxis = (element: LineElement): DrawnAxis[] => {
+    const placed = drawn.ancestorAxes.get(element);
+    const { id } = element.address;
+    const ancestor = scope.member.ancestors.find(({ timeline }) => timeline.id === id);
+    if (placed === undefined || id === undefined || ancestor === undefined) return [];
+    const run = ancestorRuns.get(id) ?? 0;
+    ancestorRuns.set(id, run + 1);
+    return [
+      {
+        address: element.address,
+        card,
+        line: element.y,
+        ...placed,
+        unit: ancestor.timeline.unit,
+        numberType: ancestor.timeline.number_type,
+        segments: [],
+        maps: [],
+        marker: null,
+        mark: drawn.marks.get(element) ?? null,
+        timestamps: drawn.timestamps.get(element) ?? [],
+        ...(run === 0 ? {} : { run }),
+      },
+    ];
+  };
   return drawn.elements.flatMap((element): DrawnAxis[] => {
+    if (element.type === "ancestor") return ancestorAxis(element);
     if (element.type !== "timeline" && element.type !== "child") return [];
     const entry = drawn.entries.get(element);
     if (entry === undefined) return [];
@@ -347,9 +383,8 @@ export function unfoldedAxes(
     const timestamps = drawn.timestamps.get(element) ?? [];
     const pieces =
       entry === rootEntry
-        ? (index.sourcesByLine.get(rootEntry) ?? []).filter(
-            (piece) =>
-              piece.piece !== null && scope.drawnX(midpoint(piece.start, piece.end)) !== undefined,
+        ? rootPieces(scope).filter(
+            (piece) => scope.drawnX(midpoint(piece.start, piece.end)) !== undefined,
           )
         : [entry];
     const taken = new Set<AxisTimestamp>();

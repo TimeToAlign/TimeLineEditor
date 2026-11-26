@@ -52,7 +52,7 @@ function written(drawing: Drawing, timeline: string, s: number, e: number): Ribb
 
 /** The virtual end of chunk `index` of `id`: its brace's ends at its line's ordinate. */
 function played(drawing: Drawing, id: string, index: number): RibbonEnd {
-  const [, line] = lineOf(drawing, id);
+  const [, line] = lineOf(drawing, id, 0);
   return { ...braceEnds(drawing, id, index), y: line.y };
 }
 
@@ -94,9 +94,12 @@ describe("chunkLights", () => {
 
   it("starts a chunk after a run drawn once where its brace lies", () => {
     const lights = chunkLights(MANIFEST, DRAWING, { timeline: BY_HAND, index: 5 });
-    const [, line] = lineOf(DRAWING, BY_HAND);
+    const line = DRAWING.elements.find(
+      (element) => element.type === "timeline" && element.address.id === BY_HAND,
+    );
+    if (line?.type !== "timeline") throw new Error(`${BY_HAND} draws no line`);
     const from = played(DRAWING, BY_HAND, 5);
-    expect(from.x1).not.toBe(line.xStart + (1910 / 3054) * (line.xEnd - line.xStart));
+    expect(from.x1).not.toBe(line.xs + (1910 / 3054) * (line.xe - line.xs));
     expect(ends(lights.ribbons)).toEqual([{ from, to: written(DRAWING, ROOT, 500, 1644) }]);
     expect(lights.lit).toEqual([brace(DEFAULT, 3)]);
   });

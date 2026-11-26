@@ -6,14 +6,18 @@
  */
 
 import { type ElementAddress, sameAddress } from "@timetoalign/tilie-core";
+import { toFloat, toRational } from "@timetoalign/tilie-core/numbers";
 import type { Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
+  abscissaOf,
   DEFAULT_LAYER,
   DEFAULT_PLACEMENT,
   type Drawing,
   type DrawnElement,
   draw,
+  type LineAxis,
+  lineAxes,
   manifestLayer,
   type Placement,
 } from "../src/index.ts";
@@ -156,6 +160,45 @@ describe("placed virtual timelines", () => {
       return label.type === "label" ? label.baseline : label.type;
     };
     expect(baseline(4)).toBe(baseline(0));
+  });
+
+  it("give a line drawn with a run one axis per run, read as the drawing shows it", () => {
+    const drawing = drawFixture("flow/virtual_cards", [], PLACED);
+    const { xs: x0, xe } = lineOf(drawing, "allegro_by_hand");
+    const axesOf = (id: string): LineAxis[] =>
+      [...lineAxes(drawing).values()].filter((axis) => axis.timeline === id);
+    const runs = axesOf("allegro_by_hand");
+    const brace = x0 + lx(953 / 2, 3054);
+    expect(
+      runs.map((axis) => [
+        axis.xStart,
+        axis.xEnd,
+        String(axis.start),
+        String(axis.length),
+        String(axis.drawnLength),
+      ]),
+    ).toEqual([
+      [x0, brace, "0", "953/2", "953/2"],
+      [brace, xe, "1906", "1148", "1148"],
+    ]);
+    const [first, second] = runs;
+    if (first === undefined || second === undefined) throw new Error("two runs");
+    // Inside the run gap no axis holds a position: each holds `[start, start + drawn length]`.
+    const holding = (t: number) =>
+      runs.filter((axis) => {
+        const start = toFloat(toRational(axis.start));
+        return start <= t && t <= start + toFloat(toRational(axis.drawnLength));
+      });
+    expect([476.5, 1000, 1905, 1906].map((t) => holding(t).length)).toEqual([1, 0, 0, 1]);
+    expect(abscissaOf(first, 0)).toBe(x0);
+    expect(abscissaOf(second, 1906)).toBe(brace);
+    expect(abscissaOf(second, 1908)).toBe(
+      second.xStart + (2 / 1148) * (second.xEnd - second.xStart),
+    );
+    for (const id of ["allegro_default", "allegro_single"]) {
+      const { xs } = lineOf(drawing, id);
+      expect(axesOf(id).map((axis) => [axis.xStart, axis.xEnd])).toEqual([[xs, xs + L]]);
+    }
   });
 
   it("name their cards with the source they unfold", () => {

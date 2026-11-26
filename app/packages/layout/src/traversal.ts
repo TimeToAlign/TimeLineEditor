@@ -382,6 +382,11 @@ export interface CardAxis {
   /** The gap a position lies in, its ends excluded; undefined for a position in no gap. */
   gapOf(value: Real): Gap | undefined;
   /**
+   * The run gaps of its runs drawn once (section 8.10, Runs), each `[a, b]` on its root's axis,
+   * from the left: what no line drawn on it draws, so that a line's axes leave them out.
+   */
+  readonly runGaps: readonly (readonly [Real, Real])[];
+  /**
    * The run gap of a run drawn once a position lies in, its ends excluded (section 8.10, Runs):
    * `L × u − D` of its drawn start, where it takes no room and is not drawn; undefined for a
    * position in none.
@@ -395,6 +400,14 @@ export interface CardAxis {
    */
   crosses(gap: Gap, start: Real, end: Real | null): boolean;
 }
+
+/**
+ * The pieces of the root of `scope` (section 8.10), in their order: the
+ * entries a switched card's or a carried card's root draws its tree in,
+ * one per stretch piece; none on a card drawn as written.
+ */
+export const rootPieces = (scope: Scope): readonly Entry[] =>
+  (scope.index.sourcesByLine.get(scope.rootEntry) ?? []).filter((entry) => entry.piece !== null);
 
 /** Whether a style displays its element: its `display` is `inline`. */
 export const shown = (style: Style): boolean => style.display === "inline";

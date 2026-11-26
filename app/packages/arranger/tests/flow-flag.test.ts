@@ -24,11 +24,11 @@ import {
 const VIEW = virtualView();
 const DECIMALS = VIEW.settings.granularity.decimals;
 
-/** The pin of the position `n / d` on the one line of `timeline` in block A of `view`. */
+/** The pin of the position `n / d` on the line of `timeline` in block A of `view`, its run holding it. */
 function pinOn(view: View, timeline: string, n: bigint, d = 1n): Pin {
   const block = blockIn(view, A);
   const drawing = drawingIn(view);
-  const [key] = lineOf(drawing, timeline);
+  const [key] = lineOf(drawing, timeline, Number(n) / Number(d));
   const spec = crossSectionSpec(block.manifest, A, drawing, key, view.settings.granularity);
   const timestamp = timestampAt(spec, Rational.fromParts(n, d), "no_server");
   return { spec, knots: "no_server", timestamp, named: null };

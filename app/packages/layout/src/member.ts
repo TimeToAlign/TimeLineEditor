@@ -9,6 +9,7 @@
 import { bandAddress, type PlaceKey } from "@timetoalign/tilie-core";
 import type { GroupFrame, MemberDrawing } from "@timetoalign/tilie-core/drawing";
 import {
+  type AncestorPiece,
   ancestorBands,
   ancestorCentred,
   ancestorCrossSections,
@@ -102,6 +103,12 @@ export interface MemberDrawn {
   readonly timestamps: ReadonlyMap<DrawnElement, readonly AxisTimestamp[]>;
   /** The entry each of its drawn lines draws, by the line's element (`LineMarker.entry`). */
   readonly entries: ReadonlyMap<DrawnElement, Entry>;
+  /**
+   * Where each drawing of its ancestor lines lies on its ancestor's own axis, by the drawing's
+   * element, on a carried card of a switched frame (section 8.10); empty on a card drawn as
+   * written (`AncestorPiece.axis`).
+   */
+  readonly ancestorAxes: ReadonlyMap<DrawnElement, NonNullable<AncestorPiece["axis"]>>;
 }
 
 /**
@@ -196,7 +203,10 @@ export function layoutScope(
           item.text === undefined ? [] : [nameElement(scope, item.text, n, item.y)],
         ),
     ];
-    const ancestorLinesDrawn = ancestorLineElements(scope, ancestors, bands, x0, yRoot);
+    const ancestorDrawings = ancestorLineElements(scope, ancestors, bands, x0, yRoot);
+    const ancestorLinesDrawn = ancestorDrawings.flatMap((drawings) =>
+      drawings.map(({ element }) => element),
+    );
     const elements: DrawnElement[] = [
       ...each("flowLines"),
       ...each("maps"),
@@ -231,7 +241,7 @@ export function layoutScope(
     if (axis !== undefined) {
       const rows: CrossingRow[] = [
         ...ancestors.flatMap((ancestor, index) => {
-          const line = ancestorLinesDrawn[index];
+          const line = ancestorDrawings[index]?.[0]?.element;
           return line === undefined
             ? []
             : [{ y: line.y, start: ancestor.start, end: ancestor.right ? null : ancestor.te }];
@@ -273,12 +283,17 @@ export function layoutScope(
     const end = { start: elements.length, end: elements.length };
     const markers = new Map(each("markers").map((item) => [item.line, item.marker]));
     const entries = new Map(each("markers").map((item) => [item.line, item.entry]));
-    const marks = ancestorLineMarks(ancestors, ancestorLinesDrawn);
-    const held = ancestorTimestamps(scope, ancestors, x0, [top, bottom]);
+    const marks = ancestorLineMarks(ancestors, ancestorDrawings);
+    const held = ancestorTimestamps(scope, ancestors, ancestorDrawings, x0, [top, bottom]);
     const timestamps = new Map<DrawnElement, readonly AxisTimestamp[]>([
       ...each("markers").map((item) => [item.line, item.timestamps] as const),
-      ...ancestorLinesDrawn.map((line, index) => [line, nth(held, index)] as const),
+      ...held,
     ]);
+    const ancestorAxes = new Map(
+      ancestorDrawings.flatMap((drawings) =>
+        drawings.flatMap(({ element, axis }) => (axis === null ? [] : [[element, axis] as const])),
+      ),
+    );
     return {
       elements,
       framed,
@@ -287,6 +302,7 @@ export function layoutScope(
       marks,
       timestamps,
       entries,
+      ancestorAxes,
     };
   };
 

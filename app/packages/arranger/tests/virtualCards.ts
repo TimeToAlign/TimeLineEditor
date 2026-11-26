@@ -6,6 +6,7 @@
 
 import type { ElementAddress, View } from "@timetoalign/tilie-core";
 import { idAddress, inBlock } from "@timetoalign/tilie-core";
+import { toFloat, toRational } from "@timetoalign/tilie-core/numbers";
 import type { Drawing, LineAxis } from "@timetoalign/tilie-layout";
 import { lineAxes } from "@timetoalign/tilie-layout";
 import { drawingOf } from "../src/drawing.ts";
@@ -39,11 +40,19 @@ export function brace(id: string, index: number): ElementAddress {
   return { id, facet: "regions", part: [index] };
 }
 
-/** The one drawn line of `timeline` in `drawing`, with its key. */
-export function lineOf(drawing: Drawing, timeline: string): [string, LineAxis] {
+/**
+ * The drawn line of `timeline` in `drawing`, with its key: its one axis, or,
+ * where `at` is given, the first of its axes (one per run, a line drawn with
+ * a run once having several) whose span holds the position `at`.
+ */
+export function lineOf(drawing: Drawing, timeline: string, at?: number): [string, LineAxis] {
   const lines = [...lineAxes(drawing)].filter(([, axis]) => axis.timeline === timeline);
-  const [one] = lines;
-  if (one === undefined || lines.length !== 1)
+  const holds = ([, axis]: [string, LineAxis]) => {
+    const start = toFloat(toRational(axis.start));
+    return at !== undefined && start <= at && at <= start + toFloat(toRational(axis.drawnLength));
+  };
+  const [one] = at === undefined ? lines : lines.filter(holds);
+  if (one === undefined || (at === undefined && lines.length !== 1))
     throw new Error(`${timeline} has ${lines.length} lines`);
   return one;
 }
