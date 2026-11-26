@@ -106,8 +106,13 @@ describe("the records and core's listing of the containers", () => {
     for (const name of manifestNames()) {
       const manifest = loadFile(name);
       const { block, all } = containersOf(manifest);
+      // Core lists the block-held card of every virtual timeline in no group; the block draws
+      // the ones `places` holds (section 8.10), none with no places.
+      const virtual = new Set((manifest.virtual_timelines ?? []).map(({ id }) => id));
+      const unplaced = (ref: ContainerRef) =>
+        ref.kind === "card" && holdingOf(ref) === "block" && virtual.has(ref.timeline ?? "");
       // The default layer shows every ancestor card; hiding the frames and cards leaves them.
-      const expected = [block, ...all].filter((ref) => ref.kind !== "band");
+      const expected = [block, ...all].filter((ref) => ref.kind !== "band" && !unplaced(ref));
       for (const extra of [[], [hidden]]) {
         const records = drawn(manifest, extra).boxes.filter((record) => record.kind !== "band");
         expect(records.map(identity), name).toEqual(expected.map(listed));
@@ -120,6 +125,26 @@ describe("the records and core's listing of the containers", () => {
         expected.filter((ref) => holdingOf(ref) !== "ancestor").map(listed),
       );
     }
+  });
+
+  it("records a placed virtual timeline's card where core lists it", () => {
+    // In groups/virtual_member, allegro_default is a member of performance; allegro_by_hand and
+    // allegro_single are in no group. Placing them both draws all of core's listing.
+    const manifest = loadFile("groups/virtual_member");
+    const { block, all } = containersOf(manifest);
+    const places = { allegro_by_hand: { x: 0 }, allegro_single: { x: 0 } };
+    const records = drawn(manifest, [], { ...DEFAULT_PLACEMENT, places }).boxes;
+    const cards = (list: readonly Identity[]) => list.filter((item) => item.kind !== "band");
+    expect(cards(records.map(identity))).toEqual(cards([block, ...all].map(listed)));
+    expect(
+      records
+        .filter((record) => record.kind === "card" && record.holder === null)
+        .map((record) => record.address),
+    ).toEqual([
+      { id: "allegro", part: ["card"] },
+      { id: "allegro_by_hand", part: ["card"] },
+      { id: "allegro_single", part: ["card"] },
+    ]);
   });
 
   it("records each present band once per card drawing it, under core's address and holder", () => {

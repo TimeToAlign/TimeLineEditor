@@ -108,6 +108,11 @@ function holderOf(
     case "matchstamp":
     case "anchor":
     case "elision":
+    case "flow_map":
+    case "virtual_timeline":
+    case "virtual_card":
+    case "virtual_band":
+    case "chunk":
       return null;
     default:
       return assertNever(resolved);

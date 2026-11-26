@@ -270,6 +270,20 @@ piece 10–10 is left out) and its start circle at 10. A map from 10 to 50
 centred at 20, spacing 4, cut at `[20, 30]`, writes two closed outlines,
 `points="10,18 20,18 20,22 10,22"` and `points="30,18 50,18 50,22 30,22"`.
 
+**Gap lines** (sections 6.6, Gap lines, and 7.2). A line over which the
+gaps of its FlowMap interrupt it is written in its pieces from the left,
+the gaps and any gaps of elisions it crosses cutting it alike, then its gap
+lines from the left, then its marks: a timeline `{id: v}` from 10 to 50
+at 20, stroked `#00CC00` at width 3 with the dash `3 3`, start `circle`,
+end `circle`, its gap lines `[20, 24]` and `[30, 31]`, writes `<line
+data-id="v" x1="10" y1="20" x2="20" y2="20" stroke="#00CC00"
+stroke-width="3" stroke-dasharray="3 3"/>`, the same from 24 to 30 and
+from 31 to 50, then `<line data-id="v" x1="20" y1="20" x2="24" y2="20"
+stroke="#00CC00" stroke-width="1.5" stroke-dasharray="1.5 3"/>` and the
+same from 30 to 31 (half the width, `w / 2` on and `w` off, whatever the
+line's own dash), then its two circles of radius 3. In TikZ a gap line is
+`line width=1.5pt,dash pattern=on 1.5pt off 3pt`.
+
 **Cross-section lines** (section 7.2) are lines from `(X, y1)` to `(X, y2)`
 as the layout states them, in that order, whichever is the smaller: `{id:
 s, part: [line]}` at `x 10` from `y1 25` up to `y2 5`, stroked `#1BA1E2`
@@ -632,7 +646,7 @@ fill="#000000">Bar 2, downbeat (take 1)</text>` (the middle 82.18359375
 plus `(a(9) − d(9)) / 2`), in TikZ `\path[draw=ts1BA1E2,line width=1pt,dash
 pattern=on 3pt off 3pt] (261.0928,124.7578) -- (161.0928,116.7578);` (`H =
 202.94140625`).
-There are 109 cases (among them the drawings of a groupstamp's line across its group: `group__group_groupstamp` on a member, `group__group_groupstamp_child_member` on a member's child, `bundle__bundle_groupstamp_shared_member` on a member of two groups, one line in each frame; and `timestamp_wedge_rotation`, wedges turned on both sides of a line). Every case stating a spacing, of the block, in a place or in a
+There are 111 cases (among them the drawings of a groupstamp's line across its group: `group__group_groupstamp` on a member, `group__group_groupstamp_child_member` on a member's child, `bundle__bundle_groupstamp_shared_member` on a member of two groups, one line in each frame; `timestamp_wedge_rotation`, wedges turned on both sides of a line; and the virtual cards of section 8.10: `flow__virtual_cards`, the three virtual timelines of `flow/virtual_cards` placed, one with a run drawn once and a gap line, and `group__virtual_member`, a virtual timeline as a group member). The fixtures of `groups/` with a switched card (`switched_frame`) are no case: these writers draw a switched card as written. Every case stating a spacing, of the block, in a place or in a
 member's card place, draws an SVG different from its manifest's default
 case: a spacing case that draws as the default (a block of one item has no
 gap) pins nothing.

@@ -192,6 +192,7 @@ describe("LEVELS and rulesOf", () => {
       bundle: row(true, false, false, false, "elements", true, false, false),
       group: row(false, false, true, false, "elements", false, true, false),
       timeline: row(false, false, false, true, "elements", false, false, false),
+      flow: { ...row(false, false, false, false, "elements", false, false, false), open: false },
     });
   });
 

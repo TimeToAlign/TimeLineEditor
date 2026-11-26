@@ -81,14 +81,23 @@ function present<T>(value: T | undefined, what: string): T {
 const quoted = (element: Group | TimelineManifest): string => `"${element.name ?? element.id}"`;
 
 /**
- * The IDs of a bundle's items in drawing order (section 8.1): its groups by
- * ID, then its ungrouped roots by ID.
+ * The IDs of a bundle's items in drawing order (sections 8.1 and 8.10): its
+ * groups by ID, its ungrouped roots by ID, then its virtual timelines in no
+ * group by ID, each the item of its block-held card, which the block draws
+ * where its `places` holds the ID (core's `containersOf` lists those cards
+ * alike); a drawing passes over the items it does not draw.
  */
 function itemsOf(manifest: Manifest): readonly string[] {
   const drawn = memberDrawings(manifest);
+  const grouped = new Set(manifest.groups.flatMap((group) => group.members));
+  const virtual = (manifest.virtual_timelines ?? [])
+    .map((item) => item.id)
+    .filter((id) => !grouped.has(id))
+    .sort(compareCodePoints);
   return [
     ...drawn.frames.map((frame) => frame.group.id),
     ...drawn.ungrouped.map((member) => member.timeline.id),
+    ...virtual,
   ];
 }
 

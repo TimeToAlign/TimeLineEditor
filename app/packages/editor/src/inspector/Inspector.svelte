@@ -1,12 +1,12 @@
 <script lang="ts">
 /**
- * The inspector: the editing bar, then a tab list over eight panels: the
+ * The inspector: the editing bar, then a tab list over nine panels: the
  * level tab (named by the level: Arranger, Bundle, Group or Timeline, its
- * panel the level's title line and settings, `LevelPanel`), Properties, Metadata,
- * Manifest, Journal, Timestamp, Matchstamp and Elisions. The tabs that do
+ * panel the level's title line and settings, `LevelPanel`), Properties,
+ * Regions, Metadata, Manifest, Journal, Timestamp, Matchstamp and Elisions. The tabs that do
  * not fit the inspector's width start another row, so the tab list never
  * makes the inspector scroll sideways. Only the shown
- * panel is rendered; what the Properties, Elisions and Manifest tabs hold
+ * panel is rendered; what the Properties, Regions, Elisions and Manifest tabs hold
  * between visits (typed text, open blocks, a chosen format) lives in their
  * state objects, which a host
  * keeping them while the inspector is not shown passes in, with the tab
@@ -36,6 +36,7 @@ import { ManifestText } from "./manifestText.svelte.ts";
 import type { MatchIndexes } from "./matchstamps.ts";
 import PropertiesPanel from "./PropertiesPanel.svelte";
 import { PropertyDrafts } from "./propertyDrafts.svelte.ts";
+import RegionsPanel from "./RegionsPanel.svelte";
 import { selectedBlock } from "./selection.ts";
 import TimestampPanel from "./TimestampPanel.svelte";
 import type { HeldMatch, Picked, ShownMatch, ShownPin, Tab } from "./tabs.ts";
@@ -73,7 +74,7 @@ let {
   placement?: LivePlacement | null;
   /** The Manifest tab's text, kept while another tab is shown. */
   manifest?: ManifestText;
-  /** The drafts of the Properties and Elisions tabs and the Elisions tab's open blocks, kept while another tab is shown. */
+  /** The drafts of the Properties, Regions and Elisions tabs and the Elisions tab's open blocks, kept while another tab is shown. */
   drafts?: PropertyDrafts;
   /** The tab last chosen, and how many editors had been opened then. */
   picked?: Picked;
@@ -93,7 +94,7 @@ let {
    * measure view gives a value.
    */
   knotsOf?: KnotsOf | undefined;
-  /** Select `addresses` on the canvas: a row of the Elisions tab, a jump's destination. */
+  /** Select `addresses` on the canvas: a row of the Regions or Elisions tab, a jump's destination. */
   onselect?: ((addresses: readonly Address[]) => void) | undefined;
   /** Whether the canvas is locked: the level tab's arrangement is then disabled, as the canvas's is. */
   locked?: boolean;
@@ -225,6 +226,8 @@ const hinted = $derived(block === null && !manifest.dirty);
             {drafts}
             {onselect}
           />
+        {:else if item === "regions"}
+          <RegionsPanel store={live.store} {block} {subjects} {drafts} {onselect} />
         {:else if item === "elisions"}
           <ElisionsPanel
             {view}
@@ -293,7 +296,7 @@ const hinted = $derived(block === null && !manifest.dirty);
     overflow: auto;
   }
 
-  /* Padded so that the eight tabs fit one row at the drawer's widest. */
+  /* Padded as one row of tabs; those that do not fit wrap into the next. */
   .tabs button {
     padding: 0.2rem 0.6rem;
     border: none;

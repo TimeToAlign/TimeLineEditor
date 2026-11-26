@@ -1,13 +1,16 @@
 /**
  * `add`: what each kind of target takes (`ADDABLE`) and how each thing is
- * put in. A block goes into the workspace; a root timeline, a group or a
- * measure map into a block's manifest, and a named MatchStamp and a list of
- * elisions too; a child, map, region, flow-control element, named timestamp
- * or elision into a timeline. The value carries its ID: a block's taken by
- * no block of the workspace, any other's by no element of the manifest; a
- * group may leave it out, and a named timestamp, an elision and a named
- * MatchStamp never carry one: each is given the next ID of the command's
- * `ids` (`ChangeSet.ids`), as is every element created with them.
+ * put in. A block goes into the workspace; a root timeline, a group, a
+ * measure map or a virtual timeline into a block's manifest, and a named
+ * MatchStamp and a list of elisions too; a child, map, region, flow-control
+ * element, named timestamp or elision into a timeline, and a FlowMap into
+ * the root timeline it orders (`flowmaps.ts`). The value carries its ID: a
+ * block's taken by no block of the workspace, any other's by no element of
+ * the manifest; a group, a map, a region, a flow-control element, a FlowMap
+ * and a virtual timeline may leave it out, and a named timestamp, an
+ * elision and a named MatchStamp never carry one: each is given the next ID
+ * of the command's `ids` (`ChangeSet.ids`), as is every element created
+ * with them.
  * Whatever has a default may be left out, `settle` writing it out. A
  * problem of the value lies at `[<address key of into>, <kind>, …]`, one of
  * the manifest the command would leave at `[<block id>, "manifest", …]`.
@@ -15,12 +18,12 @@
 
 import { DEFAULTS, SCHEMA_VERSION, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
 import type { CommandError, LoadError, Problem } from "../errors.ts";
-import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
+import { assertNever, ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { Json, JsonObject, PathSegment } from "../json.ts";
 import { compareCodePoints, isJsonObject, withValueAt } from "../json.ts";
 import { addressKey, idAddress, sameAddress } from "../manifest/address.ts";
 import type { EntryKind } from "../manifest/files.ts";
-import { ENTRY_KINDS, entriesOf } from "../manifest/files.ts";
+import { ENTRY_KINDS, entriesOf, virtualDrawing } from "../manifest/files.ts";
 import { readOnAxis } from "../manifest/invariants.ts";
 import {
   completed,
@@ -40,15 +43,18 @@ import type { Block } from "../workspace/blocks.ts";
 import { BLOCK_ID } from "../workspace/blocks.ts";
 import type { Mint } from "../workspace/ids.ts";
 import {
+  CONVERSION_MAP_PREFIX,
   ELISION_PREFIX,
   GROUP_PREFIX,
   MATCHSTAMP_PREFIX,
+  REGION_PREFIX,
   TIMESTAMP_PREFIX,
 } from "../workspace/ids.ts";
 import { indexBetween } from "../workspace/order.ts";
 import type { View } from "../workspace/view.ts";
 import { placeProblems } from "../workspace/view.ts";
 import { readElision } from "./elisions.ts";
+import { addFlowMap, addVirtualTimeline } from "./flowmaps.ts";
 import { namedMatchStamp, readAnchors, readMatchClaims } from "./matchstamps.ts";
 import type { ChangeSet } from "./mutations.ts";
 import {
@@ -63,7 +69,7 @@ import {
 } from "./mutations.ts";
 import { BLOCK_PROPERTIES, readBlockManifest, setProperty } from "./set.ts";
 import { withSegmentLinesCovered } from "./settle.ts";
-import type { BlockTarget, TargetKind, TimelineTarget } from "./targets.ts";
+import type { BlockTarget, TargetKind, TimelineTarget, VirtualTarget } from "./targets.ts";
 import { targetOf } from "./targets.ts";
 import {
   readDisplay,
@@ -80,10 +86,10 @@ const INTO_TIMELINE: readonly AddKind[] = ["child", ...ENTRY_KINDS, "timestamp",
 /** What `add` puts into each kind of target. */
 export const ADDABLE: { readonly [kind in TargetKind]: readonly AddKind[] } = {
   workspace: ["block"],
-  block: ["timeline", "group", "measure_map", "elision", "matchstamp"],
+  block: ["timeline", "group", "measure_map", "elision", "matchstamp", "virtual_timeline"],
   group: [],
   measure_map: [],
-  root: INTO_TIMELINE,
+  root: [...INTO_TIMELINE, "flow_map"],
   child: INTO_TIMELINE,
   map: [],
   region: [],
@@ -92,7 +98,25 @@ export const ADDABLE: { readonly [kind in TargetKind]: readonly AddKind[] } = {
   elision: [],
   matchstamp: [],
   anchor: [],
+  flow_map: [],
+  virtual_timeline: ["timestamp"],
 };
+
+/** The prefix of the ID a map, region or flow-control element is given: a flow-control element's is its role. */
+function entryPrefix(kind: EntryKind, value: unknown): string | undefined {
+  switch (kind) {
+    case "map":
+      return CONVERSION_MAP_PREFIX;
+    case "region":
+      return REGION_PREFIX;
+    case "flow_control": {
+      const role = isJsonObject(value) ? value.role : undefined;
+      return typeof role === "string" ? role : undefined;
+    }
+    default:
+      return assertNever(kind);
+  }
+}
 
 const BLOCK_VALUE = ["id", "manifest", "places", ...BLOCK_PROPERTIES];
 
@@ -403,9 +427,9 @@ function readGroup(value: JsonObject, at: readonly PathSegment[]): Group | Comma
 /**
  * Add a group to a block's manifest: `{id?, name?, meta?, members}`, read
  * through the schema boundary (`readGroup`), its ID taken by no element of
- * the manifest (one left out is given the next of the command's `ids`), its members timelines of the manifest, each joining it as
- * `set groups` joins a group (`nested_member`, and `invalid_value` for a
- * member listed twice). A member that was drawn in one card of the block is
+ * the manifest (one left out is given the next of the command's `ids`), its members timelines
+ * or virtual timelines of the manifest, each joining it as `set groups` joins a group
+ * (`nested_member`, and `invalid_value` for a member listed twice). A member that was drawn in one card of the block is
  * then drawn in the group's frame too, `settle` keeping that card's size
  * when the frame is its only one.
  */
@@ -432,8 +456,17 @@ function addGroup(view: View, target: BlockTarget, value: unknown, changes: Chan
   for (const [index, member] of members.entries()) {
     const at = [...path, "members", index];
     const timeline = targetOf(current, inBlock(block.id, idAddress(member)));
-    if (isCommandError(timeline) || (timeline.kind !== "root" && timeline.kind !== "child")) {
-      return problem(ErrorCode.unknownTarget, `'${member}' names no timeline of the manifest`, at);
+    if (
+      isCommandError(timeline) ||
+      (timeline.kind !== "root" &&
+        timeline.kind !== "child" &&
+        timeline.kind !== "virtual_timeline")
+    ) {
+      return problem(
+        ErrorCode.unknownTarget,
+        `'${member}' names no timeline or virtual timeline of the manifest`,
+        at,
+      );
     }
     const groups = timeline.block.manifest.groups
       .filter((item) => item.members.includes(member))
@@ -467,7 +500,11 @@ function addMeasureMap(view: View, target: BlockTarget, value: unknown, changes:
   });
 }
 
-/** Add a child, map, region or flow-control element into a timeline. */
+/**
+ * Add a child, map, region or flow-control element into a timeline. A map,
+ * region or flow-control element that leaves its ID out is given the next of
+ * the command's `ids` (`entryPrefix`).
+ */
 function addElement(
   view: View,
   target: TimelineTarget,
@@ -475,7 +512,9 @@ function addElement(
   value: unknown,
   changes: ChangeSet,
 ): View | CommandError {
-  const read = readNew(target, kind, value);
+  const prefix = kind === "child" ? undefined : entryPrefix(kind, value);
+  const minted = prefix === undefined ? undefined : { mint: changes.ids.take, prefix };
+  const read = readNew(target, kind, value, minted);
   if (isCommandError(read)) return read;
   const { object, path, ids } = read;
   const { block, at } = target;
@@ -516,7 +555,9 @@ const TIMESTAMP_REQUIRED = ["name", "coordinate"];
 const TIMESTAMP_VALUE = [...TIMESTAMP_REQUIRED, "display", "groupstamp"];
 
 /**
- * Add a named timestamp into a timeline: `{name, coordinate, display?,
+ * Add a named timestamp into `timeline`, the timeline or the virtual
+ * timeline (read as its axis, `virtualDrawing`) that `target` names:
+ * `{name, coordinate, display?,
  * groupstamp?}`, name and coordinate required (`invalid_value`), nothing
  * else (`unknown_property`); the name non-empty, the coordinate on the
  * timeline's own axis within it (`readTimestampCoordinate`), the display
@@ -529,7 +570,8 @@ const TIMESTAMP_VALUE = [...TIMESTAMP_REQUIRED, "display", "groupstamp"];
  */
 function addTimestamp(
   view: View,
-  target: TimelineTarget,
+  target: TimelineTarget | VirtualTarget,
+  timeline: TimelineManifest,
   value: unknown,
   changes: ChangeSet,
 ): View | CommandError {
@@ -545,11 +587,8 @@ function addTimestamp(
   }
   const name = readName(object.name, [...path, "name"]);
   if (isCommandError(name)) return name;
-  const { block, at } = target;
-  const coordinate = readTimestampCoordinate(object.coordinate, at.timeline, [
-    ...path,
-    "coordinate",
-  ]);
+  const { block } = target;
+  const coordinate = readTimestampCoordinate(object.coordinate, timeline, [...path, "coordinate"]);
   if (isCommandError(coordinate)) return coordinate;
   const display =
     object.display === undefined
@@ -560,11 +599,18 @@ function addTimestamp(
   const groupstamp =
     object.groupstamp === undefined
       ? false
-      : readGroupstamp(object.groupstamp, manifest, at.timeline.id, [...path, "groupstamp"]);
+      : readGroupstamp(object.groupstamp, manifest, timeline.id, [...path, "groupstamp"]);
   if (isCommandError(groupstamp)) return groupstamp;
   const id = changes.ids.take(TIMESTAMP_PREFIX);
-  const timeline = at.timeline.id;
-  const timestamp = { id, timeline, coordinate, name, display, matchstamp: false, groupstamp };
+  const timestamp = {
+    id,
+    timeline: timeline.id,
+    coordinate,
+    name,
+    display,
+    matchstamp: false,
+    groupstamp,
+  };
   const timestamps = [...(manifest.graphical?.timestamps ?? []), timestamp];
   record(changes, path, block.id, true);
   return withBlock(view, { ...block, manifest: withTimestamps(manifest, timestamps) });
@@ -724,11 +770,19 @@ export function applyAdd(view: View, command: AddCommand, changes: ChangeSet): V
         if (kind === "measure_map") return addMeasureMap(view, target, value, changes);
         if (kind === "matchstamp") return addMatchStamp(view, target, value, changes);
         if (kind === "elision") return addElisions(view, target, value, changes);
+        if (kind === "virtual_timeline") return addVirtualTimeline(view, target, value, changes);
         return addTimeline(view, target, value, changes);
+      case "virtual_timeline": {
+        const drawing = virtualDrawing(target.block.manifest, target.virtual.id);
+        if (drawing === undefined) throw new Error("a virtual target names a virtual timeline");
+        return addTimestamp(view, target, drawing.timeline, value, changes);
+      }
       case "root":
       case "child":
-        if (kind === "timestamp") return addTimestamp(view, target, value, changes);
+        if (kind === "timestamp")
+          return addTimestamp(view, target, target.at.timeline, value, changes);
         if (kind === "elision") return addElision(view, target, value, changes);
+        if (kind === "flow_map") return addFlowMap(view, target, value, changes);
         if (kind === "child" || isEntryKind(kind)) {
           return addElement(view, target, kind, value, changes);
         }

@@ -40,15 +40,17 @@ import { addressKey, sameAddress } from "../manifest/address.ts";
 import { toJson } from "../values.ts";
 import type { Address } from "./address.ts";
 import { addressWords } from "./address.ts";
-import { sideEffect } from "./guard.ts";
+import { editorSideEffect } from "./guard.ts";
 import type { IdMinter } from "./ids.ts";
 import { createIdMinter } from "./ids.ts";
 import type {
   CommandEntry,
+  EditorKind,
   Entry,
   ListedEntry,
   OpenEditor,
   OwnedChange,
+  Session,
   SessionEntry,
   SessionId,
   Sessions,
@@ -60,8 +62,9 @@ import {
   keepChanges,
   listEntries,
   mintSessionId,
-  opensInside,
+  opensIn,
   reachedSessions,
+  statedKind,
 } from "./sessions.ts";
 import type { Granularity, View, WorkspaceSettings } from "./view.ts";
 import { createView, readSettings } from "./view.ts";
@@ -147,8 +150,12 @@ export interface Store {
   undo(): void;
   /** Re-apply the innermost level's earliest undone step. */
   redo(): void;
-  /** Open the editor of `target` inside the innermost open editor; `null` when it opened. */
-  open(target: Address): CommandError | null;
+  /**
+   * Open the editor of `target` inside the innermost open editor, of `kind`
+   * where given (the flow editor of a root timeline), else the one the
+   * target opens (`editorKindOf`); `null` when it opened.
+   */
+  open(target: Address, kind?: EditorKind): CommandError | null;
   /** Close the innermost editor, keeping its changes. */
   done(): void;
   /** Close the innermost editor, restoring the state at its opening. */
@@ -320,9 +327,23 @@ function copyLevel(level: Level): Level {
   };
 }
 
-/** Whether a closed session edited `target`. */
-function sameSessionTarget(session: { readonly target: Address } | undefined, target: Address) {
-  return session !== undefined && sameAddress(session.target, target);
+/** Whether a closed session edited `target` in an editor of `kind`. */
+function sameSessionTarget(
+  session: { readonly target: Address; readonly kind?: EditorKind } | undefined,
+  target: Address,
+  kind: EditorKind,
+) {
+  return (
+    session !== undefined &&
+    sameAddress(session.target, target) &&
+    session.kind === statedKind(kind)
+  );
+}
+
+/** The closed session of an editor of `kind` on `target`, its kind stated where its target does not tell it. */
+function sessionOf(target: Address, kind: EditorKind, entries: readonly Entry[]): Session {
+  const stated = statedKind(kind);
+  return stated === undefined ? { target, entries } : { target, kind: stated, entries };
 }
 
 /**
@@ -457,9 +478,9 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
     sessions = Object.fromEntries(Object.entries(sessions).filter(([id]) => id !== gone));
   };
 
-  /** Whether `target` lies inside the editor `outer` and is not its target. */
-  const inside = (outer: OpenEditor, target: Address): boolean =>
-    opensInside(current(), outer.target, target);
+  /** Whether the editor of `kind` on `target` opens inside the editor `outer` (`opensIn`). */
+  const inside = (outer: OpenEditor, target: Address, kind: EditorKind): boolean =>
+    opensIn(current(), outer, target, kind);
 
   const close = () => {
     levels.pop();
@@ -521,7 +542,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       const next = applied.view;
       const level = top();
       if (level.editor !== null) {
-        const refused = sideEffect(before, next, level.editor.target, applied.changes);
+        const refused = editorSideEffect(before, next, level.editor, stated, applied.changes);
         if (refused !== null) return refused;
       }
       // Every value of an accepted command has been read, so it has a JSON form.
@@ -585,11 +606,11 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       viewAt(level, level.applied);
       notify();
     },
-    open(target) {
-      const kind = editorKindOf(current(), target);
+    open(target, asked) {
+      const kind = editorKindOf(current(), target, asked);
       if (isCommandError(kind)) return kind;
       const original = top();
-      if (original.editor !== null && !inside(original.editor, target)) {
+      if (original.editor !== null && !inside(original.editor, target, kind)) {
         return problem(
           ErrorCode.notInside,
           `${addressWords(current(), target)} does not lie inside ${addressWords(current(), original.editor.target)}`,
@@ -606,7 +627,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
         last !== null &&
         entry !== undefined &&
         isSessionEntry(entry) &&
-        sameSessionTarget(sessions[entry.session], target)
+        sameSessionTarget(sessions[entry.session], target, kind)
       ) {
         // The level's last entry holding an applied change is a session of the
         // same target: it is unfolded, its applied changes the editor's
@@ -636,7 +657,8 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
         const earlier = below.entries
           .slice(0, (last?.index ?? -1) + 1)
           .findLast(
-            (item) => isSessionEntry(item) && sameSessionTarget(sessions[item.session], target),
+            (item) =>
+              isSessionEntry(item) && sameSessionTarget(sessions[item.session], target, kind),
           ) as SessionEntry | undefined;
         let session = mintSessionId();
         while (Object.hasOwn(sessions, session)) session = mintSessionId();
@@ -668,8 +690,8 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       // its undone changes go even when the session closes without entries.
       if (level.entries.length > 0 || level.unfolded) discard(below);
       if (level.entries.length > 0) {
-        const { session, target } = level.editor;
-        sessions = { ...sessions, [session]: { target, entries: level.entries } };
+        const { session, target, kind } = level.editor;
+        sessions = { ...sessions, [session]: sessionOf(target, kind, level.entries) };
         below.entries.push({ session, ...stamp() });
         // The session's own changes, owned by it, now go in runs below.
         for (let k = 1; k <= level.applied; k += 1) {
@@ -700,12 +722,12 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       };
       let carried: SessionEntry | null = null;
       for (const level of levels.slice(1).reverse()) {
-        const { session, target } = held(level.editor, "an editor's session");
+        const { session, target, kind } = held(level.editor, "an editor's session");
         const entries = applied(level);
         if (carried !== null) entries.push(carried);
         carried = null;
         if (entries.length === 0) continue;
-        all = { ...all, [session]: { target, entries } };
+        all = { ...all, [session]: sessionOf(target, kind, entries) };
         carried = { session, ...stamp() };
       }
       const journal = applied(held(levels[0], "its main level"));

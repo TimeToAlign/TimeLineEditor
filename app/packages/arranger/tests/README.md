@@ -1554,6 +1554,8 @@ the block's own hit is `{block: A}`.
 | timeline `{block: A, id: "excerpt"}` | the card of `excerpt`; the line `recording` (its ancestor) | nothing |
 | timeline `{block: A, id: "dlt_1"}` | the line `dlt_1` | nothing |
 | any | a band `{id: "excerpt", facet: "children"}`; a block the view does not hold | nothing |
+| timeline `{block: A, id: R}`, R a root | R's flow control band `{id: R, facet: "flow_control"}`, or an element it draws (a flow-control element of R's tree) | that band, which opens the flow editor of R (section "The flow subeditor") |
+| flow `{block: A, id: R}` | anything | nothing |
 
 Two editors are equal by target, compared as a whole address, and kind. **What each level permits** is
 one row per level, compared whole; with an editor open, the innermost
@@ -1565,6 +1567,7 @@ editor's row applies:
 | bundle | yes | | | | elements | yes | | yes | | yes | yes | yes |
 | group | | | yes | | elements | | yes | yes | | yes | yes | yes |
 | timeline | | | | yes | elements | | | yes | | yes | yes | yes |
+| flow | | | | | elements | | | yes | | | yes | yes |
 
 A locked canvas changes no placement, so it moves and nudges nothing,
 moves no band and resizes nothing, at every level, and keeps every other
@@ -2363,6 +2366,142 @@ What would be wrong: the band drawn in the root's or a member card's
 editor, an element off the stretch in it, an element of it carrying an
 address (it would be hovered, selected or read as the element), or the
 band changing the drawing or its exports.
+
+## The flow subeditor (`flow-editor.test.ts`, `flow-editor-pane.test.ts`)
+
+The flow editor is the editor of a root's FlowMaps: a mode of the canvas
+on the root's card, its FlowMaps folded out in a pane under the card, an
+overlay never part of the drawing. Every case runs on block A holding
+TimeToShare's `flow/virtual_cards` at (40, 80): the root `allegro` (1644
+quarters, fraction; atomic sections A [0, 953/2), B [953/2, 500), C [500,
+1644)), its computed FlowMaps `default` (A B A C, 4241/2), `printed` (A B
+C) and `single` (A C), each a convention with an inferred provenance, and
+the hand-made `by_hand` "Practice" (A A A A, a gap of 4, C: 3054); the
+virtual timelines `allegro_default`, `allegro_single`, `allegro_by_hand`
+apply three of them, none `printed`. IDs minted by the store are never
+written here: a test reads a new FlowMap's, Region's or virtual
+timeline's ID through the result, as the one ID the manifest gained.
+
+**Opening.** A band is hit only in its timeline's editor (section "What a
+press hits"), so the flow editor opens from the root's timeline editor:
+there a double-click, a double tap or Enter on `allegro`'s flow control
+band `{block: A, id: "allegro", facet: "flow_control"}`, or on an element
+that band draws (the volta jump `{id: "volta_jump"}`, hit before the
+band), names that band (`editorTargetOf`), which opens the flow editor of `{block: A, id:
+"allegro"}` (`editorOf`: kind `flow`); the store then holds two editors,
+the innermost `{target: {block: A, id: "allegro"}, kind: "flow"}`. Every
+other band opens nothing: `allegro`'s regions band in its timeline
+editor, the flow control band with no editor open, in the bundle editor,
+and in another timeline's editor; the volta jump with no editor open opens
+`allegro`'s timeline editor, as any element of its card does. Inside the
+flow editor nothing opens
+(the card, its line, the band). Every other address opens what it opened
+before (`editorOf` gives it back unchanged, no kind).
+
+**Rows** (`flowRows`): one per FlowMap of `allegro`, the computed ones
+first, each part in the manifest's order: `default`, `printed`, `single`,
+`by_hand`, named `default`, `printed`, `single`, `Practice` (a FlowMap's
+name, else its convention, else its ID); computed for the first three;
+the virtual timeline giving each its axis `allegro_default`, none,
+`allegro_single`, `allegro_by_hand`; chips, compared whole: for a
+computed one its convention (`{kind: "convention", text: "default",
+title: "Convention: default"}`) and provenance (`{kind: "provenance",
+text: "inferred", title: "Provenance: inferred"}`), for `by_hand` only
+`{kind: "provenance", text: "manual", title: "Provenance: manual"}`. With
+findings `{default: ["one", "two"]}` the `default` row gains `{kind:
+"findings", text: "2 findings", title: "one\ntwo"}` and no other row
+changes; one finding reads `1 finding`.
+
+**The pane as drawn** (`flowPaneOf`, on the drawing of block A at the
+default placement, `length` 400). Its oracle is layout's drawing of a
+virtual card (section 8.10): each row is drawn as the card of a virtual
+timeline applying its FlowMap, at the graphical length `400 × Λ / 1644`,
+`Λ` its played length, so a played stretch is as long as the written
+stretch it plays. `allegro`'s card lies from x 8, 471.6396484375 wide, its
+line from x 62.6396484375 (layout's card); so the pane lies at x 8, its
+rows' lines start at 54.6396484375 in the pane, and the row of `default`
+ends at `54.6396484375 + 400 × 2120.5 / 1644 = 570.5763880968674`. Its
+entries are drawn at `54.6396484375 + L × u`, `L = 400 × 2120.5 / 1644`:
+entry 0 (A) from 54.6396484375 to 170.5763880968674, exactly as long as
+section A on the card (`400 × 476.5 / 1644 = 115.9367396593674`); entries
+1 to 3 follow, each its own index (`last` = `index`), no gap. `by_hand`
+draws its run of four As once: one span for entries 0 to 3 (`index` 0,
+`last` 3), the gap entry 4 a span of its own (`gap` true), and C entry 5,
+its texts `A × 4`, `4 ♩` and `C`; its line runs `D` short of its length
+(section 8.10, Runs). Rows carry no address attribute (an overlay), and
+draw no card rectangle, name or band of their own: every item a row draws
+is a line, a brace, a label, a leader or a boundary of the row's virtual
+card.
+
+**What each action stores** (`FlowEditorSession` on a store opened in
+`allegro`'s flow editor), each command compared whole:
+
+1. Without the new row (Add +), a drop stores nothing and says "Add a new
+   FlowMap (Add +) to drop into it"; Add + stores nothing.
+2. Dropping section B from the card: `{type: "add", into: {block: A, id:
+   "allegro"}, flow_map: {chunks: ["section_b"]}}`; the new row's FlowMap
+   is then the one FlowMap `allegro` gained, F.
+3. Dropping entry 0 of `default` (`section_a`) before index 0: `{type:
+   "set", changes: [{target: {block: A, id: F}, values: {chunks:
+   ["section_a", "section_b"]}}]}`.
+4. Dropping the card's own line (the whole root) at the end: first `{type:
+   "add", into: {block: A, id: "allegro"}, region: {start: [0, 1], end: [1644,
+   1]}}` (0 written in the axis's number type), then the `set` with the new Region R appended; the root dropped
+   again lands as R and stores the `set` alone.
+5. Dropping the row `printed`, which no virtual timeline applies: `{type:
+   "add", into: {block: A}, virtual_timeline: {map: "printed", timeline:
+   "allegro"}}`, then the `set` with the new virtual timeline appended;
+   the row `default` lands as `allegro_default` with the `set` alone.
+6. Moving entry 0 before index 2 stores the entries with it moved
+   (`[section_b, section_a, …]`), Alt copies it there
+   (`[section_a, section_b, section_a, …]`); removing entry 0 drops it.
+7. "+ Gap" `4` stores a gap `{gap: [4, 1]}` at the end; `0` says "a gap
+   is longer than 0: 0", `x` the parser's message, and nothing is stored.
+8. The new row's Cancel undoes every step since Add + (the store's
+   entries back to their count at Add +, the Regions and virtual
+   timelines written for it gone, `allegro`'s FlowMaps as before) and
+   closes the row; its Done closes the row and keeps the FlowMap.
+9. A Shift sweep opens the new row where none is and lands as the Region
+   it writes: `{type: "add", into: {block: A, id: "allegro"}, region:
+   {start: [10, 1], end: [20, 1]}}` for the stretch [10, 20], then the FlowMap's
+   `add`.
+10. A row placed as a card at (120, 400): its virtual timeline written
+    where none is (`printed`), then one `set` of exactly one change,
+    `{target: {block: A, id: V}, values: {place: {x: 120, y: 400}}}` (the
+    flow editor changes no other item's place, which its guard refuses);
+    `default` places `allegro_default` with the `set` alone.
+11. Recompute (`recomputeCommands`): an answer equal to the manifest
+    stores nothing; an answer whose `single` plays A B C instead stores
+    `{type: "remove", targets: [{block: A, id: "single"}]}` then the
+    `add` of the answer's `single` with its ID, chunks, convention,
+    canonical and provenance; an answer with an atomic section the
+    manifest lacks first adds it as a Region, whole.
+
+**Carrying a twin.** Its opacity is a function of the pointer's distance
+`d` (screen pixels) inside the editor's border (`twinOpacity`): `0.2 +
+0.8 × max(0, 1 − d / 96)` inside, 1 on and beyond the border: at −5, 0,
+24, 48, 72, 96, 200: 1, 1, 0.8, 0.6000000000000001, 0.4, 0.2, 0.2. The
+distance inside a rectangle is the nearest edge's (`insideDistance`), the
+editor's rectangle the union of the card's and the pane's. A release
+decides (`dropAt`): on the new row it inserts, inside the editor the twin
+flies back, beyond the border a row becomes a card and anything else
+flies back. An entry lands before the first drawn entry whose middle lies
+right of the pointer (`dropIndex`), else at the end.
+
+**The pane on the canvas** (`flow-editor-pane.test.ts`, the canvas in
+jsdom on that store): opening the flow editor shows the pane with four
+rows in the order above and Recompute disabled, saying "Recomputing needs
+a server", with no server; Add + shows the new row with Done and Cancel;
+Enter on entry 0 of `default` lands it (the `add` of item 2's form with
+`section_a`); a press on the card's region brace moved past the click
+distance and released over the pane but outside the new row writes
+nothing (the twin flies back), and released on the new row lands the
+Region; Escape during a drag writes nothing; the new row's Cancel leaves
+the store's entries as they were at Add +. The row `printed` lifted by its
+name and released inside the pane flies back and stores nothing; released
+past the editor's right border (the pane from x 0 to 800 on screen) it
+stores its virtual timeline's `add` and its place's `set`, two entries,
+and the new virtual timeline then has a place.
 
 ## The editor's viewport (`focus.test.ts`)
 

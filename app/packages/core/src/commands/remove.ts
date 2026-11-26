@@ -7,7 +7,12 @@
  * (`segment_not_removable`): it would leave a gap in its segment line. An
  * alignment anchor is removed only with its MatchStamp (`not_removable`). A
  * flow-control element is removed only with its timeline (`not_removable`):
- * it is rejected through its provenance, never deleted.
+ * it is rejected through its provenance, never deleted. A FlowMap is not
+ * removed while a virtual timeline left applies it, and a virtual timeline
+ * not while another left comes from it or a FlowMap left names it as a
+ * chunk (`not_removable`, naming them); a virtual timeline goes from every
+ * group, its places and the rules naming it, and a rule's `flow` naming a
+ * removed FlowMap or virtual timeline goes, its card drawn as written.
  */
 
 import type { CommandError } from "../errors.ts";
@@ -19,6 +24,7 @@ import type { Address } from "../workspace/address.ts";
 import { inBlock } from "../workspace/address.ts";
 import type { BlockId } from "../workspace/blocks.ts";
 import type { View } from "../workspace/view.ts";
+import { namedProblem } from "./flowmaps.ts";
 import type { ChangeSet } from "./mutations.ts";
 import { entryAt, record, withBlock } from "./mutations.ts";
 import type { Target } from "./targets.ts";
@@ -50,11 +56,14 @@ interface Removal {
   readonly line: string | null;
   /** Whether it is a flow-control element, which goes only with its timeline. */
   readonly flow: boolean;
+  /** For a FlowMap or a virtual timeline, its kind: what still names it keeps it. */
+  readonly named: "flow_map" | "virtual_timeline" | null;
 }
 
 /**
- * The ID of a group, measure map, timeline, entry, timestamp, elision or
- * MatchStamp target; `null` for the workspace, a block or an alignment anchor.
+ * The ID of a group, measure map, timeline, entry, timestamp, elision,
+ * MatchStamp, FlowMap or virtual timeline target; `null` for the
+ * workspace, a block or an alignment anchor.
  */
 function removalOf(target: Target): Removal | null {
   switch (target.kind) {
@@ -63,28 +72,37 @@ function removalOf(target: Target): Removal | null {
     case "anchor":
       return null;
     case "matchstamp":
-      return { element: target.matchstamp.id, line: null, flow: false };
+      return { element: target.matchstamp.id, line: null, flow: false, named: null };
     case "group":
-      return { element: target.group.id, line: null, flow: false };
+      return { element: target.group.id, line: null, flow: false, named: null };
     case "measure_map":
-      return { element: target.map.id, line: null, flow: false };
+      return { element: target.map.id, line: null, flow: false, named: null };
     case "timestamp":
-      return { element: target.timestamp.id, line: null, flow: false };
+      return { element: target.timestamp.id, line: null, flow: false, named: null };
     case "elision":
-      return { element: target.elision.id, line: null, flow: false };
+      return { element: target.elision.id, line: null, flow: false, named: null };
     case "root":
     case "child": {
       const { at } = target;
       const line = isSegmentAt(at) ? (at.parent?.timeline.id ?? null) : null;
-      return { element: at.timeline.id, line, flow: false };
+      return { element: at.timeline.id, line, flow: false, named: null };
     }
     case "map":
     case "region":
     case "flow_control": {
       const entry = entryAt(target.at.timeline, target.kind, target.index);
       if (entry === undefined) throw new Error(`${addressKey(target.address)} names an entry`);
-      return { element: entry.id, line: null, flow: target.kind === "flow_control" };
+      return {
+        element: entry.id,
+        line: null,
+        flow: target.kind === "flow_control",
+        named: null,
+      };
     }
+    case "flow_map":
+      return { element: target.flowMap.id, line: null, flow: false, named: "flow_map" };
+    case "virtual_timeline":
+      return { element: target.virtual.id, line: null, flow: false, named: "virtual_timeline" };
     default:
       return assertNever(target);
   }
@@ -127,11 +145,16 @@ export function applyRemove(
     if (blocks.has(id)) continue;
     const manifest = view.blocks[id]?.manifest;
     if (manifest === undefined) continue;
-    for (const [index, { element, line, flow }] of list.entries()) {
-      if (line === null && !flow) continue;
+    for (const [index, { element, line, flow, named }] of list.entries()) {
       const others = list.filter((_, other) => other !== index).map((item) => item.element);
-      if (removedBy(manifest, others).has(element)) continue;
       const path = [addressKey(inBlock(id, idAddress(element)))];
+      if (named !== null) {
+        const refused = namedProblem(manifest, element, named, removedBy(manifest, others), path);
+        if (refused !== undefined) return refused;
+        continue;
+      }
+      if (line === null && !flow) continue;
+      if (removedBy(manifest, others).has(element)) continue;
       if (line === null) {
         return problem(
           ErrorCode.notRemovable,

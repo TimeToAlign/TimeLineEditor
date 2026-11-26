@@ -72,12 +72,18 @@ function offered(editing: Editing | null): boolean {
   return editing === null || editing.kind === "bundle";
 }
 
-/** The timeline `resolved` names: itself, its card, or a part of either; `null` for anything else. */
+/**
+ * The timeline or virtual timeline `resolved` names: itself, its card, or a
+ * part of either; `null` for anything else.
+ */
 function timelineIdOf(resolved: ResolvedAddress): string | null {
   switch (resolved.kind) {
     case "timeline":
     case "card":
       return resolved.at.timeline.id;
+    case "virtual_timeline":
+    case "virtual_card":
+      return resolved.virtual.id;
     case "part":
       return timelineIdOf(resolved.owner);
     case "workspace":
@@ -91,6 +97,9 @@ function timelineIdOf(resolved: ResolvedAddress): string | null {
     case "matchstamp":
     case "anchor":
     case "elision":
+    case "flow_map":
+    case "virtual_band":
+    case "chunk":
       return null;
     default:
       return assertNever(resolved);
@@ -116,6 +125,11 @@ function groupIdOf(resolved: ResolvedAddress): string | null {
     case "matchstamp":
     case "anchor":
     case "elision":
+    case "flow_map":
+    case "virtual_timeline":
+    case "virtual_card":
+    case "virtual_band":
+    case "chunk":
       return null;
     default:
       return assertNever(resolved);

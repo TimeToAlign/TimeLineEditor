@@ -2,10 +2,11 @@
 /**
  * The editing bar, shown while an editor is open: Done and Cancel for the
  * innermost editor, and the editing path, the open editors' names in
- * opening order. Cancel asks first, just below itself, when the editor
+ * opening order, a flow editor's as the FlowMaps of its timeline. Cancel asks first, just below itself, when the editor
  * holds a change.
  */
 import type { LiveStore } from "@timetoalign/tilie-arranger";
+import type { OpenEditor } from "@timetoalign/tilie-core";
 import ConfirmDialog from "../ConfirmDialog.svelte";
 import { editorName } from "./words.ts";
 
@@ -16,6 +17,12 @@ let { live }: { live: LiveStore } = $props();
 const editing = $derived(live.editing);
 const view = $derived(live.view);
 const changes = $derived(live.changes);
+
+/** An open editor's name in the path: a flow editor's the FlowMaps of its timeline. */
+function pathName(editor: OpenEditor): string {
+  const name = editorName(view, editor.target);
+  return editor.kind === "flow" ? `FlowMaps of ${name}` : name;
+}
 
 let cancelButton: HTMLButtonElement | undefined = $state();
 let confirm: ConfirmDialog | undefined = $state();
@@ -40,7 +47,7 @@ async function cancel(): Promise<void> {
     <span class="label">Editing:</span>
     <ol aria-label="Editing path">
       {#each editing as editor (editor.session)}
-        <li>{editorName(view, editor.target)}</li>
+        <li>{pathName(editor)}</li>
       {/each}
     </ol>
     <ConfirmDialog bind:this={confirm} />

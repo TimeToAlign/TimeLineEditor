@@ -99,12 +99,18 @@ function orderAt(manifest: Manifest, at: Located): readonly string[] {
 /**
  * The band order the timeline `timelineId` is drawn with, `line` and all
  * five facets: its own entry in `graphical.order` completed against the
- * order it inherits (`inheritedBandOrder`), else that order. An ID no
- * timeline carries gets the default band order.
+ * order it inherits (`inheritedBandOrder`), else that order. A virtual
+ * timeline, which lies in no tree, completes its own entry against the
+ * default band order, as a root does (drawing.md section 8.10). Any other
+ * ID gets the default band order.
  */
 export function bandOrderOf(manifest: Manifest, timelineId: string): readonly string[] {
   const at = locateTimeline(manifest, timelineId);
-  return at === undefined ? DEFAULT_BAND_ORDER : orderAt(manifest, at);
+  if (at !== undefined) return orderAt(manifest, at);
+  const own = (manifest.virtual_timelines ?? []).some((item) => item.id === timelineId)
+    ? ownOrder(manifest, timelineId)
+    : undefined;
+  return own === undefined ? DEFAULT_BAND_ORDER : completedBandOrder(own, DEFAULT_BAND_ORDER);
 }
 
 /**
@@ -118,9 +124,9 @@ export function bandOrderOf(manifest: Manifest, timelineId: string): readonly st
  *    not an array of strings`;
  * 2. an entry repeating an earlier one: `'<entry>' is repeated in the band
  *    order of '<id>'`;
- * 3. an ID no timeline carries (a group's ID is a display order's key,
- *    never asked here): `'<id>' names no group or timeline of this
- *    manifest`;
+ * 3. an ID no timeline and no virtual timeline carries (a group's ID is a
+ *    display order's key, never asked here): `'<id>' names no group,
+ *    timeline or virtual timeline of this manifest`;
  * 4. the first entry that is neither `line` nor a facet: `'<entry>' is not
  *    'line' or a facet, in the band order of '<id>'`;
  * 5. a value without `line`: `'line' is missing from the band order of
@@ -141,8 +147,9 @@ export function bandOrderProblem(
   }
   const repeated = entries.find((entry, index) => entries.indexOf(entry) !== index);
   if (repeated !== undefined) return `'${repeated}' is repeated in the band order of ${id}`;
-  if (locateTimeline(manifest, timelineId) === undefined) {
-    return `${id} names no group or timeline of this manifest`;
+  const virtual = (manifest.virtual_timelines ?? []).some((item) => item.id === timelineId);
+  if (locateTimeline(manifest, timelineId) === undefined && !virtual) {
+    return `${id} names no group, timeline or virtual timeline of this manifest`;
   }
   const expected: readonly string[] = DEFAULT_BAND_ORDER;
   const stranger = entries.find((entry) => !expected.includes(entry));

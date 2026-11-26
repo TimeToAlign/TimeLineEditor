@@ -277,8 +277,8 @@ export async function flushAutosaves(): Promise<void> {
 
 /**
  * The innermost open editor of `level` in block `block` of `bundle_mixed`,
- * `null` on the arranger: the bundle editor, the editor of `group_1` or the
- * timeline editor of `score`. A reader takes its level from it, and inside
+ * `null` on the arranger: the bundle editor, the editor of `group_1`, the
+ * timeline editor of `score` or its flow editor. A reader takes its level from it, and inside
  * a group editor the frame its cards lie in.
  */
 export function editorAt(level: Level, block: string): Editing | null {
@@ -290,6 +290,7 @@ export function editorAt(level: Level, block: string): Editing | null {
     case "group":
       return { target: { block, id: "group_1" }, kind: level };
     case "timeline":
+    case "flow":
       return { target: { block, id: "score" }, kind: level };
   }
 }

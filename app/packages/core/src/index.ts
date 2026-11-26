@@ -17,6 +17,7 @@ export const name = "@timetoalign/tilie-core" as const;
 
 export type { ManifestWarning, UnknownKey } from "@timetoalign/timetoshare";
 export { apply } from "./commands/apply.ts";
+export { isComputedFlowMap } from "./commands/flowmaps.ts";
 export type { AnchorValue } from "./commands/matchstamps.ts";
 export { matchStampSpec, namedAsGroupstamp } from "./commands/matchstamps.ts";
 export { preview } from "./commands/preview.ts";
@@ -47,7 +48,14 @@ export {
 } from "./errors.ts";
 export type { Json, PathSegment } from "./json.ts";
 export { canonicalText, compareCodePoints } from "./json.ts";
-export type { ElementAddress, Facet, OwnerAddress, Part } from "./manifest/address.ts";
+export type {
+  ChunkIndex,
+  ElementAddress,
+  Facet,
+  OwnerAddress,
+  Part,
+  PartItem,
+} from "./manifest/address.ts";
 export {
   addressKey,
   BUNDLE_ADDRESS,
@@ -108,6 +116,17 @@ export {
   isRead,
   isRejected,
 } from "./manifest/flow.ts";
+export type {
+  FlowChunk,
+  FlowChunkKind,
+  FlowMapErrorCode,
+  FlowRun,
+  Occurrence,
+  PlayedStretch,
+  ResolvedFlowMap,
+  Stretch,
+} from "./manifest/flowmaps.ts";
+export { FlowMapError, fold, resolveFlowMap, unfold } from "./manifest/flowmaps.ts";
 export type { ReadManifestFile } from "./manifest/io.ts";
 export {
   idFormPath,
@@ -155,6 +174,7 @@ export type {
   ConversionMap,
   Elision,
   FlowControlElement,
+  FlowMap,
   Group,
   JumpDestination,
   Manifest,
@@ -167,7 +187,14 @@ export type {
   Statements,
   TimelineManifest,
   TimestampDisplay,
+  VirtualTimeline,
 } from "./manifest/types.ts";
+export type {
+  FlowVirtualTimeline,
+  MappedVirtualTimeline,
+  ResolvedVirtualTimeline,
+} from "./manifest/virtual.ts";
+export { foldVirtual, resolveVirtualTimeline, unfoldVirtual } from "./manifest/virtual.ts";
 export type { CompileContext, MapEvaluator } from "./maps/compile.ts";
 export { compileMap } from "./maps/compile.ts";
 export type { Expressed, ExpressedNumber, ExpressedOutputs } from "./maps/express.ts";
@@ -302,6 +329,7 @@ export type {
   ListedEntry,
   OpenEditor,
   Session,
+  StatedEditorKind,
 } from "./workspace/sessions.ts";
 export { editorKindOf, isSessionEntry, listEntries } from "./workspace/sessions.ts";
 export type { SettingsChange, Store, StoreOptions, Workspace } from "./workspace/store.ts";

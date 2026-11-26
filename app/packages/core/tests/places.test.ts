@@ -709,7 +709,7 @@ describe("band orders go with their timelines", () => {
     expect(refused(start, set("", { manifest: renamed({ excerpt: E }) }))).toEqual({
       code: "schema_violation",
       path: [ID, "manifest", "graphical", "order", "excerpt"],
-      message: "'excerpt' names no group or timeline of this manifest",
+      message: "'excerpt' names no group, timeline or virtual timeline of this manifest",
     });
     const accepted = after(start, set("", { manifest: renamed({ fragment: E }) }));
     expect(orderOf(accepted)).toEqual({

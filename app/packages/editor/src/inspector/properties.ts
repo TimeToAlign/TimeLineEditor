@@ -57,6 +57,7 @@ import {
   idAddress,
   inBlock,
   isCommandError,
+  isComputedFlowMap,
   placeAt,
   placeKeyText,
   prettyText,
@@ -627,7 +628,22 @@ function namedBy(resolved: ResolvedAddress): NameField | null {
       const target = inBlock(block.id, idAddress(elision.id));
       return { target, name: elision.name ?? null, nullable: true, manifest: block.manifest };
     }
+    case "flow_map": {
+      // A computed FlowMap refuses every change, its name included.
+      const { block, flowMap } = resolved;
+      if (isComputedFlowMap(flowMap)) return null;
+      const target = inBlock(block.id, idAddress(flowMap.id));
+      return { target, name: flowMap.name ?? null, nullable: true, manifest: block.manifest };
+    }
+    case "virtual_timeline":
+    case "virtual_card": {
+      const { block, virtual } = resolved;
+      const target = inBlock(block.id, idAddress(virtual.id));
+      return { target, name: virtual.name ?? null, nullable: true, manifest: block.manifest };
+    }
     case "anchor":
+    case "virtual_band":
+    case "chunk":
       return null;
     case "part":
       // A default elision is a part of its timeline, and has no name of its own.
@@ -641,11 +657,12 @@ function namedBy(resolved: ResolvedAddress): NameField | null {
  * address its opening selects, `editedSelection`); else the one inspected
  * thing's. Each wherever the schema gives it a name (the block's manifest, a
  * group, a measure map, a timeline or its card, a conversion map, a region,
- * a flow-control element, a named timestamp, a MatchStamp, a stored elision;
+ * a flow-control element, a named timestamp, a MatchStamp, a stored elision,
+ * a FlowMap made by hand, a virtual timeline or its card;
  * a part names its element's, a default elision none); a match timestamp's
  * and an elision's name may be emptied, a named timestamp's and a
- * MatchStamp's not; `null` for a band, an alignment anchor or several
- * things.
+ * MatchStamp's not; `null` for a band, an alignment anchor, a computed
+ * FlowMap (which refuses every change), a chunk or several things.
  */
 export function nameOf(
   view: View,
@@ -701,6 +718,11 @@ function timelineOf(
     case "matchstamp":
     case "anchor":
     case "elision":
+    case "flow_map":
+    case "virtual_timeline":
+    case "virtual_card":
+    case "virtual_band":
+    case "chunk":
       return null;
     default:
       return assertNever(resolved);

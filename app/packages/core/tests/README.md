@@ -886,22 +886,68 @@ check of who holds what.
     dropped): every region's spellings are the IRI, `tts:AtomicSection` and
     `ex:AtomicSection`, and the three selectors `tts:AtomicSection`,
     `ex:AtomicSection` and the IRI each match the three regions.
+14. **The texts and leaders of chunks** (drawing.md section 2.2): a
+    chunk of a FlowMap drawn in a regions band is addressed `{id: V,
+    facet: "regions", part: [k]}`. `textKey` of a key at that address
+    gives its label at `{id: V, facet: "regions", part: [k, "label"]}`,
+    the key's other members kept and the chunk's type added to `inside`;
+    `leaderKey` of that label gives its leader at `{id: V, facet:
+    "regions", part: [k, "leader"]}`. An owner's text and leader keep
+    their forms (`{id: X, part: ["label"]}`, `{id: X, part: ["leader"]}`),
+    and a band's key (a facet, no part) has no text: `textKey` throws.
+15. **Virtual cards** (drawing.md §2.2, §8.10). Every virtual timeline is
+    drawn as a root holding nothing: in the frame of each group having it
+    as a member, at its place in the display order, and, in no group, in
+    a block-held card after the ungrouped roots', by ID. Core lists that
+    card whether `places` states it or not (the block draws it where
+    `places` does, which no manifest holds): a placed card is one place
+    away. Its card, line and name are a root's; it has only its markers
+    and regions bands; its line holds, after its name, the boundary
+    `{id: V, facet: "regions", part: [k, "start"]}` of every drawn entry
+    `k ≥ 1`; its regions band holds first, for each drawn entry, the brace
+    `{id: V, facet: "regions", part: [k]}` (a `region`, the class of its
+    unit's timeline, no `types`) followed by its label `[k, "label"]`
+    (held by the brace), a gap entry its label alone, keyed as the label
+    of a brace that is not listed. A run (two or more consecutive entries
+    naming one ID, gaps forming none) is drawn once in a block-held card,
+    its later entries neither listed nor bounded, and entry by entry in a
+    frame. Written out from the specification:
+    - `flow/virtual_cards.yaml`, `allegro_by_hand` (Practice: A, A, A, A,
+      a gap of 4, C), block-held: its card at `["block"]`, its line at
+      `["block"]` holding its name, the boundaries `[4, "start"]` and
+      `[5, "start"]`, the markers band (empty: it has no timestamps) and
+      the regions band, which holds the brace `[0]` (A × 4, the run drawn
+      once) with its label, the gap's label `[4, "label"]` and the brace
+      `[5]` (C) with its label: twelve keys.
+    - `groups/virtual_member.yaml`, `allegro_default` (A, B, A, C) in the
+      frame of `performance`: every chain begins `["block", "frame"]`; the
+      boundaries `[1, "start"]` to `[3, "start"]`; the markers band holds
+      its named timestamps `timestamp_3` and `timestamp_4`, each a wedge
+      and its coordinate label (`display: [wedge, coordinate]`), of
+      `coordinates: "primary"`; the regions band the four braces each with
+      its label: twenty keys.
+    A virtual timeline that does not resolve to a FlowMap's entries (one
+    applying a conversion map, one stating `through`) lists its card,
+    line, name, bands and timestamps and no entry: on
+    `bundles/bundle_mixed.yaml`, the virtual timeline `mapped` a command
+    adds applying `cmap_2` (`score`'s map onto seconds) lists exactly its
+    card, its line, its name and its two bands, held by the block.
 
 The elements of manifests with several roots and groups are in "Several
 roots and groups".
 
 ## Flow control, FlowMaps and virtual timelines (`flow.test.ts`)
 
-The oracle is TimeToShare's schema and its ten `flow/` fixtures, which
+The oracle is TimeToShare's schema and its twelve `flow/` fixtures, which
 core's fixture list holds beside the others (so every suite that iterates
 the manifest fixtures reads them: the round trips of
 `manifest.test.ts` and `manifest-file.test.ts` in three serializations, the
 drawn elements of `address.test.ts`, the properties and the budgets). The
-ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
+twelve are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
 `ossia`, `repairs`, `repeat_end_and_dal_segno`, `sections`,
-`sonata_exposition` and `volta_passes`.
+`sonata_exposition`, `switched_card`, `virtual_cards` and `volta_passes`.
 
-1. **Kept through an edit of something else.** Each of the ten, held in a
+1. **Kept through an edit of something else.** Each of the twelve, held in a
    block whose manifest's `name` is set to `Edited`, is saved in the
    complete form as TimeToShare's `dumps` writes the fixture's own value
    with that one member changed, byte for byte: the five roles with their
@@ -939,10 +985,10 @@ ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
 3. **Words.** In a workspace of one block an element is worded by its role
    and its ID: "break 'break_1'", "section break 'section_break_1'", "jump
    'jump_1'", "barline 'barline_1'", "jump target 'jump_target_1'".
-4. **FlowMaps and virtual timelines** are neither drawn nor addressed:
+4. **FlowMaps and virtual timelines** are addressed by their IDs:
    `flow/sonata_exposition`'s `flow_map_1`, `flow_map_2`, `flow_map_3` and
    `virtual_1` are IDs of the manifest (`manifestIds`) that `resolveElement`
-   gives nothing for, and adding a region under one of them is
+   resolves to `flow_map` and `virtual_timeline`, and adding a region under one of them is
    `duplicate_id` at the region's `id`. They go with the root timeline
    they belong to: `removedBy` of `score` is the twelve IDs `score`, its
    three regions, its four flow-control elements, the three FlowMaps and
@@ -1167,8 +1213,8 @@ the schema agree by construction.
    entries in single quotes: `"line"`, `null`, `{}` and `["line", 1]` give
    `the band order of 'clt_3' is not an array of strings`; `D` with `line`
    appended `'line' is repeated in the band order of 'clt_3'`; `D` as the
-   order of `nothing` `'nothing' names no group or timeline of this
-   manifest`; `D` with `region` appended `'region' is not 'line' or a
+   order of `nothing` `'nothing' names no group, timeline or virtual
+   timeline of this manifest`; `D` with `region` appended `'region' is not 'line' or a
    facet, in the band order of 'clt_3'`, and so for the timeline's own ID
    in place of `line` and for the former band address `clt_3/regions_1` in
    place of `regions` (a stranger comes before what is missing); `D`
@@ -1184,6 +1230,13 @@ the schema agree by construction.
    character by its `not` over control characters (the tests assert code and
    path, not the validator's wording); every value core accepts the schema accepts and every value it refuses
    the schema refuses.
+7. **A virtual timeline's band order** (drawing.md §8.10: its entry of
+   `graphical.order`, else the default). It lies in no tree, so its own
+   entry is completed against `D` as a root's: on
+   `groups/virtual_member.yaml`, `set {order: ["regions", "line"]}` on
+   `allegro_default` stores that entry and draws `["children",
+   "conversion_maps", "regions", "line", "markers", "flow_control"]`;
+   `allegro_single`, without an entry, draws `D`.
 
 ## One walk to find timelines (`tree.test.ts`)
 
@@ -1375,18 +1428,22 @@ string form is `addressKey`, and nothing splits or composes an ID.
    equal object for `{}`, `{block: A}`, `{block: A, id: "score"}`,
    `{block: A, id: "score", facet: "regions"}`, `{block: A, id: "score",
    part: ["end", "label"]}`, `{block: A, id: "score", part: ["card"]}`,
-   `{block: A, part: ["name"]}` and the free IDs
-   `https://example.org/piece/score#exposition` and `perf/take 2`. Each
+   `{block: A, part: ["name"]}`, the free IDs
+   `https://example.org/piece/score#exposition` and `perf/take 2`, and a
+   chunk's label `{block: A, id: "allegro_default", facet: "regions",
+   part: [2, "label"]}` (the schema's `Address`: a part holds part words
+   and chunk indices, integers from 0). Each
    invalid shape is `invalid_address` at the `path` given, with its
    message: a string, `null` or an array, "an address is an object";
    `{block: A, colour: "red"}`, "an address has no member colour"; a
    `block` of `"short"` or `3`, "an address's block is a block id"; an `id`
    of `""`, `"a\u0001b"` or `3`, "an address's id is a non-empty string
    without control characters"; a `facet` of `region`, "an address's facet
-   is a facet"; a `part` of `[]`, `["middle"]` or `"name"`, "an address's
-   part is a non-empty array of part words"; `{block: A, facet:
-   "regions"}`, "a facet stands with an id"; `{block: A, id: "score",
-   facet: "regions", part: ["label"]}`, "a facet never stands with a part";
+   is a facet"; a `part` of `[]`, `["middle"]`, `"name"`, `[-1]` or
+   `[1.5]`, "an address's part is a non-empty array of part words and
+   chunk indices"; `{block: A, facet: "regions"}`, "a facet stands with an
+   id"; `{block: A, id: "score", facet: "regions", part: ["label"]}`, "a
+   facet stands with a part only where the part holds a chunk index";
    `{id: "score"}` and `{part: ["name"]}`, "an element's address names its
    block".
 2. **The builders.** `BUNDLE_ADDRESS` is `{}`, `TITLE_ADDRESS` `{part:
@@ -1417,7 +1474,14 @@ string form is `addressKey`, and nothing splits or composes an ID.
    block, no block) give fourteen keys. `sameAddress` compares whole
    addresses: equal whatever their members' order, unequal for another
    part, a part's words in another order, another facet, or a block on one
-   side only.
+   side only. A chunk's address, whose part begins with its chunk index
+   (drawing.md section 2.2), has its one form too: `{id: "virtual_1",
+   facet: "regions", part: [2, "label"]}` is
+   `{"facet":"regions","id":"virtual_1","part":[2,"label"]}`, and it
+   differs from the chunk `[2]`, from `[1, "label"]` and from the region
+   label `{id: "virtual_1", part: ["label"]}`. A chunk resolves only on a
+   virtual timeline's card (item 18): `resolveElement` names nothing at
+   `{id: "score", facet: "regions", part: [0]}` of `map.yaml`.
 4. **Every kind resolves.** On a block of `bundles/bundle_mixed.yaml` (and
    one of `map.yaml`), one address per kind with its expected resolution
    written by hand: the workspace `{}`, a block `{block: A}`, the title
@@ -1480,6 +1544,9 @@ string form is `addressKey`, and nothing splits or composes an ID.
    an alignment anchor's line its anchor, a stored elision's gap its
    elision (in a card, across a frame and carried into an ancestor card
    alike), its ellipsis and labels a part, every other line a timeline;
+   a virtual timeline's card, bands and line their virtual kinds
+   (`virtual_card`, `virtual_band`, `virtual_timeline`) and the brace of
+   an entry of its FlowMap a `chunk`;
    `bundles/bundle_matchstamps.yaml` gives the anchors' lines and the
    label `{id: "anchor_1", part: ["name"]}`): the cross-check between the resolver and the
    elements. The bundle's address `{}` resolves to nothing there (the
@@ -1499,7 +1566,12 @@ string form is `addressKey`, and nothing splits or composes an ID.
    whatever elisions are stored, since a rule stating `proportional`
    derives them beside stored ones and core reads no cascade). The
    candidates are built without the resolver, so a part the resolver names
-   that nothing draws fails here.
+   that nothing draws fails here; for every virtual timeline the
+   candidates include `{id: V, facet: "regions", part: [k]}` and `[k, w]`
+   for every entry `k` of its map and one past them and every part word
+   `w`, so an entry is resolved exactly where it is drawn (a gap by its
+   label and boundary only, a run's later entries in a block-held card not
+   at all).
 8. **The registry** (`CONTAINERS`, `CONTAINER_KINDS` `block`, `frame`,
    `card`, `band`) states each container kind exactly: the block at the
    bundle level, styled as `block`, with no place; the frame at the group
@@ -1640,6 +1712,22 @@ string form is `addressKey`, and nothing splits or composes an ID.
     `["name"]`; the band `{id: "score", facet: "regions"}` is `score`'s
     `regions` list itself, the markers band `score` itself; the workspace
     and the block lie nowhere (`null`).
+18. **Chunks and the timestamps of a virtual timeline** (drawing.md
+    §2.2, §8.10). On a block of `flow/virtual_cards.yaml`:
+    `{id: "allegro_default", facet: "regions", part: [2]}` resolves to a
+    `chunk` of `allegro_default`, entry 2 of `default`, which lies at
+    `["flow_maps", 1, "chunks", 2]` (`resolvedPath`: the value there is
+    `section_a`) and is worded "chunk 3 of virtual timeline 'Allegro,
+    default'"; its label `[2, "label"]` and its boundary `[2, "start"]`
+    resolve to parts of it ("the label of chunk 3 of …"); entry 1 of
+    `allegro_by_hand`, the second of its run `A × 4`, resolves to nothing
+    (not drawn), its gap's label `[4, "label"]` to the part `label` of the
+    chunk 4, and the gap itself `[4]` to nothing; `{id:
+    "allegro_by_hand", part: ["name"]}` to the part `name` of the
+    virtual timeline. No command aims at a chunk: `set` on one is
+    `unknown_target`. On `groups/virtual_member.yaml` the named timestamp
+    `timestamp_3` resolves to `timestamp` with its owner `allegro_default`
+    (`indexOf(manifest).owners`).
 
 ## Commands (`commands.test.ts`)
 
@@ -2523,8 +2611,8 @@ left without `addresses` goes.
     `fragment` in `recording`'s children, in `group_2`'s members and in its
     display order, its band order still keyed `excerpt`, is refused:
     `schema_violation` at `["bundle0001", "manifest", "graphical", "order",
-    "excerpt"]`, message `'excerpt' names no group or timeline of this
-    manifest`. The same with the entry rekeyed `fragment: E` is accepted
+    "excerpt"]`, message `'excerpt' names no group, timeline or virtual
+    timeline of this manifest`. The same with the entry rekeyed `fragment: E` is accepted
     (a band order names no ID, so it moves unchanged), and the rule is
     kept exactly as written, still addressing `{id: "excerpt", facet:
     "regions"}`.
@@ -3221,6 +3309,16 @@ where things lie on the canvas is layout's. What proves each part:
   that only follows a cycle, which it lies after, takes no part in it: the
   conflict is the cycle's alone, whatever comes first in the stored order
   or by ID.
+- **Virtual timelines** (drawing.md §8.6, §8.10): every virtual timeline
+  in no group is an item, after the ungrouped roots, by ID (its block-held
+  card, which the block draws where `places` holds its ID; a drawing passes
+  over the items it does not draw), and a virtual member lies in its
+  group's frame: on `groups/virtual_member.yaml` the items are
+  `performance`, `allegro`, `allegro_by_hand`, `allegro_single`; the stored
+  order `[allegro_single, allegro_default, allegro]` (a member is no item,
+  passed over) gives `[allegro_single, allegro, performance,
+  allegro_by_hand]`, and side by side that row with no root and no anchor
+  (no group hangs on a root: `performance`'s members are roots).
 - **The commands** are proven by the block or workspace a `set` leaves
   (the exact `arrangement` member, or its absence), the exact code, path
   and message of a refusal, and the journal of the store (one entry per
@@ -4912,7 +5010,14 @@ and the named timestamps: an `add` of one into a timeline or elsewhere
 (its coordinate drawn like any other, an empty name, a missing coordinate,
 an `id` given, a `display` in any order, with an unknown or repeated
 word), a `set` of its `name`, `coordinate`, `display` or `timeline`, and
-its `remove`, on the manifest's timestamps and an unknown one.
+its `remove`, on the manifest's timestamps and an unknown one; and the
+FlowMaps and virtual timelines: an `add` of a FlowMap into a root, another
+timeline or the block (chunks drawn from the regions, timelines and virtual
+timelines, gaps on the root's axis, unknown IDs; an ID given or taken), a
+`set` of its `chunks` or `name`, an `add` of a virtual timeline (into the
+block or a timeline, applying a FlowMap, a conversion map or an unknown ID,
+a length given or not, `through`), a `set` of its `name`, `place` or
+`groups`, and the `remove` of either, computed FlowMaps included.
 Each manifest fixture starts as block `A` beside a block `B` of
 `bare.yaml`, in a store with an injected clock and a minter of seed
 `20261011` (so a counterexample replays with the same IDs, and so the
@@ -4933,7 +5038,7 @@ ten sequences.
    targets: over a fixed sample (seed `20261011`, 150 sequences per fixture,
    each fixture's sequences applied with one minter of seed `20261011`, as
    a store mints, so no command is refused for the IDs it lacks)
-   the set of codes observed is exactly `child_exceeds_parent`, `cycle`, `duplicate_id`, `duplicate_index`,
+   the set of codes observed is exactly `child_exceeds_parent`, `computed_flow_map`, `cycle`, `duplicate_id`, `duplicate_index`,
    `elision_exceeds_length`, `id_not_settable`, `invalid_address`, `invalid_coordinate`,
    `invalid_index`, `invalid_order`, `invalid_value`,
    `length_below_content`, `locked`, `negative_child_offset`,
@@ -4961,8 +5066,10 @@ ten sequences.
 
 **Editing sequences.** The same fixtures, in the same store, run sequences
 of up to 30 steps, ten per fixture, each step a seed with an operation: a
-command, opening an editor, a reopen (the target of the latest session of
-the innermost level, so the reopen rule unfolds it), a whole session (open,
+command, opening an editor (every fifth opening asks for the flow
+editor, which opens on a root timeline only), a reopen (the target and the
+kind of the latest session of the innermost level, so the reopen rule
+unfolds it), a whole session (open,
 one or two commands, Done), an unfold (reopen, undo until nothing is left to
 undo or one step, Done), Done, Cancel, undo and redo. A command in an open
 editor is mostly one that stays inside it (a name or a band order of a
@@ -4970,7 +5077,8 @@ timeline it holds, its place's `x`, `scale`, `spacing`, `margin` or `width`, a g
 display order, for a member its group's `length` and `scale`, the block's
 width, the name of a named timestamp lying on a timeline it holds, or a
 named timestamp added to such a timeline), sometimes any generated command, so the guard both accepts and
-refuses; a target to open is mostly one the innermost editor holds, so
+refuses; in a flow editor mostly a command over its root's FlowMaps and
+virtual timelines; a target to open is mostly one the innermost editor holds, so
 editors nest, sometimes one outside it, one without an editor or one naming
 nothing.
 
@@ -5966,6 +6074,253 @@ inherent to what the index does, so the budget is the figure measured by
 check 66 to 69 ms, the build 141 to 152 ms; single runs from 193 to 237
 ms), with the margin of about 15 % the other budgets keep. A hover takes
 about 1 µs.
+
+## Resolving FlowMaps and virtual timelines (`flowmaps.test.ts`, fast-check)
+
+A FlowMap is resolved in core as timetoalign resolves it: every chunk a
+stretch of the root's axis, carried there by exact parent–child offset
+arithmetic in the root's number type, laid end to end from 0 on the
+virtual axis, which has the root's unit and number type; a virtual
+timeline chunk plays the stretches of the FlowMap it applies. Every
+stretch is half-open, its end excluded, as timetoalign's
+`ResolvedFlowMap.unfold` and `fold` have them: a written position is
+played wherever a stretch covers it, the start included and the end not,
+and the virtual axis is `[0, length)`, so its length folds to nothing and
+is refused (`outside_virtual_axis`). The oracle is TimeToShare's expected
+flows (`fixtures/flows/<SCHEMA_VERSION>/`, the flows timetoalign computes
+and is tested against) and the flow fixtures they name: every expected
+value below is derived from a fixture and its expected flow, never read
+off core's output.
+
+1. **The expected flows, convention by convention.** For each of the nine
+   expected flows and each of its conventions (`default`, `single`,
+   `printed`), the fixture is changed before loading: its root gains one
+   Region per atomic section (`section_A`, …, the section's `start` and
+   `end` as the expected flow spells them) and one FlowMap per convention
+   whose chunks are the convention's `sections`, each named by its
+   Region. Resolved, chunk `i` is a `region` chunk of its section, its
+   written stretch the section's bounds, its played stretch starting where
+   the sections before it end (their lengths summed from 0) and as long as
+   the section; the virtual length is the sum of the sections' lengths;
+   the chunks' written stretches and the convention's `runs`, touching
+   ones joined on both sides (a run also ends at a jump or a break, as
+   the schema package's README says), are the same stretches; the runs of
+   equal chunks are the `sections` grouped (`loop`'s `default` is A, then
+   B 128 times, then C: three runs, the second of count 128). At every
+   chunk's played start and at its middle, `fold` gives the section's
+   start and the start plus half the section's length; at the virtual
+   length it is refused. For every atomic section, at its start and its
+   middle, `unfold` gives one occurrence per time the convention plays
+   the section, in played order, numbered 1 to n of n, each at that
+   chunk's played start plus the distance into the section, each naming
+   its chunk; a section the convention never plays (B of
+   `sonata_exposition`'s `single`, D of `ossia`'s `default`) gives none,
+   and the root's length gives none. The axis is `fraction` in eight
+   cases and `float` (`loop`, seconds) in one; every value compared is a
+   coordinate in the root's unit and number type.
+2. **The FlowMaps a fixture states.** `flow/sonata_exposition`'s own
+   FlowMaps resolve as its expected flow says: `flow_map_1` the regions
+   whose bounds are A, B, A, C (`default`), `flow_map_2` A, C (`single`),
+   `flow_map_3` A, B, C (`printed`), with the played stretches of item 1.
+   Its virtual timeline `virtual_1`, resolved, applies `flow_map_1`, comes
+   from `score`, is in quarters, `fraction`, and is 36 long, the length
+   the fixture states. `flow/flow_map_by_hand`'s "Encore order"
+   (`flow_map_1` of `set`: `second`, a gap of 4, `first`) gives a
+   `timeline` chunk `second` written [8, 20) played [0, 12), a `gap`
+   chunk played [12, 16) with no written stretch and no source, and a
+   `timeline` chunk `first` written [0, 8) played [16, 24), the length
+   24; `fold` gives null at 12 and 14 (the gap), 8 at 0, 0 at 16;
+   `unfold` gives 0 at 8 and 16 at 0.
+3. **Children and descendants.** On `flow/ossia` a FlowMap of the
+   sections A, B, C and the child `ossia` (offset 16, length 8) gives
+   the child the `timeline` chunk written [16, 24), the printed flow's D.
+   On `nested.yaml` (root `clt_1`, child `clt_3` at 4, its child
+   `clt_2` at 3/2 of length 2), with a Region `deep` from 1/2 to 1 added
+   to `clt_2`, a FlowMap `clt_2`, `deep`, `clt_3` gives the written
+   stretches [11/2, 15/2), [6, 13/2) and [4, 12) and the played ones
+   [0, 2), [2, 5/2) and [5/2, 21/2): offsets added level by level.
+4. **A virtual timeline chunk.** On `flow/sonata_exposition` a FlowMap
+   `virtual_1`, `region_2` gives a `virtual` chunk `virtual_1` written
+   [0, 36) (its own axis) played [0, 36), then the `region` chunk
+   `region_2` written [12, 16) played [36, 40); the stretches are the
+   four of `flow_map_1` followed by B, five in all, the length 40.
+   `unfold` at 13 gives 13 (1 of 2) and 37 (2 of 2), at 2 gives 2 and 18;
+   `fold` at 20 gives 4, at 37 gives 13.
+5. **The root itself as a chunk** is a `timeline` chunk from 0 to its
+   length: `set` of `flow/flow_map_by_hand` as the one chunk gives the
+   written and played stretch [0, 20). (TimeToShare's validators and
+   timetoalign refuse the root as a chunk today, so this manifest is
+   built from the loaded one without being read again.)
+6. **Refusals**, each a `FlowMapError` with its exact `code` and `path`:
+   an unknown FlowMap ID, `unknown_flow_map` at `["flow_maps"]`; an
+   unknown virtual timeline ID, `unknown_virtual_timeline` at
+   `["virtual_timelines"]`; a FlowMap naming the child `first`,
+   `flow_map_timeline` at `["flow_maps", 0, "timeline"]`; a chunk naming
+   nothing in the tree, `flow_map_chunk` at `["flow_maps", 0, "chunks",
+   1]`; a gap of 1/3 on `loop`'s `float` axis, `gap_number_type` at
+   `["flow_maps", 0, "chunks", 0, "gap"]`, while a gap of 4 on a
+   `fraction` axis is read; the root as a chunk with its length
+   unknown, `unknown_length` at `["flow_maps", 0, "chunks", 0]`;
+   `flow_map_1` of `flow/sonata_exposition` changed to the one chunk
+   `virtual_1`, which applies it (a manifest TimeToShare reads, the
+   length 36 being the chunk's own), `flow_map_cycle` at `["flow_maps",
+   0, "chunks"]`, as timetoalign refuses the circle; a virtual timeline
+   `v` of `flow/flow_map_by_hand` applying `flow_map_1` to the child
+   `first`, `virtual_unresolved` at `["virtual_timelines", 0,
+   "timeline"]`; a position in seconds given to `unfold` on a quarters
+   axis, `unit_mismatch` at `[]`.
+7. **A virtual timeline from a conversion map.** On
+   `bundles/bundle_mixed.yaml` a virtual timeline `score_seconds`
+   applying `cmap_2` (a LinearMap of `score` to seconds, scalar 1/2) in
+   seconds, `float`, stating the length 6.5, resolves to the
+   `conversion_map` kind with source `score` and the length 6.0, the
+   map's value at `score`'s length 12, not the length stated;
+   `unfoldVirtual` at 3 quarters gives the one occurrence 1.5 (1 of 1,
+   no chunk), `foldVirtual` at 1.5 seconds gives 3 quarters. A virtual
+   timeline in seconds applying `cmap_1` (to ticks) is refused,
+   `map_not_evaluated` at `["virtual_timelines", 0, "map"]`, its message
+   naming `cmap_1`; so is one in floating measures applying
+   `conversion_maps__maps_quarters.yaml`'s `cmap_3` (a measure view,
+   whose MeasureMap rows core is not given).
+8. **Properties** (fast-check, seeded, 200 runs): on
+   `flow/sonata_exposition`, FlowMaps of one to eight chunks drawn from
+   its three regions, `virtual_1` and gaps of 1/2 to 4 quarters: for every
+   written position n/4 from 0 to 24, `fold` of each of its played
+   positions is the position again, and it has played positions exactly
+   when a chunk's written stretch covers it; for every played position
+   n/4 below the virtual length, `fold` gives null exactly inside a gap,
+   and otherwise `unfold` of the written position contains the played
+   one.
+
+## Commands over FlowMaps, virtual timelines and the flow editor (`flowmap-commands.test.ts`)
+
+What proves a command over FlowMaps and virtual timelines is the manifest it
+leaves, checked whole by TimeToShare's schema and validators (core's
+`schemaProblems`, which runs them: an empty list), and, for a refusal, its
+exact code and path. The manifests are the schema package's fixtures:
+`flow/flow_map_by_hand.yaml` (root `set`, children `first` [0, 8) and
+`second` [8, 20) in quarters, the hand-made FlowMap `flow_map_1`, chunks
+`second`, a gap of 4, `first`) and `flow/sonata_exposition.yaml` (root
+`score`, 24 quarters, Regions `region_1` [0, 12), `region_2` [12, 16) and
+`region_3` [16, 24); the computed FlowMaps `flow_map_1` (`default`:
+`region_1 region_2 region_1 region_3`), `flow_map_2` (`single`:
+`region_1 region_3`) and `flow_map_3` (`printed`), each with a provenance
+entry of method `inferred`; the virtual timeline `virtual_1` applying
+`flow_map_1` to `score`, 36 quarters). IDs the tests give are speaking
+(`encore`, `single_card`); where a test lets a command mint, the expected
+ID is the one a minter of the same seed mints for the expected prefix,
+never a spelled-out random literal.
+
+1. **FlowMaps.** `add {into: set, flow_map: {chunks: [first, {gap: [2,
+   1]}, second], name: "Encore"}}` with `ids: [encore]` leaves
+   `flow_maps` holding `encore` in its complete form (`timeline: set`,
+   `canonical: false`) beside `flow_map_1`, and the manifest valid. Its
+   `timeline`, left out, is the root it goes into. Refused, each at
+   `[<address key of into>, "flow_map", …]`: a chunk naming the root
+   itself (`schema_violation`, the validators' `'set' names no region,
+   child timeline or virtual timeline in the tree of 'set'`, at `chunks,
+   0`), a `timeline` naming another timeline (`invalid_value` at
+   `timeline`), no `chunks` (`invalid_value`), an unknown member
+   (`unknown_property`), an ID the manifest holds (`duplicate_id` at
+   `id`); into the child `first`, `wrong_target_kind`; without `ids` and
+   without a minter, `invalid_command` at `["ids"]`. Left without an ID
+   it is given the minter's `flow_…`. `set {chunks}` on the hand-made
+   FlowMap stores the new list; `set {name}` its name; the same list again
+   is "the command changes nothing"; a chunk naming nothing is
+   `schema_violation` at `[<address key of the FlowMap>, "chunks", k]`.
+   Every `set` on a computed FlowMap (`flow_map_2`) is `computed_flow_map`
+   at `[<its address key>, <property>]`.
+2. **Virtual timelines.** `add {into: <block>, virtual_timeline: {map:
+   flow_map_2, timeline: score, name: "As played once"}}` with `ids:
+   [single_card]` leaves the entry with unit `quarters`, number type
+   `fraction` and length `[20, 1]` (12 + 8, the played length of `single`),
+   all computed, and the manifest valid; a given length equal to it
+   (`[40, 2]`) is accepted and written `[20, 1]`, one that differs
+   (`[24, 1]`) is `invalid_value` at `length`, its message naming `20 ♩`;
+   `unit` or `number_type` given is `unknown_property`; a `map` naming
+   nothing is `invalid_value` at `map`; with `through` and no length,
+   `invalid_value` at `length`. Left without an ID it is given the
+   minter's `clt_…`, the prefix of its unit's timeline class. `set {name}`
+   renames it. `remove` of `flow_map_1` is `not_removable` at its address
+   key, naming `'virtual_1'`; removing both in one command is accepted;
+   `virtual_1` named as a chunk by a FlowMap is `not_removable` naming that
+   FlowMap. Removing `virtual_1` takes it out of every group's `members`
+   and display order, its place and every rule naming its address, and a
+   rule's `flow` naming it, so a switched card is drawn as written again.
+3. **Regions get minted IDs.** `add {into: score, region: {start: [0,
+   1], end: [4, 1], name: "Intro"}}` without an ID is given the minter's
+   `region_…`; a map without one the minter's `cmap_…`.
+4. **Groups admit virtual timelines.** `add group {members: [score,
+   virtual_1]}` with `ids: [both]` gives the group those members, a frame
+   holding a card for each, `virtual_1`'s holding exactly its markers and
+   regions bands; `{id: virtual_1}` resolves to `virtual_timeline`,
+   `{id: virtual_1, facet: "regions"}` to `virtual_band`, `{id: virtual_1,
+   facet: "children"}` to nothing, and `{id: virtual_1, part: ["card"]}`
+   to `virtual_card`, the drawing's elements listing it (a part resolves
+   only where they list it); `contains(manifest, both, {id: virtual_1, part:
+   ["card"]})` holds; `placedElement` of the key `{item: both, member:
+   virtual_1}` is `virtual_1`. `set {groups: []}` on it leaves the group
+   with `score` alone; `set {order}` on the group lists the virtual member,
+   and `set {order: [regions, line, markers]}` on the virtual timeline
+   states its band order. A virtual member lies inside its group's
+   editor (a `set` of its name accepted there) and outside the timeline
+   editor of `score` (`side_effect` at its address key).
+   In no group, the virtual timeline has one block-held card keyed by its
+   ID: `set {place: {x: 10, y: 20}}` on its address states
+   `places[virtual_1]`, and `set {place: {x: null, y: null}}` removes that
+   place (the card hidden), the virtual timeline kept.
+5. **The `flow` property.** `style {select: {addresses: [{id: score, part:
+   ["card"]}]}, set: {flow: flow_map_2}}` embeds the rule in the manifest's
+   own `rules` and the manifest stays valid; `flow: region_1` is
+   `schema_violation` (the validators' `flow_rule`), and `flow: null`
+   removes the rule ("As written").
+6. **The flow editor.** `open(score, "flow")` opens an editor of kind
+   `flow`; `open(first, "flow")` on a child is `no_editor`; inside it, an
+   `add` of a FlowMap into `score`, of a Region into `score` and of a
+   virtual timeline applying one of its FlowMaps, and a `set` of that
+   virtual timeline's `place`, are accepted; a `set` of `score`'s name is
+   `side_effect` at `[<address key of score>, "name"]`, a `style` at the
+   key of `score`; opening any editor inside it is `not_inside`. Done
+   journals one session entry whose session states `kind: "flow"`, the
+   workspace file writes and reads it back equal, and the journal replays
+   to the same view, the minted IDs carried. Reopening `score` as a
+   timeline editor starts a new session; reopening it as a flow editor
+   unfolds the flow session. A flow editor opens inside the timeline
+   editor of its own root.
+7. **Named timestamps on a virtual timeline** (drawing.md §8.10: its
+   named timestamps lie on its own axis, from 0 to its length). On
+   `groups/virtual_member.yaml` (`allegro_default`, 4241/2 quarters, a
+   member of `performance` with `recording`; its timestamps
+   `timestamp_3` at 0 and `timestamp_4` at 4241/2): `{id: timestamp_3}`
+   resolves to `timestamp`, on the virtual timeline read as its axis (ID
+   `allegro_default`, unit `quarters`, number type `fraction`, length
+   `[4241, 2]`, at `["virtual_timelines", 1]`), its owner
+   `allegro_default`. `add {into: {id: allegro_default}, timestamp: {name:
+   "Seam", coordinate: [953, 2]}}` with `ids: [seam]` stores the timestamp
+   on `allegro_default` (its `display` the schema's default `[wedge, name,
+   cross_section]`), the manifest valid; a coordinate after its end
+   (`[2121, 1]`) is `invalid_value` at `[<into key>, "timestamp",
+   "coordinate"]`, "the coordinate lies after the end of timeline
+   'allegro_default'"; `groupstamp: true` is accepted (it is a member of
+   `performance`), and on `allegro_single`, in no group, `invalid_value`
+   at `groupstamp`. `set {coordinate: [500, 1]}` on `seam` moves it; `set
+   {groupstamp: true}` makes it a groupstamp; `remove` takes it out.
+   **Groupstamps across virtual members** are carried as every
+   groupstamp (drawing.md §6.6): with `seam` a groupstamp showing
+   `cross_section`, the drawing lists its line twice, both of type
+   `cross_section` belonging to `allegro_default`: in its own card, held by
+   its line (chain `[block, frame, timeline]`), and across the frame of
+   `performance`, held by the frame (`[block, frame]`); and its secondary
+   coordinate on `recording`'s card
+   (`cardStamps` in that frame): the position at the proportion 953/2 of
+   4241/2 of 702.5 seconds, 1338965/8482, the float 157.8595850035369, its
+   wedge and labels listed on `recording`'s markers band with
+   `coordinates: "secondary"`.
+
+Core's property suite (`generate.ts`) also draws FlowMap and virtual
+timeline commands (`add`, `set` of `chunks` and `name`, `remove`) over
+`flow/sonata_exposition.yaml` and `flow/flow_map_by_hand.yaml`, so replay and
+undo are checked on them.
 
 ## External gates
 

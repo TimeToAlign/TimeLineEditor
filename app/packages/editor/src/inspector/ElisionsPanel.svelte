@@ -68,7 +68,7 @@ import {
   WIDTH_FORMS,
 } from "./elisions.ts";
 import { shownOf } from "./properties.ts";
-import type { ElisionDraftField, ElisionOwner, PropertyDrafts } from "./propertyDrafts.svelte.ts";
+import type { DraftField, FieldOwner, PropertyDrafts } from "./propertyDrafts.svelte.ts";
 import DisplayToggles from "./stamps/DisplayToggles.svelte";
 
 let {
@@ -217,15 +217,15 @@ function isSelected(address: Address): boolean {
 
 function onFieldKey(
   event: KeyboardEvent,
-  owner: ElisionOwner,
-  field: ElisionDraftField,
+  owner: FieldOwner,
+  field: DraftField,
   edit: (text: string) => ReturnType<typeof fieldCommand>,
 ): void {
   if (event.key === "Enter") {
     event.preventDefault();
-    drafts.commitElision(owner, field, store, edit);
+    drafts.commitField(owner, field, store, edit);
   } else if (event.key === "Escape") {
-    drafts.discardElision(owner, field);
+    drafts.discardField(owner, field);
   }
 }
 
@@ -326,15 +326,15 @@ function toggled(
 {/snippet}
 
 {#snippet field(
-  owner: ElisionOwner,
-  name: ElisionDraftField,
+  owner: FieldOwner,
+  name: DraftField,
   label: string,
   unit: string,
   stored: string,
   disabled: boolean,
   edit: (text: string) => ReturnType<typeof fieldCommand>,
 )}
-  {@const fieldProblem = drafts.elisionProblem(owner, name)}
+  {@const fieldProblem = drafts.fieldProblem(owner, name)}
   <label class="value">
     <span>{label}</span>
     <input
@@ -342,12 +342,12 @@ function toggled(
       inputmode="decimal"
       {name}
       {disabled}
-      value={drafts.elisionValue(owner, name, stored)}
+      value={drafts.fieldValue(owner, name, stored)}
       aria-invalid={fieldProblem !== undefined}
       aria-describedby={fieldProblem !== undefined ? `${uid}-problem-${name}` : undefined}
-      oninput={(event) => drafts.typeElision(owner, name, event.currentTarget.value)}
+      oninput={(event) => drafts.typeField(owner, name, event.currentTarget.value)}
       onkeydown={(event) => onFieldKey(event, owner, name, edit)}
-      onblur={() => drafts.commitElision(owner, name, store, edit)}
+      onblur={() => drafts.commitField(owner, name, store, edit)}
     />
     {#if unit !== ""}<span class="unit">{unit}</span>{/if}
   </label>

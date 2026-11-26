@@ -72,6 +72,8 @@ const ADD_WORDS: { readonly [kind in AddKind]: string } = {
   timestamp: "timestamp",
   matchstamp: "MatchStamp",
   elision: "elision",
+  flow_map: "FlowMap",
+  virtual_timeline: "virtual timeline",
 };
 
 /** The string member `member` of an added value; `null` for a value without one. */
@@ -161,10 +163,12 @@ function entryText(
   view: View,
 ): string {
   if (!isSessionEntry(entry)) return commandText(entry.command, view);
-  const { target } = sessionOf(sessions, entry.session);
+  const session = sessionOf(sessions, entry.session);
+  const { target } = session;
   const count = changes === 1 ? "1 change" : `${changes} changes`;
   const partly = applied > 0 && applied < changes ? `, ${changes - applied} undone` : "";
-  const kind = editorKindOf(view, target);
+  // A flow session states its kind; any other is the kind its target opens.
+  const kind = editorKindOf(view, target, session.kind);
   const word = isCommandError(kind) ? "" : `${kind} `;
   return `Edited ${word}${editorName(view, target)} (${count}${partly})`;
 }

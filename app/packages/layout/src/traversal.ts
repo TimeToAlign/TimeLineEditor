@@ -112,6 +112,35 @@ export interface TraversalIndex {
   readonly sourcesByLine: ReadonlyMap<Entry, readonly Entry[]>;
 }
 
+/**
+ * One entry of a FlowMap's `chunks` as a line draws it (section 8.10): its
+ * index `k`, whether it is a gap, its span on the virtual axis, its label's
+ * text, whether it is drawn (the second and later entries of a run drawn
+ * once are not), and whether a boundary marks its drawn start.
+ */
+export interface DrawnChunk {
+  readonly index: number;
+  readonly gap: boolean;
+  readonly start: Real;
+  readonly end: Real;
+  readonly text: string;
+  readonly drawn: boolean;
+  readonly boundary: boolean;
+}
+
+/**
+ * The chunks a line draws (section 8.10): `timeline` the ID its chunks'
+ * addresses carry (a virtual timeline's, or a switched card's timeline's),
+ * its entries in the order of `chunks`, and the run gaps of its runs drawn
+ * once, each over `[a, b]`, the end of a run's first entry to the end of its
+ * last, from the left.
+ */
+export interface DrawnFlow {
+  readonly timeline: string;
+  readonly chunks: readonly DrawnChunk[];
+  readonly runGaps: readonly (readonly [Real, Real])[];
+}
+
 /** What every member drawing of one manifest shares. */
 export interface Context {
   /** The manifest drawn, in canonical order: the band order of each timeline is read from it. */
@@ -126,6 +155,11 @@ export interface Context {
 /** One timeline drawn as a root, traversed, with the measures of its axis and its texts. */
 export interface Scope extends Context {
   readonly member: MemberDrawing;
+  /**
+   * The chunks of the FlowMap its root's line draws (section 8.10): a virtual timeline's, or a
+   * switched card's; null for a line that draws none.
+   */
+  readonly flow: DrawnFlow | null;
   /** The frame whose member card draws it, null for an ungrouped root's card and an ancestor card. */
   readonly frame: GroupFrame | null;
   /** The timeline drawn as the root. */
@@ -291,6 +325,12 @@ export interface CardAxis {
   startAt(value: Real): number;
   /** The gap a position lies in, its ends excluded; undefined for a position in no gap. */
   gapOf(value: Real): Gap | undefined;
+  /**
+   * The run gap of a run drawn once a position lies in, its ends excluded (section 8.10, Runs):
+   * `L × u − D` of its drawn start, where it takes no room and is not drawn; undefined for a
+   * position in none.
+   */
+  runGapOf(value: Real): number | undefined;
   /** `D` at a position: the shrinks of the gaps ending at or before it, summed from the left. */
   shrinkBefore(value: Real): number;
   /**
@@ -336,7 +376,8 @@ export function endOf(timeline: TimelineManifest, topLevel: boolean, open = fals
 /**
  * Traverse one timeline drawn as a root (section 6.1), its line held by
  * `holder`, the block or its group's frame, in a card of spacing `S` and
- * margin `V`, a member card of `frame` where one is given.
+ * margin `V`, a member card of `frame` where one is given, its line drawing
+ * the chunks `flow` where they are given (section 8.10).
  */
 export function traverse(
   context: Context,
@@ -345,6 +386,7 @@ export function traverse(
   S: number,
   V: number,
   frame: GroupFrame | null,
+  flow: DrawnFlow | null = null,
 ): Scope {
   const { manifest, placement, cascade, measure, reading } = context;
   const root = member.timeline;
@@ -498,6 +540,7 @@ export function traverse(
     measure,
     reading,
     member,
+    flow,
     frame,
     root,
     entries,
@@ -530,6 +573,9 @@ export function withAxis(scope: Scope, axis: CardAxis): Scope {
   return {
     ...scope,
     axis,
-    drawnX: (value) => (axis.gapOf(value) === undefined ? axis.relative(value) : undefined),
+    drawnX: (value) =>
+      axis.gapOf(value) === undefined && axis.runGapOf(value) === undefined
+        ? axis.relative(value)
+        : undefined,
   };
 }
