@@ -1,3 +1,24 @@
+<script module lang="ts">
+import { createContext } from "svelte";
+
+/**
+ * A question asked of the user with its answers, the focus starting on
+ * `focused`: the answer chosen, or `null` when the question is dismissed.
+ */
+export type Ask = (
+  text: string,
+  choices: readonly string[],
+  focused: string,
+) => Promise<string | null>;
+
+/**
+ * The editor's dialog asking a question (`ask`), for the components below
+ * it. Panels mounted without an editor (alone, in tests) have none, and
+ * `hasAsk` says so.
+ */
+export const [askOf, provideAsk, hasAsk] = createContext<Ask>();
+</script>
+
 <script lang="ts">
 /**
  * A native modal dialog asking one question with two or more answers, on

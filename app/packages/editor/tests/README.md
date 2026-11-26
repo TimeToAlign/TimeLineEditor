@@ -1128,6 +1128,32 @@ press journals exactly that command, after which the manifest holds no
 two other virtual timelines stay. `allegro` selected shows no such
 button.
 
+**The deletion dialog** (`askDeletion`, `inspector-bands.test.ts`). A
+deletion that also deletes virtual timelines (the arranger's
+`deleteQuestion`, its README, Deleting) is answered in the editor's
+confirm dialog, on the canvas (the canvas's `confirmDelete`) and for
+"Delete virtual timeline" alike. The rule: the question's text is asked
+as it is, with the answers "Delete all", "Hide instead" (only where the
+question's `hide` is not `null`) and "Cancel", in that order, the focus
+on "Cancel"; "Delete all" gives the question's `remove`, "Hide instead"
+its `hide`, "Cancel" and a dismissed dialog `null`. What proves it: a
+stand-in for the dialog records what it was asked and answers as told,
+on questions built from the store, and the store accepts the command
+chosen. In `flow/virtual_cards` with `allegro_default` placed and
+`again` added (one `add` of a virtual timeline made from
+`allegro_default` through the FlowMap `single`, with the ID `again`),
+the card of `allegro_default` selected: `virtualDeletionOf` gives
+`remove` [A: allegro_default], whose question is `Deleting virtual
+timeline 'Allegro, default' also deletes what is made from it: virtual
+timeline 'again'. Delete all, or hide its card instead?`, asked with the
+three answers. "Hide instead" gives `{type: "set", changes: [{target:
+{block: A, id: "allegro_default"}, values: {place: {x: null, y:
+null}}}]}`, which the store accepts, the four virtual timelines kept;
+"Delete all" gives `remove` [A: allegro_default, A: again], accepted,
+leaving `allegro_by_hand` and `allegro_single`; "Cancel" and `null`
+give `null`. The root `allegro` deleted (`remove` [A: allegro], without
+`again`) is asked with "Delete all" and "Cancel" alone.
+
 ## A flow-control element (`inspector-flow.test.ts`)
 
 The editor reads, keeps, draws and writes flow control and changes nothing

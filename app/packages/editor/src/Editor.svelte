@@ -29,7 +29,7 @@ import AboutDialog from "./AboutDialog.svelte";
 import { NOTICES_FILE } from "./attributions.ts";
 import type { Autosaving } from "./autosaving.ts";
 import { startAutosave } from "./autosaving.ts";
-import ConfirmDialog from "./ConfirmDialog.svelte";
+import ConfirmDialog, { type Ask, provideAsk } from "./ConfirmDialog.svelte";
 import type { Example } from "./examples.ts";
 import { EXAMPLES } from "./examples.ts";
 import FileDialog from "./FileDialog.svelte";
@@ -48,6 +48,7 @@ import { flowServerOf } from "./flowServer.ts";
 import InspectorDrawer from "./InspectorDrawer.svelte";
 import { readingOf } from "./inspector/flow.ts";
 import { blockIndexes, matchInputs, pinnedMatchStampOf } from "./inspector/matchstamps.ts";
+import { askDeletion } from "./inspector/properties.ts";
 import { createLookup, NO_LOOKUP, provideLookup } from "./lookup/index.ts";
 import MessageBar from "./MessageBar.svelte";
 import { measureMapsOf } from "./measureMaps.ts";
@@ -165,6 +166,11 @@ provideLookup(
 /** A panel's question for an element on the canvas, which the canvas answers while it is asked. */
 const picking = new Picking();
 providePicking(picking);
+
+/** A question asked in the confirm dialog: the answer chosen, `null` when dismissed. */
+const ask: Ask = async (text, choices, focused) =>
+  (await confirm?.ask(text, choices, focused)) ?? null;
+provideAsk(ask);
 
 // --- The workspace ----------------------------------------------------------
 
@@ -730,6 +736,7 @@ if (withTestHook) {
         {matches}
         {pinnedMatchStamp}
         onrefuse={(text) => post("info", text)}
+        confirmDelete={(question) => askDeletion(ask, question)}
         onmatchstamppin={(pin) => drawer?.pinMatchStamp(pin)}
         onmatches={(shown) => {
           matchesShown = shown;

@@ -6,7 +6,13 @@
  */
 
 import type { LivePlacement } from "@timetoalign/tilie-arranger";
-import { drawingOf, liveStore, resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
+import {
+  deleteQuestion,
+  drawingOf,
+  liveStore,
+  resolveSelection,
+  selectionOf,
+} from "@timetoalign/tilie-arranger";
 import type { Address, Block, ElementAddress, Facet, Store, View } from "@timetoalign/tilie-core";
 import { addressKey } from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
@@ -17,6 +23,7 @@ import Inspector from "../src/inspector/Inspector.svelte";
 import { manifestOf, manifestText } from "../src/inspector/manifestText.ts";
 import type { Shown } from "../src/inspector/properties.ts";
 import {
+  askDeletion,
   bandRows,
   geometryOf,
   regionRows,
@@ -225,6 +232,90 @@ describe("virtualDeletionOf", () => {
     ]) {
       expect(deletion(store, selection)).toBeNull();
     }
+  });
+});
+
+describe("askDeletion", () => {
+  const id = (element: string) => at(A, { id: element });
+  /** `virtualCards()` with `again`, made from `allegro_default` through the FlowMap `single`. */
+  function withAgain(): Store {
+    const store = virtualCards();
+    const refused = store.dispatch({
+      type: "add",
+      into: { block: A },
+      virtual_timeline: { map: "single", timeline: "allegro_default" },
+      ids: ["again"],
+    });
+    if (refused !== null) throw new Error(refused.message);
+    return store;
+  }
+  /** The question of deleting the card of `allegro_default` selected. */
+  function question(store: Store) {
+    const command = virtualDeletionOf(
+      subjectsOf(store.view, [at(A, { id: "allegro_default", part: ["card"] })]),
+    );
+    if (command === null) throw new Error("no deletion");
+    const asked = deleteQuestion(store.view, command);
+    if (asked === null) throw new Error("no question");
+    return asked;
+  }
+  /** A stand-in for the dialog answering `answer`, and what it was asked. */
+  function dialog(answer: string | null) {
+    const asked: [string, readonly string[], string][] = [];
+    const ask = async (text: string, choices: readonly string[], focused: string) => {
+      asked.push([text, choices, focused]);
+      return answer;
+    };
+    return { ask, asked };
+  }
+  const virtualIds = (store: Store) =>
+    (store.view.blocks[A]?.manifest.virtual_timelines ?? []).map((item) => item.id);
+
+  it("asks the question with its three answers and hides on Hide instead", async () => {
+    const store = withAgain();
+    const { ask, asked } = dialog("Hide instead");
+    const chosen = await askDeletion(ask, question(store));
+    expect(asked).toEqual([
+      [
+        "Deleting virtual timeline 'Allegro, default' also deletes what is made from it: virtual timeline 'again'. Delete all, or hide its card instead?",
+        ["Delete all", "Hide instead", "Cancel"],
+        "Cancel",
+      ],
+    ]);
+    expect(chosen).toEqual({
+      type: "set",
+      changes: [{ target: id("allegro_default"), values: { place: { x: null, y: null } } }],
+    });
+    if (chosen === null) throw new Error("nothing chosen");
+    expect(store.dispatch(chosen)).toBeNull();
+    expect(virtualIds(store)).toEqual([
+      "again",
+      "allegro_by_hand",
+      "allegro_default",
+      "allegro_single",
+    ]);
+  });
+
+  it("deletes all on Delete all, and nothing on Cancel or a dismissed dialog", async () => {
+    const store = withAgain();
+    const chosen = await askDeletion(dialog("Delete all").ask, question(store));
+    expect(chosen).toEqual({ type: "remove", targets: [id("allegro_default"), id("again")] });
+    expect(await askDeletion(dialog("Cancel").ask, question(store))).toBeNull();
+    expect(await askDeletion(dialog(null).ask, question(store))).toBeNull();
+    if (chosen === null) throw new Error("nothing chosen");
+    expect(store.dispatch(chosen)).toBeNull();
+    expect(virtualIds(store)).toEqual(["allegro_by_hand", "allegro_single"]);
+  });
+
+  it("offers no Hide instead for a root", async () => {
+    const store = virtualCards();
+    const asked = deleteQuestion(store.view, { type: "remove", targets: [id("allegro")] });
+    if (asked === null) throw new Error("no question");
+    const { ask, asked: questions } = dialog(null);
+    await askDeletion(ask, asked);
+    expect(questions.map(([, choices, focused]) => [choices, focused])).toEqual([
+      [["Delete all", "Cancel"], "Cancel"],
+    ]);
   });
 });
 

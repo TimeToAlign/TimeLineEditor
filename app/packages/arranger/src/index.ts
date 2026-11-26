@@ -15,7 +15,8 @@ export { blockBox, boxOf, isHeld, isItem, keyedBox, raisedRoot } from "./boxes.t
 export { default as Canvas } from "./Canvas.svelte";
 export type { AxisBase, CardAxis, GapEdge } from "./cardAxis.ts";
 export { cardAxisAt, cardAxisOf, exposureAt, zeroOf } from "./cardAxis.ts";
-export { addCommand } from "./commands.ts";
+export type { DeleteQuestion } from "./commands.ts";
+export { addCommand, deleteQuestion, hideCommand } from "./commands.ts";
 export type { Level, PlaceField, PlaceProperty, Subject } from "./containers.ts";
 export { fieldsOf, levelOf, resolveSelection } from "./containers.ts";
 export type { KnotsOf, MeasureMapsAnswer } from "./coordinates.ts";

@@ -15,6 +15,7 @@
  */
 
 import type {
+  DeleteQuestion,
   Editing,
   LivePlacement,
   Pane,
@@ -69,6 +70,7 @@ import {
 import type { Coordinate } from "@timetoalign/tilie-core/numbers";
 import { axisCoordinate, subtractCoordinates } from "@timetoalign/tilie-core/numbers";
 import { fontMetrics } from "@timetoalign/timetoshare";
+import type { Ask } from "../ConfirmDialog.svelte";
 import type { Result } from "./problems.ts";
 import { InspectorCode, refused } from "./problems.ts";
 import { bandWord } from "./words.ts";
@@ -297,7 +299,9 @@ export function regionRows(subjects: readonly Subject[]): readonly PropertyRow[]
  * The `remove` deleting the one virtual timeline the subjects name, by its
  * own address or by its card's: its statement withdrawn, its FlowMap kept
  * (the Properties tab's "Delete virtual timeline"; Delete on the canvas
- * only hides a virtual card). `null` for any other selection.
+ * only hides a virtual card). Where other virtual timelines are made from
+ * it, the arranger's `deleteQuestion` asks first (`askDeletion`). `null`
+ * for any other selection.
  */
 export function virtualDeletionOf(subjects: readonly Subject[]): RemoveCommand | null {
   const [subject, ...others] = subjects;
@@ -305,6 +309,28 @@ export function virtualDeletionOf(subjects: readonly Subject[]): RemoveCommand |
   const { resolved } = subject;
   if (resolved.kind !== "virtual_timeline" && resolved.kind !== "virtual_card") return null;
   return { type: "remove", targets: [inBlock(resolved.block.id, idAddress(resolved.virtual.id))] };
+}
+
+/** The answers of the deletion dialog (`askDeletion`), in the order shown. */
+const DELETE_ALL = "Delete all";
+const HIDE_INSTEAD = "Hide instead";
+const CANCEL = "Cancel";
+
+/**
+ * Ask `question` through `ask`, the focus on Cancel: "Delete all" gives its
+ * `remove`, "Hide instead", offered only where its `hide` is not `null`,
+ * that `set`, and Cancel or a dismissed dialog `null`, storing nothing. The
+ * one dialog of a deletion that also deletes virtual timelines, on the
+ * canvas and in the Properties tab alike.
+ */
+export async function askDeletion(
+  ask: Ask,
+  { question, remove, hide }: DeleteQuestion,
+): Promise<RemoveCommand | SetCommand | null> {
+  const choices = hide === null ? [DELETE_ALL, CANCEL] : [DELETE_ALL, HIDE_INSTEAD, CANCEL];
+  const answer = await ask(question, choices, CANCEL);
+  if (answer === DELETE_ALL) return remove;
+  return answer === HIDE_INSTEAD ? hide : null;
 }
 
 /**
