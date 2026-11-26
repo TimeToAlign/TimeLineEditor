@@ -105,6 +105,17 @@ the dialog. Since the server opens the user's files by path (decision
 beside it through the server in every session; a table named by an
 absolute URL is fetched without a question.
 
+Amended 2026-11-26: the MatchClaim table no longer writes a side without
+an event as a null cell. Each event ID cell holds an event's ID or one of
+the two reserved strings of the sentinels, `NOMATCH_SENTINEL` (no
+counterpart on that timeline) and `CHUNK_SENTINEL` (a position on a
+timeline that holds no event for it, the anchors stating its coordinate),
+and the route answers them as written. In the answer `null` therefore
+stands only for an event without a name; the client refuses a `null`
+event ID or synchrony as malformed. The Matchstamp tab reads a reserved
+string as its sentinel, never as an event, and shows CHUNK or NOMATCH with
+its meaning as a tooltip, where it showed "no event".
+
 ## Maintenance and dependencies
 
 No dependency enters: `struct`, `json`, pyarrow (which timetoalign
