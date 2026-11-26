@@ -320,14 +320,16 @@ type Deleted =
 
 function deletedAs(view: View, block: BlockId, address: Address, owner: Address): Deleted {
   let resolved = resolveAddress(view, address);
-  if (isCommandError(resolved)) return { kind: "owner" };
-  // A part (a chunk's label, leader or start) stands for what it is a part of.
-  while (resolved.kind === "part") resolved = resolved.owner;
-  if (resolved.kind === "chunk") return { kind: "chunk" };
-  if (resolved.kind === "virtual_card") {
-    const placed = view.blocks[block]?.places[resolved.virtual.id] !== undefined;
-    return placed ? { kind: "hide", target: owner } : { kind: "framed" };
+  if (!isCommandError(resolved)) {
+    // A part (a chunk's label, leader or start) stands for what it is a part of.
+    while (resolved.kind === "part") resolved = resolved.owner;
+    if (resolved.kind === "chunk") return { kind: "chunk" };
+    if (resolved.kind === "virtual_card") {
+      const placed = view.blocks[block]?.places[resolved.virtual.id] !== undefined;
+      return placed ? { kind: "hide", target: owner } : { kind: "framed" };
+    }
   }
+  // Read through the owner, so an address core cannot resolve never hands a flow-control element to core.
   const flow = resolveAddress(view, owner);
   return !isCommandError(flow) && flow.kind === "entry" && flow.entry === "flow_control"
     ? { kind: "flow_control" }
@@ -336,8 +338,7 @@ function deletedAs(view: View, block: BlockId, address: Address, owner: Address)
 
 /** The hints of Delete for a selection naming nothing it deletes. */
 const DELETE_HINTS = {
-  flow_control:
-    "A flow-control element is not deleted; state your belief in it in the Properties tab to reject it.",
+  flow_control: "A flow-control element is not deleted: reject it with a belief in Properties.",
   chunk: "A chunk is changed in its FlowMap; open the flow editor of its root to change it.",
   framed:
     "A virtual card in a frame is not hidden; delete its virtual timeline in the Properties tab.",
@@ -501,16 +502,22 @@ export function removeCommand(
 /**
  * What a deletion asks first: it also deletes virtual timelines made from
  * what it names, and the user chooses between deleting them all and
- * hiding instead.
+ * hiding instead, or, where core would refuse to delete them all, learns
+ * why and may only hide instead.
  */
 export interface DeleteQuestion {
   /**
    * The question: what is deleted, and every virtual timeline it takes
-   * along, each by its kind and its name, else its ID (`addressWords`).
+   * along, each by its kind and its name, else its ID (`addressWords`);
+   * where core refuses "Delete all", that they cannot all be deleted and
+   * core's reason.
    */
   readonly question: string;
-  /** "Delete all": the `remove` naming those virtual timelines as well. */
-  readonly remove: RemoveCommand;
+  /**
+   * "Delete all": the `remove` naming those virtual timelines as well;
+   * `null` where core refuses it, so it is not offered.
+   */
+  readonly remove: RemoveCommand | null;
   /**
    * "Hide instead", which removes nothing: the `set` hiding the cards of
    * the targets where every one is a virtual timeline whose card its block
@@ -561,7 +568,10 @@ function listed(items: readonly string[]): string {
  * and for the virtual timelines of a block removed whole. Core refuses to
  * remove a virtual timeline another one left is made from, so "Delete all"
  * names each of them, after the targets, in each block's order of its
- * virtual timelines.
+ * virtual timelines. That `remove` is previewed with core (`preview`),
+ * never checked by a copy of its rules: where core refuses it (a FlowMap
+ * left names one of them as a chunk), the question says so in core's
+ * words and offers only hiding instead, where hiding is possible.
  */
 export function deleteQuestion(view: View, command: RemoveCommand): DeleteQuestion | null {
   const whole = new Set<BlockId>();
@@ -583,16 +593,21 @@ export function deleteQuestion(view: View, command: RemoveCommand): DeleteQuesti
     }
   }
   if (taken.length === 0) return null;
+  const all: RemoveCommand = { type: "remove", targets: [...command.targets, ...taken] };
+  const refusal = preview(view, all);
+  const remove = isCommandError(refusal) ? null : all;
   const hide = hidingOf(view, command.targets);
   const subjects = command.targets.map((target) => addressWords(view, target));
   const pronoun = subjects.length === 1 ? "it" : "them";
-  const choice =
-    hide !== null
-      ? ` Delete all, or hide ${subjects.length === 1 ? "its card" : "their cards"} instead?`
-      : " Delete all?";
+  const cards = subjects.length === 1 ? "its card" : "their cards";
+  const choice = isCommandError(refusal)
+    ? ` They cannot all be deleted. ${refusal.message.charAt(0).toUpperCase()}${refusal.message.slice(1)}.${hide === null ? "" : ` Hide ${cards} instead?`}`
+    : hide === null
+      ? " Delete all?"
+      : ` Delete all, or hide ${cards} instead?`;
   return {
     question: `Deleting ${listed(subjects)} also deletes what is made from ${pronoun}: ${listed(taken.map((target) => addressWords(view, target)))}.${choice}`,
-    remove: { type: "remove", targets: [...command.targets, ...taken] },
+    remove,
     hide,
   };
 }

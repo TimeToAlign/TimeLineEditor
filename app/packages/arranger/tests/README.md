@@ -777,11 +777,17 @@ t3}`, `{A: t2, A: coda [name]}`. A segment going with its line or its
 block leaves no gap: `{A: theme, A: t2}` gives targets `[A: theme, A:
 t2]`, which removes all four, and `{A, A: t2}` `[A, A: t2]`.
 
-**A flow-control element is never deleted.** On `flow_control`, the break
-`break_1`, the jump `jump_1`, its label and the jump target
-`jump_target_1`, each selected alone, and `break_1` with `jump_2`'s
-label, are refused with `A flow-control element is not deleted; state your
-belief in it in the Properties tab to reject it.`. Selected beside
+**A flow-control element is never deleted.** Core refuses to remove one
+alone (`not_removable`: it is rejected by a belief, never removed), so
+Delete never hands it to core: wherever Delete reaches it, whether its
+own address, a part of it or an address `resolveAddress` does not know
+that carries its ID, it is left out of the targets. On `flow_control`,
+the break `break_1`, the jump `jump_1`, its label, its symbol (`part:
+["symbol"]`) and the jump target `jump_target_1`, each selected alone,
+and `break_1` with `jump_2`'s label, are refused with `A flow-control
+element is not deleted: reject it with a belief in Properties.`, and so
+is `jump_1` with a part no jump has (`part: ["elision"]`), which core
+cannot resolve. Selected beside
 something else it is left out: `{A: jump_1, A: timestamp_1, A:
 break_1 [label]}` gives the targets `[A: timestamp_1]`, and the
 five flow-control elements stay, in their order (`jump_target_1`, `jump_target_2`,
@@ -873,6 +879,33 @@ allegro_default] asks `Deleting virtual timeline 'Allegro, default' also
 deletes what is made from it: virtual timeline 'again'. Delete all?`
 with no Hide instead. The question is asked by the canvas's host (`confirmDelete`,
 the editor's README); without a host the deletion is stored as asked.
+
+**"Delete all" is never offered where core would refuse it.** Naming the
+virtual timelines taken along is not always enough: a FlowMap that stays
+may name one of them as a chunk, and core then refuses the whole
+`remove`. The question does not repeat core's rules: it previews "Delete
+all" with core's own `preview`, and where that gives a refusal the
+question's `remove` is `null` and its text, after naming what is deleted
+and taken along as above, says `They cannot all be deleted.` followed by
+core's refusal message as a sentence of its own (its first letter upper
+case, a full stop added), then ` Hide its card instead?` (or `their
+cards`) where Hide instead is offered, as decided above, and nothing
+more where it is not; the host then offers only Hide instead (if any)
+and Cancel. What proves it: on `virtualView` with `again` (above) and
+`loop`, one more FlowMap of `allegro` with the chunks [`again`] (one
+`add` into `allegro` of `{chunks: ["again"]}` with the ID `loop`), core
+refuses [A: allegro_default, A: again] with `not_removable`, `virtual
+timeline 'again' is still named: the FlowMaps 'loop' name it as a
+chunk`; [A: allegro_default] asks `Deleting virtual timeline 'Allegro,
+default' also deletes what is made from it: virtual timeline 'again'.
+They cannot all be deleted. Virtual timeline 'again' is still named: the
+FlowMaps 'loop' name it as a chunk. Hide its card instead?` with
+`remove` `null` and the same Hide instead as without `loop`, which core
+accepts; in `groups/virtual_member` with `again` (through `printed`) and
+`loop` the same question ends after `… name it as a chunk.`, `remove`
+and `hide` both `null`. A `remove` core accepts keeps its question
+unchanged (the rows above), and a `remove` asking nothing is not
+previewed: core's refusal of it reaches the user when it is stored.
 
 The Delete key asks the same question (`keys.test.ts`, `virtualView` in a
 store): with `allegro`'s card selected, Delete dispatches nothing at once

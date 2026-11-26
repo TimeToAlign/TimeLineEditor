@@ -572,7 +572,7 @@ describe("affectedBy", () => {
           if (removable.length === 0) {
             expect(command).toEqual({
               refused:
-                "A flow-control element is not deleted; state your belief in it in the Properties tab to reject it.",
+                "A flow-control element is not deleted: reject it with a belief in Properties.",
             });
             return;
           }
