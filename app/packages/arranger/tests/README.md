@@ -4978,7 +4978,12 @@ one. Each command applied by core leaves the chosen ID as the card's
 `flow` (core's `cardFlow`) and passes the validators. Mounted above `allegro`'s
 card, the select `flow-switch` lists those labels in that order, the
 chosen one selected; choosing entry 6 ("Allegro, default") dispatches
-exactly that command once; a locked canvas disables it. It stands `10 +
+exactly that command once; a locked canvas disables it. Its width never
+follows the names: the select states the one width `SWITCH_WIDTH`
+(`11rem`) inline above `switched_card`'s card, `virtual_cards`' card and
+`switched_frame`'s frame alike, and shows every name whole on hover: the
+select's `title` is the chosen entry's label (`default`, "As written"),
+each option's its own label. It stands `10 +
 h + 4` screen pixels above the box, `h` the mode menu's measured height,
 `10` where no mode menu is shown (`switchOffset`).
 
