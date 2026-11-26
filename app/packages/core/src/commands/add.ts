@@ -3,8 +3,9 @@
  * put in. A block goes into the workspace; a root timeline, a group, a
  * measure map or a virtual timeline into a block's manifest, and a named
  * MatchStamp and a list of elisions too; a child, map, region, flow-control
- * element, named timestamp or elision into a timeline, and a FlowMap into
- * the root timeline it orders (`flowmaps.ts`). The value carries its ID: a
+ * element, named timestamp or elision into a timeline, a named timestamp or
+ * elision into a virtual timeline, and a FlowMap into the root timeline it
+ * orders (`flowmaps.ts`). The value carries its ID: a
  * block's taken by no block of the workspace, any other's by no element of
  * the manifest; a group, a map, a region, a flow-control element, a FlowMap
  * and a virtual timeline may leave it out, and a named timestamp, an
@@ -99,7 +100,7 @@ export const ADDABLE: { readonly [kind in TargetKind]: readonly AddKind[] } = {
   matchstamp: [],
   anchor: [],
   flow_map: [],
-  virtual_timeline: ["timestamp"],
+  virtual_timeline: ["timestamp", "elision"],
 };
 
 /** The prefix of the ID a map, region or flow-control element is given: a flow-control element's is its role. */
@@ -617,24 +618,27 @@ function addTimestamp(
 }
 
 /**
- * Add an elision into a timeline: `{start, end, name?, width?, display?}`, read by
- * `readElision` on the target timeline, which it lies on. It is given the
- * next of the command's `ids` and written into its manifest's `graphical`
- * object's `elisions`, which `settle` puts in canonical order.
+ * Add an elision into a timeline or a virtual timeline, `timeline` (a
+ * virtual one read as its axis, `virtualDrawing`): `{start, end, name?,
+ * width?, display?}`, read by `readElision` on the target, which it lies
+ * on, on its own axis (a virtual timeline's is its played axis). It is
+ * given the next of the command's `ids` and written into its manifest's
+ * `graphical` object's `elisions`, which `settle` puts in canonical order.
  */
 function addElision(
   view: View,
-  target: TimelineTarget,
+  target: TimelineTarget | VirtualTarget,
+  timeline: TimelineManifest,
   value: unknown,
   changes: ChangeSet,
 ): View | CommandError {
   const path = [addressKey(target.address), "elision"];
   const object = readObject(value, path);
   if (isCommandError(object)) return object;
-  const { block, at } = target;
+  const { block } = target;
   const { manifest } = block;
   const id = changes.ids.take(ELISION_PREFIX);
-  const elision = readElision(object, at.timeline, id, path);
+  const elision = readElision(object, timeline, id, path);
   if (isCommandError(elision)) return elision;
   record(changes, path, block.id, true);
   const elisions = [...(manifest.graphical?.elisions ?? []), elision];
@@ -644,9 +648,9 @@ function addElision(
 /**
  * Add a list of elisions into a block's manifest in one command: a
  * non-empty list (`invalid_value`) of `{timeline, start, end, name?, width?,
- * display?}`, each lying on the timeline its `timeline` names
- * (`elision_timeline` at its `timeline` for an ID naming no timeline of the
- * manifest) and read there by `readElision`, each given the next of the
+ * display?}`, each lying on the timeline or virtual timeline its `timeline`
+ * names (`elision_timeline` at its `timeline` for an ID naming neither in
+ * the manifest) and read there by `readElision`, each given the next of the
  * command's `ids`, in list order. What the editor stores of the elisions a card derives, the
  * drawing deriving them, goes in this way, as one journal entry. A problem of the
  * `i`-th lies at `[<address key of into>, "elision", i, …]`.
@@ -683,12 +687,13 @@ function addElisions(
         "timeline",
       ]);
     }
-    const timeline = findTimeline(manifest, named);
+    const timeline = findTimeline(manifest, named) ?? virtualDrawing(manifest, named)?.timeline;
     if (timeline === undefined) {
-      return problem(ErrorCode.elisionTimeline, `'${named}' names no timeline of this manifest`, [
-        ...at,
-        "timeline",
-      ]);
+      return problem(
+        ErrorCode.elisionTimeline,
+        `'${named}' names no timeline or virtual timeline of this manifest`,
+        [...at, "timeline"],
+      );
     }
     const id = changes.ids.take(ELISION_PREFIX);
     const { timeline: _, ...rest } = object;
@@ -775,13 +780,16 @@ export function applyAdd(view: View, command: AddCommand, changes: ChangeSet): V
       case "virtual_timeline": {
         const drawing = virtualDrawing(target.block.manifest, target.virtual.id);
         if (drawing === undefined) throw new Error("a virtual target names a virtual timeline");
+        if (kind === "elision") return addElision(view, target, drawing.timeline, value, changes);
         return addTimestamp(view, target, drawing.timeline, value, changes);
       }
       case "root":
       case "child":
         if (kind === "timestamp")
           return addTimestamp(view, target, target.at.timeline, value, changes);
-        if (kind === "elision") return addElision(view, target, value, changes);
+        if (kind === "elision") {
+          return addElision(view, target, target.at.timeline, value, changes);
+        }
         if (kind === "flow_map") return addFlowMap(view, target, value, changes);
         if (kind === "child" || isEntryKind(kind)) {
           return addElement(view, target, kind, value, changes);

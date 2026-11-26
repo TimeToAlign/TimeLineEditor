@@ -247,7 +247,7 @@ export type ResolvedElement =
 
 /** A stored elision, found in a manifest's `graphical.elisions` with the timeline it lies on. */
 export interface ElisionFound {
-  /** The timeline it lies on. */
+  /** The timeline it lies on, a virtual timeline located as its axis (`locateVirtual`). */
   readonly at: Located;
   /** Its index in the manifest's `graphical.elisions`. */
   readonly index: number;
@@ -372,11 +372,10 @@ function heldMaps(map: ConversionMap): readonly (readonly [PathSegment, Conversi
  * it holds at any depth; then the groups', the MeasureMaps', the
  * resources', the FlowMaps', the virtual timelines', the named timestamps', the elisions' and the named
  * MatchStamps', each followed by its alignment anchors'. A named timestamp
- * on a virtual timeline lies on it as on a root (`locateVirtual`). An ID
- * repeated in a manifest the schema refuses keeps its first finding, and a
- * timestamp on neither a timeline nor a virtual timeline, or an elision on
- * a timeline the manifest lacks, which the schema refuses too, is passed
- * over.
+ * or an elision on a virtual timeline lies on it as on a root
+ * (`locateVirtual`). An ID repeated in a manifest the schema refuses keeps
+ * its first finding, and a timestamp or an elision on neither a timeline
+ * nor a virtual timeline, which the schema refuses too, is passed over.
  */
 function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
   const known = catalogues.get(manifest);
@@ -414,19 +413,19 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
   (manifest.virtual_timelines ?? []).forEach((virtual, index) => {
     note(virtual.id, { kind: "virtual_timeline", index, virtual });
   });
+  /** Where an element lying on the timeline or virtual timeline `id` lies. */
+  const lying = (id: string) => {
+    const on = found.get(id);
+    if (on?.kind === "timeline") return on.at;
+    return on?.kind === "virtual_timeline" ? locateVirtual(manifest, on.virtual.id) : undefined;
+  };
   (manifest.graphical?.timestamps ?? []).forEach((timestamp, index) => {
-    const on = found.get(timestamp.timeline);
-    const at =
-      on?.kind === "timeline"
-        ? on.at
-        : on?.kind === "virtual_timeline"
-          ? locateVirtual(manifest, on.virtual.id)
-          : undefined;
+    const at = lying(timestamp.timeline);
     if (at !== undefined) note(timestamp.id, { kind: "timestamp", at, index, timestamp });
   });
   (manifest.graphical?.elisions ?? []).forEach((elision, index) => {
-    const on = found.get(elision.timeline);
-    if (on?.kind === "timeline") note(elision.id, { kind: "elision", at: on.at, index, elision });
+    const at = lying(elision.timeline);
+    if (at !== undefined) note(elision.id, { kind: "elision", at, index, elision });
   });
   (manifest.graphical?.matchstamps ?? []).forEach((matchstamp, index) => {
     note(matchstamp.id, { kind: "matchstamp", index, matchstamp });

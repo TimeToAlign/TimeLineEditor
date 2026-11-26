@@ -3264,7 +3264,8 @@ spells a value as canonical YAML does.
    `invalid_value` "a list of elisions holds at least one"; an item without
    `timeline` `invalid_value` at `0, timeline`, "a new elision needs
    timeline"; an item on `nowhere` `elision_timeline` at `0, timeline`,
-   "'nowhere' names no timeline of this manifest"; a second item from 4 to 2
+   "'nowhere' names no timeline or virtual timeline of this manifest"; a
+   second item from 4 to 2
    on `movement` `elision_stretch` at `1, end`, "end [2, 1] of 'e2' does
    not lie after its start [4, 1]" (`ids: ["e1", "e2"]`, the first item
    took `e1`);
@@ -3349,6 +3350,41 @@ spells a value as canonical YAML does.
    `t` (display `[ellipsis, name]`) is listed once per frame, held by
    `g1`'s and then `g2`'s, each with its ellipsis and its `name` label. On `bare.yaml` an elision `elision_1` on `bare` is listed
    with `inside: [block, timeline]` (the ungrouped root's card draws it).
+10. **Elisions on a virtual timeline** (drawing.md section 8.10). A
+    virtual timeline takes elisions as a root does, on its own axis, the
+    played axis of its FlowMap, bounded by its computed `length`; the card
+    the block holds of it draws them as an ungrouped root's card draws its
+    card elisions. The oracle is the virtual timeline's stated unit,
+    number type and length in the fixture and the wording of items 4 and 5
+    with its ID. `flow/virtual_cards.yaml` (root `allegro`, 1644 quarters;
+    virtual timelines `allegro_by_hand` 3054, `allegro_default` 4241/2,
+    `allegro_single` 3241/2, all `fraction` quarters, in no group):
+    - `add {into: allegro_default, elision: {start: [2121, 2], end:
+      [4241, 2]}, ids: ["gap"]}` stores `{id: "gap", timeline:
+      "allegro_default", start: [2121, 2], end: [4241, 2], display:
+      [ellipsis, name]}` (an end at the length, past the root's 1644, is
+      accepted: the played axis bounds it, never the root's), and the
+      manifest passes the schema and the validators; end `[2121, 1]` is
+      `elision_stretch` at `[allegro_default's key, "elision", "end"]`,
+      "end [2121, 1] of 'gap' is beyond the length [4241, 2] of its
+      timeline 'allegro_default'";
+    - a block's list `[{timeline: "allegro_single", start: [0, 1], end:
+      [1, 1]}]` with `ids: ["gap"]` stores the elision on
+      `allegro_single`;
+    - `{id: "gap"}` resolves to kind `elision` lying on `allegro_default`
+      at index 0 and is worded "elision 'gap'"; its `ellipsis` and `name`
+      parts resolve (the virtual card draws them), its `coordinate` part
+      names nothing (its display lacks the word);
+    - `set {start: [10, 1]}` stores 10, `{end: [2121, 1]}` is the refusal
+      of the first bullet at `[gap's key, "end"]`, and `remove` leaves no
+      elision; removing the virtual timeline `allegro_default` takes the
+      elision along, as removing a timeline does (item 2);
+    - `manifestElements` lists, in the card of `allegro_default` after its
+      markers and regions bands, the gap `{id: "gap"}` of type `elision`
+      on `allegro_default` (logical, continuous,
+      `ContinuousLogicalTimeline`) inside `[block, timeline]`, then its
+      `ellipsis` and its `name` label inside `[block, timeline,
+      elision]`, each once; no other card lists a key of `gap`.
 
 ## Arrangements (`arrangement.test.ts`)
 
