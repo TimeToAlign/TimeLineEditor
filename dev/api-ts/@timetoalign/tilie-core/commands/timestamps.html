@@ -542,7 +542,7 @@
 <blockquote>
 <div><p><strong>groupstampByDefault</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">editor</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/dd04099e258a5e11b964690d107845613159ff22/app/packages/core/src/commands/timestamps.ts#L107">commands/timestamps.ts:107</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/b8724a3f60850c497ee61c610ce2cf36c80c5860/app/packages/core/src/commands/timestamps.ts#L107">commands/timestamps.ts:107</a></p>
 <p>Whether a timestamp made on the timeline <code class="docutils literal notranslate"><span class="pre">timeline</span></code> of <code class="docutils literal notranslate"><span class="pre">manifest</span></code> is a
 groupstamp unless the command says otherwise: on a group member, when it
 is made above a timeline editor (the arranger at the top level, a bundle
@@ -576,7 +576,7 @@ no group’s member. The editor gives the result to <code class="docutils litera
 <blockquote>
 <div><p><strong>importedManifest</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">minter?</span></code>): <a class="reference internal" href="../manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/dd04099e258a5e11b964690d107845613159ff22/app/packages/core/src/commands/timestamps.ts#L230">commands/timestamps.ts:230</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/b8724a3f60850c497ee61c610ce2cf36c80c5860/app/packages/core/src/commands/timestamps.ts#L230">commands/timestamps.ts:230</a></p>
 <p>A manifest as the editor imports it: one without a <code class="docutils literal notranslate"><span class="pre">graphical</span></code> object has
 every root given its default timestamps (<code class="docutils literal notranslate"><span class="pre">withDefaultTimestamps</span></code>, in root
 order, their IDs minted by <code class="docutils literal notranslate"><span class="pre">minter</span></code>, a fresh one by default), its
@@ -606,7 +606,7 @@ IDs.</p>
 <blockquote>
 <div><p><strong>isGroupMember</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/dd04099e258a5e11b964690d107845613159ff22/app/packages/core/src/commands/timestamps.ts#L94">commands/timestamps.ts:94</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/b8724a3f60850c497ee61c610ce2cf36c80c5860/app/packages/core/src/commands/timestamps.ts#L94">commands/timestamps.ts:94</a></p>
 <p>Whether the timeline <code class="docutils literal notranslate"><span class="pre">timeline</span></code> of <code class="docutils literal notranslate"><span class="pre">manifest</span></code> is a member of some group (<code class="docutils literal notranslate"><span class="pre">groupsHolding</span></code>).</p>
 <section id="id4">
 <h4>Parameters<a class="headerlink" href="#id4" title="Link to this heading">#</a></h4>
@@ -630,7 +630,7 @@ IDs.</p>
 <blockquote>
 <div><p><strong>readDisplay</strong>&lt;<code class="docutils literal notranslate"><span class="pre">W</span></code>&gt;(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">words</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">W</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/dd04099e258a5e11b964690d107845613159ff22/app/packages/core/src/commands/timestamps.ts#L75">commands/timestamps.ts:75</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/b8724a3f60850c497ee61c610ce2cf36c80c5860/app/packages/core/src/commands/timestamps.ts#L75">commands/timestamps.ts:75</a></p>
 <p>A <code class="docutils literal notranslate"><span class="pre">display</span></code> given to a command, as stored: a list of the display words
 <code class="docutils literal notranslate"><span class="pre">words</span></code> (a named timestamp’s <code class="docutils literal notranslate"><span class="pre">TIMESTAMP_DISPLAY</span></code>, an alignment anchor’s
 <code class="docutils literal notranslate"><span class="pre">ANCHOR_DISPLAY</span></code>), each at most once, in any order, stored in the
@@ -668,7 +668,7 @@ canonical order of <code class="docutils literal notranslate"><span class="pre">
 <blockquote>
 <div><p><strong>readGroupstamp</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/dd04099e258a5e11b964690d107845613159ff22/app/packages/core/src/commands/timestamps.ts#L123">commands/timestamps.ts:123</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/b8724a3f60850c497ee61c610ce2cf36c80c5860/app/packages/core/src/commands/timestamps.ts#L123">commands/timestamps.ts:123</a></p>
 <p>Whether a timestamp on <code class="docutils literal notranslate"><span class="pre">timeline</span></code> is a groupstamp, as a command gives it:
 <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code> (<code class="docutils literal notranslate"><span class="pre">invalid_value</span></code> for anything else), <code class="docutils literal notranslate"><span class="pre">true</span></code> only on a
 group member, a match timestamp included, refused as <code class="docutils literal notranslate"><span class="pre">invalid_value</span></code> at
@@ -705,7 +705,7 @@ derive from the group and are never stored.</p>
 <blockquote>
 <div><p><strong>readTimestampCoordinate</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code> | readonly [<code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>, <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/dd04099e258a5e11b964690d107845613159ff22/app/packages/core/src/commands/timestamps.ts#L41">commands/timestamps.ts:41</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/b8724a3f60850c497ee61c610ce2cf36c80c5860/app/packages/core/src/commands/timestamps.ts#L41">commands/timestamps.ts:41</a></p>
 <p>A named timestamp’s coordinate given to a command, as stored: a bare
 value on the own axis of <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, the timeline it lies on
 (<code class="docutils literal notranslate"><span class="pre">invalid_coordinate</span></code> where it does not read as the axis’s number type),
@@ -737,7 +737,7 @@ from 0 to the timeline’s length, or from 0 where the length is unknown
 <blockquote>
 <div><p><strong>withDefaultTimestamps</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">groupstamp</span></code>, <code class="docutils literal notranslate"><span class="pre">mint</span></code>): <a class="reference internal" href="../manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/dd04099e258a5e11b964690d107845613159ff22/app/packages/core/src/commands/timestamps.ts#L177">commands/timestamps.ts:177</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/b8724a3f60850c497ee61c610ce2cf36c80c5860/app/packages/core/src/commands/timestamps.ts#L177">commands/timestamps.ts:177</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">manifest</span></code> with the default timestamps of <code class="docutils literal notranslate"><span class="pre">timeline</span></code>: <code class="docutils literal notranslate"><span class="pre">origin</span></code> at the
 zero of its number type and, where its length is known, <code class="docutils literal notranslate"><span class="pre">length</span></code> at its
 length, each given the ID <code class="docutils literal notranslate"><span class="pre">mint</span></code> gives and appended to its named
@@ -778,7 +778,7 @@ added for it.</p>
 <blockquote>
 <div><p><strong>withGroupstampsOnMembers</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>): <a class="reference internal" href="../manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/dd04099e258a5e11b964690d107845613159ff22/app/packages/core/src/commands/timestamps.ts#L146">commands/timestamps.ts:146</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/b8724a3f60850c497ee61c610ce2cf36c80c5860/app/packages/core/src/commands/timestamps.ts#L146">commands/timestamps.ts:146</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">manifest</span></code> with every groupstamp whose timeline is no group’s member any
 more (a group removed, a member left its group) made an ordinary
 timestamp (<code class="docutils literal notranslate"><span class="pre">groupstamp:</span> <span class="pre">false</span></code>), so that a command ending a membership is
