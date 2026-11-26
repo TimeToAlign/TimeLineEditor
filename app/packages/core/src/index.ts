@@ -108,6 +108,17 @@ export {
   isRead,
   isRejected,
 } from "./manifest/flow.ts";
+export type {
+  FlowChunk,
+  FlowChunkKind,
+  FlowMapErrorCode,
+  FlowRun,
+  Occurrence,
+  PlayedStretch,
+  ResolvedFlowMap,
+  Stretch,
+} from "./manifest/flowmaps.ts";
+export { FlowMapError, fold, resolveFlowMap, unfold } from "./manifest/flowmaps.ts";
 export type { ReadManifestFile } from "./manifest/io.ts";
 export {
   idFormPath,
@@ -168,6 +179,12 @@ export type {
   TimelineManifest,
   TimestampDisplay,
 } from "./manifest/types.ts";
+export type {
+  FlowVirtualTimeline,
+  MappedVirtualTimeline,
+  ResolvedVirtualTimeline,
+} from "./manifest/virtual.ts";
+export { foldVirtual, resolveVirtualTimeline, unfoldVirtual } from "./manifest/virtual.ts";
 export type { CompileContext, MapEvaluator } from "./maps/compile.ts";
 export { compileMap } from "./maps/compile.ts";
 export type { Expressed, ExpressedNumber, ExpressedOutputs } from "./maps/express.ts";
