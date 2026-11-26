@@ -4,9 +4,13 @@ import type { ElementAddress, Facet, Part } from "../src/manifest/address.ts";
 import { addressKey, FACETS } from "../src/manifest/address.ts";
 import type { CardStamps, ElementKey } from "../src/manifest/elements.ts";
 import {
+  BLOCK_KEY,
+  bandKey,
   cardStamps,
+  leaderKey,
   manifestElements,
   selectorMatches,
+  textKey,
   timelineClass,
   unitDomain,
 } from "../src/manifest/elements.ts";
@@ -945,7 +949,10 @@ describe("the selector member coordinates", () => {
     const { part } = key.address;
     const marks =
       (key.type === "wedge" && part === undefined) ||
-      (key.type === "label" && part?.length === 1 && LABELS.has(part[0] ?? ""));
+      (key.type === "label" &&
+        part?.length === 1 &&
+        typeof part[0] === "string" &&
+        LABELS.has(part[0]));
     if (!marks) return undefined;
     return key.timeline === stamp.timeline ? "primary" : "secondary";
   }
@@ -1035,5 +1042,46 @@ describe("the selector member class on regions", () => {
     for (const name of ["tts:AtomicSection", "ex:AtomicSection", ATOMIC]) {
       expect(matched({ element: "region", class: name })).toEqual(REGIONS);
     }
+  });
+});
+
+describe("the texts and leaders of chunks", () => {
+  /** A region key at `address` of the timeline `virtual_1`, held by its regions band. */
+  const regionAt = (address: ElementAddress): ElementKey => ({
+    type: "region",
+    address,
+    timeline: "virtual_1",
+    domain: "logical",
+    modality: "continuous",
+    class: CLT,
+    facet: null,
+    inside: ["block", "card", "timeline", "band"],
+  });
+
+  it("appends label and leader after a chunk's index, keeping its facet", () => {
+    const chunk = regionAt({ id: "virtual_1", facet: "regions", part: [2] });
+    const label = textKey(chunk, "label");
+    expect(label).toEqual({
+      ...chunk,
+      type: "label",
+      address: { id: "virtual_1", facet: "regions", part: [2, "label"] },
+      inside: ["block", "card", "timeline", "band", "region"],
+    });
+    expect(leaderKey(label)).toEqual({
+      ...chunk,
+      type: "leader",
+      address: { id: "virtual_1", facet: "regions", part: [2, "leader"] },
+      inside: ["block", "card", "timeline", "band", "region", "label"],
+    });
+  });
+
+  it("keeps an owner's text and leader, and gives a band no text", () => {
+    const region = regionAt({ id: "region_1" });
+    const label = textKey(region, "label");
+    expect(label.address).toEqual({ id: "region_1", part: ["label"] });
+    expect(leaderKey(label).address).toEqual({ id: "region_1", part: ["leader"] });
+    expect(() => textKey(bandKey("virtual_1", "regions", BLOCK_KEY), "label")).toThrow(
+      "a band has no text",
+    );
   });
 });

@@ -147,6 +147,12 @@ export interface LineElement extends Addressed {
    * `x(b)`, from the left: the line is drawn in pieces from run to run, nothing of it in a gap.
    */
   readonly cuts: readonly Cut[];
+  /**
+   * The spans `[Xa, Xb]` of the gaps of the FlowMap the line draws (section 8.10), from the left,
+   * where the line is not drawn and a gap line, half its stroke width and dashed, stands in for
+   * it (section 6.6, Gap lines); absent on a line that draws none.
+   */
+  readonly gapLines?: readonly Cut[];
 }
 
 /** The edges `x(a)` and `x(b)` of a gap a row crosses, where its line or outline stops and resumes. */

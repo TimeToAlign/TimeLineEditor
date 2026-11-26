@@ -48,7 +48,14 @@ export {
 } from "./errors.ts";
 export type { Json, PathSegment } from "./json.ts";
 export { canonicalText, compareCodePoints } from "./json.ts";
-export type { ElementAddress, Facet, OwnerAddress, Part } from "./manifest/address.ts";
+export type {
+  ChunkIndex,
+  ElementAddress,
+  Facet,
+  OwnerAddress,
+  Part,
+  PartItem,
+} from "./manifest/address.ts";
 export {
   addressKey,
   BUNDLE_ADDRESS,

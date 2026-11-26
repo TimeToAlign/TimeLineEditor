@@ -596,6 +596,8 @@ export function resolveElement(
     return undefined;
   }
   if (id === undefined) return part.length > 0 ? { kind: "title" } : undefined;
+  // A chunk, whose part begins with its chunk index, is drawn and resolved by no container.
+  if (!part.every(isPart)) return undefined;
   const base = baseOf(manifest, id, facet, part);
   if (base === undefined) return undefined;
   let [resolved] = base;
@@ -650,7 +652,7 @@ function namesDefaultElision(manifest: Manifest, { id, facet, part = [] }: Eleme
     return false;
   }
   const [, word] = part;
-  if (word !== undefined && !DERIVED_ELISION_PARTS.includes(word)) return false;
+  if (word !== undefined && (!isPart(word) || !DERIVED_ELISION_PARTS.includes(word))) return false;
   return defaultElisionTimelines(manifest).has(id);
 }
 

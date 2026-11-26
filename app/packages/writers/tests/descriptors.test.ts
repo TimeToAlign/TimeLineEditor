@@ -716,6 +716,46 @@ describe("descriptors", () => {
     ]);
   });
 
+  it("writes a line its FlowMap's gaps interrupt in pieces, then its gap lines, then its marks", () => {
+    const element = synthetic({
+      type: "timeline",
+      address: at("v"),
+      style: style({
+        stroke: "#00CC00",
+        fill: "#00CC00",
+        "stroke-width": 3,
+        "stroke-dasharray": "3 3",
+      }),
+      xs: 10,
+      xe: 50,
+      y: 20,
+      start: "circle",
+      end: "circle",
+      cuts: [],
+      gapLines: [
+        [20, 24],
+        [30, 31],
+      ],
+    });
+    const piece = (from: number, to: number) =>
+      `<line data-id="v" x1="${from}" y1="20" x2="${to}" y2="20" stroke="#00CC00" stroke-width="3" stroke-dasharray="3 3"/>`;
+    const gapLine = (from: number, to: number) =>
+      `<line data-id="v" x1="${from}" y1="20" x2="${to}" y2="20" stroke="#00CC00" stroke-width="1.5" stroke-dasharray="1.5 3"/>`;
+    expect(svgBody(element)).toEqual([
+      piece(10, 20),
+      piece(24, 30),
+      piece(31, 50),
+      gapLine(20, 24),
+      gapLine(30, 31),
+      '<circle data-id="v" cx="10" cy="20" r="3" fill="#00CC00"/>',
+      '<circle data-id="v" cx="50" cy="20" r="3" fill="#00CC00"/>',
+    ]);
+    expect(tikzBody(element).filter((command) => command.includes("line width=1.5pt"))).toEqual([
+      expect.stringContaining("dash pattern=on 1.5pt off 3pt"),
+      expect.stringContaining("dash pattern=on 1.5pt off 3pt"),
+    ]);
+  });
+
   /**
    * The points of the polylines a fixture's drawing writes for one address,
    * in order, drawn with the ancestor cards hidden: the chevrons are those of

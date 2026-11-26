@@ -10,6 +10,7 @@ import {
   CARD_PLACE_MEMBERS,
   type CardPlace,
   type ContainerRef,
+  cardAddress,
   type ElementAddress,
   type ItemPlace,
   idAddress,
@@ -25,7 +26,6 @@ import {
   elementKey,
   type GroupFrame,
   type MemberDrawing,
-  memberDrawings,
   unownedKey,
 } from "@timetoalign/tilie-core/drawing";
 import type { Style } from "../cascade.ts";
@@ -50,6 +50,7 @@ import {
   traverse,
   withAxis,
 } from "../traversal.ts";
+import { drawnRoots, isVirtualMember, virtualFlow, withRuns } from "../virtual.ts";
 
 /** A title (section 8.1): its address, style and font size, and its text cut to its `max-width`. */
 export interface Title {
@@ -197,6 +198,23 @@ function containerOf(context: Context, key: PlaceKey): ContainerRef {
 }
 
 /**
+ * The card of `member` under the place key `key`: core's, or, for a virtual
+ * timeline's card, which core's registry may not list, the card of its ID
+ * held by the frame of `key`'s item or by the block (section 8.10).
+ */
+function cardRefOf(context: Context, member: MemberDrawing, key: PlaceKey): ContainerRef {
+  const { manifest } = context;
+  if (!isVirtualMember(manifest, member)) return containerOf(context, key);
+  const { containers } = indexOf(manifest);
+  const listed = containers.byKey.get(placeKeyText(key));
+  if (listed !== undefined) return listed;
+  const { id } = member.timeline;
+  const holder =
+    key.member === undefined ? containers.block : containerOf(context, { item: key.item });
+  return { kind: "card", key, address: cardAddress(id), holder, timeline: id, facet: null };
+}
+
+/**
  * The card of `member` whose place key is `key`, held by `holder` (the
  * frame of its group, or the block): its container, address and style, and
  * its member drawing traversed at `L`, spacing `S` and margin `V`, a member
@@ -213,14 +231,17 @@ function cardOf(
   frame: GroupFrame | null,
 ): Pick<Card, "member" | "ref" | "address" | "style"> & { readonly scope: Scope } {
   const timeline = member.timeline;
-  const ref = containerOf(context, key);
+  const ref = cardRefOf(context, member, key);
   const { address } = ref;
   const style = context.cascade.resolve(
     elementKey("card", address, timeline, holder.key),
     holder.style,
   );
   const laid: Context = { ...context, placement: { ...context.placement, length: L } };
-  return { member, ref, address, style, scope: traverse(laid, member, holder, S, V, frame) };
+  // A virtual timeline's card draws its chunks, its runs drawn once in a card the block holds.
+  const flow = virtualFlow(context.manifest, member, frame === null);
+  const scope = withRuns(traverse(laid, member, holder, S, V, frame, flow));
+  return { member, ref, address, style, scope };
 }
 
 /**
@@ -268,7 +289,7 @@ export function placeItems(
   const padding = arranged.padding ?? new Map<string, number>();
   const free = arranged.order === undefined;
   const { placement, measure } = context;
-  const { frames, ungrouped } = memberDrawings(context.manifest);
+  const { frames, ungrouped, placed } = drawnRoots(context.manifest, placement.places);
   let lowest: number | undefined;
   type Content = Pick<Item, "cards" | "elisions" | "DG"> & { readonly height: number };
   const place = (
@@ -381,7 +402,7 @@ export function placeItems(
       return { cards, height: y + Q, elisions, DG: elisions?.total ?? 0 };
     });
   });
-  const loose = ungrouped.map((member) => () => {
+  const loose = [...ungrouped, ...placed].map((member) => () => {
     const key: PlaceKey = { item: member.timeline.id };
     return place(key, null, (L, spacing, margin) => {
       const { scope, ...card } = cardOf(context, member, block, key, L, spacing, margin, null);
@@ -406,7 +427,9 @@ export function placeItems(
   const byId = new Map<string, () => Item>(
     [
       ...frames.map((drawn, index) => [drawn.group.id, framed[index]] as const),
-      ...ungrouped.map((member, index) => [member.timeline.id, loose[index]] as const),
+      ...[...ungrouped, ...placed].map(
+        (member, index) => [member.timeline.id, loose[index]] as const,
+      ),
     ].flatMap(([id, thunk]) => (thunk === undefined ? [] : [[id, thunk] as const])),
   );
   const order = arranged.order ?? [...byId.keys()];

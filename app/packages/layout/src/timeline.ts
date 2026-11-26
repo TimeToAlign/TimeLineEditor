@@ -665,7 +665,9 @@ function linePosition(prepared: PreparedTimeline, place: LinePlace): LinePositio
             x0 + (entry.rootEnd ? elided.endAt(entry.end) : elided.relative(entry.end)),
           gap: (value) => {
             const gap = elided.gapOf(value);
-            return gap === undefined ? undefined : [x0 + gap.left, x0 + gap.right];
+            if (gap !== undefined) return [x0 + gap.left, x0 + gap.right];
+            const run = elided.runGapOf(value);
+            return run === undefined ? undefined : [x0 + run, x0 + run];
           },
           cuts: (start, end) =>
             elided.gaps

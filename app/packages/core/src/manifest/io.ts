@@ -54,7 +54,7 @@ import {
 } from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
 import { isJsonObject, withValueAt } from "../json.ts";
-import type { Part } from "./address.ts";
+import type { Part, PartItem } from "./address.ts";
 import type { EntryKind, EntryTypes } from "./files.ts";
 import { ENTRY_LISTS } from "./files.ts";
 import { checkOrdered } from "./invariants.ts";
@@ -290,6 +290,12 @@ export function plainDeclaration(
   return result;
 }
 
+/** A part word as read, or a chunk index read losslessly as a plain number: an integral float its double. */
+function plainPartItem(item: Part | JsonNumber): PartItem {
+  if (typeof item === "bigint") return Number(item);
+  return isJsonFloat(item) ? item.value : item;
+}
+
 /**
  * A selector read losslessly as the plain `Selector`: it holds no number,
  * only its non-empty `addresses` and each address's non-empty `part`, which
@@ -303,9 +309,9 @@ export function plainSelector(select: Lossless<Selector>): Selector {
   const plain = addresses.map((address) => {
     const { part, ...own } = address;
     if (part === undefined) return own;
-    const [word, ...words] = part;
+    const [word, ...words] = part.map(plainPartItem);
     if (word === undefined) throw new Error("the schema refuses an empty part");
-    return { ...own, part: [word, ...words] satisfies [Part, ...Part[]] };
+    return { ...own, part: [word, ...words] satisfies [PartItem, ...PartItem[]] };
   });
   const [first, ...more] = plain;
   if (first === undefined) throw new Error("the schema refuses an empty addresses list");
