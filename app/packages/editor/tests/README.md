@@ -1466,6 +1466,21 @@ atomic sections of `score`) and `unknown_length` are each held alone.
    store's refusal, if any, else nothing. On `sonata_exposition` the rows
    hold no field and no Remove button, their values shown as text ("A",
    "0 ♩", "12 ♩") with the type "Atomic section".
+7. **The list stays** (the timeline listed before, `{block: A, timeline:
+   "score"}`, given to `regionsOf`): `motif` (a region of `b`, listed under
+   `score`), `intro`, `intro` with `motif`, and `motif`'s label list
+   `score` again, its sections those of item 2, `motif` marked where
+   selected; the line of `b` (a timeline, not a region) lists `b`; with
+   `b` listed before, `intro` (not under `b`) lists `score`; with `score`
+   listed in another block, or a timeline the manifest no longer holds,
+   `motif` lists `b`. In the panel, with `score`'s card selected, a press
+   on `motif`'s head and the selection becoming `motif` leave both
+   sections, `motif`'s row marked; typing "Motif" into its Name and Enter
+   journals `{type: "set", changes: [{target: {block: A, id: "motif"},
+   values: {name: "Motif"}}]}`, and the list is still `score`'s, the field
+   showing "Motif". Selecting the line of `b` then lists `b` alone. What
+   would be wrong: the list narrowed to `b` on pressing `motif` (the
+   finding this guards), or kept for a selection naming a timeline.
 
 ## The Elisions tab (`inspector-elision.test.ts`)
 

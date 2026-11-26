@@ -7,6 +7,8 @@
  * `remove`; "Add region" is one `add` of a region into the selected
  * timeline, whose ID is core's to give. An atomic section (TimeToShare's
  * class `tts:AtomicSection`, computed from the flow control) is read only.
+ * Selecting a region listed keeps the list: the tab stays on the timeline
+ * it lists while the selection names regions of it or of its descendants.
  */
 
 import type { Subject } from "@timetoalign/tilie-arranger";
@@ -15,6 +17,7 @@ import type {
   AddCommand,
   Address,
   Block,
+  BlockId,
   Command,
   Manifest,
   Region,
@@ -26,6 +29,7 @@ import {
   addressKey,
   assertNever,
   copyValue,
+  findTimeline,
   idAddress,
   inBlock,
   isAtomicSection,
@@ -87,6 +91,12 @@ export interface RegionsShown {
   readonly selected: ReadonlySet<string>;
   /** The `add` of a region over the selected timeline; `null` where its extent fits no value of its axis. */
   readonly add: AddCommand | null;
+}
+
+/** The timeline a list was made for, in its block: what a later selection of its regions keeps. */
+export interface Listed {
+  readonly block: BlockId;
+  readonly timeline: string;
 }
 
 /** What one subject names of a timeline: the timeline, and the region it is (or a part of), if any. */
@@ -193,23 +203,62 @@ export function addRegionCommand(block: Block, timeline: TimelineManifest): AddC
   return { type: "add", into: inBlock(block.id, idAddress(timeline.id)), region: { start, end } };
 }
 
+/** Whether `id` is `timeline` or one of its descendants. */
+function holds(timeline: TimelineManifest, id: string): boolean {
+  return timeline.id === id || timeline.children.some((child) => holds(child, id));
+}
+
+/**
+ * The timeline `named` lists: `listed`, the timeline the tab listed before,
+ * where it lies in `block` and every subject is a region of it or of one of
+ * its descendants (a row pressed keeps its list); else the one timeline
+ * every subject names; `null` where they name several.
+ */
+function listedOf(
+  block: Block,
+  named: readonly Named[],
+  listed: Listed | null,
+): TimelineManifest | null {
+  const kept =
+    listed === null || listed.block !== block.id
+      ? undefined
+      : findTimeline(block.manifest, listed.timeline);
+  if (
+    kept !== undefined &&
+    named.every((item) => item.region !== null && holds(kept, item.timeline.id))
+  ) {
+    return kept;
+  }
+  const [first] = named;
+  if (first === undefined || named.some((item) => item.timeline.id !== first.timeline.id)) {
+    return null;
+  }
+  return first.timeline;
+}
+
 /**
  * What the Regions tab shows of `subjects`: when they lie in one block and
  * each names one and the same timeline, as the timeline, its card, one of
  * its bands or one of its regions (or a part of any of these), that
- * timeline's regions and its descendants'; `null` for no subject and for
- * any other selection.
+ * timeline's regions and its descendants'; while they name only regions of
+ * `listed` (the timeline the tab listed before) or of its descendants,
+ * `listed`'s, so that selecting a listed region keeps the list; `null` for
+ * no subject and for any other selection.
  */
-export function regionsOf(block: Block | null, subjects: readonly Subject[]): RegionsShown | null {
+export function regionsOf(
+  block: Block | null,
+  subjects: readonly Subject[],
+  listed: Listed | null = null,
+): RegionsShown | null {
   if (block === null || subjects.length === 0) return null;
-  const named = subjects.map((subject) => namedBy(subject.resolved));
-  const [first] = named;
-  if (first === undefined || first === null) return null;
-  if (named.some((item) => item?.timeline.id !== first.timeline.id)) return null;
-  const { timeline } = first;
-  const selected = new Set(
-    named.flatMap((item) => (item === null || item.region === null ? [] : [item.region])),
-  );
+  const named = subjects.flatMap((subject) => {
+    const item = namedBy(subject.resolved);
+    return item === null ? [] : [item];
+  });
+  if (named.length !== subjects.length) return null;
+  const timeline = listedOf(block, named, listed);
+  if (timeline === null) return null;
+  const selected = new Set(named.flatMap((item) => (item.region === null ? [] : [item.region])));
   return {
     block,
     timeline,
