@@ -22,6 +22,8 @@ export { namedPin, readsGroup, rereadPin, timelinePin } from "./coordinates.ts";
 export { drawingOf, styleLayers } from "./drawing.ts";
 export type { Editing } from "./editing.ts";
 export { changedPlace, placeChange } from "./editing.ts";
+export type { FlowServer } from "./flowEditor.svelte.ts";
+export type { FlowFindings } from "./flowEditor.ts";
 export type { Viewport } from "./focus.ts";
 export type { GapChange, GapPiece, GapSubject, StoredEntry } from "./gaps.ts";
 export {

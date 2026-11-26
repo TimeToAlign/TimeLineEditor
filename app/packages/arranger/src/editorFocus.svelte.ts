@@ -29,6 +29,12 @@ export interface FocusHost {
   /** The pane the canvas's drawings are fitted to, read in a reaction to follow it settling. */
   pane(): PaneSource;
   reducedMotion(): boolean;
+  /**
+   * How far, in canvas units, what the innermost editor shows reaches below
+   * its element: the flow editor's pane under its card; 0 for every other
+   * editor.
+   */
+  below(): number;
 }
 
 /** The editor focus of one canvas. Made while the canvas initialises: it follows the store from then on. */
@@ -123,7 +129,8 @@ export class EditorFocus {
    * area left of the drawer, and no drawer width is taken off. A group whose
    * frame has elided ancestor cards behind it is zoomed out until they fit
    * on both sides of the frame's centre (`elidedReach`); in the Full view
-   * the frame alone decides and the cards may run past the edges. A target
+   * the frame alone decides and the cards may run past the edges. The flow
+   * editor's card is centred with its pane below it (`FocusHost.below`). A target
    * that is not drawn (a hidden element) leaves the view where it is.
    */
   async focusOn(target: Address): Promise<void> {
@@ -139,6 +146,8 @@ export class EditorFocus {
       if (error instanceof RangeError) return;
       throw error;
     }
+    const below = this.#host.below();
+    if (below > 0) bounds = { ...bounds, height: bounds.height + below };
     this.#focusedAt = { width: root.clientWidth, height: root.clientHeight };
     this.#focused = focusViewport(bounds, this.#focusedAt, 0, elidedReach(node, target));
     this.moveTo(this.#focused);

@@ -65,7 +65,21 @@ and Cancel, in that order, then "Editing:" and an ordered list "Editing
 path" whose items are the open editors' names alone, outermost first, as
 "Words" defines them: `["Mixed", "Performance", "Score"]` for block `A`'s
 three editors, `["Anonymous bundle", "clt_1", "clt_3"]` for block `B`'s,
-`["mixed", "group_2"]` for block `C`'s. A renaming shows at once.
+`["mixed", "group_2"]` for block `C`'s. A renaming shows at once. A flow
+editor is named as the FlowMaps of its timeline: `score`'s timeline editor
+with its flow editor open inside it reads `["Score", "FlowMaps of Score"]`
+for block `A` (the editors opened directly on `score`, no group editor
+around them).
+
+**The flow editor's server** (`flow-server.test.ts`): `flowServerOf` sends
+the manifest as Save writes it (`saveManifest`) with the root's bare ID to
+the server's two flow routes and reads the answers back: the flow-maps
+answer, a manifest file's text, as the manifest it holds (equal to
+`readManifestFile`'s of the same text); the flows answer as each
+convention's findings, their `message`s in order, keyed by convention, a
+convention without findings an empty list. A flow-maps answer TiLiE cannot
+read rejects with "the server's manifest with its flows written could not
+be read" followed by the first problem's message.
 
 Done closes the innermost editor, one per click. Cancel without changes
 closes at once and opens no dialog. Cancel with changes asks "Are you sure
