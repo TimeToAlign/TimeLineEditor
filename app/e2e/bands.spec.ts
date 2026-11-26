@@ -2,9 +2,10 @@
  * The bands of a timeline as boxes of its timeline editor: hovered and
  * selected there, dragged across its line into a gap and along a side,
  * stepped by Ctrl/Cmd+ArrowUp and ArrowDown, a drag aborted by Escape, a
- * child's band offered in the child's editor alone, a root's band order
- * followed by its descendants without one of their own, none offered in the
- * bundle or the group editor, and Delete refused. The expected values are
+ * child's band selected in the child's editor alone, a root's band order
+ * followed by its descendants without one of their own, a band marked on
+ * hover in every view while a click outside its timeline editor selects the
+ * card, and Delete refused. The expected values are
  * derived in `README.md` ("bands.spec.ts"); the drag on a touch screen is in
  * `touch.spec.ts`.
  */
@@ -223,7 +224,9 @@ test.describe("on bundles", () => {
     expect(await selection(page)).toEqual(SELECTED_F);
   });
 
-  test("a child's band is offered in the child's editor and in no other", async ({ page }) => {
+  test("a child's band is marked on hover outside its parent's editor and selected in the child's editor alone", async ({
+    page,
+  }) => {
     const parent = "recapitulation";
     const child = "recapitulation_second";
     const conversionMaps = bandAddress(child, M);
@@ -236,25 +239,26 @@ test.describe("on bundles", () => {
     const point = await bandPoint(page, SHARED, conversionMaps, 2);
 
     /**
-     * Hover the point, then click it: the band marks while hovering, the
-     * selection the click makes, and the same marks after it (a band both
-     * hovered and selected shows one).
+     * Move the pointer off the canvas, then hover the point and click it:
+     * the band marks while hovering, the selection the click makes, and the
+     * same marks after it (a band both hovered and selected shows one).
      */
     const tryPoint = async (marks: ElementAddress[], selected: Address[]) => {
       await select(page, []);
+      await page.mouse.move(0, 0);
+      await expect.poll(() => bandMarks(page, SHARED)).toEqual([]);
       await page.mouse.move(point.x, point.y);
-      if (marks.length === 0) await frames(page);
       await expect.poll(() => bandMarks(page, SHARED)).toEqual(keysOf(marks));
       await page.mouse.click(point.x, point.y);
       await expect.poll(() => selection(page)).toEqual(selected);
       expect(await bandMarks(page, SHARED)).toEqual(keysOf(marks));
     };
 
-    await tryPoint([], card);
+    await tryPoint([conversionMaps], card);
     await done(page, VIEW);
 
     await enter(page, { block: SHARED, id: "group_2" }, at);
-    await tryPoint([], card);
+    await tryPoint([conversionMaps], card);
     await done(page, VIEW);
 
     await enter(page, { block: SHARED, id: parent }, at);
@@ -267,7 +271,7 @@ test.describe("on bundles", () => {
     await done(page, VIEW);
 
     await setViewport(page, at);
-    await tryPoint([], card);
+    await tryPoint([conversionMaps], card);
     expect(await journalLength(page)).toBe(START);
   });
 
@@ -408,10 +412,11 @@ test.describe("on bundles", () => {
     expect(await storeText(page, "view")).toBe(view);
   });
 
-  test("no band is offered in the bundle or the group editor, nor on the arranger", async ({
+  test("a band is marked on hover in the bundle and group editors and on the arranger, a click there selecting the card", async ({
     page,
   }) => {
     const card: Address[] = [{ block: MIXED, id: "score", part: ["card"] }];
+    const marks = keysOf([SCORE_F]);
     // Found where every drawn element of the block takes the pointer.
     await enter(page, { block: MIXED }, VIEW);
     const at = await focusBand(page, MIXED, SCORE_F, 1);
@@ -419,12 +424,13 @@ test.describe("on bundles", () => {
 
     const tryPoint = async () => {
       await select(page, []);
+      await page.mouse.move(0, 0);
+      await expect.poll(() => bandMarks(page, MIXED)).toEqual([]);
       await page.mouse.move(point.x, point.y);
-      await frames(page);
-      expect(await bandMarks(page, MIXED)).toEqual([]);
+      await expect.poll(() => bandMarks(page, MIXED)).toEqual(marks);
       await page.mouse.click(point.x, point.y);
       await expect.poll(() => selection(page)).toEqual(card);
-      expect(await bandMarks(page, MIXED)).toEqual([]);
+      expect(await bandMarks(page, MIXED)).toEqual(marks);
     };
 
     await tryPoint();

@@ -417,7 +417,10 @@ pointer; the marquee selects exactly the blocks wholly inside, keeps its
 start while it pans in the edge zone, and its toggle makes plain drags and
 clicks additive; a click selects an element, a card (marked by a selection
 overlay on the card's own rectangle, never its shadow, and no hover overlay
-while it is selected) or, on the margin, the block; Delete and Backspace
+of its own while it is selected: the pointer resting on `melody`'s card at
+`cardPoint`, the first clear point of its raster, marks only the band under
+it, `melody`'s children band, since a band is marked on hover in every view)
+or, on the margin, the block; Delete and Backspace
 remove the selection as one `remove`, a selected timeline marking its
 descendants as affected; keys outside the arranger change nothing, arrows
 nudge by 8 and 64 and the z-order keys reorder, one command each; the
@@ -719,9 +722,11 @@ tab list holds Regions right after Properties. On the Regions tab: the
 rows `intro` and, under the heading "b", `motif`, each with its Name,
 Start and End ("intro", "0", "2"; "motif", "1", "3"); a click on the head
 of `motif`'s row selects exactly `{block, id: "motif"}` on the canvas and
-marks the row (`aria-pressed` "true"), the list now `b`'s alone; with the
-card of `score` selected again, "Intro" typed into `intro`'s Name and
-Enter journals one `set` of `{name: "Intro"}` on `intro`'s address; "3"
+marks the row (`aria-pressed` "true"), the list kept as it was (both rows,
+the heading "b"), since a selected region of the listed timeline or of one
+of its descendants keeps the list; in that list, `motif` still selected,
+"Intro" typed into `intro`'s Name and Enter journals one `set` of `{name:
+"Intro"}` on `intro`'s address, the selection and both rows unchanged; "3"
 typed into its Start and Enter journals nothing, the field `aria-invalid`
 "true" and core's message "region 'intro' ends before it starts" below
 it; Escape shows "0" again; Remove on `intro` journals `{type: "remove",
@@ -1813,8 +1818,9 @@ the row's 616, so the ninth no longer fits beside them.
 as boxes of its timeline editor on `bundles` at viewport (40, 40), reduced
 motion emulated. The hook reports every band drawn (its address `{id: T,
 facet}`, its facet, level, elements, and its line and rectangle on the
-screen); only a present band is recorded, offered, hovered and selected,
-and only in the innermost timeline editor of its own timeline. A band is
+screen); only a present band is recorded, hovered and selected. A band is
+marked on hover in every view, and selected only in the innermost timeline
+editor of its own timeline; elsewhere a click on it selects the card. A band is
 hovered and clicked through its mark (`data-marks`, the `addressKey` of
 `{id: T, facet}`), and selecting it selects `{block, id: T, facet}`.
 Every timeline the fixture draws in a card holds its default timestamps
@@ -1846,9 +1852,20 @@ dispatches nothing, the wedge of `score`'s `origin` timestamp
 numbers the `origin` and then the `length` timestamp of each timeline
 drawn in a card, by ID, `annotations`, `excerpt`, `page`, `performance`,
 `score`, from `timestamp_1`, so `score`'s `origin` is the ninth) moving
-with the preview and back to its drawn `points`; no band is offered in
-the bundle or group editor or on the arranger; and Delete with only a band
-selected removes nothing. A hovered band keeps its mark only while the
+with the preview and back to its drawn `points`; in the bundle and group
+editors and on the arranger, the pointer moved off the canvas (no band
+marked) and then onto `score`'s flow control band marks that band, and a
+click there selects `score`'s card, the mark staying; at a point of
+`recapitulation_second`'s conversion maps band (its one band, level 1, one
+element) in `bshared000`, the hover marks that band in the bundle editor,
+in `group_2`'s editor and on the arranger (of the bands of the card under
+the pointer, the last record holding the point: the child's band before its
+parent's children band), a click there selecting `recapitulation`'s card;
+in `recapitulation`'s timeline editor the point lies in the root's children
+band, which the hover marks and a click selects; in
+`recapitulation_second`'s editor the hover marks and a click selects its
+conversion maps band; the journal unchanged throughout; and Delete with
+only a band selected removes nothing. A hovered band keeps its mark only while the
 pointer is on it: on the pane left of every block, at the markers band's
 ordinate (canvas x −180 at viewport (240, 40), since `bmixed0000`'s ancestor
 card of `recording` reaches 121.70361328125 left of its place origin at
