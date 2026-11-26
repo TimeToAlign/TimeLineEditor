@@ -1867,13 +1867,21 @@ double-click on the repeat end's symbol `{id: "repeat_end", part:
 ["symbol"]}`, which `allegro`'s flow control band draws, opens the flow editor, so the store's editing path is
 the timeline editor then the flow editor of `{block, id: "allegro"}`; the
 pane under the card lists four rows, `default`, `printed`, `single`,
-`by_hand` (computed first, in the manifest's order), and axe-core reports no
+`by_hand` (computed first, each part by name, then by ID), and axe-core reports no
 violation inside it. Add + shows the new row; Enter on the first entry of
 `default` stores one entry in the editor's session, `{type: "add", into:
-{block, id: "allegro"}, flow_map: {chunks: ["section_a"]}}`. The row
+{block, id: "allegro"}, flow_map: {chunks: ["section_a"]}}`; after the
+row's Done the pane lists five rows, the first four as before, the new
+FlowMap's last (it keeps the place it appeared in while the editor is
+open). The row
 `printed` lifted by its name and released 80 px below the pane, past the
 editor's border, stores two entries: the `add` of its virtual timeline
-`{map: "printed", timeline: "allegro"}` and a `set` placing it. Done twice
+`{map: "printed", timeline: "allegro", name: "printed"}` (named as its
+row) and a `set` placing it. Back at that viewport, the pointer over the
+first row's drawing, a plain wheel (`deltaY` 40) leaves the viewport as
+it was; with Control held a wheel of `deltaY` −100 zooms the canvas as
+anywhere else on it (Svelte Flow's zoom on scroll with the activation key
+held, `2 ^ (100 × 0.002)`), to zoom exactly `2 ^ 0.2`. Done twice
 closes both editors and the journal gains exactly one entry, the timeline
 editor's session holding the flow editor's. On the arranger, with no
 editor open and the drawing settled at viewport (40, 40), zoom 1, a double-click
