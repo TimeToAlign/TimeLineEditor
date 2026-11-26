@@ -775,12 +775,19 @@ describe("groupstamps", () => {
       false,
     ]);
     const ids = (of: Manifest, id: string) => groupsHolding(of, id).map((group) => group.id);
+    const virtual = load("groups/virtual_member.yaml");
     expect([
       ids(manifest, "motif"),
       ids(child, "second-half"),
       ids(child, "piece"),
       ids(child, "nope"),
-    ]).toEqual([["group_1"], ["group_1"], [], []]);
+      ids(virtual, "allegro_default"),
+      ids(virtual, "allegro_by_hand"),
+    ]).toEqual([["group_1"], ["group_1"], [], [], ["performance"], []]);
+    expect(["allegro_default", "allegro_by_hand"].map((id) => isGroupMember(virtual, id))).toEqual([
+      true,
+      false,
+    ]);
   });
 
   it("are given to a child joining a group, as its origin and length", () => {

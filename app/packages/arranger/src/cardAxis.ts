@@ -16,6 +16,7 @@
 
 import type { Manifest, PlaceKey } from "@timetoalign/tilie-core";
 import { ancestorMembers, findTimeline, placeKeyText, samePlaceKey } from "@timetoalign/tilie-core";
+import { virtualDrawing } from "@timetoalign/tilie-core/drawing";
 import {
   axisCoordinate,
   Rational,
@@ -90,12 +91,13 @@ function zeroOn(manifest: Manifest, timeline: string, base: string): Rational | 
 }
 
 /**
- * The length of `base`, or where it is not known the coordinate its line
+ * The length of `base` (a virtual timeline's that of the axis it is drawn
+ * on, section 8.10), or where it is not known the coordinate its line
  * reaches in the card `card` of `drawing` (the start plus the drawn length
  * of its last run, section 3.2); `null` where it has no length and no line.
  */
 function lambdaOf(manifest: Manifest, drawing: Drawing, base: string, card: PlaceKey): Real | null {
-  const timeline = findTimeline(manifest, base);
+  const timeline = findTimeline(manifest, base) ?? virtualDrawing(manifest, base)?.timeline;
   if (timeline === undefined) return null;
   if (timeline.length !== null) return realOf(axisCoordinate(timeline.length, timeline));
   let last: { readonly x: number; readonly end: Rational } | null = null;

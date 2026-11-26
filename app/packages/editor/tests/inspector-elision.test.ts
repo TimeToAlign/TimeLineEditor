@@ -37,6 +37,7 @@ import {
   blocksOf,
   elisionFormOf,
   fieldCommand,
+  formCommand,
   groupElisionsOf,
   rootElisionsOf,
 } from "../src/inspector/elisions.ts";
@@ -1349,6 +1350,18 @@ describe("elisions on a virtual timeline", () => {
     ]);
     const blocks = blocksOf(root, groupOf(store, null, { id: stored.id }), form);
     expect([blocks.root?.opened, blocks.group]).toEqual([true, null]);
+    expect([form?.form, form?.widths]).toEqual([
+      "standard",
+      { ratio: "0.24000000000000005", span: "4241/25", canvas: "32" },
+    ]);
+    if (form === null) throw new Error("no form");
+    expect(formCommand(form, "span")).toEqual({
+      ok: true,
+      value: {
+        type: "set",
+        changes: [{ target: at(stored.id), values: { width: { span: [4241, 25] } } }],
+      },
+    });
   });
 
   it("makes one on a virtual member a group elision of its frame", () => {
@@ -1388,5 +1401,17 @@ describe("elisions on a virtual timeline", () => {
       "1000",
       [{ timeline: "Recording", stretch: stretchText(recording, 702500 / 4241, 1405000 / 4241) }],
     ]);
+    expect([form?.form, form?.widths]).toEqual([
+      "standard",
+      { ratio: "0.33927999999999997", span: "4241/25", canvas: "32" },
+    ]);
+    if (form === null) throw new Error("no form");
+    expect(formCommand(form, "canvas")).toEqual({
+      ok: true,
+      value: {
+        type: "set",
+        changes: [{ target: at("gap"), values: { width: { canvas: 32 } } }],
+      },
+    });
   });
 });
