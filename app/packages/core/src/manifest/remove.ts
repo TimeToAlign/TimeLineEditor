@@ -62,6 +62,22 @@ export function removedBy(manifest: Manifest, elements: Iterable<string>): Set<s
   for (const root of manifest.timelines) visit(root, false);
   for (const group of manifest.groups) if (asked.has(group.id)) removed.add(group.id);
   for (const map of manifest.measure_maps) if (asked.has(map.id)) removed.add(map.id);
+  for (const { id, timeline } of manifest.flow_maps ?? []) {
+    if (asked.has(id) || removed.has(timeline)) removed.add(id);
+  }
+  // A virtual timeline may come from another one listed after it: until nothing more goes.
+  // Before the named timestamps and elisions, which may lie on a virtual timeline.
+  const virtual = manifest.virtual_timelines ?? [];
+  let grown = true;
+  while (grown) {
+    grown = false;
+    for (const { id, map, timeline } of virtual) {
+      if (removed.has(id) || !(asked.has(id) || removed.has(map) || removed.has(timeline)))
+        continue;
+      removed.add(id);
+      grown = true;
+    }
+  }
   const timestamps = manifest.graphical?.timestamps ?? [];
   for (const { id, timeline } of timestamps) {
     if (asked.has(id) || removed.has(timeline)) removed.add(id);
@@ -79,21 +95,6 @@ export function removedBy(manifest: Manifest, elements: Iterable<string>): Set<s
   }
   for (const { id, matchstamp } of timestamps) {
     if (matchstamp && !named.has(id)) removed.add(id);
-  }
-  for (const { id, timeline } of manifest.flow_maps ?? []) {
-    if (asked.has(id) || removed.has(timeline)) removed.add(id);
-  }
-  // A virtual timeline may come from another one listed after it: until nothing more goes.
-  const virtual = manifest.virtual_timelines ?? [];
-  let grown = true;
-  while (grown) {
-    grown = false;
-    for (const { id, map, timeline } of virtual) {
-      if (removed.has(id) || !(asked.has(id) || removed.has(map) || removed.has(timeline)))
-        continue;
-      removed.add(id);
-      grown = true;
-    }
   }
   return removed;
 }
