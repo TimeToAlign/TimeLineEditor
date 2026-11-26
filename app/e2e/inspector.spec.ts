@@ -248,6 +248,7 @@ test("the tabs follow the keyboard", async ({ page }) => {
   const arranging = [
     "Arranger",
     "Properties",
+    "Regions",
     "Metadata",
     "Manifest",
     "Journal",
@@ -258,6 +259,7 @@ test("the tabs follow the keyboard", async ({ page }) => {
   await expectTabPairs(page, arranging);
   await tab(page, "Properties").focus();
   for (const [key, name] of [
+    ["ArrowRight", "Regions"],
     ["ArrowRight", "Metadata"],
     ["ArrowRight", "Manifest"],
     ["ArrowRight", "Journal"],
@@ -281,6 +283,7 @@ test("the tabs follow the keyboard", async ({ page }) => {
   const editing = [
     "Bundle",
     "Properties",
+    "Regions",
     "Metadata",
     "Manifest",
     "Journal",

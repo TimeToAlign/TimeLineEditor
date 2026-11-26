@@ -646,11 +646,11 @@ Apply stores the renamed fixture as `loadManifest` reads it, and an
 unapplied text survives a visit to another tab. The tabs: each is paired
 with one panel of its own through `aria-controls` and `aria-labelledby`,
 and the arrow, Home and End keys move the selection and the focus over the
-eight tabs (the level tab, Properties, Metadata, Manifest, Journal,
+nine tabs (the level tab, Properties, Regions, Metadata, Manifest, Journal,
 Timestamp, Matchstamp, Elisions) with and without an editor open, each key
 followed by one polled reading of every tab and its panel (text,
 `aria-selected`, `tabindex`, focus, the panel displayed as `toBeVisible`
-reads it), so the sixteen keys stay well inside the time limit in every
+reads it), so the seventeen keys stay well inside the time limit in every
 engine; with the level tab chosen,
 entering the bundle editor keeps it shown, renamed from "Arranger" to
 "Bundle". The properties form: a value moves the block by
@@ -703,6 +703,31 @@ the Elisions tab, its form's block expanded; Properties chosen then
 stays, and stays once the selection is emptied. Selected again, the
 elision shows the Elisions tab again, which stays when the selection is
 emptied: nothing goes back to the tab shown before.
+
+**`regions.spec.ts`** (Chromium, Firefox, WebKit) proves the Regions tab
+and the band list in a browser, on TimeToShare's `styled_score_flow_inner`
+imported (root `score` with the region `intro`, 0 to 2 quarters; children
+`a` and `b`), its child `b` given the region `motif` (1 to 3) by one `add`
+with the test's own ID, the card of `score` selected through the hook. The
+tab list holds Regions right after Properties. On the Regions tab: the
+rows `intro` and, under the heading "b", `motif`, each with its Name,
+Start and End ("intro", "0", "2"; "motif", "1", "3"); a click on the head
+of `motif`'s row selects exactly `{block, id: "motif"}` on the canvas and
+marks the row (`aria-pressed` "true"), the list now `b`'s alone; with the
+card of `score` selected again, "Intro" typed into `intro`'s Name and
+Enter journals one `set` of `{name: "Intro"}` on `intro`'s address; "3"
+typed into its Start and Enter journals nothing, the field `aria-invalid`
+"true" and core's message "region 'intro' ends before it starts" below
+it; Escape shows "0" again; Remove on `intro` journals `{type: "remove",
+targets: [{block, id: "intro"}]}`, the row gone. On the Properties tab
+with the card of `score` selected: the table "Bands" lists Children,
+Markers, Conversion maps, Flow control and Regions (the band order the
+fixture states), every box checked; unchecking Regions journals `{type:
+"style", select: {element: "band", addresses: [{id: "score", facet:
+"regions"}]}, set: {display: "none"}, blocks: [block]}`, the box then
+unchecked, and the hook no longer records `score`'s regions band (a band
+not displayed is absent); checking it again journals the same selector
+with `{display: null}` and the band is recorded again.
 
 **`elision-tab.spec.ts`** (Chromium, Firefox, WebKit) proves that an
 elision selected by a real pointer click on the canvas brings the Elisions
@@ -872,7 +897,12 @@ disabled, and again once a URL is entered. On `group_elided_members`
 imported: the Elisions tab with `elision_1` (a group elision of
 `excerpt`) selected, the timeline's block of `piece` expanded by its
 button, the group's block of "Theme" open by the selection and the
-elision's form shown with its Delete elision button. The unnamed pin
+elision's form shown with its Delete elision button. On
+`styled_score_flow_inner` imported, the card of `score` selected: the
+Regions tab listing `intro` and, under the heading "b", the region
+`motif` the test adds (one `add` with its own ID), `intro`'s row marked
+once its head is pressed; then, the card selected again, the Properties tab with the table "Bands"
+and its five Visible checkboxes. The unnamed pin
 (the rotation's degree readout beside its disabled slider) and the
 Journal tab (an undone entry's text, time and author) are checked for
 contrast like every other state.

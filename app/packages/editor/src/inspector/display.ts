@@ -21,13 +21,24 @@
 
 import type { Subject } from "@timetoalign/tilie-arranger";
 import { styleLayers } from "@timetoalign/tilie-arranger";
-import type { Block, Manifest, StyleCommand, View } from "@timetoalign/tilie-core";
-import { canonicalText, indexOf, isCommandError, preview } from "@timetoalign/tilie-core";
+import type { Block, Facet, Manifest, StyleCommand, View } from "@timetoalign/tilie-core";
+import {
+  bandOrderOf,
+  canonicalText,
+  idAddress,
+  inBlock,
+  indexOf,
+  isCommandError,
+  isFacet,
+  preview,
+  resolveAddress,
+} from "@timetoalign/tilie-core";
 import type { ElementKey } from "@timetoalign/tilie-core/drawing";
 import { Cascade } from "@timetoalign/tilie-layout";
 import type { Address, ElementType, Selector } from "@timetoalign/timetoshare";
-import { ATOMIC_SECTION, expandIri } from "@timetoalign/timetoshare";
 import type { FlowSubject } from "./flow.ts";
+import { isAtomicSection } from "./regions.ts";
+import { bandWord } from "./words.ts";
 
 /** Whose drawing a toggle shows: a band's elements, one element's, or one rule's. */
 type Scope = "band" | "element" | "rule";
@@ -214,13 +225,9 @@ function labelToggles(
 
 /** Whether a region of `manifest` states the class of an atomic section in its `type` statement. */
 function holdsAtomicSections(manifest: Manifest): boolean {
-  const context: unknown = manifest["@context"];
   const regions = (timeline: Manifest["timelines"][number]): boolean =>
-    timeline.regions.some((region) =>
-      (region.statements?.type ?? []).some(
-        (type) => (expandIri(context, type) ?? type) === ATOMIC_SECTION,
-      ),
-    ) || timeline.children.some(regions);
+    timeline.regions.some((region) => isAtomicSection(manifest, region)) ||
+    timeline.children.some(regions);
   return manifest.timelines.some(regions);
 }
 
@@ -351,4 +358,57 @@ export function toggleCommand(view: View, block: Block, toggle: Toggle): StyleCo
     }
   }
   return command(asked);
+}
+
+/** One row of a timeline card's band list: the band's facet and its Visible checkbox. */
+export interface BandRow {
+  readonly facet: Facet;
+  /** The band's own `display`: its word the facet, its label the band's word, pressed while it is displayed. */
+  readonly toggle: Toggle;
+}
+
+/**
+ * The band list of the timeline card the subjects name, in `view`: when
+ * every subject is the card of one timeline `T`, `T`'s line, or one of its
+ * bands, and `T` is drawn in a card, one row per band of `T` in its band
+ * order (`bandOrderOf`: its entry of `graphical.order` completed against
+ * the order it inherits), each a toggle of the band's own `display`, the
+ * rule `{element: "band", addresses: [{id: T, facet}]}`, pressed while the
+ * cascade displays the band; a press writes or removes that rule as every
+ * element toggle does (`toggleCommand`). A child has no flow control band
+ * of its own, the root's drawing its flow control, so a child's list leaves
+ * it out. `null` for any other selection.
+ */
+export function bandList(view: View, subjects: readonly Subject[]): BandRow[] | null {
+  const [first] = subjects;
+  if (first === undefined) return null;
+  const ids = new Set<string>();
+  for (const { block, resolved } of subjects) {
+    if (block !== first.block) return null;
+    if (resolved.kind !== "card" && resolved.kind !== "timeline" && resolved.kind !== "band") {
+      return null;
+    }
+    ids.add(resolved.at.timeline.id);
+  }
+  const [id, ...others] = ids;
+  if (id === undefined || others.length > 0) return null;
+  const timeline = resolveAddress(view, inBlock(first.block, idAddress(id)));
+  if (isCommandError(timeline) || timeline.kind !== "timeline" || timeline.cards.length === 0) {
+    return null;
+  }
+  const { manifest } = timeline.block;
+  const child = timeline.at.parent !== undefined;
+  return bandOrderOf(manifest, id)
+    .filter(isFacet)
+    .filter((facet) => !(child && facet === "flow_control"))
+    .flatMap((facet) =>
+      offered(view, manifest, {
+        word: facet,
+        label: bandWord(facet),
+        property: "display",
+        select: { element: "band", addresses: [{ id, facet }] },
+        scope: "element",
+        types: ["band"],
+      }).map((toggle) => ({ facet, toggle })),
+    );
 }

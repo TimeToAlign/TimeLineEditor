@@ -9,17 +9,19 @@
  * below its container's minimum) returns a notice saying so, which the form
  * posts as information. The name field's draft and refusal belong to the
  * target named in the manifest it was typed against, alike, and so do the
- * drafts and refusals of the elision fields (`elisions.ts`): a selected
- * elision's, and a root's Proportion, each belonging to its address. It
+ * drafts and refusals of the fields of one element at an address: a
+ * selected elision's (`elisions.ts`), a root's Proportion, a region's name,
+ * start and end in the Regions tab (`regions.ts`). It
  * also keeps which blocks of the Elisions tab are open, by the key the tab
  * gives each block, so that a block opened stays open while another tab
  * is shown or the inspector is closed.
  */
 
 import type { PlaceProperty } from "@timetoalign/tilie-arranger";
-import type { Address, BlockId, Manifest, Store } from "@timetoalign/tilie-core";
+import type { Address, BlockId, Command, Manifest, Store } from "@timetoalign/tilie-core";
 import { sameAddress } from "@timetoalign/tilie-core";
-import type { ElisionEdit, ElisionField } from "./elisions.ts";
+import type { ElisionField } from "./elisions.ts";
+import type { Result } from "./problems.ts";
 import type { Edit, Geometry, NameField, Role } from "./properties.ts";
 import {
   commonValue,
@@ -58,19 +60,19 @@ interface NameDraft {
   readonly problem: string | undefined;
 }
 
-/** A field of the elisions: a selected elision's, or a root's Proportion. */
-export type ElisionDraftField = ElisionField | "proportion";
+/** A field of one element at an address: a selected elision's, a root's Proportion, a region's name. */
+export type DraftField = ElisionField | "proportion" | "name";
 
-/** What elision fields belong to: an address in the manifest they were typed against. */
-export interface ElisionOwner {
+/** What a field's draft belongs to: an address in the manifest they were typed against. */
+export interface FieldOwner {
   readonly address: Address;
   readonly manifest: Manifest;
 }
 
-/** The texts typed into elision fields and their refusals, and what they belong to. */
-interface ElisionDraft extends ElisionOwner {
-  readonly drafts: { readonly [field in ElisionDraftField]?: string };
-  readonly problems: { readonly [field in ElisionDraftField]?: string };
+/** The texts typed into the fields of one address and their refusals, and what they belong to. */
+interface FieldDraft extends FieldOwner {
+  readonly drafts: { readonly [field in DraftField]?: string };
+  readonly problems: { readonly [field in DraftField]?: string };
 }
 
 /** What dispatching an edit gave: the refusal's message, or the notice of what it wrote. */
@@ -116,11 +118,11 @@ function withText(texts: Texts, property: PlaceProperty, text: string | undefine
   return text === undefined ? rest : { ...rest, [property]: text };
 }
 
-/** The Properties form's drafts and refusals, and the open blocks of the Elisions tab. */
+/** The drafts and refusals of the Properties, Elisions and Regions tabs, and the open blocks of the Elisions tab. */
 export class PropertyDrafts {
   #entry: Entry = $state.raw(EMPTY);
   #name: NameDraft | null = $state.raw(null);
-  #elision: ElisionDraft | null = $state.raw(null);
+  #field: FieldDraft | null = $state.raw(null);
   #opened: { readonly [key: string]: boolean } = $state.raw({});
 
   /** The drafts and refusals of `geometry`'s containers; none when they were typed for others. */
@@ -261,8 +263,8 @@ export class PropertyDrafts {
   }
 
   /** The drafts of `owner` in its manifest; `null` when they were typed for another. */
-  #elisionOf(owner: ElisionOwner): ElisionDraft | null {
-    const draft = this.#elision;
+  #fieldOf(owner: FieldOwner): FieldDraft | null {
+    const draft = this.#field;
     return draft !== null &&
       sameAddress(draft.address, owner.address) &&
       draft.manifest === owner.manifest
@@ -270,16 +272,11 @@ export class PropertyDrafts {
       : null;
   }
 
-  #writeElision(
-    owner: ElisionOwner,
-    field: ElisionDraftField,
-    text?: string,
-    problem?: string,
-  ): void {
-    const draft = this.#elisionOf(owner);
+  #writeField(owner: FieldOwner, field: DraftField, text?: string, problem?: string): void {
+    const draft = this.#fieldOf(owner);
     const { [field]: _text, ...drafts } = draft?.drafts ?? {};
     const { [field]: _problem, ...problems } = draft?.problems ?? {};
-    this.#elision = {
+    this.#field = {
       address: owner.address,
       manifest: owner.manifest,
       drafts: text === undefined ? drafts : { ...drafts, [field]: text },
@@ -287,38 +284,38 @@ export class PropertyDrafts {
     };
   }
 
-  /** What an elision field shows: its draft, else `stored`, the text of the value it holds. */
-  elisionValue(owner: ElisionOwner, field: ElisionDraftField, stored: string): string {
-    return this.#elisionOf(owner)?.drafts[field] ?? stored;
+  /** What a field shows: its draft, else `stored`, the text of the value it holds. */
+  fieldValue(owner: FieldOwner, field: DraftField, stored: string): string {
+    return this.#fieldOf(owner)?.drafts[field] ?? stored;
   }
 
-  /** Why the last commit of an elision field was refused; `undefined` while it was not. */
-  elisionProblem(owner: ElisionOwner, field: ElisionDraftField): string | undefined {
-    return this.#elisionOf(owner)?.problems[field];
+  /** Why the last commit of a field was refused; `undefined` while it was not. */
+  fieldProblem(owner: FieldOwner, field: DraftField): string | undefined {
+    return this.#fieldOf(owner)?.problems[field];
   }
 
-  /** Keep `text` as the draft of an elision field; its refusal stays until the next commit. */
-  typeElision(owner: ElisionOwner, field: ElisionDraftField, text: string): void {
-    this.#writeElision(owner, field, text, this.elisionProblem(owner, field));
+  /** Keep `text` as the draft of a field; its refusal stays until the next commit. */
+  typeField(owner: FieldOwner, field: DraftField, text: string): void {
+    this.#writeField(owner, field, text, this.fieldProblem(owner, field));
   }
 
-  /** Drop the draft of an elision field and its refusal. */
-  discardElision(owner: ElisionOwner, field: ElisionDraftField): void {
-    this.#writeElision(owner, field);
+  /** Drop the draft of a field and its refusal. */
+  discardField(owner: FieldOwner, field: DraftField): void {
+    this.#writeField(owner, field);
   }
 
   /**
-   * Commit the draft of an elision field as the one command `edit` makes of
+   * Commit the draft of a field as the one command `edit` makes of
    * it: dropped once the store accepts it (a draft of the stored value
    * dispatches nothing), kept with the refusal otherwise.
    */
-  commitElision(
-    owner: ElisionOwner,
-    field: ElisionDraftField,
+  commitField(
+    owner: FieldOwner,
+    field: DraftField,
     store: Store,
-    edit: (text: string) => ElisionEdit,
+    edit: (text: string) => Result<Command | null>,
   ): void {
-    const draft = this.#elisionOf(owner)?.drafts[field];
+    const draft = this.#fieldOf(owner)?.drafts[field];
     if (draft === undefined) return;
     const made = edit(draft);
     const refusal = !made.ok
@@ -326,8 +323,8 @@ export class PropertyDrafts {
       : made.value === null
         ? undefined
         : store.dispatch(made.value)?.message;
-    if (refusal === undefined) this.#writeElision(owner, field);
-    else this.#writeElision(owner, field, draft, refusal);
+    if (refusal === undefined) this.#writeField(owner, field);
+    else this.#writeField(owner, field, draft, refusal);
   }
 
   /** Whether the Elisions tab's block of `key` is open: as it was last shown or hidden, else `byDefault`. */
