@@ -1843,6 +1843,23 @@ card of `recording` reaches 121.70361328125 left of its place origin at
 layout's default view, and less in a narrower pane), only
 the selection's mark stays.
 
+**`flow-editor.spec.ts`** (Chromium) proves the flow editor on
+TimeToShare's `flow/virtual_cards` imported as one block, viewport (40, 40),
+zoom 1: in `allegro`'s timeline editor (opened through the hook) a
+double-click on the repeat end's symbol `{id: "repeat_end", part:
+["symbol"]}`, which `allegro`'s flow control band draws, opens the flow editor, so the store's editing path is
+the timeline editor then the flow editor of `{block, id: "allegro"}`; the
+pane under the card lists four rows, `default`, `printed`, `single`,
+`by_hand` (computed first, in the manifest's order), and axe-core reports no
+violation inside it. Add + shows the new row; Enter on the first entry of
+`default` stores one entry in the editor's session, `{type: "add", into:
+{block, id: "allegro"}, flow_map: {chunks: ["section_a"]}}`. The row
+`printed` lifted by its name and released 80 px below the pane, past the
+editor's border, stores two entries: the `add` of its virtual timeline
+`{map: "printed", timeline: "allegro"}` and a `set` placing it. Done twice
+closes both editors and the journal gains exactly one entry, the timeline
+editor's session holding the flow editor's.
+
 **`embed.spec.ts`** (Chromium, Firefox, WebKit) proves the embed build in a
 host page it does not own. A route serves the host page at
 `http://host.test/` (its own margin, font and title "Host page", an input,
