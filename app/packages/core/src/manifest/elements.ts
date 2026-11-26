@@ -588,17 +588,19 @@ function memberElements(
   }
   // A flow-control element of `timeline` held by `band` (section 2.1): its own key (none for a
   // jump target, which is no element), then the labels its stack may draw, its symbol where its
-  // manifestation has one and a jump's fork where a destination's manifestation is `volta`.
+  // manifestation has one and a jump's fork where a destination's manifestation is `volta`; all
+  // `count` times, once in every piece holding it on an unfolded card (section 8.10).
   const flowElement = (
     item: FlowControlElement,
     type: FlowLineRole | "jump" | null,
     timeline: TimelineManifest,
     band: ElementKey,
+    count: number,
   ) => {
     const at = idAddress(item.id);
     const holder = type === null ? band : elementKey(type, at, timeline, band);
     if (type !== null) {
-      keys.push(holder);
+      times(count, holder);
       const labelled =
         (item.label !== null && item.label !== undefined) ||
         (item.targets ?? []).some((target) => target.label !== null && target.label !== undefined);
@@ -608,15 +610,17 @@ function memberElements(
         label: labelled,
       };
       for (const word of FLOW_LABELS) {
-        if (texts[word]) keys.push(elementKey("label", partAddress(at, word), timeline, holder));
+        if (texts[word]) {
+          times(count, elementKey("label", partAddress(at, word), timeline, holder));
+        }
       }
     }
     if (flowSymbols(item).length > 0) {
-      keys.push(elementKey("symbol", partAddress(at, "symbol"), timeline, holder));
+      times(count, elementKey("symbol", partAddress(at, "symbol"), timeline, holder));
     }
     const volta = (item.targets ?? []).some((target) => target.manifestation === "volta");
     if (type === "jump" && volta) {
-      keys.push(elementKey("fork", partAddress(at, "fork"), timeline, holder));
+      times(count, elementKey("fork", partAddress(at, "fork"), timeline, holder));
     }
   };
   const visit = (key: ElementKey, timeline: TimelineManifest) => {
@@ -661,8 +665,10 @@ function memberElements(
         });
       },
       conversion_maps: (band) => {
+        // A map is drawn once in every piece reaching its timeline (section 8.10).
+        const count = extentTimes(timeline);
         for (const map of timeline.conversion_maps) {
-          keys.push(elementKey("map", idAddress(map.id), timeline, band, map));
+          times(count, elementKey("map", idAddress(map.id), timeline, band, map));
         }
       },
       markers: (band) => {
@@ -696,14 +702,17 @@ function memberElements(
         }
       },
       flow_control: (band) => {
+        // An element is drawn once in every piece holding its coordinate (section 8.10).
+        const at = (item: FlowControlElement) =>
+          atPoint(addReal(startOf(timeline), value(item.coordinate, timeline)));
         for (const roles of DRAWN_FLOW) {
           for (const item of timeline.flow_control) {
             const role = roles.find((drawn) => drawn === item.role);
-            if (role !== undefined) flowElement(item, role, timeline, band);
+            if (role !== undefined) flowElement(item, role, timeline, band, at(item));
           }
         }
         for (const item of timeline.flow_control) {
-          if (item.role === "jump_target") flowElement(item, null, timeline, band);
+          if (item.role === "jump_target") flowElement(item, null, timeline, band, at(item));
         }
         // A member that is a child timeline: the elements of its root's tree outside its own.
         if (timeline !== root || member.ancestors.length === 0) return;
@@ -723,13 +732,13 @@ function memberElements(
               role === "jump_target" ? null : role,
               placed.timeline,
               band,
+              unfolding === null ? 1 : piecesHolding(unfolding, placed.at),
             );
           }
         }
       },
     };
-    // An unfolded card draws no conversion maps and no flow control (section 8.10).
-    const facets = virtual ? VIRTUAL_FACETS : unfolding === null ? FACETS : UNFOLDED_FACETS;
+    const facets = virtual ? VIRTUAL_FACETS : FACETS;
     for (const facet of facets) {
       const band = bandKey(timeline.id, facet, key);
       keys.push(band);
@@ -751,11 +760,6 @@ function memberElements(
   }
   visit(line, root);
 }
-
-/** The facets an unfolded card draws bands of: no conversion maps and no flow control. */
-const UNFOLDED_FACETS: readonly Facet[] = FACETS.filter(
-  (facet) => facet !== "conversion_maps" && facet !== "flow_control",
-);
 
 /**
  * How a card draws the axis of a FlowMap (section 8.10): `chunks`, the

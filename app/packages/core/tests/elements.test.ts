@@ -1221,11 +1221,21 @@ describe("switched cards", () => {
     const manifest = load("flow/switched_card.yaml");
     const own = listing(manifest).filter(([, address]) => {
       const parsed: ElementAddress = JSON.parse(String(address));
-      return ["allegro", "section_a", "section_b", "section_c"].includes(parsed.id ?? "");
+      return [
+        "allegro",
+        "section_a",
+        "section_b",
+        "section_c",
+        "volta_jump",
+        "repeat_end",
+        "second_ending",
+        "volta_break",
+      ].includes(parsed.id ?? "");
     });
     const line = ["block", "timeline"];
     const held = [...line, "band"];
     const region = [...held, "region"];
+    const twice = (...items: unknown[][]) => items.flatMap((item) => [item, item]);
     const key = (type: string, address: ElementAddress, inside: string[]) => [
       type,
       addressKey(address),
@@ -1239,6 +1249,7 @@ describe("switched cards", () => {
       key("boundary", chunk(2, "start"), line),
       key("boundary", chunk(3, "start"), line),
       key("band", band("allegro", "children"), line),
+      key("band", band("allegro", "conversion_maps"), line),
       key("band", band("allegro", "markers"), line),
       key("band", band("allegro", "regions"), line),
       ...[0, 1, 2, 3].flatMap((k) => [
@@ -1249,7 +1260,28 @@ describe("switched cards", () => {
         key("region", id(r), held),
         key("label", id(r, "label"), region),
       ]),
+      key("band", band("allegro", "flow_control"), line),
+      ...twice(key("break", id("volta_break"), held)),
+      ...twice(key("label", id("volta_break", "id"), [...held, "break"])),
+      ...twice(key("jump", id("volta_jump"), held)),
+      ...twice(key("label", id("volta_jump", "id"), [...held, "jump"])),
+      ...twice(key("fork", id("volta_jump", "fork"), [...held, "jump"])),
+      ...twice(key("jump", id("repeat_end"), held)),
+      ...twice(key("label", id("repeat_end", "id"), [...held, "jump"])),
+      ...twice(key("symbol", id("repeat_end", "symbol"), [...held, "jump"])),
     ]);
+  });
+
+  it("lists a switched card's conversion map once in every piece reaching its timeline", () => {
+    // flow/switched_card with map.yaml's `tempo` on allegro: all four pieces lie on allegro.
+    const tempo = load("map.yaml").timelines[0]?.conversion_maps[0];
+    const view = changed(viewOf([A, "flow/switched_card.yaml"]), {
+      type: "add",
+      into: { block: A, id: "allegro" },
+      map: tempo,
+    });
+    expect(count(block(view).manifest, "map", id("tempo"))).toBe(4);
+    expect(count(block(view).manifest, "band", band("allegro", "conversion_maps"))).toBe(1);
   });
 
   it("carries the other members of a switched frame onto its FlowMap", () => {
@@ -1264,10 +1296,11 @@ describe("switched cards", () => {
     expect(count(manifest, "wedge", id("timestamp_3"))).toBe(2);
     expect(count(manifest, "wedge", id("timestamp_4"))).toBe(1);
     for (const facet of ["conversion_maps", "flow_control"] as const) {
-      expect(count(manifest, "band", band("allegro", facet))).toBe(0);
-      expect(count(manifest, "band", band("recording", facet))).toBe(0);
+      expect(count(manifest, "band", band("allegro", facet))).toBe(1);
+      expect(count(manifest, "band", band("recording", facet))).toBe(1);
     }
-    expect(count(manifest, "jump", id("volta_jump"))).toBe(0);
+    expect(count(manifest, "jump", id("volta_jump"))).toBe(2);
+    expect(count(manifest, "jump", id("repeat_end"))).toBe(2);
   });
 
   it("reads a card's flow from the manifest's own rules, through a card selector alone", () => {

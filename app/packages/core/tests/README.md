@@ -951,8 +951,10 @@ check of who holds what.
     is listed once in every stretch piece reaching it (a position `t`
     where `a ≤ t < b`, or `t = b` in a piece that is the last or is
     followed by a gap or a stretch not starting at `b`; an extent where
-    `max(s, a) < min(e, b)`), a child's name once; no conversion maps or
-    flow control band, nothing they hold, and no elision. A frame with
+    `max(s, a) < min(e, b)`), a child's name once: a conversion map once
+    in every piece reaching its timeline, a flow-control element with its
+    labels, symbol and fork once in every piece holding its coordinate (the
+    bands themselves once); no elision. A frame with
     exactly one switched card is switched: every other member is carried
     onto the FlowMap's root at `t = m × λT / λM`, `m` on the member's own
     axis, and listed likewise, its line once per piece it reaches; a
@@ -965,16 +967,27 @@ check of who holds what.
     - `flow/switched_card.yaml` (`allegro` switched to `default`: the
       pieces A [0, 953/2) at 0, B [953/2, 500) at 953/2, A again at 500,
       C [500, 1644] at 1953/2): its card, line and name, the boundaries
-      `[1, "start"]` to `[3, "start"]`, the children, markers and regions
-      bands, the four braces with their labels, then `section_a` twice,
-      `section_b` and `section_c` once each, each with its label.
+      `[1, "start"]` to `[3, "start"]`, the children, conversion maps,
+      markers and regions bands, the four braces with their labels, then
+      `section_a` twice, `section_b` and `section_c` once each, each with
+      its label; then the flow control band; `volta_break` at 500 (held by
+      B, whose end is followed by a stretch not starting at 500, and by C's
+      start) twice, its `id` label twice; `volta_jump` at 953/2 (held by
+      B's start and by the second A's end, followed by C; not by the first
+      A's end, followed by B starting there) twice, its `id` label and its
+      fork twice each; `repeat_end` at 500 twice, its `id` label and its
+      symbol twice each; `second_ending`, a jump target whose
+      `volta` has no symbol, lists nothing. With the conversion map `tempo`
+      of `map.yaml` added to `allegro`, it is listed four times (every
+      piece lies on `allegro`).
     - `groups/switched_frame.yaml` (`performance`: `allegro` switched to
       `default`, `recording` of 702.5 seconds carried): the brace `[2]`
       once, `section_a` twice; `timestamp_1` at 0 twice (pieces 1 and 3),
       `timestamp_2` at 1644 once (the last piece, closed); `recording`'s
       line four times, its name once; `timestamp_3` at 0.0 twice,
-      `timestamp_4` at 702.5 (carried to 1644) once; no conversion maps
-      or flow control band of either, no jump.
+      `timestamp_4` at 702.5 (carried to 1644) once; the conversion maps
+      and flow control bands of both once each, `allegro`'s `volta_jump`
+      and `repeat_end` twice each.
     - `groups/group_child_member.yaml` with the region `take` [0.0,
       10.0] and the FlowMap `twice` (`take`, `take`) of `recording`, its
       card switched to `twice`, and the named timestamp `bar_7` "Bar 7" of
