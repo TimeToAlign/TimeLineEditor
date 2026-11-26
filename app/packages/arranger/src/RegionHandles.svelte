@@ -8,8 +8,9 @@
  * strategy; the canvas draws the block as the command of the value leaves
  * it, so the preview is what the release stores. The handles stand on the
  * stored drawing, so none is unmounted while it is dragged; the dragged one
- * follows the preview. None for an atomic section (read only), nor while
- * the canvas is locked or read only.
+ * follows the preview, and the canvas hears where it lies and what it
+ * reads (`onlive`) for the flag it shows over the drag. None for an atomic
+ * section (read only), nor while the canvas is locked or read only.
  */
 import type { Granularity } from "@timetoalign/tilie-core";
 import { placeKeyText } from "@timetoalign/tilie-core";
@@ -35,9 +36,11 @@ interface Props {
   granularity: Granularity;
   /** While locked no handle is shown. */
   locked: boolean;
+  /** Hears the dragged handle's place and value, for the canvas's flag; `null` once a drag ends. */
+  onlive: (live: RegionLive | null) => void;
 }
 
-let { selection, nodes, zoom, granularity, locked }: Props = $props();
+let { selection, nodes, zoom, granularity, locked, onlive }: Props = $props();
 
 const actions = getNodeActions();
 const flow = useStore();
@@ -116,6 +119,7 @@ function gestureOf(shown: Shown): Attachment<Element> {
       granularity: () => granularity,
       live: (live) => {
         dragged = live === null ? null : { key, live };
+        onlive(live);
       },
     };
     found = pointerGesture(regionGesture(host, edge), options);

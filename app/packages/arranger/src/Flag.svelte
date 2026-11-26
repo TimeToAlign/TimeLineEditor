@@ -5,7 +5,7 @@ import { onScreen } from "./onScreen.ts";
 
 interface Props {
   /** What the flag shows, naming its test IDs: `<kind>-flag`, `<kind>-pole`, `<kind>-footer`. */
-  kind: "coordinate" | "match" | "elision";
+  kind: "coordinate" | "match" | "elision" | "region";
   /** The flag's accessible name. */
   label: string;
   /** Where what the flag marks lies, in pixels from the canvas's top-left corner. */

@@ -59,6 +59,7 @@ import { CLICK_DISTANCE, GestureSlot, listen, type Point } from "./gesture.ts";
 import { CanvasPointer } from "./gestures/canvas.ts";
 import type { GapLive } from "./gestures/gap.ts";
 import { previewed } from "./gestures/host.ts";
+import type { RegionLive } from "./gestures/region.ts";
 import { PAN_SPEED, shiftWheel } from "./gestures/wheel.ts";
 import type { KeyContext } from "./keys.ts";
 import { handleKey, inToolbar, isTextInput, within } from "./keys.ts";
@@ -629,6 +630,9 @@ let gapEdge: GapEdge = "end";
 /** The dragged gap handle's place and value, from its gesture; `null` while none is dragged. */
 let gapDrag: GapLive | null = $state.raw(null);
 
+/** The dragged region handle's place and value, from its gesture; `null` while none is dragged. */
+let regionDrag: RegionLive | null = $state.raw(null);
+
 /** What the resize toolbar acts on (`resizableOf`). */
 const resizable = $derived(resizableOf(selection, nodes.byId, editing, level));
 
@@ -725,6 +729,15 @@ const gapFlag = $derived.by(() => {
   if (gapHover === null) return null;
   const at = screen(gapHover.x, gapHover.top);
   return { ...at, top: at.y, text: gapHover.text };
+});
+
+/** The flag of a dragged region handle in canvas pixels, as a gap handle's; `null` for none. */
+const regionFlag = $derived.by(() => {
+  if (regionDrag === null) return null;
+  const { x, y, zoom } = viewport;
+  const screen = (cx: number, cy: number) => ({ x: x + cx * zoom, y: y + cy * zoom });
+  const at = screen(regionDrag.at.x, regionDrag.at.y);
+  return { ...at, top: screen(regionDrag.at.x, regionDrag.top).y, text: regionDrag.text };
 });
 
 /** What a screen reader hears when a click pins a timestamp; the moving flag is not announced. */
@@ -1318,6 +1331,7 @@ function onkeydowncapture(event: KeyboardEvent) {
           zoom={viewport.zoom}
           granularity={granularity ?? view.settings.granularity}
           locked={!rules.resize}
+          onlive={(next) => (regionDrag = next)}
         />
       {/if}
       {#if flowTarget !== null && flowPane !== null && flowNode !== undefined}
@@ -1390,6 +1404,19 @@ function onkeydowncapture(event: KeyboardEvent) {
       footer={null}
     >
       <div class="tilie-coordinates-head" data-testid="elision-text">{gapFlag.text}</div>
+    </Flag>
+  {/if}
+  {#if regionFlag !== null}
+    <Flag
+      kind="region"
+      label="Region"
+      x={regionFlag.x}
+      y={regionFlag.y}
+      top={regionFlag.top}
+      width={root?.clientWidth ?? 0}
+      footer={null}
+    >
+      <div class="tilie-coordinates-head" data-testid="region-text">{regionFlag.text}</div>
     </Flag>
   {/if}
   <p class="tilie-announced" data-testid="coordinate-pinned" role="status">{announced}</p>

@@ -5058,13 +5058,22 @@ screen pixels spans less than half a quarter and more than a sixth.
    handle moved `k` left previews once and its command is item 3's
    `{start: [1, 1]}`; the live place it reports is the previewed brace's
    left end at its arms, `(x1', yb')` of the region drawn after that
-   command is applied through core, its start then 1. A press on
-   a read-only canvas (`resize` false) is not taken.
+   command is applied through core, its start then 1, with the top of
+   that brace, `min(ya', yb')`, where the flag's pole stops, and the
+   flag's text `theme, 1–6 ♩` (the region's name, then its stretch with
+   the dragged end, written as a gap's flag writes one); the canvas shows
+   that text in a flag of kind `region` while the handle is dragged, as it
+   shows a gap handle's. A press on a read-only canvas (`resize` false) is
+   not taken.
 5. **The handles** (`CanvasHarness`): with `{block: A, id: region_1}`
    selected the canvas shows two handles, `region-handle-start` at
    `(x1, yb)` and `region-handle-end` at `(x2, yb)` (their `left` and
    `top`); with the line `{block: A, id: clt_1}`, the atomic section or
-   nothing selected, none; no gap handle shows beside them.
+   nothing selected, none; no gap handle shows beside them. At viewport
+   `(0, 0)`, zoom 1, the start's handle pressed at `(x1, yb)` and moved
+   `k` left shows the flag
+   `region-text` "theme, 1–6 ♩" (item 4); released, no `region-flag`
+   remains.
 
 What would be wrong: a handle on a brace drawn over another axis, a value
 read as a float and stored as one, an end dragged past the other end or

@@ -39,6 +39,7 @@ import { HIT_TOLERANCE } from "../coordinates.ts";
 import { drawingOf, nodePosition } from "../drawing.ts";
 import { axisValue, exactOn, max, min, snappedOn, timelineTargets } from "../edgeValues.ts";
 import type { Viewport } from "../focus.ts";
+import { stretchText } from "../gaps.ts";
 import type { GestureStrategy, Point } from "../gesture.ts";
 import type { BlockNode } from "../node.ts";
 import type { NodeActions } from "../nodeActions.ts";
@@ -251,6 +252,22 @@ export function regionCommand(
 export interface RegionLive {
   readonly edge: RegionEdge;
   readonly at: Point;
+  /** The top of the brace there, in canvas units: the flag's pole rises above it. */
+  readonly top: number;
+  /** What the flag says: the region and its stretch with the dragged end at `value`. */
+  readonly text: string;
+}
+
+/**
+ * What the flag of a dragged region handle says: the region's name (its
+ * ID without one) and its stretch with the `edge` at `value`, written as a
+ * gap's flag writes a stretch: "B, 12–18 ♩".
+ */
+export function regionText(subject: RegionSubject, edge: RegionEdge, value: Rational): string {
+  const { region, timeline } = subject;
+  const start = edge === "start" ? value : subject.start;
+  const end = edge === "end" ? value : subject.end;
+  return `${region.name ?? region.id}, ${stretchText(timeline, start, end)}`;
 }
 
 /** The handles' side of a drag. */
@@ -260,7 +277,7 @@ export interface RegionHost {
   target(): { readonly node: BlockNode; readonly subject: RegionSubject } | undefined;
   viewport(): Viewport;
   granularity(): Granularity;
-  /** Hears the dragged handle's place while it moves; `null` once the drag ends. */
+  /** Hears the dragged handle's place and value while it moves; `null` once the drag ends. */
   live(live: RegionLive | null): void;
 }
 
@@ -291,7 +308,7 @@ export function regionGesture(
 ): GestureStrategy<RegionPress, Rational> {
   const { actions } = host;
   /** Where the dragged handle lies in `view` (the preview): the same card's same brace. */
-  function placed(press: RegionPress, view: View): RegionLive | null {
+  function placed(press: RegionPress, view: View, value: Rational): RegionLive | null {
     const block = view.blocks[press.node.id];
     if (block === undefined) return null;
     const drawing = drawingOf(block, view.graphical, actions.metrics, undefined, actions.pane());
@@ -301,8 +318,14 @@ export function regionGesture(
     );
     if (found === undefined) return null;
     const origin = nodePosition(block, drawing);
-    const at = handlePoint(found.piece.element, edge);
-    return { edge, at: { x: origin.x + at.x * block.scale, y: origin.y + at.y * block.scale } };
+    const { element } = found.piece;
+    const at = handlePoint(element, edge);
+    return {
+      edge,
+      at: { x: origin.x + at.x * block.scale, y: origin.y + at.y * block.scale },
+      top: origin.y + Math.min(element.ya, element.yb) * block.scale,
+      text: regionText(press.subject, edge, value),
+    };
   }
   return {
     takes(_event, at) {
@@ -337,7 +360,7 @@ export function regionGesture(
       previewCommand(actions, id, press.view, command);
       const shown =
         command === null ? press.view : previewed(press.view, command, actions.minter());
-      host.live(placed(press, shown));
+      host.live(placed(press, shown, value));
     },
     command(press, value) {
       return regionCommand(press.view, press.node.id, press.subject, edge, value);

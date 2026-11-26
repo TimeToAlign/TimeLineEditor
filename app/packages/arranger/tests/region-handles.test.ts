@@ -23,7 +23,7 @@ import type { NodeActions } from "../src/nodeActions.ts";
 import { project } from "../src/project.ts";
 import { NOTHING_SELECTED, type Selection, selectionOf } from "../src/selection.ts";
 import Harness from "./CanvasHarness.svelte";
-import { recordingActions, settle, stubCanvasGlobals } from "./dom.ts";
+import { pointer, recordingActions, settle, stubCanvasGlobals } from "./dom.ts";
 import { A, changed, metrics, storeOf, viewOf } from "./support.ts";
 
 const REGION = viewOf({ id: A, fixture: "with_region" });
@@ -159,7 +159,14 @@ describe("the gesture of a region's handle", () => {
     const after = apply(REGION, command);
     if (isCommandError(after)) throw new Error(after.message);
     const moved = subjectOf(after, "region_1").piece.element;
-    expect(lives).toEqual([{ edge: "start", at: { x: moved.x1, y: moved.yb } }]);
+    expect(lives).toEqual([
+      {
+        edge: "start",
+        at: { x: moved.x1, y: moved.yb },
+        top: Math.min(moved.ya, moved.yb),
+        text: "theme, 1–6 ♩",
+      },
+    ]);
     expect(text(subjectOf(after, "region_1").start)).toBe("1/1");
   });
 
@@ -171,6 +178,7 @@ describe("the gesture of a region's handle", () => {
 describe("the handles on the canvas", () => {
   interface Mounted {
     select(next: Selection): void;
+    showAt(next: { x: number; y: number; zoom: number }): void;
   }
 
   let mounted: ReturnType<typeof mount> | undefined;
@@ -186,6 +194,9 @@ describe("the handles on the canvas", () => {
     vi.unstubAllGlobals();
   });
 
+  /** The harness mounted last. */
+  let harness: Mounted | undefined;
+
   async function shown(view: View, address: Address | null): Promise<void> {
     if (mounted !== undefined) unmount(mounted);
     document.body.innerHTML = "";
@@ -193,7 +204,7 @@ describe("the handles on the canvas", () => {
     const instance = mount(Harness, { target: document.body, props: { store, metrics } });
     mounted = instance;
     // `tsc` reads the harness through Svelte's generic module declaration, which leaves its exports untyped.
-    const harness = instance as Mounted;
+    harness = instance as Mounted;
     await settle();
     harness.select(address === null ? NOTHING_SELECTED : selectionOf([address]));
     await settle();
@@ -213,6 +224,23 @@ describe("the handles on the canvas", () => {
       ["region-handle-end", `${brace.x2}px`, `${brace.yb}px`],
     ]);
     expect(document.querySelectorAll("[data-testid^='gap-handle-']").length).toBe(0);
+  });
+
+  it("shows the region's flag while a handle is dragged, and none once it is released", async () => {
+    await shown(REGION, inBlock(A, idAddress("region_1")));
+    // At zoom 1 and no pan a screen pixel is a block unit, as in the gesture's case above.
+    harness?.showAt({ x: 0, y: 0, zoom: 1 });
+    await settle();
+    const handle = document.querySelector<HTMLElement>("[data-testid='region-handle-start']");
+    if (handle === null) throw new Error("no start handle");
+    const text = () => document.querySelector("[data-testid='region-text']")?.textContent ?? null;
+    pointer(handle, "pointerdown", brace.x1, brace.yb);
+    pointer(window, "pointermove", brace.x1 - k, brace.yb);
+    await settle();
+    expect(text()).toBe("theme, 1–6 ♩");
+    pointer(window, "pointerup", brace.x1 - k, brace.yb);
+    await settle();
+    expect(document.querySelector("[data-testid='region-flag']")).toBeNull();
   });
 
   it("shows none for a line, an atomic section or nothing", async () => {
