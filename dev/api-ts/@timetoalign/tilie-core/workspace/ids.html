@@ -531,6 +531,185 @@
                   
   <section id="workspace-ids">
 <h1>workspace/ids<a class="headerlink" href="#workspace-ids" title="Link to this heading">#</a></h1>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
+<section id="missingiderror">
+<h3>MissingIdError<a class="headerlink" href="#missingiderror" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L135">workspace/ids.ts:135</a></p>
+<p>Thrown by an <code class="docutils literal notranslate"><span class="pre">IdSource</span></code> asked for more IDs than its command carries when
+it has no minter; the reducer refuses the command for it.</p>
+<section id="extends">
+<h4>Extends<a class="headerlink" href="#extends" title="Link to this heading">#</a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Error</span></code></p></li>
+</ul>
+</section>
+<section id="constructors">
+<h4>Constructors<a class="headerlink" href="#constructors" title="Link to this heading">#</a></h4>
+<section id="constructor">
+<h5>Constructor<a class="headerlink" href="#constructor" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>new MissingIdError</strong>(<code class="docutils literal notranslate"><span class="pre">given</span></code>): <a class="reference internal" href="#missingiderror"><code class="docutils literal notranslate"><span class="pre">MissingIdError</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L137">workspace/ids.ts:137</a></p>
+<section id="parameters">
+<h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
+</section>
+<section id="given">
+<h6>given<a class="headerlink" href="#given" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</section>
+<section id="returns">
+<h6>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="#missingiderror"><code class="docutils literal notranslate"><span class="pre">MissingIdError</span></code></a></p>
+</section>
+<section id="overrides">
+<h6>Overrides<a class="headerlink" href="#overrides" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">Error.constructor</span></code></p>
+</section>
+</section>
+</section>
+<section id="properties">
+<h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
+<section id="id1">
+<h5>given<a class="headerlink" href="#id1" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>given</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L136">workspace/ids.ts:136</a></p>
+</section>
+</section>
+</section>
+</section>
+<section id="interfaces">
+<h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
+<section id="idminter">
+<h3>IdMinter<a class="headerlink" href="#idminter" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L82">workspace/ids.ts:82</a></p>
+<p>A minter: its seed (modulo 2^64), its length, and the next ID it mints for a prefix.</p>
+<section id="id2">
+<h4>Properties<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
+<section id="length">
+<h5>length<a class="headerlink" href="#length" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>length</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L84">workspace/ids.ts:84</a></p>
+</section>
+<section id="seed">
+<h5>seed<a class="headerlink" href="#seed" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>seed</strong>: <code class="docutils literal notranslate"><span class="pre">bigint</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L83">workspace/ids.ts:83</a></p>
+</section>
+</section>
+<section id="methods">
+<h4>Methods<a class="headerlink" href="#methods" title="Link to this heading">#</a></h4>
+<section id="mint">
+<h5>mint()<a class="headerlink" href="#mint" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><strong>mint</strong>(<code class="docutils literal notranslate"><span class="pre">prefix</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L86">workspace/ids.ts:86</a></p>
+<p>The next ID: <code class="docutils literal notranslate"><span class="pre">prefix</span></code>, <code class="docutils literal notranslate"><span class="pre">_</span></code> and the next suffix of the minter.</p>
+<section id="id3">
+<h6>Parameters<a class="headerlink" href="#id3" title="Link to this heading">#</a></h6>
+</section>
+<section id="prefix">
+<h6>prefix<a class="headerlink" href="#prefix" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="id4">
+<h6>Returns<a class="headerlink" href="#id4" title="Link to this heading">#</a></h6>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="idminteroptions">
+<h3>IdMinterOptions<a class="headerlink" href="#idminteroptions" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L90">workspace/ids.ts:90</a></p>
+<p>The options of <code class="docutils literal notranslate"><span class="pre">createIdMinter</span></code>.</p>
+<section id="id5">
+<h4>Properties<a class="headerlink" href="#id5" title="Link to this heading">#</a></h4>
+<section id="id6">
+<h5>length?<a class="headerlink" href="#id6" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>length?</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L94">workspace/ids.ts:94</a></p>
+<p>The number of base-36 characters of a suffix, 1 to 13; 13 by default.</p>
+</section>
+<section id="id7">
+<h5>seed?<a class="headerlink" href="#id7" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>seed?</strong>: <code class="docutils literal notranslate"><span class="pre">bigint</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L92">workspace/ids.ts:92</a></p>
+<p>The seed, taken modulo 2^64; 64 random bits when left out.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="idsource">
+<h3>IdSource<a class="headerlink" href="#idsource" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L149">workspace/ids.ts:149</a></p>
+<p>Where the reducer takes the IDs of what a command creates, in the order it
+creates them: the IDs the command carries first, then, with a minter,
+those the minter mints.</p>
+<section id="id8">
+<h4>Properties<a class="headerlink" href="#id8" title="Link to this heading">#</a></h4>
+<section id="left">
+<h5>left<a class="headerlink" href="#left" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>left</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L155">workspace/ids.ts:155</a></p>
+<p>How many given IDs no call took.</p>
+</section>
+<section id="take">
+<h5>take<a class="headerlink" href="#take" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>take</strong>: <a class="reference internal" href="#id9"><code class="docutils literal notranslate"><span class="pre">Mint</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L151">workspace/ids.ts:151</a></p>
+<p>The next ID; throws <code class="docutils literal notranslate"><span class="pre">MissingIdError</span></code> past the given IDs without a minter.</p>
+</section>
+<section id="taken">
+<h5>taken<a class="headerlink" href="#taken" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>taken</strong>: readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L153">workspace/ids.ts:153</a></p>
+<p>Every ID taken so far, in order.</p>
+</section>
+</section>
+</section>
+</section>
+<section id="type-aliases">
+<h2>Type Aliases<a class="headerlink" href="#type-aliases" title="Link to this heading">#</a></h2>
+<section id="id9">
+<h3>Mint<a class="headerlink" href="#id9" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>Mint</strong> = (<code class="docutils literal notranslate"><span class="pre">prefix</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L129">workspace/ids.ts:129</a></p>
+<p>What gives an ID to an element a command creates: one for each call, for an element of <code class="docutils literal notranslate"><span class="pre">prefix</span></code>.</p>
+<section id="id10">
+<h4>Parameters<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
+<section id="id11">
+<h5>prefix<a class="headerlink" href="#id11" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<section id="id12">
+<h4>Returns<a class="headerlink" href="#id12" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+</section>
 <section id="variables">
 <h2>Variables<a class="headerlink" href="#variables" title="Link to this heading">#</a></h2>
 <section id="anchor-prefix">
@@ -538,8 +717,8 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>ANCHOR_PREFIX</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;anchor&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;anchor&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/workspace/ids.ts#L47">workspace/ids.ts:47</a></p>
-<p>The prefix of an alignment anchor’s ID (<code class="docutils literal notranslate"><span class="pre">anchor_N</span></code>), which naming or updating a MatchStamp mints.</p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L60">workspace/ids.ts:60</a></p>
+<p>The prefix of an alignment anchor’s ID.</p>
 </section>
 <hr class="docutils" />
 <section id="elision-prefix">
@@ -547,8 +726,26 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>ELISION_PREFIX</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;elision&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;elision&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/workspace/ids.ts#L41">workspace/ids.ts:41</a></p>
-<p>The prefix of an elision’s ID (<code class="docutils literal notranslate"><span class="pre">elision_N</span></code>), which <code class="docutils literal notranslate"><span class="pre">add</span></code> mints.</p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L54">workspace/ids.ts:54</a></p>
+<p>The prefix of an elision’s ID.</p>
+</section>
+<hr class="docutils" />
+<section id="group-prefix">
+<h3>GROUP_PREFIX<a class="headerlink" href="#group-prefix" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>GROUP_PREFIX</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;group&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;group&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L63">workspace/ids.ts:63</a></p>
+<p>The prefix of a group’s ID.</p>
+</section>
+<hr class="docutils" />
+<section id="id-length">
+<h3>ID_LENGTH<a class="headerlink" href="#id-length" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>ID_LENGTH</strong>: <code class="docutils literal notranslate"><span class="pre">13</span></code> = <code class="docutils literal notranslate"><span class="pre">13</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L66">workspace/ids.ts:66</a></p>
+<p>The number of base-36 characters of a minted ID’s suffix by default.</p>
 </section>
 <hr class="docutils" />
 <section id="matchstamp-prefix">
@@ -556,8 +753,8 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>MATCHSTAMP_PREFIX</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;matchstamp&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;matchstamp&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/workspace/ids.ts#L44">workspace/ids.ts:44</a></p>
-<p>The prefix of a named MatchStamp’s ID (<code class="docutils literal notranslate"><span class="pre">matchstamp_N</span></code>), which naming one mints.</p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L57">workspace/ids.ts:57</a></p>
+<p>The prefix of a named MatchStamp’s ID.</p>
 </section>
 <hr class="docutils" />
 <section id="timeline-prefix">
@@ -565,8 +762,8 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>TIMELINE_PREFIX</strong>: <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/workspace/ids.ts#L28">workspace/ids.ts:28</a></p>
-<p>The prefix of a minted timeline ID (<code class="docutils literal notranslate"><span class="pre">clt_N</span></code>, <code class="docutils literal notranslate"><span class="pre">dpt_N</span></code>, …) by its timeline class.</p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L41">workspace/ids.ts:41</a></p>
+<p>The prefix of a minted timeline ID (<code class="docutils literal notranslate"><span class="pre">clt_…</span></code>, <code class="docutils literal notranslate"><span class="pre">dpt_…</span></code>, …) by its timeline class.</p>
 <section id="type-declaration">
 <h4>Type Declaration<a class="headerlink" href="#type-declaration" title="Link to this heading">#</a></h4>
 <section id="continuousgraphicaltimeline">
@@ -613,55 +810,95 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>TIMESTAMP_PREFIX</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;timestamp&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;timestamp&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/workspace/ids.ts#L38">workspace/ids.ts:38</a></p>
-<p>The prefix of a named timestamp’s ID (<code class="docutils literal notranslate"><span class="pre">timestamp_N</span></code>), which <code class="docutils literal notranslate"><span class="pre">add</span></code> mints.</p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L51">workspace/ids.ts:51</a></p>
+<p>The prefix of a named timestamp’s ID.</p>
 </section>
 </section>
 <section id="functions">
 <h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<section id="createidminter">
+<h3>createIdMinter()<a class="headerlink" href="#createidminter" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>createIdMinter</strong>(<code class="docutils literal notranslate"><span class="pre">options?</span></code>): <a class="reference internal" href="#idminter"><code class="docutils literal notranslate"><span class="pre">IdMinter</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L108">workspace/ids.ts:108</a></p>
+<p>A minter of <code class="docutils literal notranslate"><span class="pre">seed</span></code> (64 random bits when left out) and <code class="docutils literal notranslate"><span class="pre">length</span></code> (13 by
+default); a length that is not an integer from 1 to 13 throws a
+<code class="docutils literal notranslate"><span class="pre">RangeError</span></code>.</p>
+<section id="id13">
+<h4>Parameters<a class="headerlink" href="#id13" title="Link to this heading">#</a></h4>
+<section id="options">
+<h5>options?<a class="headerlink" href="#options" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#idminteroptions"><code class="docutils literal notranslate"><span class="pre">IdMinterOptions</span></code></a> = <code class="docutils literal notranslate"><span class="pre">{}</span></code></p>
+</section>
+</section>
+<section id="id14">
+<h4>Returns<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#idminter"><code class="docutils literal notranslate"><span class="pre">IdMinter</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="id15">
+<h3>idSource()<a class="headerlink" href="#id15" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>idSource</strong>(<code class="docutils literal notranslate"><span class="pre">given</span></code>, <code class="docutils literal notranslate"><span class="pre">minter?</span></code>): <a class="reference internal" href="#idsource"><code class="docutils literal notranslate"><span class="pre">IdSource</span></code></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L159">workspace/ids.ts:159</a></p>
+<p>A source taking <code class="docutils literal notranslate"><span class="pre">given</span></code> in order, then minting with <code class="docutils literal notranslate"><span class="pre">minter</span></code>, where there is one.</p>
+<section id="id16">
+<h4>Parameters<a class="headerlink" href="#id16" title="Link to this heading">#</a></h4>
+<section id="id17">
+<h5>given<a class="headerlink" href="#id17" title="Link to this heading">#</a></h5>
+<p>readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</section>
+<section id="minter">
+<h5>minter?<a class="headerlink" href="#minter" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#idminter"><code class="docutils literal notranslate"><span class="pre">IdMinter</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code> = <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id18">
+<h4>Returns<a class="headerlink" href="#id18" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#idsource"><code class="docutils literal notranslate"><span class="pre">IdSource</span></code></a></p>
+</section>
+</section>
+<hr class="docutils" />
 <section id="mintblockid">
 <h3>mintBlockId()<a class="headerlink" href="#mintblockid" title="Link to this heading">#</a></h3>
 <blockquote>
 <div><p><strong>mintBlockId</strong>(<code class="docutils literal notranslate"><span class="pre">fill?</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/workspace/ids.ts#L14">workspace/ids.ts:14</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L27">workspace/ids.ts:27</a></p>
 <p>A fresh block id: ten random base-36 characters, so concurrent peers never collide.</p>
-<section id="parameters">
-<h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
+<section id="id19">
+<h4>Parameters<a class="headerlink" href="#id19" title="Link to this heading">#</a></h4>
 <section id="fill">
 <h5>fill?<a class="headerlink" href="#fill" title="Link to this heading">#</a></h5>
 <p>(<code class="docutils literal notranslate"><span class="pre">bytes</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </section>
 </section>
-<section id="returns">
-<h4>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h4>
+<section id="id20">
+<h4>Returns<a class="headerlink" href="#id20" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="nextid">
-<h3>nextId()<a class="headerlink" href="#nextid" title="Link to this heading">#</a></h3>
+<section id="mix64">
+<h3>mix64()<a class="headerlink" href="#mix64" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>nextId</strong>(<code class="docutils literal notranslate"><span class="pre">prefix</span></code>, <code class="docutils literal notranslate"><span class="pre">taken</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+<div><p><strong>mix64</strong>(<code class="docutils literal notranslate"><span class="pre">x</span></code>): <code class="docutils literal notranslate"><span class="pre">bigint</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/workspace/ids.ts#L54">workspace/ids.ts:54</a></p>
-<p>The smallest <code class="docutils literal notranslate"><span class="pre">{prefix}_{N}</span></code>, <code class="docutils literal notranslate"><span class="pre">N</span></code> counted from 1, that <code class="docutils literal notranslate"><span class="pre">taken</span></code> does not
-hold: the ID an element added to a manifest is given, <code class="docutils literal notranslate"><span class="pre">taken</span></code> being the
-manifest’s IDs (<code class="docutils literal notranslate"><span class="pre">manifestIds</span></code>).</p>
-<section id="id1">
-<h4>Parameters<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
-<section id="prefix">
-<h5>prefix<a class="headerlink" href="#prefix" title="Link to this heading">#</a></h5>
-<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
-</section>
-<section id="taken">
-<h5>taken<a class="headerlink" href="#taken" title="Link to this heading">#</a></h5>
-<p><code class="docutils literal notranslate"><span class="pre">ReadonlySet</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>&gt;</p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/workspace/ids.ts#L71">workspace/ids.ts:71</a></p>
+<p>SplitMix64’s finalizer over 64-bit integers, a bijection: <code class="docutils literal notranslate"><span class="pre">x</span></code> is taken modulo 2^64.</p>
+<section id="id21">
+<h4>Parameters<a class="headerlink" href="#id21" title="Link to this heading">#</a></h4>
+<section id="x">
+<h5>x<a class="headerlink" href="#x" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">bigint</span></code></p>
 </section>
 </section>
-<section id="id2">
-<h4>Returns<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
-<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+<section id="id22">
+<h4>Returns<a class="headerlink" href="#id22" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">bigint</span></code></p>
 </section>
 </section>
 </section>
@@ -714,9 +951,80 @@ manifest’s IDs (<code class="docutils literal notranslate"><span class="pre">m
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#missingiderror">MissingIdError</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#extends">Extends</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#constructors">Constructors</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#constructor">Constructor</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#given">given</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#overrides">Overrides</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">given</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#idminter">IdMinter</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#length">length</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#seed">seed</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#methods">Methods</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mint">mint()</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Parameters</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#prefix">prefix</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#idminteroptions">IdMinterOptions</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">length?</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">seed?</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#idsource">IdSource</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#left">left</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#take">take</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#taken">taken</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#type-aliases">Type Aliases</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Mint</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">prefix</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Returns</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#variables">Variables</a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#anchor-prefix">ANCHOR_PREFIX</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#elision-prefix">ELISION_PREFIX</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#group-prefix">GROUP_PREFIX</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id-length">ID_LENGTH</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchstamp-prefix">MATCHSTAMP_PREFIX</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timeline-prefix">TIMELINE_PREFIX</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#type-declaration">Type Declaration</a><ul class="nav section-nav flex-column">
@@ -734,21 +1042,37 @@ manifest’s IDs (<code class="docutils literal notranslate"><span class="pre">m
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#createidminter">createIdMinter()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#options">options?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">idSource()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">given</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#minter">minter?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">Returns</a></li>
+</ul>
+</li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mintblockid">mintBlockId()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#fill">fill?</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nextid">nextId()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#prefix">prefix</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#taken">taken</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mix64">mix64()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#x">x</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">Returns</a></li>
 </ul>
 </li>
 </ul>

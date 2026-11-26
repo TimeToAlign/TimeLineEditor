@@ -524,7 +524,7 @@
 <h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
 <section id="editorfocus">
 <h3>EditorFocus<a class="headerlink" href="#editorfocus" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L35">arranger/src/editorFocus.svelte.ts:35</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L35">arranger/src/editorFocus.svelte.ts:35</a></p>
 <p>The editor focus of one canvas. Made while the canvas initialises: it follows the store from then on.</p>
 <section id="constructors">
 <h4>Constructors<a class="headerlink" href="#constructors" title="Link to this heading">#</a></h4>
@@ -533,7 +533,7 @@
 <blockquote>
 <div><p><strong>new EditorFocus</strong>(<code class="docutils literal notranslate"><span class="pre">host</span></code>): <a class="reference internal" href="#editorfocus"><code class="docutils literal notranslate"><span class="pre">EditorFocus</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L53">arranger/src/editorFocus.svelte.ts:53</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L53">arranger/src/editorFocus.svelte.ts:53</a></p>
 <section id="parameters">
 <h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
 </section>
@@ -554,7 +554,7 @@
 <blockquote>
 <div><p><strong>focusOn</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">void</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L129">arranger/src/editorFocus.svelte.ts:129</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L129">arranger/src/editorFocus.svelte.ts:129</a></p>
 <p>Centre the edited element <code class="docutils literal notranslate"><span class="pre">target</span></code> in the canvas, once the page has
 settled: the inspector may open with the editor, and the canvas, which
 lies left of it, is measured after it has. Its width is therefore the
@@ -580,7 +580,7 @@ that is not drawn (a hidden element) leaves the view where it is.</p>
 <blockquote>
 <div><p><strong>follow</strong>(<code class="docutils literal notranslate"><span class="pre">store</span></code>, <code class="docutils literal notranslate"><span class="pre">next</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L99">arranger/src/editorFocus.svelte.ts:99</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L99">arranger/src/editorFocus.svelte.ts:99</a></p>
 <p>Follow the editing path <code class="docutils literal notranslate"><span class="pre">next</span></code> of <code class="docutils literal notranslate"><span class="pre">store</span></code>: an editor opening pushes the
 viewport and moves the view to the edited element; an editor
 closing pops the viewport its level was entered from and moves the
@@ -609,7 +609,7 @@ back to.</p>
 <blockquote>
 <div><p><strong>moved</strong>(): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L74">arranger/src/editorFocus.svelte.ts:74</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L74">arranger/src/editorFocus.svelte.ts:74</a></p>
 <p>The view was moved from outside the focus (the user’s pan or zoom, a
 toolbar, a test): no smooth move is under way any more, and the view
 stays where it was moved when the pane settles (<code class="docutils literal notranslate"><span class="pre">settled</span></code>).</p>
@@ -623,7 +623,7 @@ stays where it was moved when the pane settles (<code class="docutils literal no
 <blockquote>
 <div><p><strong>moveTo</strong>(<code class="docutils literal notranslate"><span class="pre">next</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L79">arranger/src/editorFocus.svelte.ts:79</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L79">arranger/src/editorFocus.svelte.ts:79</a></p>
 <p>Move the view to <code class="docutils literal notranslate"><span class="pre">next</span></code>, smoothly unless the reader prefers reduced motion.</p>
 <section id="id6">
 <h6>Parameters<a class="headerlink" href="#id6" title="Link to this heading">#</a></h6>
@@ -642,7 +642,7 @@ stays where it was moved when the pane settles (<code class="docutils literal no
 <blockquote>
 <div><p><strong>resized</strong>(): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L174">arranger/src/editorFocus.svelte.ts:174</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L174">arranger/src/editorFocus.svelte.ts:174</a></p>
 <p>The canvas has changed size (the inspector drawer opening or closing
 beside it, the window resized): with an editor open, its element is
 centred again to fill the new area, as on entering. A size the view was
@@ -660,7 +660,7 @@ was entered from.</p>
 <blockquote>
 <div><p><strong>settled</strong>(): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L156">arranger/src/editorFocus.svelte.ts:156</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L156">arranger/src/editorFocus.svelte.ts:156</a></p>
 <p>The pane has settled at a new size, <code class="docutils literal notranslate"><span class="pre">PANE_SETTLE</span></code> after the canvas
 last changed size, and every drawing is drawn again for it (an ancestor
 card’s automatic proportion reads the pane): the centring done when the
@@ -680,7 +680,7 @@ moved since, also by the user during that move, is left where it is.</p>
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="focushost">
 <h3>FocusHost<a class="headerlink" href="#focushost" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L19">arranger/src/editorFocus.svelte.ts:19</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L19">arranger/src/editorFocus.svelte.ts:19</a></p>
 <p>What the focus reads from the canvas and does through it.</p>
 <section id="id11">
 <h4>Methods<a class="headerlink" href="#id11" title="Link to this heading">#</a></h4>
@@ -689,7 +689,7 @@ moved since, also by the user during that move, is left where it is.</p>
 <blockquote>
 <div><p><strong>metrics</strong>(): <code class="docutils literal notranslate"><span class="pre">FontMetrics</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L26">arranger/src/editorFocus.svelte.ts:26</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L26">arranger/src/editorFocus.svelte.ts:26</a></p>
 <section id="id12">
 <h6>Returns<a class="headerlink" href="#id12" title="Link to this heading">#</a></h6>
 <p><code class="docutils literal notranslate"><span class="pre">FontMetrics</span></code></p>
@@ -700,7 +700,7 @@ moved since, also by the user during that move, is left where it is.</p>
 <blockquote>
 <div><p><strong>nodes</strong>(): <code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, <a class="reference internal" href="node.html#blocknode"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">BlockNode</span></code></span></a>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L25">arranger/src/editorFocus.svelte.ts:25</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L25">arranger/src/editorFocus.svelte.ts:25</a></p>
 <p>The projected nodes by block id.</p>
 <section id="id13">
 <h6>Returns<a class="headerlink" href="#id13" title="Link to this heading">#</a></h6>
@@ -712,7 +712,7 @@ moved since, also by the user during that move, is left where it is.</p>
 <blockquote>
 <div><p><strong>pane</strong>(): <a class="reference internal" href="pane.html#panesource"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PaneSource</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L30">arranger/src/editorFocus.svelte.ts:30</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L30">arranger/src/editorFocus.svelte.ts:30</a></p>
 <p>The pane the canvas’s drawings are fitted to, read in a reaction to follow it settling.</p>
 <section id="id14">
 <h6>Returns<a class="headerlink" href="#id14" title="Link to this heading">#</a></h6>
@@ -724,7 +724,7 @@ moved since, also by the user during that move, is left where it is.</p>
 <blockquote>
 <div><p><strong>reducedMotion</strong>(): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L31">arranger/src/editorFocus.svelte.ts:31</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L31">arranger/src/editorFocus.svelte.ts:31</a></p>
 <section id="id15">
 <h6>Returns<a class="headerlink" href="#id15" title="Link to this heading">#</a></h6>
 <p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
@@ -735,7 +735,7 @@ moved since, also by the user during that move, is left where it is.</p>
 <blockquote>
 <div><p><strong>root</strong>(): <code class="docutils literal notranslate"><span class="pre">HTMLElement</span></code> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L28">arranger/src/editorFocus.svelte.ts:28</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L28">arranger/src/editorFocus.svelte.ts:28</a></p>
 <p>The canvas’s element, measured for the area an edited element is centred in.</p>
 <section id="id16">
 <h6>Returns<a class="headerlink" href="#id16" title="Link to this heading">#</a></h6>
@@ -747,7 +747,7 @@ moved since, also by the user during that move, is left where it is.</p>
 <blockquote>
 <div><p><strong>show</strong>(<code class="docutils literal notranslate"><span class="pre">next</span></code>, <code class="docutils literal notranslate"><span class="pre">duration?</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L23">arranger/src/editorFocus.svelte.ts:23</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L23">arranger/src/editorFocus.svelte.ts:23</a></p>
 <p>Show <code class="docutils literal notranslate"><span class="pre">next</span></code>, over <code class="docutils literal notranslate"><span class="pre">duration</span></code> milliseconds (at once without one).</p>
 <section id="id17">
 <h6>Parameters<a class="headerlink" href="#id17" title="Link to this heading">#</a></h6>
@@ -770,7 +770,7 @@ moved since, also by the user during that move, is left where it is.</p>
 <blockquote>
 <div><p><strong>store</strong>(): <a class="reference internal" href="../tilie-core/workspace/store.html#store"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Store</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L20">arranger/src/editorFocus.svelte.ts:20</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L20">arranger/src/editorFocus.svelte.ts:20</a></p>
 <section id="id21">
 <h6>Returns<a class="headerlink" href="#id21" title="Link to this heading">#</a></h6>
 <p><a class="reference internal" href="../tilie-core/workspace/store.html#store"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Store</span></code></span></a></p>
@@ -781,7 +781,7 @@ moved since, also by the user during that move, is left where it is.</p>
 <blockquote>
 <div><p><strong>viewport</strong>(): <code class="docutils literal notranslate"><span class="pre">Viewport</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/arranger/src/editorFocus.svelte.ts#L21">arranger/src/editorFocus.svelte.ts:21</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/arranger/src/editorFocus.svelte.ts#L21">arranger/src/editorFocus.svelte.ts:21</a></p>
 <section id="id22">
 <h6>Returns<a class="headerlink" href="#id22" title="Link to this heading">#</a></h6>
 <p><code class="docutils literal notranslate"><span class="pre">Viewport</span></code></p>

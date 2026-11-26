@@ -538,10 +538,11 @@
 <blockquote>
 <div><p><strong>settle</strong>(<code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">changes</span></code>, <code class="docutils literal notranslate"><span class="pre">checked</span></code>): <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/commands/settle.ts#L207">commands/settle.ts:207</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/settle.ts#L166">commands/settle.ts:166</a></p>
 <p>Settle each manifest <code class="docutils literal notranslate"><span class="pre">changes</span></code> names: cut its <code class="docutils literal notranslate"><span class="pre">&#64;context</span></code> to the prefixes
 it declares itself and its statements use (covering states nothing, so
-the context holds for the covered manifest too), cover its segment lines, complete it, order it,
+the context holds for the covered manifest too), cover its segment lines
+(each new segment’s ID the next of <code class="docutils literal notranslate"><span class="pre">changes.ids</span></code>), complete it, order it,
 make every groupstamp off a group member an ordinary timestamp and, with
 <code class="docutils literal notranslate"><span class="pre">checked</span></code>, refuse its first schema or invariant problem, at <code class="docutils literal notranslate"><span class="pre">[&lt;block</span> <span class="pre">id&gt;,</span> <span class="pre">&quot;manifest&quot;,</span> <span class="pre">…]</span></code>; then fit its block’s places to it (<code class="docutils literal notranslate"><span class="pre">keptPlaces</span></code>, the
 block’s manifest in <code class="docutils literal notranslate"><span class="pre">before</span></code> telling which card a stale key named). A
@@ -574,15 +575,14 @@ block the command removed is passed over.</p>
 <section id="withsegmentlinescovered">
 <h3>withSegmentLinesCovered()<a class="headerlink" href="#withsegmentlinescovered" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>withSegmentLinesCovered</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">taken?</span></code>): <code class="docutils literal notranslate"><span class="pre">unknown</span></code></p>
+<div><p><strong>withSegmentLinesCovered</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">mint</span></code>): <code class="docutils literal notranslate"><span class="pre">unknown</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/commands/settle.ts#L120">commands/settle.ts:120</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/settle.ts#L85">commands/settle.ts:85</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">value</span></code>, a manifest an edit leaves, with every segment line of known
 length that holds no segment given one segment from 0 covering its whole
 length, of its unit and number type, unlocked as every segment is; its id
-the smallest <code class="docutils literal notranslate"><span class="pre">{prefix}_{N}</span></code> of its unit’s timeline class that no <code class="docutils literal notranslate"><span class="pre">id</span></code> of
-the value nor any of <code class="docutils literal notranslate"><span class="pre">taken</span></code> (the ids of the manifest a timeline is added
-into) equals. A segment line of unknown length is left as it is: nothing
+the one <code class="docutils literal notranslate"><span class="pre">mint</span></code> gives for its unit’s timeline class, segments in the order
+of the lines, depth first. A segment line of unknown length is left as it is: nothing
 fixes where its segments end. <code class="docutils literal notranslate"><span class="pre">value</span></code> itself when no line needs a
 segment. Every edited value goes through this before the schema checks
 it; reading a manifest from a file never does, so a file holding a
@@ -593,9 +593,9 @@ segment line without segments is refused.</p>
 <h5>value<a class="headerlink" href="#value" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">unknown</span></code></p>
 </section>
-<section id="taken">
-<h5>taken?<a class="headerlink" href="#taken" title="Link to this heading">#</a></h5>
-<p><code class="docutils literal notranslate"><span class="pre">Iterable</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>&gt; = <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+<section id="mint">
+<h5>mint<a class="headerlink" href="#mint" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../workspace/ids.html#id9"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Mint</span></code></span></a></p>
 </section>
 </section>
 <section id="id2">
@@ -668,7 +668,7 @@ segment line without segments is refused.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#withsegmentlinescovered">withSegmentLinesCovered()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#value">value</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#taken">taken?</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mint">mint</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Returns</a></li>

@@ -535,8 +535,8 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="applied">
 <h3>Applied<a class="headerlink" href="#applied" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/commands/apply.ts#L27">commands/apply.ts:27</a></p>
-<p>A command applied: the view it leaves and what it changed.</p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/apply.ts#L31">commands/apply.ts:31</a></p>
+<p>A command applied: the view it leaves and what it changed, the IDs it took in <code class="docutils literal notranslate"><span class="pre">changes.ids</span></code>.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
 <section id="changes">
@@ -544,14 +544,14 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>changes</strong>: <a class="reference internal" href="mutations.html#changeset"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ChangeSet</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/commands/apply.ts#L29">commands/apply.ts:29</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/apply.ts#L33">commands/apply.ts:33</a></p>
 </section>
 <section id="view">
 <h5>view<a class="headerlink" href="#view" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>view</strong>: <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/commands/apply.ts#L28">commands/apply.ts:28</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/apply.ts#L32">commands/apply.ts:32</a></p>
 </section>
 </section>
 </section>
@@ -561,10 +561,14 @@
 <section id="apply">
 <h3>apply()<a class="headerlink" href="#apply" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>apply</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code>): <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
+<div><p><strong>apply</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code>, <code class="docutils literal notranslate"><span class="pre">minter?</span></code>): <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/commands/apply.ts#L121">commands/apply.ts:121</a></p>
-<p>Apply one command to a view: the new view, or why the command was refused.</p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/apply.ts#L177">commands/apply.ts:177</a></p>
+<p>Apply one command to a view: the new view, or why the command was
+refused. The IDs of what it creates are its <code class="docutils literal notranslate"><span class="pre">ids</span></code>; with <code class="docutils literal notranslate"><span class="pre">minter</span></code>, those
+past them are minted by it, as the store mints them for a command it
+dispatches. Without a minter, a command creating an element its <code class="docutils literal notranslate"><span class="pre">ids</span></code>
+gives no ID for is refused, as a journal entry lacking one is.</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
 <section id="id1">
@@ -574,6 +578,10 @@
 <section id="command">
 <h5>command<a class="headerlink" href="#command" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">unknown</span></code></p>
+</section>
+<section id="minter">
+<h5>minter?<a class="headerlink" href="#minter" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../workspace/ids.html#idminter"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">IdMinter</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code> = <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
 </section>
 <section id="returns">
@@ -585,13 +593,17 @@
 <section id="applychanges">
 <h3>applyChanges()<a class="headerlink" href="#applychanges" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>applyChanges</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code>, <code class="docutils literal notranslate"><span class="pre">checked?</span></code>): <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <a class="reference internal" href="#applied"><code class="docutils literal notranslate"><span class="pre">Applied</span></code></a></p>
+<div><p><strong>applyChanges</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code>, <code class="docutils literal notranslate"><span class="pre">checked?</span></code>, <code class="docutils literal notranslate"><span class="pre">minter?</span></code>): <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <a class="reference internal" href="#applied"><code class="docutils literal notranslate"><span class="pre">Applied</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/commands/apply.ts#L87">commands/apply.ts:87</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/apply.ts#L95">commands/apply.ts:95</a></p>
 <p>Apply a command <code class="docutils literal notranslate"><span class="pre">parseCommand</span></code> accepted and settle what it changed. With
 <code class="docutils literal notranslate"><span class="pre">checked</span></code>, the settled manifests are checked against the schema and the
 invariants and a <code class="docutils literal notranslate"><span class="pre">set</span></code> that changes nothing is refused; without, as a
-gesture’s preview applies it, neither.</p>
+gesture’s preview applies it, neither. Every element it creates takes the
+next of the command’s <code class="docutils literal notranslate"><span class="pre">ids</span></code>, then, past them, the next ID <code class="docutils literal notranslate"><span class="pre">minter</span></code> mints;
+without a minter a command creating more elements than its <code class="docutils literal notranslate"><span class="pre">ids</span></code> lists is
+refused (<code class="docutils literal notranslate"><span class="pre">invalid_command</span></code> at <code class="docutils literal notranslate"><span class="pre">[&quot;ids&quot;]</span></code>), and, checked, so is one whose
+<code class="docutils literal notranslate"><span class="pre">ids</span></code> lists more IDs than it creates (at <code class="docutils literal notranslate"><span class="pre">[&quot;ids&quot;,</span> <span class="pre">&lt;first</span> <span class="pre">one</span> <span class="pre">left&gt;]</span></code>).</p>
 <section id="id2">
 <h4>Parameters<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
 <section id="id3">
@@ -606,9 +618,13 @@ gesture’s preview applies it, neither.</p>
 <h5>checked?<a class="headerlink" href="#checked" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">boolean</span></code> = <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
 </section>
-</section>
 <section id="id5">
-<h4>Returns<a class="headerlink" href="#id5" title="Link to this heading">#</a></h4>
+<h5>minter?<a class="headerlink" href="#id5" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../workspace/ids.html#idminter"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">IdMinter</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code> = <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id6">
+<h4>Returns<a class="headerlink" href="#id6" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <a class="reference internal" href="#applied"><code class="docutils literal notranslate"><span class="pre">Applied</span></code></a></p>
 </section>
 </section>
@@ -616,23 +632,28 @@ gesture’s preview applies it, neither.</p>
 <section id="applyparsed">
 <h3>applyParsed()<a class="headerlink" href="#applyparsed" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>applyParsed</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code>): <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
+<div><p><strong>applyParsed</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code>, <code class="docutils literal notranslate"><span class="pre">minter?</span></code>): <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/commands/apply.ts#L115">commands/apply.ts:115</a></p>
-<p>Apply a command <code class="docutils literal notranslate"><span class="pre">parseCommand</span></code> accepted.</p>
-<section id="id6">
-<h4>Parameters<a class="headerlink" href="#id6" title="Link to this heading">#</a></h4>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/apply.ts#L161">commands/apply.ts:161</a></p>
+<p>Apply a command <code class="docutils literal notranslate"><span class="pre">parseCommand</span></code> accepted, the IDs it creates taken from its
+<code class="docutils literal notranslate"><span class="pre">ids</span></code>, then from <code class="docutils literal notranslate"><span class="pre">minter</span></code>.</p>
 <section id="id7">
-<h5>view<a class="headerlink" href="#id7" title="Link to this heading">#</a></h5>
+<h4>Parameters<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>
+<section id="id8">
+<h5>view<a class="headerlink" href="#id8" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </section>
-<section id="id8">
-<h5>command<a class="headerlink" href="#id8" title="Link to this heading">#</a></h5>
+<section id="id9">
+<h5>command<a class="headerlink" href="#id9" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
 </section>
+<section id="id10">
+<h5>minter?<a class="headerlink" href="#id10" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../workspace/ids.html#idminter"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">IdMinter</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code> = <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
-<section id="id9">
-<h4>Returns<a class="headerlink" href="#id9" title="Link to this heading">#</a></h4>
+</section>
+<section id="id11">
+<h4>Returns<a class="headerlink" href="#id11" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </section>
 </section>
@@ -709,6 +730,7 @@ gesture’s preview applies it, neither.</p>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">view</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#command">command</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#minter">minter?</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
@@ -719,18 +741,20 @@ gesture’s preview applies it, neither.</p>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">view</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">command</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#checked">checked?</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">minter?</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#applyparsed">applyParsed()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">view</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">command</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">view</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">command</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">minter?</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">Returns</a></li>
 </ul>
 </li>
 </ul>

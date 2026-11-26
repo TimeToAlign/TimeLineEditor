@@ -519,10 +519,10 @@ inverse of a whole-manifest <code class="docutils literal notranslate"><span cla
 </section>
 <section id="decision">
 <h2>Decision<a class="headerlink" href="#decision" title="Link to this heading">#</a></h2>
-<p>Keep the journal in the file. <code class="docutils literal notranslate"><span class="pre">createStore(workspace,</span> <span class="pre">{author,</span> <span class="pre">clock})</span></code>
-stamps each accepted command with its author (<code class="docutils literal notranslate"><span class="pre">&quot;Gerhardt&quot;</span></code> until
+<p>Keep the journal in the file. <code class="docutils literal notranslate"><span class="pre">createStore(workspace,</span> <span class="pre">{author,</span> <span class="pre">clock,</span> <span class="pre">minter})</span></code> stamps each accepted command with its author (<code class="docutils literal notranslate"><span class="pre">&quot;Gerhardt&quot;</span></code> until
 <code class="docutils literal notranslate"><span class="pre">setAuthor</span></code>) and <code class="docutils literal notranslate"><span class="pre">clock().toISOString()</span></code>, ISO 8601 UTC with milliseconds, and
-appends the command as <code class="docutils literal notranslate"><span class="pre">parseCommand</span></code> normalized it. <code class="docutils literal notranslate"><span class="pre">undo</span></code> moves the last
+appends the command as <code class="docutils literal notranslate"><span class="pre">parseCommand</span></code> normalized it, with the IDs of every
+element it created (below). <code class="docutils literal notranslate"><span class="pre">undo</span></code> moves the last
 entry to an in-memory redo stack and restores the previous view; a new
 command clears the redo stack. The views of the session are kept, sharing
 every unchanged block, so undo and redo within a session return the very
@@ -531,9 +531,37 @@ from the empty workspace (<code class="docutils literal notranslate"><span class
 view of that replay.</p>
 <p><strong>The journal is the authority</strong>: replaying the whole journal from the empty
 workspace reproduces the snapshot’s <code class="docutils literal notranslate"><span class="pre">settings</span></code> and <code class="docutils literal notranslate"><span class="pre">blocks</span></code> exactly. It holds
-because <code class="docutils literal notranslate"><span class="pre">apply</span></code> is pure and deterministic and every id a command needs is
-minted by the caller and carried in the command; the property tests prove it
-over every manifest fixture with generated command sequences. Amended
+because <code class="docutils literal notranslate"><span class="pre">apply</span></code> is pure and deterministic and the journal carries every ID a
+command created; the property tests prove it over every manifest fixture with
+generated command sequences.</p>
+<p><strong>The journal carries the minted IDs.</strong> An element a command creates
+without an ID of its own (a named timestamp, an elision, a named MatchStamp
+with its anchors and new match timestamps, a new root’s default timestamps, a
+segment line’s first segment, a group added without <code class="docutils literal notranslate"><span class="pre">id</span></code>) is given a random
+ID, its type prefix, <code class="docutils literal notranslate"><span class="pre">_</span></code> and 13 base-36 characters (TimeToShare’s README,
+“Identity”). The reducer never mints: it takes each ID, in the order it
+creates the elements, from the command’s <code class="docutils literal notranslate"><span class="pre">ids</span></code> list, and refuses a command
+whose list is too short, or, once applied, longer than what it created
+(<code class="docutils literal notranslate"><span class="pre">invalid_command</span></code>). <code class="docutils literal notranslate"><span class="pre">dispatch</span></code> applies the command with the store’s minter
+behind the IDs the command carries (an agent may write its own), so the
+minter fills what the list lacks, and journals the command with every ID it
+took as its <code class="docutils literal notranslate"><span class="pre">ids</span></code>. A replay reads them from the journal and mints nothing, so
+it reproduces the view whatever minter the replaying store holds. The minter
+(<code class="docutils literal notranslate"><span class="pre">createIdMinter</span></code>, <code class="docutils literal notranslate"><span class="pre">workspace/ids.ts</span></code>) is seeded with 64 random bits per
+store, or with a seed a test gives; from one seed it mints exactly the IDs
+timetoalign’s minter mints, since both pass the minted-ID vectors that
+TimeToShare ships (<code class="docutils literal notranslate"><span class="pre">fixtures/ids/minted_ids.json</span></code>). <code class="docutils literal notranslate"><span class="pre">preview</span></code> mints with a
+fresh minter, so a gesture’s preview may show other IDs than the command it
+dispatches. Nothing is renamed: an ID a manifest already holds, given or
+minted, is refused when the manifest is checked. A block or session ID is
+ten random base-36 characters, carried in the command or the entry as before.</p>
+<p>The workspace file’s version is 8 since its journal carries the IDs. A
+journal written before (version 7 and earlier) holds commands whose IDs a
+replay would have to mint again, which a random minter cannot do, so such a
+file is refused for its version alone: “workspace version 7 was written
+before IDs were journaled and must be imported again: import its manifests
+into a new workspace”. There is no migration and no second minter that
+would reproduce the old numbering. Amended
 2026-10-19: <code class="docutils literal notranslate"><span class="pre">createStore</span></code> verifies it for every workspace it is given. It
 replays the journal to its end, compares the result’s <code class="docutils literal notranslate"><span class="pre">settings</span></code> and blocks
 with the snapshot, and throws <code class="docutils literal notranslate"><span class="pre">JournalMismatchError</span> <span class="pre">{entry,</span> <span class="pre">path}</span></code> naming the
@@ -629,7 +657,8 @@ never to hide an accidental one.</p>
 work loaded it); the budget test prints this figure and sets no limit on it,
 since the replay is the price of trusting the journal.</p>
 <p>Exit cost: the journal is one array in the file and one module in <code class="docutils literal notranslate"><span class="pre">core</span></code>;
-dropping it leaves the snapshot readable as it is.</p>
+dropping it leaves the snapshot readable as it is. Dropping the <code class="docutils literal notranslate"><span class="pre">ids</span></code> of its
+commands would make the journal a description no replay can follow.</p>
 </section>
 <section id="review-date">
 <h2>Review date<a class="headerlink" href="#review-date" title="Link to this heading">#</a></h2>

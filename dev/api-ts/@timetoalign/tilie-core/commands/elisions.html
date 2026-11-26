@@ -538,7 +538,7 @@
 <blockquote>
 <div><p><strong>ElisionWidth</strong> = <code class="docutils literal notranslate"><span class="pre">NonNullable</span></code>&lt;<a class="reference internal" href="../manifest/types.html#elision"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Elision</span></code></span></a>[<code class="docutils literal notranslate"><span class="pre">&quot;width&quot;</span></code>]&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/commands/elisions.ts#L32">commands/elisions.ts:32</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/elisions.ts#L32">commands/elisions.ts:32</a></p>
 <p>The width of an elision as stored: exactly one of its three forms.</p>
 </section>
 </section>
@@ -549,7 +549,7 @@
 <blockquote>
 <div><p><strong>readElision</strong>(<code class="docutils literal notranslate"><span class="pre">object</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | { }</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/commands/elisions.ts#L184">commands/elisions.ts:184</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/elisions.ts#L184">commands/elisions.ts:184</a></p>
 <p>An elision given to <code class="docutils literal notranslate"><span class="pre">add</span></code>, lying on <code class="docutils literal notranslate"><span class="pre">timeline</span></code> and given the ID <code class="docutils literal notranslate"><span class="pre">id</span></code>:
 <code class="docutils literal notranslate"><span class="pre">{start,</span> <span class="pre">end,</span> <span class="pre">name?,</span> <span class="pre">width?,</span> <span class="pre">display?}</span></code> at <code class="docutils literal notranslate"><span class="pre">path</span></code>, start and end
 required (<code class="docutils literal notranslate"><span class="pre">invalid_value</span></code>), no other member (<code class="docutils literal notranslate"><span class="pre">unknown_property</span></code>), its
@@ -589,7 +589,7 @@ given.</p>
 <blockquote>
 <div><p><strong>readElisionEnd</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code> | readonly [<code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>, <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/commands/elisions.ts#L79">commands/elisions.ts:79</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/elisions.ts#L79">commands/elisions.ts:79</a></p>
 <p>The <code class="docutils literal notranslate"><span class="pre">end</span></code> of the elision <code class="docutils literal notranslate"><span class="pre">id</span></code> lying on <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, given to a command: a
 bare value on the timeline’s own axis, as stored, at or before its
 length where that is known (<code class="docutils literal notranslate"><span class="pre">elision_stretch</span></code> at <code class="docutils literal notranslate"><span class="pre">path</span></code>); an unknown
@@ -624,7 +624,7 @@ length bounds nothing.</p>
 <blockquote>
 <div><p><strong>readElisionStart</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code> | readonly [<code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>, <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/commands/elisions.ts#L54">commands/elisions.ts:54</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/elisions.ts#L54">commands/elisions.ts:54</a></p>
 <p>The <code class="docutils literal notranslate"><span class="pre">start</span></code> of the elision <code class="docutils literal notranslate"><span class="pre">id</span></code> lying on <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, given to a command:
 a bare value on the timeline’s own axis (<code class="docutils literal notranslate"><span class="pre">invalid_coordinate</span></code> where it
 does not read as the axis’s number type), as stored, at or after 0
@@ -659,7 +659,7 @@ does not read as the axis’s number type), as stored, at or after 0
 <blockquote>
 <div><p><strong>readElisionWidth</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | { }</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/commands/elisions.ts#L126">commands/elisions.ts:126</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/elisions.ts#L126">commands/elisions.ts:126</a></p>
 <p>An elision’s <code class="docutils literal notranslate"><span class="pre">width</span></code> given to a command, for an elision lying on
 <code class="docutils literal notranslate"><span class="pre">timeline</span></code>: an object stating exactly one of <code class="docutils literal notranslate"><span class="pre">ratio</span></code>, a number above 0
 and at most 1, <code class="docutils literal notranslate"><span class="pre">span</span></code>, a bare value on the timeline’s own axis above 0,
@@ -692,7 +692,7 @@ stored as read, and <code class="docutils literal notranslate"><span class="pre"
 <blockquote>
 <div><p><strong>stretchProblem</strong>(<code class="docutils literal notranslate"><span class="pre">elision</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/c7fca07694cae69be05b77b2245d71602e387808/app/packages/core/src/commands/elisions.ts#L103">commands/elisions.ts:103</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/eb2e0229830e2df05a0c6b3c8cc85fef1d91257a/app/packages/core/src/commands/elisions.ts#L103">commands/elisions.ts:103</a></p>
 <p>Why the stretch of <code class="docutils literal notranslate"><span class="pre">elision</span></code>, lying on <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, is refused, if it is:
 its end does not lie after its start (<code class="docutils literal notranslate"><span class="pre">elision_stretch</span></code> at <code class="docutils literal notranslate"><span class="pre">path</span></code>).</p>
 <section id="id17">
