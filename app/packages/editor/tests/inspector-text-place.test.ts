@@ -18,7 +18,7 @@ import Inspector from "../src/inspector/Inspector.svelte";
 import { manifestOf, manifestText } from "../src/inspector/manifestText.ts";
 import { scrollTopFor, selectionPaths } from "../src/inspector/textPlace.ts";
 import { holder } from "./holder.svelte.ts";
-import { blockId, posting, providing, storeOf } from "./support.ts";
+import { blockId, fixture, posting, providing, storeOf } from "./support.ts";
 
 const A = blockId(0);
 const SHOWN = { includeStyling: true, minimal: true } as const;
@@ -151,7 +151,8 @@ describe("the lines of a place", () => {
     if (found === null) throw new Error("no lines for the second FlowMap");
     expect(rows[found.first - 1]).toBe("[[flow_maps]]");
     expect(rows.slice(0, found.first).filter((row) => row === "[[flow_maps]]").length).toBe(2);
-    expect(cut(sonata, found.first, found.last)).toContain('id = "#flow_map_2"');
+    const second = fixture("flow/sonata_exposition").flow_maps?.[1]?.id;
+    expect(cut(sonata, found.first, found.last)).toContain(`id = "#${second}"`);
     expect(rows[found.last]).toBe("");
     expect(rows[found.last + 1]?.startsWith("[")).toBe(true);
   });

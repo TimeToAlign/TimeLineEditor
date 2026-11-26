@@ -84,6 +84,57 @@ export function fixture(name: string): Manifest {
   return manifest;
 }
 
+/** The one item of `items` that `matches`, failing loudly if there are none or several. */
+function theOne<T>(items: readonly T[], matches: (item: T) => boolean, what: string): T {
+  const found = items.filter(matches);
+  if (found.length !== 1) throw new Error(`${found.length} ${what}, not one`);
+  return found[0] as T;
+}
+
+/** A timeline tree as the helpers below walk it. */
+type Tree = {
+  readonly regions: readonly { readonly id: string; readonly name?: string | null }[];
+  readonly conversion_maps: readonly { readonly id: string; readonly type: string }[];
+  readonly children: readonly Tree[];
+};
+
+/** Every timeline of a manifest fixture's trees, a parent before its children. */
+function treesOf(name: string): Tree[] {
+  const trees: Tree[] = [];
+  const walk = (timeline: Tree): void => {
+    trees.push(timeline);
+    for (const child of timeline.children) walk(child);
+  };
+  for (const root of fixture(name).timelines) walk(root);
+  return trees;
+}
+
+/**
+ * The ID of the one region named `regionName` in a manifest fixture: how a
+ * test names a region whose ID the library mints, as the sections it
+ * computes ("A", "B", …).
+ */
+export function regionNamed(name: string, regionName: string): string {
+  const regions = treesOf(name).flatMap((timeline) => timeline.regions);
+  return theOne(regions, (region) => region.name === regionName, `regions ${regionName}`).id;
+}
+
+/**
+ * The ID of the one conversion map of type `type` that a timeline of a
+ * manifest fixture holds directly (not one inside another map): how a test
+ * names a map whose ID the library mints, as a MeasureMap's record map.
+ */
+export function conversionMapOf(name: string, type: string): string {
+  const maps = treesOf(name).flatMap((timeline) => timeline.conversion_maps);
+  return theOne(maps, (map) => map.type === type, `${type}s in ${name}`).id;
+}
+
+/** The ID of the one FlowMap of a manifest fixture under `convention`, a FlowMap the library computes. */
+export function flowMapUnder(name: string, convention: string): string {
+  const flowMaps = fixture(name).flow_maps ?? [];
+  return theOne(flowMaps, (flowMap) => flowMap.convention === convention, convention).id;
+}
+
 /** The id of the `index`th block of `workspaceOf`: `0000000000`, `0000000001`, … */
 export function blockId(index: number): string {
   return String(index).padStart(10, "0");

@@ -28,6 +28,7 @@ import {
   BLOCK,
   boxesOf,
   CHILD_REGIONS_HIDDEN,
+  conversionMapOf,
   drawFixture,
   drawWithoutAncestorCards,
   element,
@@ -463,7 +464,9 @@ describe("the block size", () => {
 describe("addresses by ID", () => {
   it("address a map by its own ID alone", () => {
     const drawing = drawFixture("bundles/corpus_mpm");
-    expect(element(drawing, at("cmap_1")).type).toBe("map");
+    expect(element(drawing, at(conversionMapOf("bundles/corpus_mpm", "TableMap"))).type).toBe(
+      "map",
+    );
   });
 
   it("address a member's region by its own ID, its label by that ID and the part label", () => {

@@ -30,6 +30,7 @@ import {
   load,
   loadText,
   manifestValue,
+  regionNamed,
   viewOf,
 } from "./support.ts";
 
@@ -1004,7 +1005,11 @@ describe("the selector member coordinates", () => {
 describe("the selector member class on regions", () => {
   const SONATA = "flow/sonata_exposition.yaml";
   const ATOMIC = "https://timetoalign.github.io/timetoshare/ns#AtomicSection";
-  const REGIONS = [id("region_1"), id("region_2"), id("region_3")];
+  // The sections the library computes, in the manifest's order; their IDs are minted.
+  const [SECTION_A, SECTION_B, SECTION_C] = ["A", "B", "C"].map((name) =>
+    regionNamed(SONATA, name),
+  ) as [string, string, string];
+  const REGIONS = [id(SECTION_A), id(SECTION_B), id(SECTION_C)];
 
   it("gives each typed region the spellings of its class and no other key any", () => {
     const keys = manifestElements(load(SONATA));
@@ -1046,7 +1051,7 @@ describe("the selector member class on regions", () => {
             ...root,
             regions: regions.map(({ provenance: _provenance, ...region }) => ({
               ...region,
-              statements: { type: [region.id === "region_2" ? "ex:AtomicSection" : ATOMIC] },
+              statements: { type: [region.id === SECTION_B ? "ex:AtomicSection" : ATOMIC] },
             })),
           },
         ],

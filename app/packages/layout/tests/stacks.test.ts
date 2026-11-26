@@ -17,6 +17,7 @@ import {
   baseOf,
   build,
   child,
+  conversionMapOf,
   edit,
   element,
   linearMap,
@@ -148,16 +149,18 @@ describe("the markers band alone", () => {
 
 describe("the conversion maps band", () => {
   const name = "conversion_maps__maps_quarters";
+  /** The record map of the fixture's MeasureMap, whose ID the library mints. */
+  const record = conversionMapOf(name, "MeasureRecordMap");
 
   it("lies against the root's line above it alone, 12 maps in slots by type", () => {
     const drawing = drawn(load(name));
     expect(element(drawing, at("maps:quarters"))).toMatchObject({ y: 77.5 });
     expect(element(drawing, at("cmap_5"))).toMatchObject({ yc: 72 });
-    expect(element(drawing, at("cmap_1"))).toMatchObject({ yc: 37 });
+    expect(element(drawing, at(record))).toMatchObject({ yc: 37 });
     expect(
       drawing.elements.flatMap((item) => (item.type === "map" ? [item.address.id] : [])),
     ).toEqual([
-      "cmap_1",
+      record,
       "cmap_11",
       "cmap_12",
       "cmap_15",
@@ -184,7 +187,7 @@ describe("the conversion maps band", () => {
       ),
     );
     expect(element(drawing, at("maps:quarters"))).toMatchObject({ y: 22.40234375 });
-    expect(element(drawing, at("cmap_1"))).toMatchObject({ yc: 62.90234375 });
+    expect(element(drawing, at(record))).toMatchObject({ yc: 62.90234375 });
     expect(element(drawing, at("cmap_18"))).toMatchObject({ yc: 82.90234375 });
     expect(element(drawing, at("timestamp_1"))).toMatchObject({
       yt: 89.40234375,

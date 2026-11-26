@@ -31,7 +31,7 @@ import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
 import { iriNames } from "../src/iris.ts";
 import { holder } from "./holder.svelte.ts";
-import { blockId, posting, providing, storeOf } from "./support.ts";
+import { blockId, posting, providing, regionNamed, storeOf } from "./support.ts";
 
 const A = blockId(0);
 const EDITOR = "https://example.org/people/editor";
@@ -83,13 +83,14 @@ describe("the flow-control element a selection names", () => {
 
   it("is none for nothing, for anything else and for several", () => {
     const store = storeOf("flow/sonata_exposition");
+    const section = regionNamed("flow/sonata_exposition", "A");
     expect(flowIn(store)).toBeNull();
     expect(flowIn(store, { id: "score" })).toBeNull();
-    expect(flowIn(store, { id: "region_1" })).toBeNull();
+    expect(flowIn(store, { id: section })).toBeNull();
     expect(flowIn(store, { id: "score", facet: "flow_control" })).toBeNull();
     expect(flowIn(store, { id: "jump_1" }, { id: "jump_2" })).toBeNull();
     expect(flowIn(store, { id: "jump_1" }, { id: "score" })).toBeNull();
-    expect(flowIn(store, { id: "jump_1" }, { id: "region_1" })).toBeNull();
+    expect(flowIn(store, { id: "jump_1" }, { id: section })).toBeNull();
   });
 
   it("is the jump selected with what its destinations mark, in either order", () => {
@@ -287,17 +288,18 @@ describe("the destinations of a jump", () => {
 
   it("name a region and the timeline itself", () => {
     const store = storeOf("flow/sonata_exposition");
+    const section = regionNamed("flow/sonata_exposition", "B");
     const jump = {
       id: "jump_3",
       role: "jump",
       coordinate: [20, 1],
-      targets: [{ to: "region_2" }, { to: "score" }],
+      targets: [{ to: section }, { to: "score" }],
     };
     expect(
       store.dispatch({ type: "add", into: { block: A, id: "score" }, flow_control: jump }),
     ).toBeNull();
     expect(destinations(store, "jump_3").map((row) => row.slice(0, 4))).toEqual([
-      ["region", "B", "region_2", "12 ♩"],
+      ["region", "B", section, "12 ♩"],
       ["timeline", "Score", "score", "0 ♩"],
     ]);
   });

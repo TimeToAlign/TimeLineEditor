@@ -152,6 +152,59 @@ export function load(name: string): Manifest {
   return loadText(fixtureText(name), name);
 }
 
+/** The one item of `items` that `matches`, failing loudly if there are none or several. */
+function theOne<T>(items: readonly T[], matches: (item: T) => boolean, what: string): T {
+  const found = items.filter(matches);
+  if (found.length !== 1) throw new Error(`${found.length} ${what}, not one`);
+  return found[0] as T;
+}
+
+/**
+ * The ID of the one region named `regionName` in the timeline tree of a
+ * manifest fixture: what a test names an element by whose ID the library
+ * mints, as the sections it computes ("A", "B", …).
+ */
+export function regionNamed(name: string, regionName: string): string {
+  type Tree = { readonly regions: readonly { id: string; name?: string | null }[] };
+  const regions: Tree["regions"][number][] = [];
+  const walk = (timeline: Tree & { readonly children: readonly unknown[] }): void => {
+    regions.push(...timeline.regions);
+    for (const child of timeline.children) walk(child as typeof timeline);
+  };
+  for (const root of load(name).timelines) walk(root);
+  return theOne(regions, (region) => region.name === regionName, `regions ${regionName} in ${name}`)
+    .id;
+}
+
+/**
+ * The ID of the one conversion map of type `type` that a timeline of a
+ * manifest fixture holds directly (not one inside another map): what a test
+ * names a map by whose ID the library mints, as the record maps of a
+ * MeasureMap.
+ */
+export function conversionMapOf(name: string, type: string): string {
+  type Tree = {
+    readonly conversion_maps: readonly { id: string; type: string }[];
+    readonly children: readonly unknown[];
+  };
+  const maps: Tree["conversion_maps"][number][] = [];
+  const walk = (timeline: Tree): void => {
+    maps.push(...timeline.conversion_maps);
+    for (const child of timeline.children) walk(child as Tree);
+  };
+  for (const root of load(name).timelines) walk(root as Tree);
+  return theOne(maps, (map) => map.type === type, `${type}s in ${name}`).id;
+}
+
+/** The ID of the one FlowMap of a manifest fixture under `convention`, a FlowMap the library computes. */
+export function flowMapUnder(name: string, convention: string): string {
+  return theOne(
+    load(name).flow_maps ?? [],
+    (flowMap) => flowMap.convention === convention,
+    `FlowMaps under ${convention} in ${name}`,
+  ).id;
+}
+
 /**
  * The value of a manifest fixture's text, losslessly and with its IDs bare,
  * as core holds them, to change before writing it again (`fileText`).

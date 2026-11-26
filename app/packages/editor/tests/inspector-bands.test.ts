@@ -23,7 +23,7 @@ import {
   virtualDeletionOf,
 } from "../src/inspector/properties.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
-import { posting, storeOf as storeOfFixtures } from "./support.ts";
+import { posting, regionNamed, storeOf as storeOfFixtures } from "./support.ts";
 
 /** `map`. */
 const A = "0000000000";
@@ -160,6 +160,10 @@ describe("bandRows", () => {
 
 describe("regionRows", () => {
   const sonata = () => storeOfFixtures("flow/sonata_exposition");
+  /** The sonata's sections A and B, computed from its flow control: their IDs are minted. */
+  const [SECTION_A, SECTION_B] = ["A", "B"].map((name) =>
+    regionNamed("flow/sonata_exposition", name),
+  ) as [string, string];
   const regionRowsOf = (store: Store, selection: readonly Address[]) =>
     regionRows(subjectsOf(store.view, selection))?.map(({ label, value }) => [label, value]) ??
     null;
@@ -171,17 +175,17 @@ describe("regionRows", () => {
       ["End", "16 ♩"],
       ["Length", "4 ♩"],
     ];
-    expect(regionRowsOf(store, [at(A, { id: "region_2" })])).toEqual(expected);
-    expect(regionRowsOf(store, [at(A, { id: "region_2", part: ["label"] })])).toEqual(expected);
+    expect(regionRowsOf(store, [at(A, { id: SECTION_B })])).toEqual(expected);
+    expect(regionRowsOf(store, [at(A, { id: SECTION_B, part: ["label"] })])).toEqual(expected);
     expect(
-      regionRowsOf(store, [at(A, { id: "region_2" }), at(A, { id: "region_2", part: ["label"] })]),
+      regionRowsOf(store, [at(A, { id: SECTION_B }), at(A, { id: SECTION_B, part: ["label"] })]),
     ).toEqual(expected);
   });
 
   it("gives none for two regions, a region with its timeline, or a flow-control element", () => {
     const store = sonata();
-    expect(regionRowsOf(store, [at(A, { id: "region_1" }), at(A, { id: "region_2" })])).toBeNull();
-    expect(regionRowsOf(store, [at(A, { id: "region_1" }), at(A, { id: "score" })])).toBeNull();
+    expect(regionRowsOf(store, [at(A, { id: SECTION_A }), at(A, { id: SECTION_B })])).toBeNull();
+    expect(regionRowsOf(store, [at(A, { id: SECTION_A }), at(A, { id: "score" })])).toBeNull();
     expect(regionRowsOf(store, [at(A, { id: "jump_1" })])).toBeNull();
     expect(regionRowsOf(store, [])).toBeNull();
   });
@@ -389,7 +393,8 @@ describe("the Properties panel of a band", () => {
   });
 
   it("shows a region's name, then its start, end and length, and no geometry hint", () => {
-    show(storeOfFixtures("flow/sonata_exposition"), [at(A, { id: "region_2" })]);
+    const section = regionNamed("flow/sonata_exposition", "B");
+    show(storeOfFixtures("flow/sonata_exposition"), [at(A, { id: section })]);
     expect(panel().querySelector<HTMLInputElement>('input[name="name"]')?.value).toBe("B");
     expect(texts('[data-testid="region-rows"] dt')).toEqual(["Start", "End", "Length"]);
     expect(texts('[data-testid="region-rows"] dd')).toEqual(["12 ♩", "16 ♩", "4 ♩"]);

@@ -60,6 +60,7 @@ import {
   A,
   blockIn,
   changed,
+  conversionMapOf,
   load,
   MIXED,
   metrics,
@@ -2407,7 +2408,10 @@ describe("measure maps", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  /** The row of the `MeasureRecordMap` `cmap_1` of `score`, read with `knotsOf` when given. */
+  /** The `MeasureRecordMap` of `score`, whose ID the library mints. */
+  const record = conversionMapOf("groups/group_measure_map", "MeasureRecordMap");
+
+  /** The row of the `MeasureRecordMap` of `score`, read with `knotsOf` when given. */
   function measureRow(knotsOf?: (manifest: Manifest) => ReturnType<MeasureKnotsSource["knotsOf"]>) {
     const view = viewOf({ id: A, fixture: "groups/group_measure_map", x: 40, y: 80 });
     const score = axis(view, "score");
@@ -2420,14 +2424,14 @@ describe("measure maps", () => {
     const row =
       reading === null
         ? undefined
-        : flagParts(reading.pin)[0]?.rows.find(({ row }) => row.map === "cmap_1");
+        : flagParts(reading.pin)[0]?.rows.find(({ row }) => row.map === record);
     if (row === undefined) throw new Error("score reads its measure view");
     return row;
   }
 
   it("leaves a measure view without a value until they are there, and says why", () => {
     const row = measureRow();
-    expect([row.row, row.value]).toEqual([{ timeline: "score", map: "cmap_1" }, null]);
+    expect([row.row, row.value]).toEqual([{ timeline: "score", map: record }, null]);
     expect(
       [
         row,

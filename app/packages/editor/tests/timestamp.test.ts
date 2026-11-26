@@ -48,7 +48,14 @@ import { heldPinOf, timestampText } from "../src/inspector/timestamp.ts";
 import { measureMapsOf } from "../src/measureMaps.ts";
 import { transientContext } from "../src/transient.ts";
 import { addStylesOf, fadingsOf } from "./dom.ts";
-import { noMatchClaims, posting, providing, storeOf, withFullCards } from "./support.ts";
+import {
+  conversionMapOf,
+  noMatchClaims,
+  posting,
+  providing,
+  storeOf,
+  withFullCards,
+} from "./support.ts";
 
 const q = (n: number, d = 1) => Rational.fromParts(BigInt(n), BigInt(d));
 
@@ -1201,6 +1208,8 @@ describe("the format switch", () => {
 
   it("leaves a map without a value out of the TOML, where JSON writes its null", async () => {
     const store = storeOf("conversion_maps__maps_whole_notes");
+    // The ChainMap through the MeasureMap, its ID minted by the library.
+    const chain = conversionMapOf("conversion_maps__maps_whole_notes", "ChainMap");
     const inspector = drawer(store, true);
     inspector.selected([{ block: A, id: "timestamp_1" }]);
     choose("json");
@@ -1212,7 +1221,7 @@ describe("the format switch", () => {
         '  "groupstamp": false,',
         '  "id": "timestamp_1",',
         '  "mapping": {',
-        '    "cmap_1": null',
+        `    "${chain}": null`,
         "  },",
         '  "matchstamp": false,',
         '  "name": "origin",',
@@ -2038,6 +2047,9 @@ describe("coordinate granularity", () => {
 });
 
 describe("a named timestamp's MeasureMaps", () => {
+  /** The maps of `group_measure_map`, their IDs minted by the library: `score`'s record map and `midi`'s ChainMap through it. */
+  const RECORD = conversionMapOf("groups/group_measure_map", "MeasureRecordMap");
+  const CHAIN = conversionMapOf("groups/group_measure_map", "ChainMap");
   /** A 4/4 measure named `name` starting at `qstamp` quarters. */
   const measure = (name: string, qstamp: number): MeasureKnot => ({
     ID: name,
@@ -2053,7 +2065,7 @@ describe("a named timestamp's MeasureMaps", () => {
   });
   const ROWS: MeasureKnots[] = [
     {
-      id: "measuremap_1",
+      id: "measure_map_1",
       rows: [measure("1", 0), measure("2", 4), measure("3", 8), measure("4", 12)],
     },
   ];
@@ -2075,10 +2087,10 @@ describe("a named timestamp's MeasureMaps", () => {
     return { store, barTwo: { block: A, id: found.id } };
   }
 
-  /** The text of the row `cmap_1`. */
+  /** The text of the row of `RECORD`. */
   const measureRow = () =>
     [...panel().querySelectorAll("tr[data-row]")]
-      .find((item) => item.querySelector('th[scope="row"]')?.textContent === "cmap_1")
+      .find((item) => item.querySelector('th[scope="row"]')?.textContent === RECORD)
       ?.querySelector(".text")?.textContent ?? null;
 
   it("are the canvas's, read again when they arrive, as an unnamed pin there reads them", () => {
@@ -2114,7 +2126,7 @@ describe("a named timestamp's MeasureMaps", () => {
     inspector.pinTimestamp(unnamed);
     // 6 quarters are 6 × 7680/16 = 2880 ticks of `midi`, read with its group, in measure "2".
     expect([groups(), measureRow()]).toEqual([
-      [...rows, ["MIDI", [["cmap_3", "2", null, null, null], row("coordinate", "2880", "ticks")]]],
+      [...rows, ["MIDI", [[CHAIN, "2", null, null, null], row("coordinate", "2880", "ticks")]]],
       "2",
     ]);
   });
@@ -2139,11 +2151,11 @@ describe("a named timestamp's MeasureMaps", () => {
       }),
     ).toBe(null);
     const BAR_TWO: Address = { block: A, id: "bar_two_match" };
-    /** The texts of the Matchstamp tab's rows `cmap_1` and `cmap_3`. */
+    /** The texts of the Matchstamp tab's rows of `RECORD` and `CHAIN`. */
     const mapRows = () => {
       const id = tabNamed("Matchstamp").getAttribute("aria-controls");
       const shown = id === null ? null : document.getElementById(id);
-      return ["cmap_1", "cmap_3"].map(
+      return [RECORD, CHAIN].map(
         (label) =>
           [...(shown?.querySelectorAll("tr[data-row]") ?? [])]
             .find((item) => item.querySelector('th[scope="row"]')?.textContent === label)
@@ -2175,7 +2187,7 @@ describe("a named timestamp's MeasureMaps", () => {
     const unnumbered = { ...measure("2", 4), number: null, nominal_length: null };
     const rows: MeasureKnots[] = [
       {
-        id: "measuremap_1",
+        id: "measure_map_1",
         rows: [measure("1", 0), unnumbered, measure("3", 8), measure("4", 12)],
       },
     ];
@@ -2195,7 +2207,7 @@ describe("a named timestamp's MeasureMaps", () => {
         '  "groupstamp": false,',
         '  "id": "bar_two",',
         '  "mapping": {',
-        '    "cmap_1": {',
+        `    "${RECORD}": {`,
         '      "ID": "2",',
         '      "actual_length": [4, 1],',
         '      "count": 2,',
@@ -2222,7 +2234,7 @@ describe("a named timestamp's MeasureMaps", () => {
         "groupstamp: false",
         "id: bar_two",
         "mapping:",
-        "  cmap_1:",
+        `  ${RECORD}:`,
         '    ID: "2"',
         "    actual_length: [4, 1]",
         "    count: 2",
@@ -2251,7 +2263,7 @@ describe("a named timestamp's MeasureMaps", () => {
         "",
         "[mapping]",
         "",
-        "[mapping.cmap_1]",
+        `[mapping.${RECORD}]`,
         'ID = "2"',
         'name = "2"',
         "count = 2",

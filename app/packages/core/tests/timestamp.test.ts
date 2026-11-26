@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { JsonFloat, parseJson } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { isCommandError, isLoadError } from "../src/errors.ts";
+import { compareCodePoints } from "../src/json.ts";
 import { normalizeManifest } from "../src/manifest/io.ts";
 import { findTimeline } from "../src/manifest/tree.ts";
 import type { Manifest, TimelineManifest } from "../src/manifest/types.ts";
@@ -34,7 +35,7 @@ import { axisCoordinate } from "../src/number/coordinate.ts";
 import { Rational } from "../src/number/rational.ts";
 import { realOf, toRational } from "../src/number/real.ts";
 import type { Granularity } from "../src/workspace/view.ts";
-import { A, at, block, changed, load, viewOf } from "./support.ts";
+import { A, at, block, changed, conversionMapOf, load, viewOf } from "./support.ts";
 
 const q = (n: number, d = 1) => Rational.fromParts(BigInt(n), BigInt(d));
 const GRANULARITY: Granularity = { denominator: 2520, decimals: 3 };
@@ -92,6 +93,8 @@ const SCORE = specOf(MIXED, "score");
 const RECORDING = specOf(MIXED, "recording");
 const PERFORMANCE = specOf(MIXED, "performance");
 const QUARTERS = specOf(MAPS, "maps:quarters");
+/** The record map of `MAPS`'s MeasureMap, whose ID the library mints. */
+const RECORD = conversionMapOf("conversion_maps__maps_quarters.yaml", "MeasureRecordMap");
 
 /** The parity table's manifest and its MeasureMap's expanded rows, as `maps.test.ts` reads them. */
 const parity = (() => {
@@ -494,9 +497,9 @@ describe("the rows of a timestamp", () => {
 
   it("are editable exactly where a map is invertible over its timeline's span", () => {
     const rows = timestampRows(pinOf(QUARTERS, q(2)));
-    expect(rows.map((item) => [item.row.map, item.editable])).toEqual([
-      [null, true],
-      ["cmap_1", false],
+    // The timeline's own row, then its maps in the manifest's order, by ID.
+    const maps: [string, boolean][] = [
+      [RECORD, false],
       ["cmap_11", false],
       ["cmap_12", true],
       ["cmap_15", true],
@@ -508,6 +511,10 @@ describe("the rows of a timestamp", () => {
       ["cmap_4", false],
       ["cmap_5", true],
       ["cmap_8", false],
+    ];
+    expect(rows.map((item) => [item.row.map, item.editable])).toEqual([
+      [null, true],
+      ...maps.sort(([a], [b]) => compareCodePoints(a, b)),
     ]);
   });
 
@@ -517,11 +524,13 @@ describe("the rows of a timestamp", () => {
         item.missing === null ? [] : [[item.row.map, item.missing]],
       );
     const server = "needs a server to expand its measure map";
-    expect(missing("no_server")).toEqual(
-      ["cmap_1", "cmap_2", "cmap_3", "cmap_4", "cmap_8"].map((id) => [id, server]),
-    );
-    expect(missing("pending")[0]).toEqual(["cmap_1", "waiting for the server"]);
-    expect(missing([])[0]).toEqual(["cmap_1", "the server did not expand its measure map"]);
+    const measured = [RECORD, "cmap_2", "cmap_3", "cmap_4", "cmap_8"].sort(compareCodePoints);
+    expect(missing("no_server")).toEqual(measured.map((id) => [id, server]));
+    expect(missing("pending")).toEqual(measured.map((id) => [id, "waiting for the server"]));
+    expect(missing([])[measured.indexOf(RECORD)]).toEqual([
+      RECORD,
+      "the server did not expand its measure map",
+    ]);
   });
 
   it("are shown in the texts every reader shows", () => {
@@ -689,7 +698,7 @@ describe("the JSON value of a timestamp", () => {
 
   it("writes every kind of value", () => {
     expect(mappingOf(timestampJson(pinOf(QUARTERS, q(2))))).toEqual({
-      cmap_1: null,
+      [RECORD]: null,
       cmap_2: null,
       cmap_3: null,
       cmap_4: null,

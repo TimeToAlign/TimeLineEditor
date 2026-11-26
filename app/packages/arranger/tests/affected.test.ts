@@ -2,7 +2,10 @@ import type { ElementAddress, Part } from "@timetoalign/tilie-core";
 import { addressKey, cardAddress, idAddress, TITLE_ADDRESS } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import { affectedBy } from "../src/affected.ts";
-import { A, blockIn, CHILD_MEMBER, load, MPM, numbersView } from "./support.ts";
+import { A, blockIn, CHILD_MEMBER, groupNamed, load, MPM, numbersView } from "./support.ts";
+
+/** The group of corpus_mpm's score timelines, whose ID the loader mints. */
+const MPM_SCORE = groupNamed(MPM, "score");
 
 /** The element address of `id`, with the part words `words` when given. */
 const at = (id: string, ...words: Part[]): ElementAddress =>
@@ -61,7 +64,7 @@ describe("affectedBy", () => {
     ["nested", "clt_3", [at("clt_3", "name")], []],
     ["nested", "clt_1", [at("clt_1", "name")], []],
     ["nested", "clt_1", [at("clt_1", "name"), at("clt_3")], [at("clt_2"), at("clt_2", "name")]],
-    [MPM, "group_1", [at("group_1", "name")], []],
+    [MPM, MPM_SCORE, [at(MPM_SCORE, "name")], []],
     [CHILD_MEMBER, "recording", [cardAddress("recording")], []],
   ])("%s with %s edited and %j selected affects %j", (fixture, edited, chosen, expected) => {
     expect(affectedBy(load(fixture), selected(chosen), edited)).toEqual(keysOf(expected));
@@ -92,8 +95,8 @@ describe("affectedBy", () => {
       [cardAddress("recording")],
       [at("recording"), at("recording", "name"), ...stamps("timestamp_1", "timestamp_2")],
     ],
-    [MPM, [at("group_1")], []],
-    [MPM, [at("group_1", "name")], [at("group_1")]],
+    [MPM, [at(MPM_SCORE)], []],
+    [MPM, [at(MPM_SCORE, "name")], [at(MPM_SCORE)]],
     [MPM, [TITLE_ADDRESS], []],
   ])("with several roots, %s with %j selected affects %j", (fixture, chosen, expected) => {
     const manifest = fixture === "numbers" ? blockIn(numbersView(), A).manifest : load(fixture);

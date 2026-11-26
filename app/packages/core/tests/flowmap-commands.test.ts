@@ -13,10 +13,32 @@ import { readWorkspace, writeWorkspace } from "../src/workspace/file.ts";
 import { createIdMinter } from "../src/workspace/ids.ts";
 import { replay } from "../src/workspace/store.ts";
 import type { View } from "../src/workspace/view.ts";
-import { A, at, block, changed, key, refusal, storeOf, viewOf } from "./support.ts";
+import {
+  A,
+  at,
+  block,
+  changed,
+  flowMapUnder,
+  key,
+  load,
+  refusal,
+  regionNamed,
+  storeOf,
+  viewOf,
+} from "./support.ts";
 
 const BY_HAND = "flow/flow_map_by_hand.yaml";
 const SONATA = "flow/sonata_exposition.yaml";
+// The sonata's sections and FlowMaps, computed from its flow control: their IDs are minted.
+const [SECTION_A, SECTION_B, SECTION_C] = ["A", "B", "C"].map((name) =>
+  regionNamed(SONATA, name),
+) as [string, string, string];
+/** The FlowMap `virtual_1` applies, A, B, A, C. */
+const PLAYED = flowMapUnder(SONATA, "default");
+/** A, C. */
+const SINGLE = flowMapUnder(SONATA, "single");
+/** The sonata's FlowMaps in the manifest's order. */
+const SONATA_FLOW_MAPS = (load(SONATA).flow_maps ?? []).map((item) => item.id);
 
 const byHand = () => viewOf([A, BY_HAND]);
 const sonata = () => viewOf([A, SONATA]);
@@ -127,26 +149,25 @@ describe("FlowMaps", () => {
 
   it("refuses every set on a computed FlowMap", () => {
     const view = sonata();
-    for (const values of [{ chunks: ["region_1"] }, { name: "Once" }]) {
+    for (const values of [{ chunks: [SECTION_A] }, { name: "Once" }]) {
       const [property] = Object.keys(values);
-      expect(refused(apply(view, set(at("flow_map_2"), values)))).toEqual({
+      expect(refused(apply(view, set(at(SINGLE), values)))).toEqual({
         code: "computed_flow_map",
-        path: [key(at("flow_map_2")), property],
-        message:
-          "FlowMap 'flow_map_2' is computed from the flow control of 'score' and is read only",
+        path: [key(at(SINGLE)), property],
+        message: `FlowMap '${SINGLE}' is computed from the flow control of 'score' and is read only`,
       });
     }
   });
 
   it("replaces a computed FlowMap by a recomputation, with the lengths playing it", () => {
     const computed = {
-      chunks: ["region_1", "region_2", "region_3"],
+      chunks: [SECTION_A, SECTION_B, SECTION_C],
       provenance: [{ method: "inferred" }],
     };
     const lengthOf = (view: View, id: string) =>
       manifestOf(view).virtual_timelines?.find((item) => item.id === id)?.length;
-    const recomputed = changed(sonata(), set(at("flow_map_1"), { computed }));
-    const flowMap = valid(recomputed).flow_maps?.find((item) => item.id === "flow_map_1");
+    const recomputed = changed(sonata(), set(at(PLAYED), { computed }));
+    const flowMap = valid(recomputed).flow_maps?.find((item) => item.id === PLAYED);
     expect(flowMap).toMatchObject({ ...computed, convention: "default", name: null });
     expect(lengthOf(recomputed, "virtual_1")).toEqual([24, 1]);
 
@@ -156,7 +177,7 @@ describe("FlowMaps", () => {
     );
     expect(lengthOf(twice, "twice_card")).toEqual([72, 1]);
     const store = storeOf(twice);
-    expect(store.dispatch(set(at("flow_map_1"), { computed }))).toBeNull();
+    expect(store.dispatch(set(at(PLAYED), { computed }))).toBeNull();
     valid(store.view);
     expect(lengthOf(store.view, "virtual_1")).toEqual([24, 1]);
     expect(lengthOf(store.view, "twice_card")).toEqual([48, 1]);
@@ -164,22 +185,21 @@ describe("FlowMaps", () => {
     expect(lengthOf(store.view, "virtual_1")).toEqual([36, 1]);
     expect(lengthOf(store.view, "twice_card")).toEqual([72, 1]);
 
-    expect(refused(apply(recomputed, set(at("flow_map_1"), { computed })))).toEqual({
+    expect(refused(apply(recomputed, set(at(PLAYED), { computed })))).toEqual({
       code: "invalid_value",
-      path: [key(at("flow_map_1")), "computed"],
+      path: [key(at(PLAYED)), "computed"],
       message: "the command changes nothing",
     });
     const manual = { ...computed, provenance: [{ method: "manual" }] };
-    expect(refused(apply(sonata(), set(at("flow_map_1"), { computed: manual })))).toEqual({
+    expect(refused(apply(sonata(), set(at(PLAYED), { computed: manual })))).toEqual({
       code: "invalid_value",
-      path: [key(at("flow_map_1")), "computed", "provenance"],
-      message:
-        "a computed value of FlowMap 'flow_map_1' carries a provenance entry of method inferred",
+      path: [key(at(PLAYED)), "computed", "provenance"],
+      message: `a computed value of FlowMap '${PLAYED}' carries a provenance entry of method inferred`,
     });
     const bare = { chunks: computed.chunks };
-    expect(refusal(apply(sonata(), set(at("flow_map_1"), { computed: bare })))).toEqual({
+    expect(refusal(apply(sonata(), set(at(PLAYED), { computed: bare })))).toEqual({
       code: "invalid_value",
-      path: [key(at("flow_map_1")), "computed", "provenance"],
+      path: [key(at(PLAYED)), "computed", "provenance"],
     });
     expect(refused(apply(byHand(), set(at("flow_map_1"), { computed })))).toEqual({
       code: "invalid_value",
@@ -202,8 +222,8 @@ describe("FlowMaps", () => {
   it("admits a recomputation inside the flow editor of the root", () => {
     const store = storeOf(sonata());
     expect(store.open(at("score"), "flow")).toBeNull();
-    const computed = { chunks: ["region_1", "region_3"], provenance: [{ method: "inferred" }] };
-    expect(store.dispatch(set(at("flow_map_1"), { computed }))).toBeNull();
+    const computed = { chunks: [SECTION_A, SECTION_C], provenance: [{ method: "inferred" }] };
+    expect(store.dispatch(set(at(PLAYED), { computed }))).toBeNull();
     expect(
       store.view.blocks[A]?.manifest.virtual_timelines?.find((item) => item.id === "virtual_1")
         ?.length,
@@ -212,27 +232,31 @@ describe("FlowMaps", () => {
 
   it("refuses to remove a FlowMap a virtual timeline applies", () => {
     const view = sonata();
-    expect(refused(apply(view, { type: "remove", targets: [at("flow_map_1")] }))).toEqual({
+    expect(refused(apply(view, { type: "remove", targets: [at(PLAYED)] }))).toEqual({
       code: "not_removable",
-      path: [key(at("flow_map_1"))],
-      message: "FlowMap 'flow_map_1' is applied by the virtual timeline 'virtual_1'",
+      path: [key(at(PLAYED))],
+      message: `FlowMap '${PLAYED}' is applied by the virtual timeline 'virtual_1'`,
     });
-    const both = changed(view, { type: "remove", targets: [at("flow_map_1"), at("virtual_1")] });
+    const both = changed(view, { type: "remove", targets: [at(PLAYED), at("virtual_1")] });
     const manifest = valid(both);
-    expect(manifest.flow_maps?.map((item) => item.id)).toEqual(["flow_map_2", "flow_map_3"]);
+    expect(manifest.flow_maps?.map((item) => item.id)).toEqual(
+      SONATA_FLOW_MAPS.filter((id) => id !== PLAYED),
+    );
     expect(manifest.virtual_timelines).toEqual([]);
-    const one = changed(view, { type: "remove", targets: [at("flow_map_2")] });
-    expect(valid(one).flow_maps?.map((item) => item.id)).toEqual(["flow_map_1", "flow_map_3"]);
+    const one = changed(view, { type: "remove", targets: [at(SINGLE)] });
+    expect(valid(one).flow_maps?.map((item) => item.id)).toEqual(
+      SONATA_FLOW_MAPS.filter((id) => id !== SINGLE),
+    );
   });
 });
 
 describe("Virtual timelines", () => {
   it("adds a virtual timeline with its axis computed", () => {
-    const value = { map: "flow_map_2", timeline: "score", name: "As played once" };
+    const value = { map: SINGLE, timeline: "score", name: "As played once" };
     const view = changed(sonata(), addVirtual(value, ["single_card"]));
     expect(valid(view).virtual_timelines?.find((item) => item.id === "single_card")).toEqual({
       id: "single_card",
-      map: "flow_map_2",
+      map: SINGLE,
       timeline: "score",
       name: "As played once",
       unit: "quarters",
@@ -251,7 +275,7 @@ describe("Virtual timelines", () => {
   it("refuses a virtual timeline core does not compute", () => {
     const into = key({ block: A });
     const view = sonata();
-    const value = { map: "flow_map_2", timeline: "score" };
+    const value = { map: SINGLE, timeline: "score" };
     expect(refused(apply(view, addVirtual({ ...value, length: [24, 1] }, ["x"])))).toEqual({
       code: "invalid_value",
       path: [into, "virtual_timeline", "length"],
@@ -451,11 +475,11 @@ describe("The flow property", () => {
   });
 
   it("switches a card to a FlowMap and back", () => {
-    const view = changed(sonata(), flow("flow_map_2"));
+    const view = changed(sonata(), flow(SINGLE));
     expect(valid(view).graphical?.rules).toEqual([
-      { select: { addresses: [{ id: "score", part: ["card"] }] }, set: { flow: "flow_map_2" } },
+      { select: { addresses: [{ id: "score", part: ["card"] }] }, set: { flow: SINGLE } },
     ]);
-    expect(refusal(apply(view, flow("region_1"))).code).toBe("schema_violation");
+    expect(refusal(apply(view, flow(SECTION_A))).code).toBe("schema_violation");
     const written = changed(view, flow(null));
     expect(valid(written).graphical?.rules).toEqual([]);
   });
@@ -478,7 +502,7 @@ describe("The flow editor", () => {
     const store = storeOf(sonata(), { minter: createIdMinter({ seed: 5n }) });
     expect(store.open(SCORE, "flow")).toBeNull();
     expect(
-      store.dispatch(addFlowMap("score", { chunks: ["region_3", "region_1"] }, ["back"])),
+      store.dispatch(addFlowMap("score", { chunks: [SECTION_C, SECTION_A] }, ["back"])),
     ).toBeNull();
     const region = { id: "coda", start: [20, 1], end: [24, 1] };
     expect(store.dispatch({ type: "add", into: SCORE, region })).toBeNull();
@@ -494,7 +518,7 @@ describe("The flow editor", () => {
     });
     const style = { type: "style", select: { element: "card" }, set: { stroke: "#000000" } };
     expect(refusal(store.dispatch(style))).toEqual({ code: "side_effect", path: [key(SCORE)] });
-    expect(refusal(store.open(at("region_1"))).code).toBe("no_editor");
+    expect(refusal(store.open(at(SECTION_A))).code).toBe("no_editor");
     expect(refusal(store.open({ block: A })).code).toBe("not_inside");
     store.done();
     const [entry] = store.journal.slice(-1);
@@ -516,7 +540,7 @@ describe("The flow editor", () => {
   it("reopens its own sessions only", () => {
     const store = storeOf(sonata());
     store.open(SCORE, "flow");
-    store.dispatch(addFlowMap("score", { chunks: ["region_3"] }, ["last"]));
+    store.dispatch(addFlowMap("score", { chunks: [SECTION_C] }, ["last"]));
     store.done();
     const journal = store.journal.length;
     expect(store.open(SCORE)).toBeNull();

@@ -30,10 +30,12 @@ import {
   at,
   changed,
   fileText,
+  flowMapUnder,
   key,
   load,
   loadText,
   manifestValue,
+  regionNamed,
   viewOf,
 } from "./support.ts";
 
@@ -180,11 +182,17 @@ describe("the drawn elements of flow control", () => {
 
 describe("FlowMaps and virtual timelines", () => {
   const SONATA = "flow/sonata_exposition.yaml";
+  const FLOW_MAPS = ["default", "printed", "single"].map((convention) =>
+    flowMapUnder(SONATA, convention),
+  );
+  const [PLAYED] = FLOW_MAPS as [string];
+  const SECTIONS = ["A", "B", "C"].map((name) => regionNamed(SONATA, name));
+  const [, B] = SECTIONS as [string, string];
 
   it("hold IDs of the manifest that resolve to their own kinds", () => {
     const manifest = load(SONATA);
     const ids = manifestIds(manifest);
-    for (const id of ["flow_map_1", "flow_map_2", "flow_map_3", "virtual_1"]) {
+    for (const id of [...FLOW_MAPS, "virtual_1"]) {
       expect(ids.has(id)).toBe(true);
       expect(resolveElement(manifest, idAddress(id))?.kind).toBe(
         id === "virtual_1" ? "virtual_timeline" : "flow_map",
@@ -194,7 +202,7 @@ describe("FlowMaps and virtual timelines", () => {
 
   it("refuse their IDs to an added element", () => {
     const view = viewOf([A, SONATA]);
-    for (const id of ["flow_map_1", "virtual_1"]) {
+    for (const id of [PLAYED, "virtual_1"]) {
       const region = { id, start: [0, 1], end: [1, 1] };
       expect(refusal(view, { type: "add", into: at("score"), region })).toEqual({
         code: "duplicate_id",
@@ -205,20 +213,18 @@ describe("FlowMaps and virtual timelines", () => {
 
   it("go with the root timeline they belong to", () => {
     const manifest = load(SONATA);
-    expect([...removedBy(manifest, ["score"])].sort()).toEqual([
-      "break_1",
-      "flow_map_1",
-      "flow_map_2",
-      "flow_map_3",
-      "jump_1",
-      "jump_2",
-      "jump_target_1",
-      "region_1",
-      "region_2",
-      "region_3",
-      "score",
-      "virtual_1",
-    ]);
+    expect([...removedBy(manifest, ["score"])].sort()).toEqual(
+      [
+        "break_1",
+        ...FLOW_MAPS,
+        "jump_1",
+        "jump_2",
+        "jump_target_1",
+        ...SECTIONS,
+        "score",
+        "virtual_1",
+      ].sort(),
+    );
     const emptied = manifestOf(
       changed(viewOf([A, SONATA]), { type: "remove", targets: [at("score")] }),
     );
@@ -237,26 +243,29 @@ describe("FlowMaps and virtual timelines", () => {
 
   it("refuse the removal of a region a FlowMap lists", () => {
     const view = viewOf([A, SONATA]);
-    expect(refusal(view, { type: "remove", targets: [at("region_2")] })).toEqual({
+    // The first FlowMap in the manifest's order that lists section B, at B's place in it.
+    const flowMaps = load(SONATA).flow_maps ?? [];
+    const first = flowMaps.findIndex((flowMap) => flowMap.chunks.includes(B));
+    expect(refusal(view, { type: "remove", targets: [at(B)] })).toEqual({
       code: "schema_violation",
-      path: [A, "manifest", "flow_maps", 0, "chunks", 1],
+      path: [A, "manifest", "flow_maps", first, "chunks", flowMaps[first]?.chunks.indexOf(B)],
     });
   });
 });
 
 describe("a virtual timeline", () => {
   const SONATA = "flow/sonata_exposition.yaml";
+  const PLAYED = flowMapUnder(SONATA, "default");
 
   it("is held to the sum of the chunks of the FlowMap it applies, when a command changes one", () => {
-    // region_3, the section C of 8 quarters, shortened to 4: A, B, A, C then sum to 32, not 36.
+    // Section C, of 8 quarters, shortened to 4: A, B, A, C then sum to 32, not 36.
     const shortened = {
       type: "set",
-      changes: [{ target: at("region_3"), values: { start: [20, 1] } }],
+      changes: [{ target: at(regionNamed(SONATA, "C")), values: { start: [20, 1] } }],
     };
     expect(apply(viewOf([A, SONATA]), shortened)).toEqual({
       code: "schema_violation",
-      message:
-        "length [36, 1] of 'virtual_1' is not the sum of the chunks and gaps of 'flow_map_1', [32, 1]",
+      message: `length [36, 1] of 'virtual_1' is not the sum of the chunks and gaps of '${PLAYED}', [32, 1]`,
       path: [A, "manifest", "virtual_timelines", 0, "length"],
     });
   });
@@ -268,8 +277,7 @@ describe("a virtual timeline", () => {
       problems: [
         {
           code: "schema_violation",
-          message:
-            "length [30, 1] of 'virtual_1' is not the sum of the chunks and gaps of 'flow_map_1', [36, 1]",
+          message: `length [30, 1] of 'virtual_1' is not the sum of the chunks and gaps of '${PLAYED}', [36, 1]`,
           path: ["virtual_timelines", 0, "length"],
         },
       ],
@@ -769,6 +777,7 @@ describe("where a destination leads", () => {
   });
 
   it("names a region, the timeline itself, and nothing for an unknown ID", () => {
+    const section = regionNamed("flow/sonata_exposition.yaml", "B");
     const view = changed(viewOf([A, "flow/sonata_exposition.yaml"]), {
       type: "add",
       into: at("score"),
@@ -776,13 +785,13 @@ describe("where a destination leads", () => {
         id: "jump_3",
         role: "jump",
         coordinate: [20, 1],
-        targets: [{ to: "region_2" }, { to: "score" }, { by: [-8, 1] }],
+        targets: [{ to: section }, { to: "score" }, { by: [-8, 1] }],
       },
     });
     // Canonical order: by `by`, then by `to`.
     expect(placesOf(view, "jump_3")).toEqual([
       ["by", null, quarters(12)],
-      ["region", "region_2", quarters(12)],
+      ["region", section, quarters(12)],
       ["timeline", "score", quarters(0)],
     ]);
     const timeline = scoreOf(view);

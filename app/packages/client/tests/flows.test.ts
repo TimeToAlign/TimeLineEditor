@@ -408,15 +408,15 @@ describe("withFlowMaps", () => {
     const regions = written.timelines[0]?.regions ?? [];
     expect(regions.map((region) => region.name)).toEqual(["A", "B"]);
     const names = new Map(regions.map((region) => [region.id, region.name]));
+    // The manifest lists its FlowMaps by their IDs, which the server mints: read by convention.
     expect(
-      written.flow_maps.map((flowMap) => [
-        flowMap.convention,
-        flowMap.chunks.map((chunk) => names.get(chunk)),
-      ]),
+      written.flow_maps
+        .map((flowMap) => [flowMap.convention, flowMap.chunks.map((chunk) => names.get(chunk))])
+        .sort(([a], [b]) => (String(a) < String(b) ? -1 : 1)),
     ).toEqual([
       ["default", ["A", "B", "A"]],
-      ["single", ["A", "B"]],
       ["printed", ["A", "B"]],
+      ["single", ["A", "B"]],
     ]);
   });
 

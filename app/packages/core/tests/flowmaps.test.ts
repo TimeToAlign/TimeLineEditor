@@ -25,7 +25,15 @@ import {
 } from "../src/number/coordinate.ts";
 import { Rational } from "../src/number/rational.ts";
 import { toRational } from "../src/number/real.ts";
-import { fileText, load, loadText, manifestValue } from "./support.ts";
+import { fileText, flowMapUnder, load, loadText, manifestValue, regionNamed } from "./support.ts";
+
+const SONATA = "flow/sonata_exposition.yaml";
+/** The sonata's sections A, B and C, computed from its flow control: their IDs are minted. */
+const [SECTION_A, SECTION_B, SECTION_C] = ["A", "B", "C"].map((name) =>
+  regionNamed(SONATA, name),
+) as [string, string, string];
+/** The sonata's FlowMap under the default convention, A, B, A, C, which `virtual_1` applies. */
+const PLAYED = flowMapUnder(SONATA, "default");
 
 /** One expected flow of the schema package (`fixtures/flows/<version>/`), as its README states it. */
 interface ExpectedFlow {
@@ -267,17 +275,17 @@ describe("the expected flows", () => {
 });
 
 describe("the FlowMaps a fixture states", () => {
-  const sonata = load("flow/sonata_exposition.yaml");
+  const sonata = load(SONATA);
   const A = span(q(0), q(12));
   const B = span(q(12), q(16));
   const C = span(q(16), q(24));
 
   it.each([
-    ["flow_map_1", [A, B, A, C]],
-    ["flow_map_2", [A, C]],
-    ["flow_map_3", [A, B, C]],
-  ] as const)("%s of sonata_exposition", (id, written) => {
-    const resolved = resolveFlowMap(sonata, id);
+    ["default", [A, B, A, C]],
+    ["single", [A, C]],
+    ["printed", [A, B, C]],
+  ] as const)("the FlowMap under %s of sonata_exposition", (convention, written) => {
+    const resolved = resolveFlowMap(sonata, flowMapUnder(SONATA, convention));
     expect(resolved.chunks.map((chunk) => chunk.written)).toEqual(written);
     let start = q(0);
     const played = written.map((stretch) => {
@@ -294,7 +302,7 @@ describe("the FlowMaps a fixture states", () => {
     const virtual = resolveVirtualTimeline(sonata, "virtual_1");
     expect(virtual.kind).toBe("flow_map");
     expect([virtual.map, virtual.source, virtual.unit, virtual.numberType]).toEqual([
-      "flow_map_1",
+      PLAYED,
       "score",
       "quarters",
       "fraction",
@@ -379,11 +387,11 @@ describe("children and descendants", () => {
 });
 
 describe("a virtual timeline chunk", () => {
-  const manifest = changedFixture("flow/sonata_exposition.yaml", (value) => {
+  const manifest = changedFixture(SONATA, (value) => {
     listOf(value, "flow_maps").push({
       id: "twice",
       timeline: "score",
-      chunks: ["virtual_1", "region_2"],
+      chunks: ["virtual_1", SECTION_B],
     });
   });
   const resolved = resolveFlowMap(manifest, "twice");
@@ -400,7 +408,7 @@ describe("a virtual timeline chunk", () => {
       {
         kind: "region",
         index: 1,
-        source: "region_2",
+        source: SECTION_B,
         written: span(q(12), q(16)),
         played: span(q(36), q(40)),
       },
@@ -548,7 +556,7 @@ describe("a virtual timeline through a group", () => {
 });
 
 describe("refusals", () => {
-  const sonata = load("flow/sonata_exposition.yaml");
+  const sonata = load(SONATA);
   const byHand = load("flow/flow_map_by_hand.yaml");
 
   it("refuses unknown IDs", () => {
@@ -593,14 +601,15 @@ describe("refusals", () => {
   });
 
   it("refuses a FlowMap playing itself through a virtual timeline", () => {
-    const circle = changedFixture("flow/sonata_exposition.yaml", (value) => {
-      const first = listOf(value, "flow_maps").find((item) => item.id === "flow_map_1");
-      if (first === undefined) throw new Error("missing");
-      first.chunks = ["virtual_1"];
+    const circle = changedFixture(SONATA, (value) => {
+      const played = listOf(value, "flow_maps").find((item) => item.id === PLAYED);
+      if (played === undefined) throw new Error("missing");
+      played.chunks = ["virtual_1"];
     });
-    expect(refusal(() => resolveFlowMap(circle, "flow_map_1"))).toEqual({
+    const index = (circle.flow_maps ?? []).findIndex((item) => item.id === PLAYED);
+    expect(refusal(() => resolveFlowMap(circle, PLAYED))).toEqual({
       code: "flow_map_cycle",
-      path: ["flow_maps", 0, "chunks"],
+      path: ["flow_maps", index, "chunks"],
     });
   });
 
@@ -622,7 +631,7 @@ describe("refusals", () => {
   });
 
   it("refuses a position on another unit", () => {
-    const resolved = resolveFlowMap(sonata, "flow_map_1");
+    const resolved = resolveFlowMap(sonata, PLAYED);
     const seconds: Coordinate = { unit: "seconds", numberType: "float", value: 1 };
     expect(refusal(() => unfold(resolved, seconds))).toEqual({ code: "unit_mismatch", path: [] });
   });
@@ -697,15 +706,15 @@ describe("a virtual timeline from a conversion map", () => {
 });
 
 describe("properties", () => {
-  const sonata = load("flow/sonata_exposition.yaml");
+  const sonata = load(SONATA);
   const REGIONS: Readonly<Record<string, Stretch>> = {
-    region_1: span(q(0), q(12)),
-    region_2: span(q(12), q(16)),
-    region_3: span(q(16), q(24)),
+    [SECTION_A]: span(q(0), q(12)),
+    [SECTION_B]: span(q(12), q(16)),
+    [SECTION_C]: span(q(16), q(24)),
   };
   type Drawn = string | { readonly gap: readonly [number, number] };
   const chunk = fc.oneof(
-    fc.constantFrom("region_1", "region_2", "region_3", "virtual_1"),
+    fc.constantFrom(SECTION_A, SECTION_B, SECTION_C, "virtual_1"),
     fc.integer({ min: 1, max: 8 }).map((k): Drawn => ({ gap: [k, 2] })),
   );
   const resolvedOf = (chunks: readonly Drawn[]): ResolvedFlowMap =>

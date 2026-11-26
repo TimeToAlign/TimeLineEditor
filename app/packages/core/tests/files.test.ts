@@ -23,6 +23,7 @@ import {
   block,
   C,
   changed,
+  conversionMapOf,
   deepFreeze,
   fileText,
   key,
@@ -823,30 +824,34 @@ describe("IDs of new elements", () => {
 
   it("refuse the IDs of the maps other maps hold, which no address names", () => {
     const view = viewOf([A, "conversion_maps__maps_quarters.yaml"]);
-    expect([...manifestIds(file(view))].sort()).toEqual([
-      "cmap_1",
-      "cmap_10",
-      "cmap_11",
-      "cmap_12",
-      "cmap_13",
-      "cmap_14",
-      "cmap_15",
-      "cmap_16",
-      "cmap_17",
-      "cmap_18",
-      "cmap_2",
-      "cmap_3",
-      "cmap_4",
-      "cmap_5",
-      "cmap_6",
-      "cmap_7",
-      "cmap_8",
-      "cmap_9",
-      "maps:quarters",
-      "measuremap_1",
-      "timestamp_1",
-      "timestamp_2",
-    ]);
+    // The record map of the MeasureMap has an ID the library mints.
+    const record = conversionMapOf("conversion_maps__maps_quarters.yaml", "MeasureRecordMap");
+    expect([...manifestIds(file(view))].sort()).toEqual(
+      [
+        record,
+        "cmap_10",
+        "cmap_11",
+        "cmap_12",
+        "cmap_13",
+        "cmap_14",
+        "cmap_15",
+        "cmap_16",
+        "cmap_17",
+        "cmap_18",
+        "cmap_2",
+        "cmap_3",
+        "cmap_4",
+        "cmap_5",
+        "cmap_6",
+        "cmap_7",
+        "cmap_8",
+        "cmap_9",
+        "maps:quarters",
+        "measure_map_1",
+        "timestamp_1",
+        "timestamp_2",
+      ].sort(),
+    );
     const held = region("cmap_13", quarters(0), quarters(1));
     expect(rejected(view, addRegion("maps:quarters", held))).toEqual({
       code: "duplicate_id",

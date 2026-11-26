@@ -17,6 +17,7 @@ import {
   C,
   CHILD_MEMBER,
   changed,
+  conversionMapOf,
   load,
   MPM,
   metrics,
@@ -268,9 +269,10 @@ describe("removeCommand", () => {
       expect(
         removeCommand(numbers, selectionOf([at("region_1"), at("region_1", "label")]), null),
       ).toEqual(removing(at("region_1")));
-      const map = removeCommand(mpm, selectionOf([at("cmap_1")]), null);
-      expect(map).toEqual(removing(at("cmap_1")));
-      expect(manifestIds(blockIn(changed(mpm, map), A).manifest).has("cmap_1")).toBe(false);
+      const table = conversionMapOf(MPM, "TableMap");
+      const map = removeCommand(mpm, selectionOf([at(table)]), null);
+      expect(map).toEqual(removing(at(table)));
+      expect(manifestIds(blockIn(changed(mpm, map), A).manifest).has(table)).toBe(false);
     });
 
     it("removes timelines and groups, a part standing for its element", () => {

@@ -305,7 +305,9 @@ call or the exact result.
       resolves to exactly the recording's text, which, parsed in the test,
       is the manifest written: the timeline's Regions are named A and B,
       and the FlowMaps, their chunks read as the names of the Regions they
-      name, are `default` A, B, A, `single` A, B and `printed` A, B. The
+      name, are `default` A, B, A, `single` A, B and `printed` A, B, each
+      read by its convention (the manifest lists them by the IDs the
+      server mints, so their order is not the test's to fix). The
       client reads the text only to check that it is JSON holding an
       object with a `timelines` list; anything else (a list, an object
       without `timelines`, text that is no JSON) rejects with code

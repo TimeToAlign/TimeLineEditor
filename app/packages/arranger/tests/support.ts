@@ -211,6 +211,38 @@ export const NUMBERS = "groups/group_number_types";
 export const CHILD_MEMBER = "groups/group_child_member";
 export const MPM = "bundles/corpus_mpm";
 
+/** The one item of `items` that `matches`, failing loudly if there are none or several. */
+function theOne<T>(items: readonly T[], matches: (item: T) => boolean, what: string): T {
+  const found = items.filter(matches);
+  if (found.length !== 1) throw new Error(`${found.length} ${what}, not one`);
+  return found[0] as T;
+}
+
+/** The ID of the one group named `groupName` in a manifest fixture: how a test names a group whose ID a loader mints. */
+export function groupNamed(name: string, groupName: string): string {
+  return theOne(load(name).groups, (group) => group.name === groupName, `groups ${groupName}`).id;
+}
+
+/**
+ * The ID of the one conversion map of type `type` that a timeline of a
+ * manifest fixture holds directly (not one inside another map): how a test
+ * names a map whose ID the library mints, as a MeasureMap's record map or a
+ * loader's maps.
+ */
+export function conversionMapOf(name: string, type: string): string {
+  type Tree = {
+    readonly conversion_maps: readonly { readonly id: string; readonly type: string }[];
+    readonly children: readonly Tree[];
+  };
+  const maps: Tree["conversion_maps"][number][] = [];
+  const walk = (timeline: Tree): void => {
+    maps.push(...timeline.conversion_maps);
+    for (const child of timeline.children) walk(child);
+  };
+  for (const root of load(name).timelines) walk(root);
+  return theOne(maps, (map) => map.type === type, `${type}s in ${name}`).id;
+}
+
 /**
  * Block `id` holding `group_number_types` with `region_1` (2 to 4 quarters,
  * named "A") added to its root `score`, as the README's `numbers`.

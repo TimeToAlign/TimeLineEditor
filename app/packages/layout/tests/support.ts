@@ -83,6 +83,28 @@ export function loadFile(name: string): Manifest {
   return result;
 }
 
+/**
+ * The ID of the one conversion map of type `type` that a timeline of a
+ * fixture holds directly (not one inside another map): how a test names a
+ * map whose ID the library mints, as a MeasureMap's record map or a corpus
+ * loader's maps.
+ */
+export function conversionMapOf(name: string, type: string): string {
+  type Tree = {
+    readonly conversion_maps: readonly { readonly id: string; readonly type: string }[];
+    readonly children: readonly Tree[];
+  };
+  const maps: Tree["conversion_maps"][number][] = [];
+  const walk = (timeline: Tree): void => {
+    maps.push(...timeline.conversion_maps);
+    for (const child of timeline.children) walk(child);
+  };
+  for (const root of loadFile(name).timelines) walk(root);
+  const found = maps.filter((map) => map.type === type);
+  if (found.length !== 1) throw new Error(`${found.length} ${type}s in ${name}, not one`);
+  return (found[0] as Tree["conversion_maps"][number]).id;
+}
+
 /** A fixture of one root and no group by name. */
 export function load(name: string): Manifest {
   const manifest = loadFile(name);

@@ -565,10 +565,10 @@ beside it, which serves its MatchClaim table alone (reading
 `projections.parquet` from it gives `null`, nothing fetched), and every
 end-to-end workspace as `e2e/<name>`; no label
 repeats and the list is in code-unit order. For the installed package that
-is 206 manifest fixtures (103 and their minimal twins: 52 at the top
-level, 17 in `groups/`, 20 in `bundles/`, 4 in `statements/` and 10 in
-`flow/`: 2 × (52 + 17 + 20 + 4 + 10) = 206), 18 warning cases, the table
-fixture and 5 workspaces, 206 + 18 + 1 + 5 = 230 options, from `bare` (then `bare.minimal`,
+is 214 manifest fixtures (107 and their minimal twins: 52 at the top
+level, 19 in `groups/`, 20 in `bundles/`, 4 in `statements/` and 12 in
+`flow/`: 2 × (52 + 19 + 20 + 4 + 12) = 214), 19 warning cases, the table
+fixture and 5 workspaces, 214 + 19 + 1 + 5 = 239 options, from `bare` (then `bare.minimal`,
 `bundles/bundle_arranged_conflict`, its twin, `bundles/bundle_arranged_roots`)
 to `with_region.minimal`; no option starts with `drawings/` or `rejections/`,
 which hold drawing inputs and outputs and refused manifests. Each option
@@ -582,7 +582,7 @@ workspace is of kind `workspace`, its text the file's, which the reader
 accepts and `createStore` opens (its journal replays to the file's view,
 the store holding that very view; `OPEN_TIMEOUT` is 15 s, about three
 times the replay of `grid-900`'s 900 adds, 3.7 s alone at a load average
-of 23 and past 5 s in the whole project's run); 206 + 18 + 1 = 225 entries of kind `manifest` and 5 of kind
+of 23 and past 5 s in the whole project's run); 214 + 19 + 1 = 234 entries of kind `manifest` and 5 of kind
 `workspace`. A
 manifest fixture is imported, never replacing the workspace and asking
 nothing, even with unsaved changes: chosen on a workspace holding one
@@ -672,7 +672,7 @@ accepts and refuses).
 
 1. **Every manifest round-trips through every format, byte for byte.**
    Each manifest fixture of the installed schema version (the 52 of the
-   top level, the 17 of `groups/`, the 20 of `bundles/` and the 10 of
+   top level, the 19 of `groups/`, the 20 of `bundles/` and the 12 of
    `flow/`, whose jumps with their destinations, `ends`, element
    provenance, FlowMaps and virtual timelines so pass through YAML, JSON
    and TOML unchanged; a minimal twin reads back as its complete fixture,

@@ -47,13 +47,13 @@ const OPEN_TIMEOUT = 15_000;
 
 describe("the fixture menu", () => {
   it("lists every fixture once, under its path label, in code-unit order", () => {
-    expect([manifests.length, warnings.length, workspaces.length]).toEqual([206, 18, 5]);
+    expect([manifests.length, warnings.length, workspaces.length]).toEqual([214, 19, 5]);
     expect(names).toEqual(
       [...manifests, ...warnings, "tables/manifest", ...workspaces].sort((left, right) =>
         left < right ? -1 : left > right ? 1 : 0,
       ),
     );
-    expect(new Set(names).size).toBe(230);
+    expect(new Set(names).size).toBe(239);
     expect(names.slice(0, 5)).toEqual([
       "bare",
       "bare.minimal",
@@ -91,7 +91,7 @@ describe("an entry", () => {
   const opened = FIXTURES.filter(({ kind }) => kind === "workspace");
 
   it("is a manifest for every manifest fixture and warning case, a workspace for every end-to-end file", () => {
-    expect([imported.length, opened.length]).toEqual([225, 5]);
+    expect([imported.length, opened.length]).toEqual([234, 5]);
     expect(opened.map(({ label }) => label)).toEqual(workspaces);
   });
 
