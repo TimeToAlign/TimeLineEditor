@@ -20,6 +20,7 @@ import {
   hitOf,
   holdingOf,
   hoverOf,
+  isAffordance,
   isDisplayed,
   isHeld,
   isItem,
@@ -37,6 +38,7 @@ import { affordancesOf } from "./coordinates.ts";
 import { raisedLayers } from "./drawing.ts";
 import { addressParts, bandTimelineOf } from "./editing.ts";
 import { flowOverlays, OVERLAY_LABEL_SIZE } from "./flowOverlay.ts";
+import { SwitchMotion } from "./flowSwitchMotion.svelte.ts";
 import type { GestureOptions } from "./gesture.ts";
 import { drawingPoint, drawn, pointerGesture, sourceAt } from "./gesture.ts";
 import { bandGesture } from "./gestures/band.ts";
@@ -47,6 +49,9 @@ import { OUT_OF_DATE_MARK } from "./matches.ts";
 import { settle, slide } from "./motion.ts";
 import type { BlockNode as BlockNodeType } from "./node.ts";
 import { getNodeActions } from "./nodeActions.ts";
+import Ribbons from "./Ribbons.svelte";
+import type { ChunkRef, LitBrace } from "./ribbons.ts";
+import { allLights, chunkOf } from "./ribbons.ts";
 import { type Owner, ownerOf } from "./selectionRules.ts";
 
 /** Svelte Flow passes every node prop; the node reads only its data. */
@@ -157,6 +162,28 @@ const cardMotions = new CardMotions(
   () => actions.previewing(data.block.id),
 );
 
+/**
+ * The flow switch's motion (`SwitchMotion`): where a card became switched,
+ * its chunks move from where they are written to where they are played;
+ * never for a preview nor under reduced motion.
+ */
+const switchMotion = new SwitchMotion(
+  () => ({ manifest: data.block.manifest, drawing: data.drawing }),
+  () => actions.reducedMotion(),
+  () => actions.previewing(data.block.id),
+);
+
+/** The `transform` an entry takes while its chunk moves (`SwitchMotion`), before its own; nothing at rest. */
+function switchAttributes(entry: Entry): Record<string, string> {
+  const moved = switchMotion.transformOf(
+    entry.descriptor.source.element,
+    entry.descriptor.tag === "text",
+  );
+  if (moved === null) return {};
+  const own = entry.attributes.transform;
+  return { transform: own === undefined ? moved : `${moved} ${own}` };
+}
+
 /** An entry's own opacity, which a motion's is multiplied with. */
 const ownOpacity = (entry: Entry): number => Number(entry.attributes.opacity ?? 1);
 
@@ -240,12 +267,26 @@ function onpointermove(event: PointerEvent & { currentTarget: SVGSVGElement }) {
   if (event.buttons !== 0) return;
   const point = drawingPoint(event.currentTarget, { x: event.clientX, y: event.clientY });
   if (point === null) return;
-  const hit = hitOf(data.block.id, data.drawing, sourceAt(event.target), point, data.editing);
+  const source = sourceAt(event.target);
+  const hit = hitOf(data.block.id, data.drawing, source, point, data.editing);
   show(hoverOf(hit));
+  hoverChunk(
+    source === null || isAffordance(source) ? null : chunkOf(data.block.manifest, source.address),
+  );
 }
 
 function onpointerleave() {
   show(NO_HOVER);
+  hoverChunk(null);
+}
+
+/** The chunk of a virtual card under the pointer (its brace, label, leader or boundary), else `null`. */
+let hoveredChunk: ChunkRef | null = $state.raw(null);
+
+function hoverChunk(next: ChunkRef | null): void {
+  if (next?.timeline !== hoveredChunk?.timeline || next?.index !== hoveredChunk?.index) {
+    hoveredChunk = next;
+  }
 }
 
 /**
@@ -438,6 +479,36 @@ function isOutside(key: string): boolean {
 const overlays = $derived(
   flowOverlays(data.block, data.drawing, data.descriptors, data.editing, actions.metrics),
 );
+
+/**
+ * The chunks of virtual cards whose ribbons are drawn (`ribbons.ts`): the
+ * selected ones, then the one under the pointer, each once.
+ */
+const shownChunks: readonly ChunkRef[] = $derived.by(() => {
+  const chunks: ChunkRef[] = [];
+  const found = [...data.selectedElements.values()].map((address) =>
+    chunkOf(data.block.manifest, address),
+  );
+  for (const chunk of [...found, hoveredChunk]) {
+    if (chunk === null) continue;
+    if (chunks.some((one) => one.timeline === chunk.timeline && one.index === chunk.index))
+      continue;
+    chunks.push(chunk);
+  }
+  return chunks;
+});
+
+/** The ribbons of the shown chunks and the braces they light (`allLights`), an overlay like the marks. */
+const lights = $derived(allLights(data.block.manifest, data.drawing, shownChunks));
+const litBraces: readonly LitBrace[] = $derived.by(() => {
+  if (lights.lit.length === 0) return [];
+  const keys = new Set(lights.lit.map(addressKey));
+  return entries.flatMap((entry) =>
+    entry.descriptor.source.type === "region" && keys.has(entry.addressKey)
+      ? [{ key: entry.key, tag: entry.descriptor.tag, attributes: shapeOf(entry) }]
+      : [],
+  );
+});
 
 /** The timeline whose bands this block offers (`bandTimelineOf`), else `null`. */
 const bandTimeline = $derived(bandTimelineOf(data.block.id, data.editing));
@@ -659,7 +730,7 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
       <svelte:element
         this={entry.descriptor.tag}
         {...attributesOf(entry)}
-        {...placed === null ? {} : placedAttributes(placed, ownOpacity(entry))}
+        {...placed === null ? switchAttributes(entry) : placedAttributes(placed, ownOpacity(entry))}
         visibility={hidden.has(entry.descriptor) ? "hidden" : undefined}
         data-selected={glows(entry) ? "" : undefined}
         data-affected={isAffected(entry) ? "" : undefined}
@@ -761,6 +832,7 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         </g>
       </g>
     {/each}
+    <Ribbons ribbons={lights.ribbons} lit={litBraces} />
     {#each holdingMarks as entry (entry.key)}
       <rect
         {...shapeOf(entry)}
