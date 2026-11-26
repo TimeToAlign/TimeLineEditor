@@ -172,7 +172,7 @@ const newGroup = $derived(
 /** The `remove` deleting the one selected virtual timeline; else `null`. */
 const virtualDeletion = $derived(virtualDeletionOf(subjects));
 
-/** The editor's deletion dialog; a panel mounted alone (in tests) has none and deletes all. */
+/** The editor's deletion dialog; a panel mounted alone (in tests) has none and deletes all where core admits it. */
 const ask = hasAsk() ? askOf() : null;
 
 /**

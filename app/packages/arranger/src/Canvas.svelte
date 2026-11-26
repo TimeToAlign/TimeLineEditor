@@ -216,7 +216,8 @@ interface Props {
    * Asked before a deletion that also deletes virtual timelines made from
    * what it names (`deleteQuestion`): resolves the command the user chose,
    * "Delete all" (`remove`) or "Hide instead" (`hide`), or `null` to store
-   * nothing. Without it the deletion is stored as asked, "Delete all".
+   * nothing. Without it the deletion is stored as asked, "Delete all", where
+   * core admits it (`remove` not `null`).
    */
   confirmDelete?: (
     question: DeleteQuestion,
