@@ -1994,6 +1994,48 @@ proves the reading:
   exposure, equal to the least of the free cards' (an oracle the editor
   never computes).
 
+**Virtual timelines** (drawing.md section 8.10, Elisions of a virtual
+timeline). A virtual timeline lies in no tree: it is the root of its own
+member drawing, its axis the played axis from 0 to its length. Its
+elisions are card elisions of its placed card where no group holds it,
+edited as an ungrouped root's are, and group elisions of each frame that
+holds it as a member otherwise. The oracle is that rule and the virtual
+timeline's stated length, unit and name; the drawing is layout's, the
+stretches written by the arranger's `stretchText` as every row is.
+- **A placed virtual card.** `flow/virtual_cards` (`allegro_default`
+  "Allegro, default", fraction quarters, 4241/2, in no group) with its
+  card placed by one `set` of its `place` `{scale: 1}`: the root's block
+  is offered for its card `{id: allegro_default, part: [card]}`, its line
+  `{id: allegro_default}` and its band `{id: allegro_default, facet:
+  regions}`, titled `Elisions of "Allegro, default"` with the options Full
+  and Custom, mode Custom (it derives nothing), no rows, Remove all
+  `null`, and Add one `add {into: {B, allegro_default}, elision: {start:
+  [4241, 6], end: [4241, 3]}}`, the middle third of its played axis 0 to
+  4241/2. Its Full is one `style` of `{addresses: [{id: allegro_default,
+  part: [card]}]}` setting `{elision-mode: full, display: null}`. The card
+  of `allegro_single`, not placed, is offered no block. With that Add
+  dispatched (one entry), the block lists one row, "—" "Allegro, default"
+  and the stretch `stretchText` writes of 4241/6 to 4241/3 on its axis
+  (no run gap there: the gap is the whole stretch), and Remove all is one
+  `remove` of that elision (core's `elisionsUnder` of the virtual
+  timeline); the elision selected shows the form titled `Elision on
+  "Allegro, default"`, unit ♩, its From and To the texts a typed value
+  gives back (`4241/6` and `4241/3`), held by the root's block.
+- **A virtual member.** `groups/virtual_member` (`allegro_default` a
+  member of `performance` "Performance" with the root `recording`) given
+  `gap` on `allegro_default` from 500 to 1000 by one `add`: the group's
+  block is offered for the virtual member's card `{id: allegro_default,
+  part: [card]}` and for `{id: gap}`, titled `Elisions in group
+  "Performance"`, "1 elision", the row "—" "Allegro, default" and the
+  stretch `stretchText` writes of 500 to 1000 on its axis, Remove all one `remove` of `gap`, Add from the virtual member's card
+  into `allegro_default` `{start: [4241, 6], end: [4241, 3]}`; no root's
+  block is offered for either (it is a group elision, and a virtual
+  member has no card of its own). The form of `gap` reads From "500", To
+  "1000" and Also elides `Recording` with the stretch `stretchText`
+  writes of 702500/4241 to 1405000/4241 on `recording`'s float axis (the
+  exact proportions times its length 702.5, rounded once), layout's
+  elided coordinates.
+
 **The display command** is one (`stamps/commands.ts`): a named timestamp's,
 an anchor's and a stored elision's `display` toggle through it, taking a
 word out where shown and putting it in its canonical place otherwise;

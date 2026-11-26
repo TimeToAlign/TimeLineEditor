@@ -11,12 +11,13 @@ import {
   groupsHolding,
   idAddress,
   indexOf,
+  type Manifest,
   type ManifestGraphical,
   type OwnerAddress,
   partAddress,
   type TimelineManifest,
 } from "@timetoalign/tilie-core";
-import { elementKey } from "@timetoalign/tilie-core/drawing";
+import { elementKey, virtualDrawing } from "@timetoalign/tilie-core/drawing";
 import {
   compareReal,
   fromFloat,
@@ -465,15 +466,21 @@ function stretchText(timeline: TimelineManifest, start: Real, end: Real): string
   return `${coordinateText(start, numberType, unit === "seconds" ? unit : null)}–${coordinateText(end, numberType, unit)}`;
 }
 
-/** The texts of a stored elision's labels: its name, else its timeline's; its ID; its stretch. */
+/**
+ * The texts of a stored elision's labels: its name, else the name of the
+ * timeline it lies on (section 5.3), a virtual timeline's own (core's
+ * `virtualDrawing`), never the name its card draws (section 8.10); its ID;
+ * its stretch.
+ */
 function storedTexts(
+  manifest: Manifest,
   elision: StoredElision,
   timeline: TimelineManifest,
   start: Real,
   end: Real,
 ): LabelTexts {
   return {
-    name: elision.name ?? nameOf(timeline),
+    name: elision.name ?? nameOf(virtualDrawing(manifest, timeline.id)?.timeline ?? timeline),
     id: elision.id,
     coordinate: stretchText(timeline, start, end),
   };
@@ -587,7 +594,7 @@ function storedPieces(
         idAddress(elision.id),
         entry,
         elisionWords(elision.display),
-        storedTexts(elision, timeline, start, end),
+        storedTexts(scope.manifest, elision, timeline, start, end),
         { origin: "stored", start, end, um: scope.u(midpointOf(a, b)), framed: false },
       );
       // A piece that is not drawn takes nothing from the pieces after it.
@@ -1212,7 +1219,7 @@ export function frameElisions(
         idAddress(elision.id),
         holder,
         elisionWords(elision.display),
-        storedTexts(elision, timeline, start, end),
+        storedTexts(manifest, elision, timeline, start, end),
         { origin: "stored", start, end, um: (p + q) / 2, framed: true },
       );
       // A piece that is not drawn takes nothing from the pieces after it.

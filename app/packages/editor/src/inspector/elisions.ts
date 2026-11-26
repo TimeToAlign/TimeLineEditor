@@ -2,7 +2,9 @@
  * The Elisions tab (TimeToShare's drawing specification,
  * sections 2.4 and 8.9): the block of the root `R` under which the whole
  * selection lies, where `R`'s drawing carries elisions (an ancestor card of
- * `R`, or `R`'s card as an ungrouped root); the block of the group `G` whose
+ * `R`, or `R`'s card as an ungrouped root, a placed virtual timeline's card
+ * included, the virtual timeline its own root, section 8.10); the block of
+ * the group `G` whose
  * frame the selection lies in, or whose editor is open; and the form of one
  * selected elision. A root's mode and its settings are one rule on its card
  * address, a frame's mode one rule on its address; what they resolve to,
@@ -64,7 +66,12 @@ import {
   sameAddress,
   samePlaceKey,
 } from "@timetoalign/tilie-core";
-import { anchorsOf, memberDrawings, reachOf } from "@timetoalign/tilie-core/drawing";
+import {
+  anchorsOf,
+  memberDrawings,
+  reachOf,
+  virtualDrawing,
+} from "@timetoalign/tilie-core/drawing";
 import type { CoordinateValue, Real } from "@timetoalign/tilie-core/numbers";
 import {
   axisCoordinate,
@@ -424,18 +431,45 @@ function styleCommand(block: string, select: Selector, set: StyleCommand["set"])
 
 // --- Where the selection lies ---------------------------------------------------------------------
 
-/** The timeline `resolved` names or lies on, a part through its owner; `null` for anything else. */
+/**
+ * The timeline `resolved` names or lies on, a part through its owner, a
+ * virtual timeline's card or band through the virtual timeline; `null` for
+ * anything else.
+ */
 function timelineOf(resolved: ResolvedAddress): string | null {
   switch (resolved.kind) {
     case "timeline":
     case "card":
     case "elision":
       return resolved.at.timeline.id;
+    case "virtual_timeline":
+    case "virtual_card":
+    case "virtual_band":
+      return resolved.virtual.id;
     case "part":
       return timelineOf(resolved.owner);
     default:
       return null;
   }
+}
+
+/**
+ * The timeline `id` names in `manifest`, a virtual timeline read as the
+ * timeline its axis is (core's `virtualDrawing`, drawing.md section 8.10: a
+ * root holding nothing, its played axis); `undefined` for an ID naming
+ * neither.
+ */
+function timelineIn(manifest: Manifest, id: string): TimelineManifest | undefined {
+  return findTimeline(manifest, id) ?? virtualDrawing(manifest, id)?.timeline;
+}
+
+/**
+ * The groups of `manifest` holding the timeline or virtual timeline `id`
+ * (core's `groupsHolding` over the manifest's index, in which a group
+ * naming a virtual timeline holds it as any member).
+ */
+function holdingOf(manifest: Manifest, id: string): Manifest["groups"] {
+  return groupsHolding(manifest, id, indexOf(manifest).ancestry);
 }
 
 /**
@@ -469,7 +503,10 @@ function drawnCardOf(drawing: Drawing, root: string, group: string): DrawnBox | 
 interface RootOf {
   readonly root: TimelineManifest;
   readonly ancestor: boolean;
-  /** The card's place key: `{item: G, member: R}` for an ancestor card, `{item: R}` for an ungrouped card. */
+  /**
+   * The card's place key: `{item: G, member: R}` for an ancestor card, `{item: R}` for an
+   * ungrouped card or a placed virtual card.
+   */
   readonly key: PlaceKey;
   /**
    * The stretch of `R`'s axis its anchors cover: the member the ancestor card
@@ -486,9 +523,11 @@ interface RootOf {
 /**
  * The root a block acts on: every subject a timeline, a card, a part of
  * either or an elision, all in `block` and under one root `R` whose drawing
- * can carry elisions (it has an ancestor card, or it is an ungrouped root);
- * the card read is the one behind the group the selection concerns, else the
- * first; else `null`.
+ * can carry elisions (it has an ancestor card, or it is an ungrouped root,
+ * or a virtual timeline no group holds, whose placed card draws its
+ * elisions as an ungrouped root's card does, section 8.10); the card read
+ * is the one behind the group the selection concerns, else the first; else
+ * `null`.
  */
 function rootOf(block: Block, subjects: readonly Subject[], drawing: Drawing): RootOf | null {
   const { manifest } = block;
@@ -502,7 +541,7 @@ function rootOf(block: Block, subjects: readonly Subject[], drawing: Drawing): R
   const roots = new Set(concerns.map(({ timeline }) => ancestry.get(timeline)?.[0]));
   const [id, ...others] = roots;
   if (id === undefined || others.length > 0) return null;
-  const root = findTimeline(manifest, id);
+  const root = timelineIn(manifest, id);
   if (root === undefined) return null;
   const only = concerns.length === 1 ? (concerns[0]?.timeline ?? null) : null;
   const drawings = memberDrawings(manifest);
@@ -532,7 +571,9 @@ function rootOf(block: Block, subjects: readonly Subject[], drawing: Drawing): R
       subject: only,
     };
   }
-  if (drawings.ungrouped.some((drawn) => drawn.timeline.id === id)) {
+  const placeable =
+    virtualDrawing(manifest, id) !== undefined && holdingOf(manifest, id).length === 0;
+  if (placeable || drawings.ungrouped.some((drawn) => drawn.timeline.id === id)) {
     return { root, ancestor: false, key: { item: id }, protected: null, groups: [], subject: only };
   }
   return null;
@@ -566,7 +607,7 @@ function exposedRows(block: Block, gaps: readonly ExposedGap[]): ElisionRow[] {
   const elisions = block.manifest.graphical?.elisions ?? [];
   return [...rows.values()].flatMap(({ address, gaps: pieces }) => {
     const stored = elisions.find((elision) => elision.id === address.id);
-    const timeline = stored && findTimeline(block.manifest, stored.timeline);
+    const timeline = stored && timelineIn(block.manifest, stored.timeline);
     if (stored === undefined || timeline === undefined) return [];
     return [
       {
@@ -588,7 +629,7 @@ function storedRows(
   note: string | null = null,
 ): ElisionRow[] {
   return elisions.flatMap((elision) => {
-    const timeline = findTimeline(block.manifest, elision.timeline);
+    const timeline = timelineIn(block.manifest, elision.timeline);
     if (timeline === undefined) return [];
     const address = inBlock(block.id, idAddress(elision.id));
     const [start, end] = storedStretch(elision, timeline);
@@ -633,7 +674,7 @@ function rootOptions(
   const root = of.root.id;
   const style = (set: StyleCommand["set"]) => styleCommand(block.id, rootSelector(root), set);
   const stored = elisionsUnder(block.manifest, root).length > 0;
-  const holding = groupsHolding(block.manifest, root);
+  const holding = holdingOf(block.manifest, root);
   const option = (
     target: RootMode,
     commands: readonly Command[],
@@ -704,8 +745,8 @@ function addOnRoot(block: Block, of: RootOf): AddCommand | null {
   const inCard =
     of.subject !== null &&
     lineage?.[0] === of.root.id &&
-    groupsHolding(manifest, of.subject).length === 0;
-  const timeline = (inCard && findTimeline(manifest, of.subject ?? "")) || of.root;
+    holdingOf(manifest, of.subject).length === 0;
+  const timeline = (inCard && timelineIn(manifest, of.subject ?? "")) || of.root;
   const offset = offsetOnRoot(manifest, timeline.id);
   const from = offset;
   const to = offset.add(toRational(extentOf(timeline, manifest)));
@@ -824,7 +865,8 @@ function undrawnBetween(manifest: Manifest, of: RootOf, exposure: ElisionExposur
  * The root's block of the inspected subjects, all in `block` and drawn as
  * `drawing`: offered where every subject is a timeline, a card, a part of
  * either or an elision, all under one root `R` that has an ancestor card or
- * is an ungrouped root; `null` otherwise.
+ * is an ungrouped root, or is a virtual timeline whose card the block
+ * places; `null` otherwise.
  */
 export function rootElisionsOf(
   view: View,
@@ -960,7 +1002,7 @@ function groupConcerned(manifest: Manifest, subject: Subject): string | null {
   if (owner.kind === "frame") return owner.group.id;
   const timeline = timelineOf(resolved);
   if (timeline === null) return null;
-  const holding = groupsHolding(manifest, timeline).map((group) => group.id);
+  const holding = holdingOf(manifest, timeline).map((group) => group.id);
   const framed = box === null || box.ancestor !== undefined ? [] : groupsBehind(box);
   const held = holding.find((id) => framed.includes(id));
   if (held !== undefined) return held;
@@ -978,14 +1020,14 @@ function addOnGroup(block: Block, group: string, subjects: readonly Subject[]): 
   let id: string | undefined;
   if (subject !== undefined && others.length === 0) {
     const timeline = timelineOf(subject.resolved);
-    if (timeline !== null && groupsHolding(manifest, timeline).some((each) => each.id === group)) {
+    if (timeline !== null && holdingOf(manifest, timeline).some((each) => each.id === group)) {
       id = timeline;
     } else if (subject.box?.key?.member !== undefined && subject.box.ancestor === undefined) {
       id = subject.box.key.member;
     }
   }
   id ??= displayOrder(manifest, group)[0];
-  const timeline = id === undefined ? undefined : findTimeline(manifest, id);
+  const timeline = id === undefined ? undefined : timelineIn(manifest, id);
   if (timeline === undefined) return null;
   const stretch = middleThird(Rational.of(0n), extentOf(timeline, manifest), timeline);
   if (stretch === null) return null;
@@ -1105,7 +1147,7 @@ function storedGap(
   drawing: Drawing,
 ): { gap: NonNullable<ElisionForm["gap"]> | null; also: AlsoElided[] | null } {
   const { manifest } = block;
-  const holding = groupsHolding(manifest, elision.timeline);
+  const holding = holdingOf(manifest, elision.timeline);
   const address = idAddress(elision.id);
   if (holding.length > 0) {
     const framed = groupsBehind(subject.box);
@@ -1115,7 +1157,7 @@ function storedGap(
     const also = (gap?.members ?? [])
       .filter((each) => each.timeline !== elision.timeline)
       .flatMap((each) => {
-        const on = findTimeline(manifest, each.timeline);
+        const on = timelineIn(manifest, each.timeline);
         if (on === undefined) return [];
         const stretch =
           each.start === null || each.end === null ? "—" : stretchText(on, each.start, each.end);

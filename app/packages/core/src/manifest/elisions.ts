@@ -1,16 +1,17 @@
 /**
  * The elisions of a manifest (`graphical.elisions`, TimeToShare's README
  * and `docs/drawing.md`, sections 2 and 8.9): each lies on one timeline,
- * at any depth, as a named timestamp does. An elision on a timeline that
- * lies in a group is a group elision of that group, drawn across its
- * frame; every other one is a card elision of its root's cards. Core reads
+ * at any depth, or on a virtual timeline, as a named timestamp does. An
+ * elision on a timeline that lies in a group is a group elision of that
+ * group, drawn across its frame; every other one is a card elision of its
+ * root's cards, a virtual timeline being its own root (section 8.10). Core reads
  * the stored ones; the elisions a card derives are made by the drawing
  * from the view, and core knows of them only which timelines may carry
  * them.
  */
 
 import { memberDrawings } from "./files.ts";
-import { groupsHolding, locateTimeline, timelineAncestry } from "./tree.ts";
+import { groupsHolding, locateTimeline, memberAncestry } from "./tree.ts";
 import type { Elision, Manifest, TimelineManifest } from "./types.ts";
 
 /**
@@ -54,13 +55,14 @@ const elisionGroups = new WeakMap<Manifest, ReadonlyMap<Elision, readonly string
 
 /**
  * The IDs of the groups the timeline of `elision` lies in (`groupsHolding`:
- * the timeline or one of its ancestors is a member), in the order of
- * `groups`: none for a card elision. Memoised by the manifest's identity.
+ * the timeline or one of its ancestors is a member, a virtual timeline
+ * where a group names it, `memberAncestry`), in the order of `groups`: none
+ * for a card elision. Memoised by the manifest's identity.
  */
 function groupsOf(manifest: Manifest, elision: Elision): readonly string[] {
   let found = elisionGroups.get(manifest);
   if (found === undefined) {
-    const ancestry = timelineAncestry(manifest);
+    const ancestry = memberAncestry(manifest);
     found = new Map(
       (manifest.graphical?.elisions ?? []).map((item) => [
         item,
@@ -77,18 +79,22 @@ function groupsOf(manifest: Manifest, elision: Elision): readonly string[] {
  * of it, in the order of `graphical.elisions`: every stored elision of that
  * tree whose timeline lies in no group (drawing.md section 8.9), which
  * decides a card's `auto` mode and which Remove all takes from a root's
- * cards in one `remove`. A group elision of the tree is none of them. None
- * for an ID naming no timeline.
+ * cards in one `remove`. A group elision of the tree is none of them. A
+ * virtual timeline is a root holding nothing (section 8.10): for one that
+ * no group holds, the elisions lying on it (`elisionsOn`), those its placed
+ * card draws; for one a group holds, none. None for an ID naming neither.
  */
 export function elisionsUnder(manifest: Manifest, root: string): readonly Elision[] {
-  const located = locateTimeline(manifest, root);
-  if (located === undefined) return NO_ELISIONS;
   const tree = new Set<string>();
   const visit = (timeline: TimelineManifest) => {
     tree.add(timeline.id);
     for (const child of timeline.children) visit(child);
   };
-  visit(located.timeline);
+  const located = locateTimeline(manifest, root);
+  if (located !== undefined) visit(located.timeline);
+  else if ((manifest.virtual_timelines ?? []).some((virtual) => virtual.id === root)) {
+    tree.add(root);
+  } else return NO_ELISIONS;
   return (manifest.graphical?.elisions ?? []).filter(
     (elision) => tree.has(elision.timeline) && groupsOf(manifest, elision).length === 0,
   );
@@ -96,8 +102,8 @@ export function elisionsUnder(manifest: Manifest, root: string): readonly Elisio
 
 /**
  * The group elisions of the group `group`: every stored elision whose
- * timeline lies in it, a member or a member's descendant (`groupsHolding`,
- * drawing.md section 8.9), in the order of `graphical.elisions`. An elision
+ * timeline lies in it, a member or a member's descendant, a virtual member
+ * included (`groupsHolding`, drawing.md sections 8.9 and 8.10), in the order of `graphical.elisions`. An elision
  * on a timeline lying in several groups is a group elision of each. None
  * for an ID naming no group.
  */

@@ -477,9 +477,10 @@ function gapElements(
  * keyed as the label of a brace that is not drawn; its line holds, after
  * its name, the boundary `[k, "start"]` of every entry that draws one. The
  * card a block holds of it draws a root whole (`elides`): its line holds,
- * after its two bands, the gaps of the stored elisions lying on `V`, in
- * canonical order, as an ungrouped root's card holds its card elisions; a
- * member's card in a frame draws none.
+ * after its two bands, the gaps of the stored elisions lying on `V`
+ * (`elisionsUnder` `V`), in canonical order, as an ungrouped root's card
+ * holds its card elisions; a member's card in a frame draws none, its
+ * elisions being group elisions of the frame.
  */
 function memberElements(
   manifest: Manifest,
@@ -497,11 +498,8 @@ function memberElements(
   keys.push(elementKey(card, cardAddress(root.id), root, holder));
   const line = elementKey("timeline", idAddress(root.id), root, holder);
   const drawn = cardStamps(manifest, member, frame);
-  // A placed virtual card's card elisions are those lying on the virtual timeline (section 8.10).
   const cardElisions =
-    elides && unfolding === null
-      ? new Set(virtual ? elisionsOn(manifest, root.id) : elisionsUnder(manifest, root.id))
-      : undefined;
+    elides && unfolding === null ? new Set(elisionsUnder(manifest, root.id)) : undefined;
   // How often an element at a position or over an extent is drawn: once as written, once in
   // every piece reaching it on an unfolded card (section 8.10), the position read on the
   // member's own axis, from its start `drawn.window[0]` on the axis of its tree's root.
@@ -912,7 +910,8 @@ function rootFlow(manifest: Manifest, member: MemberDrawing): DrawnFlow {
  * then, after every item, the gaps of the frames' group elisions, frame by
  * frame in drawing order and each frame's in canonical order, each `{id:
  * E}` of type `elision` held by the frame with its ellipsis and its labels
- * (`gapElements`), belonging to the elision's timeline; then the lines of the groupstamps across their
+ * (`gapElements`), belonging to the elision's timeline, a virtual member's
+ * read as its drawing's timeline (`virtualDrawing`); then the lines of the groupstamps across their
  * groups' frames (section 6.6), so that every drawn line has an address:
  * timestamp by timestamp in the order of `graphical.timestamps`, for each
  * groupstamp whose `display` lists `cross_section`, one `cross_section` at
@@ -947,7 +946,9 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
   // The gaps of the group elisions of `group`, held by its frame `frame`, labelled or not.
   const groupGaps = (group: string, frame: ElementKey, labels: boolean) => {
     for (const elision of groupElisions(ordered, group)) {
-      const timeline = findTimeline(ordered, elision.timeline);
+      const timeline =
+        findTimeline(ordered, elision.timeline) ??
+        virtualDrawing(ordered, elision.timeline)?.timeline;
       if (timeline !== undefined) gapElements(elision, timeline, frame, keys, labels);
     }
   };

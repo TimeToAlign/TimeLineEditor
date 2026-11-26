@@ -3397,7 +3397,23 @@ spells a value as canonical YAML does.
       on `allegro_default` (logical, continuous,
       `ContinuousLogicalTimeline`) inside `[block, timeline]`, then its
       `ellipsis` and its `name` label inside `[block, timeline,
-      elision]`, each once; no other card lists a key of `gap`.
+      elision]`, each once; no other card lists a key of `gap`;
+    - `elisionsUnder(manifest, "allegro_default")` is `gap` alone (a
+      virtual timeline is a root holding nothing, so the elisions lying on
+      it are its card elisions, which Remove all takes) and
+      `elisionsUnder(manifest, "allegro_single")` none.
+
+    A virtual timeline a group names lies in that group as a member does
+    (drawing.md section 8.10: an elision on it is a group elision of each
+    group it is a member of). `groups/virtual_member.yaml` (the group
+    `performance` of `allegro_default` and the root `recording`) given
+    `gap` on `allegro_default` from 500 to 1000:
+    `groupElisions(manifest, "performance")` is `gap`,
+    `elisionsUnder(manifest, "allegro_default")` none (it is no card
+    elision), and `manifestElements` lists `gap` once, as the frame's own
+    gap after every item: `{id: "gap"}` of type `elision` on
+    `allegro_default` inside `[block, frame]`, then its `ellipsis` and its
+    `name` label inside `[block, frame, elision]`; no card lists it.
 
 ## Arrangements (`arrangement.test.ts`)
 
