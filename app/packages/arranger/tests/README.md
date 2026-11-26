@@ -5168,7 +5168,13 @@ one. Each command applied by core leaves the chosen ID as the card's
 `flow` (core's `cardFlow`) and passes the validators. Mounted above `allegro`'s
 card, the select `flow-switch` lists those labels in that order, the
 chosen one selected; choosing entry 6 ("Allegro, default") dispatches
-exactly that command once; a locked canvas disables it. Its width never
+exactly that command once; a locked canvas disables it. Above
+`switched_frame`'s frame a choice is one edit of the frame's group, so it
+is undone in one step: choosing "As written" there asks the canvas for
+exactly one edit, `{edit: {block: A, id: "performance"}, commands:
+[flowOn(null)]}`, and dispatches nothing; that edit made through a store
+(`storeOf`, core's `Store.edit`) leaves `allegro`'s `flow` null, and one
+`undo()` gives `default` back. Its width never
 follows the names: the select states the one width `SWITCH_WIDTH`
 (`11rem`) inline above `switched_card`'s card, `virtual_cards`' card and
 `switched_frame`'s frame alike, and shows every name whole on hover: the

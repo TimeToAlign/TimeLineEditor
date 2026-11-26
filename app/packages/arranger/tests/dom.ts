@@ -197,7 +197,8 @@ export type Call =
   | { readonly refuse: string }
   | { readonly select: Address }
   | { readonly preview: string; readonly with: NodePreview | null }
-  | { readonly dispatch: Command };
+  | { readonly dispatch: Command }
+  | { readonly edit: Address; readonly commands: readonly Command[] };
 
 /**
  * Node actions on `view` that record every call; `rules` are the canvas's
@@ -220,6 +221,7 @@ export function recordingActions(
     calls,
     actions: {
       dispatch: (command) => calls.push({ dispatch: command }),
+      edit: (target, commands) => calls.push({ edit: target, commands }),
       refuse: (message) => calls.push({ refuse: message }),
       select: (address) => calls.push({ select: address }),
       preview: (block, preview) => calls.push({ preview: block, with: preview }),

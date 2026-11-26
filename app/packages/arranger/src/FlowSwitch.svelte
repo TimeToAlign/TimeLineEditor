@@ -3,8 +3,9 @@
  * The flow switch above a selected card or frame (`flowSwitch.ts`): "As
  * written" and every FlowMap and virtual timeline of the card's root, a
  * frame's members' one after the other. Choosing one sends the `style`
- * commands setting the property `flow` (`flowCommands`); the drawing then
- * shows the card on the chosen virtual axis. It stands centred above the
+ * commands setting the property `flow` (`flowCommands`), a frame's as one
+ * edit of its group, undone in one step; the drawing then shows the card
+ * on the chosen virtual axis. It stands centred above the
  * box, `offset` screen pixels clear of its top, above the resize modes.
  * The list is `SWITCH_WIDTH` wide whatever the names: the chosen name is
  * cut with an ellipsis where it is longer, and every name is shown whole
@@ -58,9 +59,11 @@ function onchange(event: Event & { currentTarget: HTMLSelectElement }) {
   const select = event.currentTarget;
   const choice = choices[Number(select.value)];
   if (choice === undefined) return;
-  for (const command of flowCommands(block.id, block.manifest, box, choice)) {
-    actions.dispatch(command);
-  }
+  const commands = flowCommands(block.id, block.manifest, box, choice);
+  // A card's choice sends at most one command; a frame's are one edit of its group.
+  const group = box.kind === "frame" ? box.address.id : undefined;
+  if (group !== undefined) actions.edit({ block: block.id, id: group }, commands);
+  else for (const command of commands) actions.dispatch(command);
   void tick().then(() => {
     select.value = String(chosen);
   });

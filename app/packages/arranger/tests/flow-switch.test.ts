@@ -27,7 +27,7 @@ import {
   switchOffset,
 } from "../src/flowSwitch.ts";
 import { recordingActions, stubCanvasGlobals } from "./dom.ts";
-import { A, blockIn, changed, viewOf } from "./support.ts";
+import { A, blockIn, changed, storeOf, viewOf } from "./support.ts";
 import Harness from "./ToolbarHarness.svelte";
 import { DEFAULT, drawingIn, ROOT, virtualView } from "./virtualCards.ts";
 
@@ -167,6 +167,22 @@ describe("the select above a card", () => {
     shown.dispatchEvent(new Event("change", { bubbles: true }));
     flushSync();
     expect(calls).toEqual([{ dispatch: flowOn(DEFAULT) }]);
+  });
+
+  it("asks for one edit of the frame's group for a choice above a frame", () => {
+    const calls = mountOn(FRAME, idAddress("performance"));
+    const shown = select();
+    if (shown === null) throw new Error("no switch");
+    shown.value = "0";
+    shown.dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+    const performance = { block: A, id: "performance" };
+    expect(calls).toEqual([{ edit: performance, commands: [flowOn(null)] }]);
+    const store = storeOf(FRAME);
+    expect(store.edit(performance, [flowOn(null)])).toBeNull();
+    expect(cardFlow(manifest(store.view), ROOT)).toBeNull();
+    store.undo();
+    expect(cardFlow(manifest(store.view), ROOT)).toBe("default");
   });
 
   it("keeps one width whatever the names and shows each name whole on hover", () => {

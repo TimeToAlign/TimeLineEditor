@@ -22,6 +22,11 @@ export interface NodeActions {
   /** Runs a command; the canvas reports a refusal to its host (`onrefuse`). */
   dispatch(command: Command): void;
   /**
+   * Makes `commands` in the editor of `target` as one closed session, one
+   * undo step (core's `Store.edit`); the canvas reports a refusal to its host.
+   */
+  edit(target: Address, commands: readonly Command[]): void;
+  /**
    * Reports to the canvas's host (`onrefuse`) why a gesture stored nothing,
    * where no command was refused: a drop the arrangement's rules refuse.
    */
