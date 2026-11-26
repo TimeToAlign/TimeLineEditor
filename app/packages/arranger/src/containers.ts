@@ -140,6 +140,7 @@ export const LEVELS: { readonly [level in Level]: LevelRules } = {
   bundle: { ...NONE, move: true, marquee: "elements", itemsFree: true },
   group: { ...NONE, reorder: true, marquee: "elements", frameWidthPinned: true },
   timeline: { ...NONE, bands: true, marquee: "elements" },
+  flow: { ...NONE, marquee: "elements", open: false },
 };
 
 /**
@@ -330,9 +331,10 @@ export interface Subject {
   /**
    * The drawn container the address names: the block, a frame, a card, a
    * band (its first record); for a timeline, or a part of a timeline or a
-   * group, the card or frame drawn for it. Of the cards of a member of
+   * group, the card or frame drawn for it, a virtual timeline's as a
+   * timeline's. Of the cards of a member of
    * several groups, the one in the frame worked in (`workedBox`); `null`
-   * where no frame is, and otherwise.
+   * where no frame is, and otherwise (a chunk of a virtual card among them).
    */
   readonly box: DrawnBox | null;
   readonly resolved: ResolvedAddress;
@@ -343,6 +345,8 @@ const KINDS: { readonly [kind in ResolvedAddress["kind"]]?: ContainerKind } = {
   frame: "frame",
   card: "card",
   band: "band",
+  virtual_card: "card",
+  virtual_band: "band",
 };
 
 /** The drawn container `resolved` names or stands for in `drawing` where `editing` works. */
@@ -358,9 +362,16 @@ function boxFor(
       return boxOf(drawing, resolved.container.address) ?? null;
     case "band":
       return boxOf(drawing, bandAddress(resolved.at.timeline.id, resolved.facet)) ?? null;
+    case "virtual_band":
+      return boxOf(drawing, bandAddress(resolved.virtual.id, resolved.facet)) ?? null;
     case "card":
     case "timeline": {
       const card = cardAddress(resolved.at.timeline.id);
+      return workedBox(drawing, resolved.block.id, card, editing) ?? null;
+    }
+    case "virtual_card":
+    case "virtual_timeline": {
+      const card = cardAddress(resolved.virtual.id);
       return workedBox(drawing, resolved.block.id, card, editing) ?? null;
     }
     case "part":
@@ -373,6 +384,8 @@ function boxFor(
     case "matchstamp":
     case "anchor":
     case "elision":
+    case "flow_map":
+    case "chunk":
       return null;
     default:
       return assertNever(resolved);
