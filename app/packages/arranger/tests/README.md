@@ -814,7 +814,7 @@ virtual cards alone to hide them.`: `{A: allegro_default [card], A:
 section_b}`. A chunk, `{A: allegro_default [regions] [1]}` (its brace) or
 its label `[1, label]`, is changed in its FlowMap, never deleted on the
 canvas: alone it is refused with `A chunk is changed in its FlowMap; open
-the flow editor of its root to change it.`, beside `section_b` it is
+the flow-control editor of its root to change it.`, beside `section_b` it is
 left out (`remove` [`A: section_b`]). On `groups/virtual_member` the
 card of `allegro_default` in `performance`'s frame has no place of its
 own to unstate: alone it is refused with `A virtual card in a frame is
@@ -868,8 +868,9 @@ cascaded `display: none`), while the three virtual cards stay drawn;
 `rootDisplayCommand(A, "allegro", false)` after it leaves `rules` as
 before. With `again`, core refuses
 the bare [A: allegro_default] (`not_removable`, `virtual timeline
-'allegro_default' is still named: the virtual timelines 'again' come
-from it`), accepts Delete all, after which `virtual_timelines` holds
+'Allegro, default' is still named: the virtual timeline 'again' comes
+from it`, each virtual timeline by its name, else its ID, as the
+question names it), accepts Delete all, after which `virtual_timelines` holds
 `allegro_by_hand` and `allegro_single`, and accepts Hide instead, after
 which `places` no longer holds `allegro_default` and all four virtual
 timelines stay. In `groups/virtual_member` (where `allegro_default` is a
@@ -895,14 +896,14 @@ and Cancel. What proves it: on `virtualView` with `again` (above) and
 `loop`, one more FlowMap of `allegro` with the chunks [`again`] (one
 `add` into `allegro` of `{chunks: ["again"]}` with the ID `loop`), core
 refuses [A: allegro_default, A: again] with `not_removable`, `virtual
-timeline 'again' is still named: the FlowMaps 'loop' name it as a
+timeline 'again' is still named: the FlowMap 'loop' names it as a
 chunk`; [A: allegro_default] asks `Deleting virtual timeline 'Allegro,
 default' also deletes what is made from it: virtual timeline 'again'.
 They cannot all be deleted. Virtual timeline 'again' is still named: the
-FlowMaps 'loop' name it as a chunk. Hide its card instead?` with
+FlowMap 'loop' names it as a chunk. Hide its card instead?` with
 `remove` `null` and the same Hide instead as without `loop`, which core
 accepts; in `groups/virtual_member` with `again` (through `printed`) and
-`loop` the same question ends after `… name it as a chunk.`, `remove`
+`loop` the same question ends after `… names it as a chunk.`, `remove`
 and `hide` both `null`. A `remove` core accepts keeps its question
 unchanged (the rows above), and a `remove` asking nothing is not
 previewed: core's refusal of it reaches the user when it is stored.

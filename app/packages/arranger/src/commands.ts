@@ -339,7 +339,8 @@ function deletedAs(view: View, block: BlockId, address: Address, owner: Address)
 /** The hints of Delete for a selection naming nothing it deletes. */
 const DELETE_HINTS = {
   flow_control: "A flow-control element is not deleted: reject it with a belief in Properties.",
-  chunk: "A chunk is changed in its FlowMap; open the flow editor of its root to change it.",
+  chunk:
+    "A chunk is changed in its FlowMap; open the flow-control editor of its root to change it.",
   framed:
     "A virtual card in a frame is not hidden; delete its virtual timeline in the Properties tab.",
   mixed:

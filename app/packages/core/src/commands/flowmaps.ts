@@ -662,12 +662,20 @@ export function setVirtualName(
   return withListed(view, block, "virtual_timelines", items);
 }
 
+/** A FlowMap or a virtual timeline as a refusal names it: its name, else its ID. */
+interface Named {
+  readonly id: string;
+  readonly name?: string | null;
+}
+
 /**
  * Why the elements `removed` of `manifest` cannot go with what else the
  * command removes, `others` (the IDs of the other targets in the same
  * block): a FlowMap while a virtual timeline left applies it, a virtual
  * timeline while another left comes from it or a FlowMap left names it as a
- * chunk; `not_removable` at `path`, naming what still names it.
+ * chunk; `not_removable` at `path`, naming what still names it. Every
+ * FlowMap and virtual timeline is named by its name, else its ID, as
+ * `addressWords` names it.
  */
 export function namedProblem(
   manifest: Manifest,
@@ -677,28 +685,39 @@ export function namedProblem(
   path: readonly PathSegment[],
 ): CommandError | undefined {
   const virtual = (manifest.virtual_timelines ?? []).filter((item) => !gone.has(item.id));
-  const quoted = (ids: readonly string[]) => ids.map((item) => `'${item}'`).join(", ");
+  const flowMaps = manifest.flow_maps ?? [];
+  const shown = (item: Named) => `'${item.name ?? item.id}'`;
+  /** `items` by their kind `noun`, in the plural for more than one, each shown. */
+  const listed = (items: readonly Named[], noun: string) =>
+    `the ${noun}${items.length === 1 ? "" : "s"} ${items.map(shown).join(", ")}`;
+  /** `one` for one item, else `more`: a verb agreeing with them. */
+  const agreeing = (items: readonly Named[], one: string, more: string) =>
+    items.length === 1 ? one : more;
   if (kind === "flow_map") {
-    const users = virtual.filter((item) => item.map === id).map((item) => item.id);
+    const users = virtual.filter((item) => item.map === id);
     if (users.length === 0) return undefined;
+    const flowMap = flowMaps.find((item) => item.id === id) ?? { id };
     return problem(
       ErrorCode.notRemovable,
-      `FlowMap '${id}' is applied by the virtual ${users.length === 1 ? "timeline" : "timelines"} ${quoted(users)}`,
+      `FlowMap ${shown(flowMap)} is applied by ${listed(users, "virtual timeline")}`,
       path,
     );
   }
-  const from = virtual.filter((item) => item.timeline === id).map((item) => item.id);
-  const chunks = (manifest.flow_maps ?? [])
-    .filter((item) => !gone.has(item.id) && item.chunks.includes(id))
-    .map((item) => item.id);
+  const from = virtual.filter((item) => item.timeline === id);
+  const chunks = flowMaps.filter((item) => !gone.has(item.id) && item.chunks.includes(id));
   if (from.length === 0 && chunks.length === 0) return undefined;
   const named = [
-    ...(from.length === 0 ? [] : [`the virtual timelines ${quoted(from)} come from it`]),
-    ...(chunks.length === 0 ? [] : [`the FlowMaps ${quoted(chunks)} name it as a chunk`]),
+    ...(from.length === 0
+      ? []
+      : [`${listed(from, "virtual timeline")} ${agreeing(from, "comes", "come")} from it`]),
+    ...(chunks.length === 0
+      ? []
+      : [`${listed(chunks, "FlowMap")} ${agreeing(chunks, "names", "name")} it as a chunk`]),
   ];
+  const self = (manifest.virtual_timelines ?? []).find((item) => item.id === id) ?? { id };
   return problem(
     ErrorCode.notRemovable,
-    `virtual timeline '${id}' is still named: ${named.join(" and ")}`,
+    `virtual timeline ${shown(self)} is still named: ${named.join(" and ")}`,
     path,
   );
 }
