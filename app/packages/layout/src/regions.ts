@@ -11,8 +11,9 @@ import type { PreparedBand } from "./bands.ts";
 import { BRACE, LABEL_GAP } from "./constants.ts";
 import { type Extent, labelExtent, type Tiered, type TieredItem, tieredFit } from "./fit.ts";
 import { centredLabel } from "./names.ts";
-import { add, coordinateValue, midpoint } from "./numbers.ts";
+import { coordinateValue, midpoint } from "./numbers.ts";
 import { type Entry, maxSize, nth, type Scope, shown } from "./traversal.ts";
+import { chunkSpans } from "./virtual.ts";
 
 /**
  * A regions band before its tiered first fit (section 6.4, Regions): its
@@ -58,25 +59,33 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): StagedRegi
   const chunks =
     flow === null || sources[0] !== rootEntry || !shown(rootEntry.bands.regions.style)
       ? []
-      : flow.chunks
-          .filter((chunk) => chunk.drawn)
-          .map((chunk) => ({
+      : chunkSpans(scope)
+          .map(({ chunk, start, end }) => ({
             ...owned(
               "region",
               { id: flow.timeline, facet: "regions", part: [chunk.index] },
               rootEntry,
               "regions",
             ),
-            start: chunk.start,
-            end: chunk.end,
+            start,
+            end,
             text: chunk.text,
             brace: !chunk.gap,
           }))
           .filter((chunk) => shown(chunk.style));
+  // On a switched card each region is drawn whole over its played stretch in every piece it
+  // reaches into, with its label (section 8.10).
   const own = sources.flatMap((source) =>
     shown(source.bands.regions.style)
-      ? source.manifest.regions
-          .map((region) => ({
+      ? source.manifest.regions.flatMap((region) => {
+          const type = source.manifest.number_type;
+          const span = scope.over(
+            source,
+            coordinateValue(region.start, type),
+            coordinateValue(region.end, type),
+          );
+          if (span === undefined) return [];
+          const item = {
             ...owned(
               "region",
               idAddress(region.id),
@@ -84,12 +93,13 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): StagedRegi
               "regions",
               regionClasses(scope.manifest, region),
             ),
-            start: add(source.start, coordinateValue(region.start, source.manifest.number_type)),
-            end: add(source.start, coordinateValue(region.end, source.manifest.number_type)),
+            start: span.start,
+            end: span.end,
             text: region.name,
             brace: true,
-          }))
-          .filter((region) => shown(region.style))
+          };
+          return shown(item.style) ? [item] : [];
+        })
       : [],
   );
   const regions = [...chunks, ...own];

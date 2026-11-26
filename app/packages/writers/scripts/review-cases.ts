@@ -20,10 +20,10 @@
  * side with every root that groups hang on drawn once behind the row, the
  * bundle "Arranged" in a stored order the row repairs, the LayerIt suite, a
  * bundle with a root member, and one whose groups overlap on their root, which
- * is refused and drawn one under another; and `flow/virtual_cards` with its
- * three virtual timelines placed. The fixtures of `groups/` with a switched
- * card stay out. Each is also a drawing fixture of the schema package
- * (`fixtures/<version>/drawings/`).
+ * is refused and drawn one under another; `flow/virtual_cards` with its
+ * three virtual timelines placed; and `flow/switched_card`, its card
+ * switched to a FlowMap. Each is also a drawing fixture of the schema
+ * package (`fixtures/<version>/drawings/`).
  */
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -94,12 +94,6 @@ export function figures(drawing: Drawing, scale: number): { svg: string; tex: st
   return { svg: writeSvg(placed), tex: writeTikz(placed) };
 }
 
-/**
- * The fixtures of `groups/` whose cards are switched to a FlowMap (`flow`, section 8.10), which
- * these writers draw as written and so leave out of the review cases.
- */
-const SWITCHED: readonly string[] = ["switched_frame"];
-
 /** One drawing of the review sheet: the manifest, placement, layers and scale it is drawn from. */
 export interface ReviewCase {
   /** The file name, without extension. */
@@ -152,7 +146,7 @@ export function reviewCases(): ReviewCase[] {
   add("nested__block", "nested", at({ width: natural.width + 120, height: natural.height + 60 }));
   add("nested__scale-2", "nested", DEFAULT_PLACEMENT, 2);
   for (const kind of ["group", "bundle"] as const) {
-    for (const stem of stems(`${kind}s`).filter((item) => !SWITCHED.includes(item))) {
+    for (const stem of stems(`${kind}s`)) {
       add(`${kind}__${stem}`, `${kind}s/${stem}`, DEFAULT_PLACEMENT);
     }
   }
@@ -162,6 +156,8 @@ export function reviewCases(): ReviewCase[] {
     "flow/virtual_cards",
     at({ places: { allegro_by_hand: {}, allegro_default: {}, allegro_single: {} } }),
   );
+  // A card switched to a FlowMap (section 8.10).
+  add("flow__switched_card", "flow/switched_card", DEFAULT_PLACEMENT);
   add(
     "bundle_mixed__places",
     "bundles/bundle_mixed",

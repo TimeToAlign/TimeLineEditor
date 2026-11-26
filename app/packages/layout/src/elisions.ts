@@ -658,8 +658,9 @@ function derivedPieces(
   const root: Stretch = [zero(rootEntry.manifest.number_type), lambda];
   const atDepth = (j: number): readonly Entry[] => {
     if (j === 1) return rootEntry.drawn ? [rootEntry] : [];
-    const parent = chain[j - 2];
-    return (index.childrenByParent.get(parent ?? "") ?? []).filter((entry) => entry.drawn);
+    const parent = scope.entries.find((entry) => entry.manifest.id === chain[j - 2]);
+    if (parent === undefined) return [];
+    return (index.childrenByParent.get(parent) ?? []).filter((entry) => entry.drawn);
   };
   const covered: Stretch[] = [protect];
   const found: DerivedPiece[] = [];

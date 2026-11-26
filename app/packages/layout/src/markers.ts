@@ -289,6 +289,7 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
     timestamp: NamedTimestamp,
     at: Real,
     secondary: Secondary | undefined,
+    writtenAt: Real | undefined,
   ): Stamp => {
     const primary = secondary === undefined;
     const band = source.bands.markers;
@@ -302,8 +303,10 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
       coordinates,
     });
     // The value the wedge marks, on the timeline it marks (section 5.2): a secondary coordinate's
-    // as core's `cardStamps` writes it in the timeline's number type, none where it has no value.
-    const own = secondary === undefined ? add(at, negate(source.start)) : secondary.value;
+    // as core's `cardStamps` writes it in the timeline's number type, none where it has no value;
+    // on a switched card the written coordinate, never the played one (section 8.10).
+    const own =
+      secondary !== undefined ? secondary.value : (writtenAt ?? add(at, negate(source.start)));
     const labels = !banded
       ? []
       : stampLabels(
@@ -328,22 +331,27 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
           : undefined,
     };
   };
+  // On a switched card each stamp is drawn at each of its played positions, in the order of the
+  // pieces (section 8.10).
+  const unfolded = scope.unfolding !== null;
   const primaries = sources.flatMap((source) => {
     const timeline = source.manifest;
-    return namedTimestamps(scope.manifest, timeline.id).map((timestamp) =>
-      stampOf(
-        source,
-        timeline,
-        timestamp,
-        add(source.start, coordinateValue(timestamp.coordinate, timeline.number_type)),
-        undefined,
-      ),
-    );
+    return namedTimestamps(scope.manifest, timeline.id).flatMap((timestamp) => {
+      const value = coordinateValue(timestamp.coordinate, timeline.number_type);
+      const at = scope.at(source, value);
+      if (at === undefined) return [];
+      return [stampOf(source, timeline, timestamp, at, undefined, unfolded ? value : undefined)];
+    });
   });
   // A hidden secondary coordinate takes no room.
   const secondaries = sources.flatMap((source) =>
     crossingStamps(scope, source)
-      .map(({ timestamp, at, value }) => stampOf(source, source.manifest, timestamp, at, { value }))
+      .flatMap(({ timestamp, at, value }) => {
+        const played = scope.play(source, at);
+        return played === undefined
+          ? []
+          : [stampOf(source, source.manifest, timestamp, played, { value }, undefined)];
+      })
       .filter((stamp) => stamp.wedge !== undefined || stamp.labels.length > 0),
   );
   const stamps = [...primaries, ...secondaries];

@@ -185,6 +185,8 @@ export interface LineElements {
 /** A drawn line, where a coordinate marker of it lies, and the named timestamps it holds. */
 export interface LineMarker {
   readonly line: LineElement;
+  /** The entry it draws the line of: its timeline's, or a root's piece on a switched card. */
+  readonly entry: Entry;
   readonly marker: AxisMarker;
   readonly timestamps: readonly AxisTimestamp[];
 }

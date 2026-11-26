@@ -100,6 +100,8 @@ export interface MemberDrawn {
   readonly marks: ReadonlyMap<DrawnElement, AxisWedge>;
   /** The named timestamps each of its drawn lines and ancestor lines holds, by the line's element. */
   readonly timestamps: ReadonlyMap<DrawnElement, readonly AxisTimestamp[]>;
+  /** The entry each of its drawn lines draws, by the line's element (`LineMarker.entry`). */
+  readonly entries: ReadonlyMap<DrawnElement, Entry>;
 }
 
 /**
@@ -270,6 +272,7 @@ export function layoutScope(
     }
     const end = { start: elements.length, end: elements.length };
     const markers = new Map(each("markers").map((item) => [item.line, item.marker]));
+    const entries = new Map(each("markers").map((item) => [item.line, item.entry]));
     const marks = ancestorLineMarks(ancestors, ancestorLinesDrawn);
     const held = ancestorTimestamps(scope, ancestors, x0, [top, bottom]);
     const timestamps = new Map<DrawnElement, readonly AxisTimestamp[]>([
@@ -283,6 +286,7 @@ export function layoutScope(
       markers,
       marks,
       timestamps,
+      entries,
     };
   };
 

@@ -35,6 +35,7 @@ import {
   type CardAxis,
   type DrawnChunk,
   type DrawnFlow,
+  type Entry,
   type Scope,
   withAxis,
 } from "./traversal.ts";
@@ -286,32 +287,40 @@ export function flowOf(
 /**
  * `scope` on the axis of its runs drawn once (section 8.10, Runs), where its
  * flow has run gaps: each a gap of section 3.2 over `[a, b]` whose drawn
- * width is 0, its natural width `L × ub − L × ua` all its shrink, so a
- * position `t` lies at `L × u − D`, `D` the shrinks of the run gaps with `b ≤
- * t` summed from the left, and a position inside one is not drawn. A run gap
- * has no address, draws nothing and cuts no row; every first fit of the
- * card measures `L × u − D`. `scope` itself where it has none.
+ * width is 0, its natural width `L × ub − L × ua` all its shrink. A position
+ * `t` before the first run gap lies at `L × u`; one at or after the end `b`
+ * of a run gap, and before the next one's start, at `x(a) + (L × u − L ×
+ * ub)`, `x(a)` that gap's start's, the two products formed first, so that `t
+ * = b` lies exactly at `x(a)`; a position inside one is not drawn. A run gap
+ * has no address, draws nothing and cuts no row; every first fit of the card
+ * measures the drawn x, `D` at a position being `L × u` less it. `scope`
+ * itself where it has none.
  */
 export function withRuns(scope: Scope): Scope {
   const gaps = scope.flow?.runGaps ?? [];
   if (gaps.length === 0) return scope;
   const { L, u } = scope;
-  const placed = gaps.map(([a, b]) => {
-    const [ua, ub] = [u(a), u(b)];
-    return { a, b, ua, ub, shrink: L * ub - L * ua };
-  });
-  const shrinkBefore = (value: Real): number => {
-    let D = 0;
-    for (const gap of placed) if (compareReal(gap.b, value) <= 0) D = D + gap.shrink;
-    return D;
+  // Each run gap with its edge `x(a)` less `x0`, found from the left.
+  const placed: { a: Real; b: Real; ua: number; ub: number; left: number }[] = [];
+  const after = (value: Real, count: number): number => {
+    let last: (typeof placed)[number] | undefined;
+    for (const gap of placed.slice(0, count)) if (compareReal(gap.b, value) <= 0) last = gap;
+    return last === undefined ? L * u(value) : last.left + (L * u(value) - L * last.ub);
   };
-  const relative = (value: Real): number => L * u(value) - shrinkBefore(value);
+  for (const [a, b] of gaps) {
+    const [ua, ub] = [u(a), u(b)];
+    placed.push({ a, b, ua, ub, left: after(a, placed.length) });
+  }
+  const relative = (value: Real): number => after(value, placed.length);
+  const last = placed.at(-1);
+  const end = last === undefined ? L : last.left + (L - L * last.ub);
+  // Each run as an application reads it: `x0 + (L × u − D)`, `D` what puts its start at its x.
   const runs: Run[] = [];
   let from = 0;
   let D = 0;
   for (const gap of placed) {
     runs.push({ u0: from, u1: gap.ua, L, D });
-    D = D + gap.shrink;
+    D = L * gap.ub - gap.left;
     from = gap.ub;
   }
   runs.push({ u0: from, u1: 1, L, D });
@@ -319,22 +328,73 @@ export function withRuns(scope: Scope): Scope {
     gaps: [],
     seams: [],
     runs,
-    total: D,
-    endAt: () => L - D,
+    total: L - end,
+    endAt: () => end,
     relative,
     relativeAt: relative,
     startAt: relative,
     gapOf: () => undefined,
     runGapOf: (value) => {
       const gap = placed.find(({ a, b }) => compareReal(a, value) < 0 && compareReal(value, b) < 0);
-      return gap === undefined ? undefined : relative(gap.a);
+      return gap === undefined ? undefined : gap.left;
     },
-    shrinkBefore,
+    shrinkBefore: (value) => L * u(value) - relative(value),
     crosses: () => false,
   };
   return {
     ...withAxis(scope, axis),
     relativeX: relative,
-    relativeEnd: (entry) => (entry.rootEnd ? L - D : relative(entry.end)),
+    relativeEnd: (entry) => (entry.rootEnd ? end : relative(entry.end)),
   };
+}
+
+/** A chunk of a line's FlowMap as its line draws it: the chunk and its drawn span. */
+export interface ChunkSpan {
+  readonly chunk: DrawnChunk;
+  readonly start: Real;
+  readonly end: Real;
+}
+
+/**
+ * The drawn chunks of the FlowMap the root's line of `scope` draws (section
+ * 8.10), each over its span; on a card carried through a switched frame,
+ * a virtual member's, each once in every piece it reaches into, over its
+ * played stretch there, piece after piece. None where the line draws none.
+ */
+export function chunkSpans(scope: Scope): ChunkSpan[] {
+  const { flow } = scope;
+  if (flow === null) return [];
+  const drawn = flow.chunks.filter((chunk) => chunk.drawn);
+  if (!scope.carried) return drawn.map((chunk) => ({ chunk, start: chunk.start, end: chunk.end }));
+  return piecesOf(scope).flatMap((piece) =>
+    drawn.flatMap((chunk) => {
+      const span = scope.over(piece, chunk.start, chunk.end);
+      return span === undefined ? [] : [{ chunk, start: span.start, end: span.end }];
+    }),
+  );
+}
+
+/**
+ * The positions of the boundaries at the drawn starts of the chunks of
+ * `scope`'s FlowMap (section 8.10), each with its chunk; on a carried card
+ * at each played position of the start, piece after piece.
+ */
+export function chunkStarts(scope: Scope): { readonly chunk: DrawnChunk; readonly at: Real }[] {
+  const { flow } = scope;
+  if (flow === null) return [];
+  const bounded = flow.chunks.filter((chunk) => chunk.boundary);
+  if (!scope.carried) return bounded.map((chunk) => ({ chunk, at: chunk.start }));
+  return piecesOf(scope).flatMap((piece) =>
+    bounded.flatMap((chunk) => {
+      const at = scope.at(piece, chunk.start);
+      return at === undefined ? [] : [{ chunk, at }];
+    }),
+  );
+}
+
+/** The pieces of the root of `scope`, in their order. */
+function piecesOf(scope: Scope): Entry[] {
+  return (scope.index.sourcesByLine.get(scope.rootEntry) ?? []).filter(
+    (entry) => entry.piece !== null,
+  );
 }
