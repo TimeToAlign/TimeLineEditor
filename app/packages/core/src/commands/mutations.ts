@@ -27,6 +27,7 @@ import { axisCoordinate } from "../number/coordinate.ts";
 import { compareReal, realOf } from "../number/real.ts";
 import type { Address } from "../workspace/address.ts";
 import type { Block, BlockId } from "../workspace/blocks.ts";
+import type { IdSource } from "../workspace/ids.ts";
 import type { View } from "../workspace/view.ts";
 
 /** A value a `set` wrote at one path: the value stored before its first write, and its last. */
@@ -46,6 +47,7 @@ export interface Written {
  * value a `set` wrote that reaches no further than its path; `reaching` the
  * blocks a change reached past its path in (a whole manifest replaced, a
  * timeline moved, placed or grouped), which only the whole block compares.
+ * `ids` gives the ID of every element the command creates, in order.
  */
 export interface ChangeSet {
   readonly blocks: Set<BlockId>;
@@ -54,6 +56,7 @@ export interface ChangeSet {
   readonly targets: Address[];
   readonly written: Map<string, Written>;
   readonly reaching: Set<BlockId>;
+  readonly ids: IdSource;
 }
 
 /**
@@ -67,9 +70,10 @@ export function sameJson(stored: unknown, value: unknown): boolean {
   );
 }
 
-/** A change set recording nothing yet. */
-export function emptyChanges(): ChangeSet {
+/** A change set recording nothing yet, the IDs of what the command creates taken from `ids`. */
+export function emptyChanges(ids: IdSource): ChangeSet {
   return {
+    ids,
     blocks: new Set(),
     manifests: new Set(),
     paths: [],

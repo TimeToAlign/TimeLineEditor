@@ -4,12 +4,16 @@
  * a `set` may give it (`set.ts`), what an `add` puts into it (`add.ts`),
  * whether a `remove` takes it (`remove.ts`); a `style` embeds a rule
  * (`style.ts`). A command is atomic: the first refusal refuses it whole.
- * Every manifest it changed is then settled (`settle.ts`).
+ * Every manifest it changed is then settled (`settle.ts`). The reducer mints
+ * no ID: it takes the ID of every element it creates from the command's
+ * `ids`, then from the minter its caller gives, if any.
  */
 
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import { addressKey } from "../manifest/address.ts";
+import type { IdMinter } from "../workspace/ids.ts";
+import { idSource, MissingIdError } from "../workspace/ids.ts";
 import type { View } from "../workspace/view.ts";
 import { applyAdd } from "./add.ts";
 import type { ChangeSet } from "./mutations.ts";
@@ -23,7 +27,7 @@ import type { Command, SetCommand } from "./types.ts";
 
 export { embedRule } from "./style.ts";
 
-/** A command applied: the view it leaves and what it changed. */
+/** A command applied: the view it leaves and what it changed, the IDs it took in `changes.ids`. */
 export interface Applied {
   readonly view: View;
   readonly changes: ChangeSet;
@@ -82,10 +86,49 @@ function changesNothing(command: SetCommand): CommandError {
  * Apply a command `parseCommand` accepted and settle what it changed. With
  * `checked`, the settled manifests are checked against the schema and the
  * invariants and a `set` that changes nothing is refused; without, as a
- * gesture's preview applies it, neither.
+ * gesture's preview applies it, neither. Every element it creates takes the
+ * next of the command's `ids`, then, past them, the next ID `minter` mints;
+ * without a minter a command creating more elements than its `ids` lists is
+ * refused (`invalid_command` at `["ids"]`), and, checked, so is one whose
+ * `ids` lists more IDs than it creates (at `["ids", <first one left>]`).
  */
-export function applyChanges(view: View, command: Command, checked = true): Applied | CommandError {
-  const changes = emptyChanges();
+export function applyChanges(
+  view: View,
+  command: Command,
+  checked = true,
+  minter: IdMinter | null = null,
+): Applied | CommandError {
+  const given = command.ids ?? [];
+  const changes = emptyChanges(idSource(given, minter));
+  try {
+    const result = reduced(view, command, checked, changes);
+    if (isCommandError(result)) return result;
+    const { left } = changes.ids;
+    if (checked && left > 0) {
+      return problem(
+        ErrorCode.invalidCommand,
+        `the command creates ${given.length - left} of the ${given.length} IDs it lists`,
+        ["ids", given.length - left],
+      );
+    }
+    return { view: result, changes };
+  } catch (error) {
+    if (!(error instanceof MissingIdError)) throw error;
+    return problem(
+      ErrorCode.invalidCommand,
+      `the command creates more elements than the ${error.given} IDs it lists`,
+      ["ids"],
+    );
+  }
+}
+
+/** `command` applied and settled, the IDs it creates taken from `changes.ids`. */
+function reduced(
+  view: View,
+  command: Command,
+  checked: boolean,
+  changes: ChangeSet,
+): View | CommandError {
   let result: View | CommandError;
   switch (command.type) {
     case "add":
@@ -108,18 +151,35 @@ export function applyChanges(view: View, command: Command, checked = true): Appl
     if (changes.paths.length === 0 || undone(view, settled, changes))
       return changesNothing(command);
   }
-  return { view: settled, changes };
+  return settled;
 }
 
-/** Apply a command `parseCommand` accepted. */
-export function applyParsed(view: View, command: Command): View | CommandError {
-  const applied = applyChanges(view, command);
+/**
+ * Apply a command `parseCommand` accepted, the IDs it creates taken from its
+ * `ids`, then from `minter`.
+ */
+export function applyParsed(
+  view: View,
+  command: Command,
+  minter: IdMinter | null = null,
+): View | CommandError {
+  const applied = applyChanges(view, command, true, minter);
   return isCommandError(applied) ? applied : applied.view;
 }
 
-/** Apply one command to a view: the new view, or why the command was refused. */
-export function apply(view: View, command: unknown): View | CommandError {
+/**
+ * Apply one command to a view: the new view, or why the command was
+ * refused. The IDs of what it creates are its `ids`; with `minter`, those
+ * past them are minted by it, as the store mints them for a command it
+ * dispatches. Without a minter, a command creating an element its `ids`
+ * gives no ID for is refused, as a journal entry lacking one is.
+ */
+export function apply(
+  view: View,
+  command: unknown,
+  minter: IdMinter | null = null,
+): View | CommandError {
   const parsed = parseCommand(command);
   if (isCommandError(parsed)) return parsed;
-  return applyParsed(view, parsed);
+  return applyParsed(view, parsed, minter);
 }

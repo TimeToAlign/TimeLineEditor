@@ -20,6 +20,10 @@
  * changes of a level are always its last ones, and a new entry on the level
  * discards them, keeping a partly undone session with its applied changes.
  *
+ * The store mints the IDs of what a command creates: `dispatch` applies the
+ * command with the store's minter, after the IDs the command carries, and
+ * journals it with every ID it took (`ids`), so a replay mints nothing.
+ *
  * The settings lie outside all of this: `configure` changes them at once,
  * journals nothing and is never undone, so every view the store shows
  * carries the settings last configured, whichever step it shows.
@@ -37,6 +41,8 @@ import { toJson } from "../values.ts";
 import type { Address } from "./address.ts";
 import { addressWords } from "./address.ts";
 import { sideEffect } from "./guard.ts";
+import type { IdMinter } from "./ids.ts";
+import { createIdMinter } from "./ids.ts";
 import type {
   CommandEntry,
   Entry,
@@ -86,6 +92,12 @@ export interface StoreOptions {
   readonly author?: string;
   /** The time of each entry; the system clock by default. */
   readonly clock?: () => Date;
+  /**
+   * What mints the IDs of the elements a dispatched command creates beyond
+   * those it carries; a minter of 64 random bits by default. Tests give a
+   * seeded one.
+   */
+  readonly minter?: IdMinter;
 }
 
 /**
@@ -113,7 +125,10 @@ export interface Store {
   readonly openings: number;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
-  /** Apply a command and journal it; `null` when it was accepted. */
+  /**
+   * Apply a command and journal it, with the IDs of every element it
+   * created as its `ids`; `null` when it was accepted.
+   */
   dispatch(command: unknown): CommandError | null;
   /**
    * Change the settings: journals nothing, is never undone, and gives a new
@@ -310,6 +325,7 @@ function sameSessionTarget(session: { readonly target: Address } | undefined, ta
  */
 export function createStore(workspace: Workspace, options: StoreOptions = {}): Store {
   const clock = options.clock ?? (() => new Date());
+  const minter = options.minter ?? createIdMinter();
   let author = options.author ?? DEFAULT_AUTHOR;
   let sessions: Sessions = workspace.sessions;
   const loaded = changesOf(workspace.journal, sessions);
@@ -490,9 +506,11 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       const read = parseCommand(command);
       if (isCommandError(read)) return read;
       const before = current();
-      const parsed = withStatedPlacement(before, read);
-      const applied = applyChanges(before, parsed);
+      const stated = withStatedPlacement(before, read);
+      const applied = applyChanges(before, stated, true, minter);
       if (isCommandError(applied)) return applied;
+      const { taken } = applied.changes.ids;
+      const parsed = taken.length === 0 ? stated : { ...stated, ids: [...taken] };
       const next = applied.view;
       const level = top();
       if (level.editor !== null) {

@@ -31,7 +31,13 @@ import {
 } from "./support.ts";
 
 const at = (id: string): Address => ({ block: A, id });
-const set = (target: Address, values: object) => ({ type: "set", changes: [{ target, values }] });
+/** The ID every command here gives the segment it creates. */
+const FIRST = "first";
+const set = (target: Address, values: object, ids?: readonly string[]) => ({
+  type: "set",
+  changes: [{ target, values }],
+  ...(ids === undefined ? {} : { ids }),
+});
 
 type Value = { [key: string]: unknown };
 
@@ -69,7 +75,7 @@ function pageCovered(locked: boolean): Value {
     ...page,
     is_segment_line: true,
     locked,
-    children: [{ id: "dgt_1", unit: "pixels", number_type: "int", offset: 0, length: 1920 }],
+    children: [{ id: FIRST, unit: "pixels", number_type: "int", offset: 0, length: 1920 }],
   }));
 }
 
@@ -77,7 +83,7 @@ describe("a segment line without segments", () => {
   it("gains its first segment when a manifest is applied, locked by its place", () => {
     const view = viewOf([A, MIXED]);
     const value = edited(MIXED, "page", (page) => ({ ...page, is_segment_line: true }));
-    const next = changed(deepFreeze(view), set({ block: A }, { manifest: value }));
+    const next = changed(deepFreeze(view), set({ block: A }, { manifest: value }, [FIRST]));
     expect(block(next).manifest).toEqual(read(pageCovered(true)));
     const refused = loadManifest(fileText(value));
     expect(isLoadError(refused) ? refused.problems : []).toEqual([
@@ -91,7 +97,7 @@ describe("a segment line without segments", () => {
 
   it("gains it from the setter, locked by its place, and the journal reproduces it", () => {
     const store = storeOf(viewOf([A, MIXED]));
-    expect(store.dispatch(set(at("page"), { is_segment_line: true }))).toBe(null);
+    expect(store.dispatch(set(at("page"), { is_segment_line: true }, [FIRST]))).toBe(null);
     expect(block(store.view).manifest).toEqual(read(pageCovered(true)));
     const workspace = { view: store.view, journal: store.journal, sessions: store.sessions };
     expect(createStore(workspace).view).toBe(store.view);
@@ -99,7 +105,10 @@ describe("a segment line without segments", () => {
 
   it("takes the line's number type", () => {
     const view = viewOf([A, MIXED]);
-    const score = timeline(changed(view, set(at("score"), { is_segment_line: true })), "score");
+    const score = timeline(
+      changed(view, set(at("score"), { is_segment_line: true }, [FIRST])),
+      "score",
+    );
     expect(
       score.children.map(({ id, offset, length, number_type, locked }) => ({
         id,
@@ -109,37 +118,29 @@ describe("a segment line without segments", () => {
         locked,
       })),
     ).toEqual([
-      { id: "clt_1", offset: [0, 1], length: [12, 1], number_type: "fraction", locked: false },
+      { id: FIRST, offset: [0, 1], length: [12, 1], number_type: "fraction", locked: false },
     ]);
     const performance = timeline(
-      changed(view, set(at("performance"), { is_segment_line: true })),
+      changed(view, set(at("performance"), { is_segment_line: true }, [FIRST])),
       "performance",
     );
     const [segment] = performance.children;
-    expect(segment?.id).toBe("cpt_1");
+    expect(segment?.id).toBe(FIRST);
     expect(segment?.offset).toEqual(new JsonFloat(0));
     expect(segment?.offset instanceof JsonFloat).toBe(true);
     expect(segment?.length).toBe(12.5);
   });
 
-  it("is given an id no element of the manifest carries", () => {
-    const view = changed(viewOf([A, MIXED]), {
-      type: "add",
-      into: { block: A },
-      timeline: { id: "dgt_1", unit: "pixels", length: 10 },
+  it("is given the ID the command carries", () => {
+    const view = viewOf([A, MIXED]);
+    expect(rejected(view, set(at("page"), { is_segment_line: true }, ["region_1"]))).toEqual({
+      code: "schema_violation",
+      path: [A, "manifest", "timelines", 1, "children", 0, "id"],
     });
-    const page = timeline(changed(view, set(at("page"), { is_segment_line: true })), "page");
-    expect(page.children.map((child) => child.id)).toEqual(["dgt_2"]);
-  });
-
-  it("is given an id an `id` under `meta` does not take", () => {
-    const value = edited(MIXED, "page", (page) => ({
-      ...page,
-      is_segment_line: true,
-      meta: { id: "dgt_1", note: { id: "dgt_2" } },
-    }));
-    const next = changed(viewOf([A, MIXED]), set({ block: A }, { manifest: value }));
-    expect(timeline(next, "page").children.map((child) => child.id)).toEqual(["dgt_1"]);
+    expect(rejected(view, set(at("page"), { is_segment_line: true }, []))).toEqual({
+      code: "invalid_command",
+      path: ["ids"],
+    });
   });
 
   it("stays without segments while its length is unknown", () => {
@@ -166,12 +167,13 @@ describe("a segment line without segments", () => {
         length: [4, 1],
         is_segment_line: true,
       },
+      ids: [FIRST],
     });
     const line = timeline(next, "sl");
     expect(line.locked).toBe(true);
     expect(
       line.children.map(({ id, offset, length, locked }) => ({ id, offset, length, locked })),
-    ).toEqual([{ id: "clt_1", offset: [0, 1], length: [4, 1], locked: false }]);
+    ).toEqual([{ id: FIRST, offset: [0, 1], length: [4, 1], locked: false }]);
   });
 
   it("is previewed as it is applied", () => {
@@ -179,6 +181,7 @@ describe("a segment line without segments", () => {
     const command: SetCommand = {
       type: "set",
       changes: [{ target: at("page"), values: { is_segment_line: true } }],
+      ids: [FIRST],
     };
     const shown = preview(view, command);
     if (isCommandError(shown)) throw new Error("refused");

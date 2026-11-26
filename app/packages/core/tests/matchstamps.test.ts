@@ -27,8 +27,23 @@ const INTO = key({ block: A });
 
 /** A coordinate as a command gives it. */
 const c = (timeline: string, coordinate: unknown) => ({ timeline, coordinate });
-const name = (matchstamp: object) => ({ type: "add", into: { block: A }, matchstamp });
-const set = (target: Address, values: object) => ({ type: "set", changes: [{ target, values }] });
+/**
+ * The IDs naming `BAR_4` takes, in the order it takes them: the MatchStamp's,
+ * then each new match timestamp's as the anchors meet them, then each
+ * anchor's in screen order.
+ */
+const BAR_4_IDS = ["bar4", "bar4-score", "bar4-take1", "bar4-take2", "bar4-a1", "bar4-a2"];
+const name = (matchstamp: object, ids: readonly string[] = BAR_4_IDS) => ({
+  type: "add",
+  into: { block: A },
+  matchstamp,
+  ids,
+});
+const set = (target: Address, values: object, ids?: readonly string[]) => ({
+  type: "set",
+  changes: [{ target, values }],
+  ...(ids === undefined ? {} : { ids }),
+});
 const remove = (...targets: Address[]) => ({ type: "remove", targets });
 
 /** A new match timestamp as naming writes it. */
@@ -147,33 +162,34 @@ describe("naming a potential MatchStamp", () => {
     expect(timestampsOf(after)).toEqual([
       ts("timestamp_4"),
       ts("timestamp_1"),
-      match("timestamp_10", "score", [6, 1]),
+      match("bar4-score", "score", [6, 1]),
       ts("timestamp_5"),
       ts("timestamp_6"),
       ts("timestamp_2"),
-      match("timestamp_11", "take_1", 176400),
+      match("bar4-take1", "take_1", 176400),
       ts("timestamp_7"),
       ts("timestamp_8"),
       ts("timestamp_3"),
-      match("timestamp_12", "take_2", 198450),
+      match("bar4-take2", "take_2", 198450),
       ts("timestamp_9"),
     ]);
+    // In canonical order, by ID: `bar4` before `matchstamp_1`.
     expect(matchstampsOf(after)).toEqual([
-      M1,
-      M2,
       {
-        id: "matchstamp_3",
+        id: "bar4",
         name: "Bar 4",
         alignment_anchors: [
           {
-            id: "anchor_3",
-            timestamps: ["timestamp_10", "timestamp_11"],
+            id: "bar4-a1",
+            timestamps: ["bar4-score", "bar4-take1"],
             display: ["line", "name"],
           },
-          { id: "anchor_4", timestamps: ["timestamp_11", "timestamp_12"], display: ["line"] },
+          { id: "bar4-a2", timestamps: ["bar4-take1", "bar4-take2"], display: ["line"] },
         ],
         match_claims: ["claim_7", "claim_8"],
       },
+      M1,
+      M2,
     ]);
     store.undo();
     expect(store.view).toBe(before);
@@ -182,20 +198,25 @@ describe("naming a potential MatchStamp", () => {
   it("reuses the match timestamp a coordinate has, never an ordinary one", () => {
     const reused = changed(
       view,
-      name({ ...BAR_4, anchors: [[c("score", [8, 2]), c("take_2", 99225)]] }),
+      name({ ...BAR_4, anchors: [[c("score", [8, 2]), c("take_2", 99225)]] }, ["bar4", "bar4-a1"]),
     );
     expect(timestampsOf(reused)).toEqual(TS);
-    expect(stamp(reused, "matchstamp_3")?.alignment_anchors).toEqual([
-      { id: "anchor_3", timestamps: ["timestamp_1", "timestamp_3"], display: ["line", "name"] },
+    expect(stamp(reused, "bar4")?.alignment_anchors).toEqual([
+      { id: "bar4-a1", timestamps: ["timestamp_1", "timestamp_3"], display: ["line", "name"] },
     ]);
     const origins = changed(
       view,
-      name({ ...BAR_4, anchors: [[c("score", [0, 1]), c("take_1", 0)]] }),
+      name({ ...BAR_4, anchors: [[c("score", [0, 1]), c("take_1", 0)]] }, [
+        "bar4",
+        "bar4-score",
+        "bar4-take1",
+        "bar4-a1",
+      ]),
     );
     expect(timestampsOf(origins)?.filter((item) => item.matchstamp)).toEqual([
-      match("timestamp_10", "score", [0, 1]),
+      match("bar4-score", "score", [0, 1]),
       ts("timestamp_1"),
-      match("timestamp_11", "take_1", 0),
+      match("bar4-take1", "take_1", 0),
       ts("timestamp_2"),
       ts("timestamp_3"),
     ]);
@@ -206,21 +227,34 @@ describe("naming a potential MatchStamp", () => {
 
   it("shows the name on the middle anchor in screen order", () => {
     const third = [c("score", [6, 1]), c("take_2", 198450)];
-    const three = changed(view, name({ ...BAR_4, anchors: [...BAR_4.anchors, third] }));
+    const three = changed(
+      view,
+      name({ ...BAR_4, anchors: [...BAR_4.anchors, third] }, [...BAR_4_IDS, "bar4-a3"]),
+    );
     const displays = (state: View) =>
-      stamp(state, "matchstamp_3")?.alignment_anchors.map((item) => [item.id, item.display]);
+      stamp(state, "bar4")?.alignment_anchors.map((item) => [item.id, item.display]);
     expect(displays(three)).toEqual([
-      ["anchor_3", ["line"]],
-      ["anchor_4", ["line", "name"]],
-      ["anchor_5", ["line"]],
+      ["bar4-a1", ["line"]],
+      ["bar4-a2", ["line", "name"]],
+      ["bar4-a3", ["line"]],
     ]);
     const fourth = [c("score", [6, 1]), c("take_1", 200000)];
-    const four = changed(view, name({ ...BAR_4, anchors: [...BAR_4.anchors, third, fourth] }));
+    const ids = ["bar4", "bar4-score", "bar4-take1", "bar4-take2", "bar4-take1b"];
+    const four = changed(
+      view,
+      name({ ...BAR_4, anchors: [...BAR_4.anchors, third, fourth] }, [
+        ...ids,
+        "bar4-a1",
+        "bar4-a2",
+        "bar4-a3",
+        "bar4-a4",
+      ]),
+    );
     expect(displays(four)).toEqual([
-      ["anchor_3", ["line"]],
-      ["anchor_4", ["line", "name"]],
-      ["anchor_5", ["line"]],
-      ["anchor_6", ["line"]],
+      ["bar4-a1", ["line"]],
+      ["bar4-a2", ["line", "name"]],
+      ["bar4-a3", ["line"]],
+      ["bar4-a4", ["line"]],
     ]);
   });
 
@@ -303,23 +337,34 @@ describe("naming a potential MatchStamp", () => {
       "manifest",
       "graphical",
       "matchstamps",
-      2,
+      0,
       ...rest,
     ];
     expect(
-      refused(apply(view, name({ ...BAR_4, anchors: [[c("take_1", 0), c("take_1", 88200)]] }))),
+      refused(
+        apply(
+          view,
+          name({ ...BAR_4, anchors: [[c("take_1", 0), c("take_1", 88200)]] }, [
+            "bar4",
+            "bar4-take1",
+            "bar4-a1",
+          ]),
+        ),
+      ),
     ).toEqual({
       code: "schema_violation",
-      message: "the timestamps of 'anchor_3' both lie on the timeline 'take_1'",
+      message: "the timestamps of 'bar4-a1' both lie on the timeline 'take_1'",
       path: manifest("alignment_anchors", 0, "timestamps", 1),
     });
     const apart = [
       [c("score", [6, 1]), c("take_1", 176400)],
       [c("score", [7, 1]), c("take_2", 198450)],
     ];
-    expect(refused(apply(view, name({ ...BAR_4, anchors: apart })))).toEqual({
+    const apartIds = ["bar4", "bar4-score", "bar4-take1", "bar4-score7", "bar4-take2"];
+    const named = name({ ...BAR_4, anchors: apart }, [...apartIds, "bar4-a1", "bar4-a2"]);
+    expect(refused(apply(view, named))).toEqual({
       code: "schema_violation",
-      message: "the alignment anchors of 'matchstamp_3' are not one connected set",
+      message: "the alignment anchors of 'bar4' are not one connected set",
       path: manifest("alignment_anchors"),
     });
     const twice = refused(apply(view, name({ ...BAR_4, match_claims: ["claim_1", "claim_1"] })));
@@ -337,13 +382,14 @@ describe("updating a named MatchStamp", () => {
       [c("take_1", 88200), c("take_2", 99225)],
     ];
     const claims = ["claim_1", "claim_2", "claim_4"];
-    expect(store.dispatch(set(at("matchstamp_1"), { anchors, match_claims: claims }))).toBeNull();
+    const command = set(at("matchstamp_1"), { anchors, match_claims: claims }, ["new-anchor"]);
+    expect(store.dispatch(command)).toBeNull();
     expect(store.journal).toHaveLength(entries + 1);
     expect(stamp(store.view, "matchstamp_1")).toEqual({
       ...M1,
       alignment_anchors: [
         M1.alignment_anchors[0],
-        { id: "anchor_3", timestamps: ["timestamp_2", "timestamp_3"], display: ["line"] },
+        { id: "new-anchor", timestamps: ["timestamp_2", "timestamp_3"], display: ["line"] },
       ],
       match_claims: claims,
     });
@@ -355,13 +401,13 @@ describe("updating a named MatchStamp", () => {
   it("moves the name to the middle anchor when its anchor is gone", () => {
     const updated = changed(
       view,
-      set(at("matchstamp_1"), { anchors: [[c("score", [4, 1]), c("take_2", 99225)]] }),
+      set(at("matchstamp_1"), { anchors: [[c("score", [4, 1]), c("take_2", 99225)]] }, ["moved"]),
     );
     expect(matchstampsOf(updated)).toEqual([
       {
         ...M1,
         alignment_anchors: [
-          { id: "anchor_3", timestamps: ["timestamp_1", "timestamp_3"], display: ["line", "name"] },
+          { id: "moved", timestamps: ["timestamp_1", "timestamp_3"], display: ["line", "name"] },
         ],
       },
       M2,
@@ -372,15 +418,18 @@ describe("updating a named MatchStamp", () => {
   it("creates the match timestamps it needs and removes those left unnamed", () => {
     const updated = changed(
       view,
-      set(at("matchstamp_2"), { anchors: [[c("score", [4, 1]), c("take_2", 110250)]] }),
+      set(at("matchstamp_2"), { anchors: [[c("score", [4, 1]), c("take_2", 110250)]] }, [
+        "take2-new",
+        "anchor-new",
+      ]),
     );
     expect(stamp(updated, "matchstamp_2")?.alignment_anchors).toEqual([
-      { id: "anchor_3", timestamps: ["timestamp_1", "timestamp_10"], display: ["line"] },
+      { id: "anchor-new", timestamps: ["timestamp_1", "take2-new"], display: ["line"] },
     ]);
     const take2 = timestampsOf(updated)?.filter((item) => item.timeline === "take_2");
     expect(take2).toEqual([
       ts("timestamp_8"),
-      match("timestamp_10", "take_2", 110250),
+      match("take2-new", "take_2", 110250),
       ts("timestamp_9"),
     ]);
   });
@@ -540,14 +589,19 @@ describe("match timestamps and a new length", () => {
   it("leave a match timestamp where it is", () => {
     const ends = changed(
       view,
-      name({ ...BAR_4, anchors: [[c("score", [8, 1]), c("take_1", 352800)]] }),
+      name({ ...BAR_4, anchors: [[c("score", [8, 1]), c("take_1", 352800)]] }, [
+        "bar4",
+        "bar4-score",
+        "bar4-take1",
+        "bar4-a1",
+      ]),
     );
     const longer = changed(ends, set(at("score"), { length: [10, 1] }));
     const score = timestampsOf(longer)?.filter((item) => item.timeline === "score");
     expect(score).toEqual([
       ts("timestamp_4"),
       ts("timestamp_1"),
-      match("timestamp_10", "score", [8, 1]),
+      match("bar4-score", "score", [8, 1]),
       { ...ts("timestamp_5"), coordinate: [10, 1] },
     ]);
   });
@@ -559,16 +613,19 @@ describe("match timestamps on grouped timelines", () => {
     const before = new Set((timestampsOf(mixed) ?? []).map((item) => item.id));
     const turn = changed(
       mixed,
-      name({
-        name: "Turn",
-        anchors: [[c("score", [6, 1]), c("performance", new JsonFloat(3))]],
-        match_claims: ["claim_1"],
-      }),
+      name(
+        {
+          name: "Turn",
+          anchors: [[c("score", [6, 1]), c("performance", new JsonFloat(3))]],
+          match_claims: ["claim_1"],
+        },
+        ["turn", "turn-score", "turn-performance", "turn-a1"],
+      ),
     );
     const added = (timestampsOf(turn) ?? []).filter((item) => !before.has(item.id));
     expect(added).toEqual([
-      { ...match("timestamp_12", "performance", new JsonFloat(3)), groupstamp: true },
-      { ...match("timestamp_11", "score", [6, 1]), groupstamp: true },
+      { ...match("turn-performance", "performance", new JsonFloat(3)), groupstamp: true },
+      { ...match("turn-score", "score", [6, 1]), groupstamp: true },
     ]);
   });
 
@@ -577,9 +634,9 @@ describe("match timestamps on grouped timelines", () => {
     const known = new Set(TS.map((item) => item.id));
     const added = (timestampsOf(named) ?? []).filter((item) => !known.has(item.id));
     expect(added.map((item) => [item.id, item.groupstamp])).toEqual([
-      ["timestamp_10", false],
-      ["timestamp_11", false],
-      ["timestamp_12", false],
+      ["bar4-score", false],
+      ["bar4-take1", false],
+      ["bar4-take2", false],
     ]);
   });
 });

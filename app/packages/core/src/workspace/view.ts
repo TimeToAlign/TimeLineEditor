@@ -31,7 +31,7 @@ import { BLOCK_ID, ITEM_DIRECTIONS } from "./blocks.ts";
 /** The format and version a workspace file states: the only ones this editor reads. */
 export interface WorkspaceMeta {
   readonly format: "tilie-workspace";
-  readonly version: 7;
+  readonly version: 8;
 }
 
 /**
@@ -147,8 +147,12 @@ export interface View {
   readonly blocks: { readonly [id: BlockId]: Block };
 }
 
-/** The format and version of the workspaces this editor reads and writes. */
-export const WORKSPACE_META: WorkspaceMeta = { format: "tilie-workspace", version: 7 };
+/**
+ * The format and version of the workspaces this editor reads and writes.
+ * Version 8 journals the ID of every element a command creates in the
+ * command (`ids`); an older journal lacks them, so its file is refused.
+ */
+export const WORKSPACE_META: WorkspaceMeta = { format: "tilie-workspace", version: 8 };
 
 /** The name of a new workspace, and of one read from a file that states none. */
 export const UNTITLED_WORKSPACE = "untitled";

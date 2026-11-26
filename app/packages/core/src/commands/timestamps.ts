@@ -25,8 +25,9 @@ import { axisCoordinate, toAxisValue } from "../number/coordinate.ts";
 import { Rational } from "../number/rational.ts";
 import { compareReal, exactCoordinate, realOf } from "../number/real.ts";
 import { toJson } from "../values.ts";
-import { indexOf, manifestIds } from "../workspace/address.ts";
-import { nextId, TIMESTAMP_PREFIX } from "../workspace/ids.ts";
+import { indexOf } from "../workspace/address.ts";
+import type { IdMinter, Mint } from "../workspace/ids.ts";
+import { createIdMinter, TIMESTAMP_PREFIX } from "../workspace/ids.ts";
 import type { EditorKind } from "../workspace/sessions.ts";
 import { withTimestamps } from "./mutations.ts";
 
@@ -164,8 +165,8 @@ const GROUPSTAMP_DISPLAY: readonly TimestampDisplay[] = ["wedge", "coordinate", 
 /**
  * `manifest` with the default timestamps of `timeline`: `origin` at the
  * zero of its number type and, where its length is known, `length` at its
- * length, each given the next free `timestamp_N` of the manifest and
- * appended to its named timestamps. A new root's (`groupstamp` false) show
+ * length, each given the ID `mint` gives and appended to its named
+ * timestamps. A new root's (`groupstamp` false) show
  * their wedge and coordinate. A child timeline joining a group is given
  * them as groupstamps (`groupstamp` true), which also show their line
  * across the frame (`cross_section`); a timestamp of the timeline already
@@ -177,6 +178,7 @@ export function withDefaultTimestamps(
   manifest: Manifest,
   timeline: TimelineManifest,
   groupstamp: boolean,
+  mint: Mint,
 ): Manifest {
   const zero = exactCoordinate(Rational.of(0n), timeline.unit, timeline.number_type);
   if (zero === undefined) throw new Error("every number type holds zero");
@@ -184,7 +186,6 @@ export function withDefaultTimestamps(
   if (timeline.length !== null) places.push(["length", timeline.length]);
   const exact = (coordinate: AxisValue) => realOf(axisCoordinate(coordinate, timeline));
   const timestamps = [...(manifest.graphical?.timestamps ?? [])];
-  const taken = new Set(manifestIds(manifest));
   for (const [name, coordinate] of places) {
     const at = exact(coordinate);
     const named = groupstamp
@@ -203,8 +204,7 @@ export function withDefaultTimestamps(
       timestamps[named] = { ...found, display, groupstamp: true };
       continue;
     }
-    const id = nextId(TIMESTAMP_PREFIX, taken);
-    taken.add(id);
+    const id = mint(TIMESTAMP_PREFIX);
     timestamps.push({
       id,
       timeline: timeline.id,
@@ -221,14 +221,19 @@ export function withDefaultTimestamps(
 /**
  * A manifest as the editor imports it: one without a `graphical` object has
  * every root given its default timestamps (`withDefaultTimestamps`, in root
- * order), its `graphical` object completed and the whole in canonical
- * order; one with a `graphical` object, which states its own timestamps, is
- * returned as it is.
+ * order, their IDs minted by `minter`, a fresh one by default), its
+ * `graphical` object completed and the whole in canonical order; one with a
+ * `graphical` object, which states its own timestamps, is returned as it
+ * is. The `add` of a block carries the manifest, so the journal holds these
+ * IDs.
  */
-export function importedManifest(manifest: Manifest): Manifest {
+export function importedManifest(
+  manifest: Manifest,
+  minter: IdMinter = createIdMinter(),
+): Manifest {
   if (manifest.graphical !== undefined) return manifest;
   const given = manifest.timelines.reduce(
-    (result, root) => withDefaultTimestamps(result, root, false),
+    (result, root) => withDefaultTimestamps(result, root, false, (prefix) => minter.mint(prefix)),
     manifest,
   );
   return canonicalOrder(complete(given));

@@ -19,6 +19,13 @@ const STYLED = {
   rules: [{ select: { element: "timeline" }, set: { stroke: "#0000FF" } }],
 };
 
+/** The refusal of a workspace of an older version `version`. */
+function olderVersion(version: number): string {
+  return `workspace version ${version} was written before IDs were journaled and must be imported again: import its manifests into a new workspace`;
+}
+
+const older7 = olderVersion(7);
+
 function built(): Workspace {
   const store = createStore(
     { view: createView(), journal: [], sessions: {} },
@@ -80,7 +87,7 @@ describe("the workspace file", () => {
       matchClaimFilters: { [A]: { beliefs: ["true"], timelines: ["melody"] } },
     });
     expect(value.graphical).toEqual(STYLED);
-    expect(value.meta).toEqual({ format: "tilie-workspace", version: 7 });
+    expect(value.meta).toEqual({ format: "tilie-workspace", version: 8 });
     expect(value.name).toBe("untitled");
     expect((value.journal as unknown[]).length).toBe(5);
     expect(value.sessions).toEqual({});
@@ -115,7 +122,7 @@ describe("the workspace file", () => {
     ],
     [
       "a later version",
-      edited((value) => Object.assign(value.meta as Value, { version: 8 })),
+      edited((value) => Object.assign(value.meta as Value, { version: 9 })),
       "unsupported_version",
       ["meta", "version"],
     ],
@@ -244,6 +251,15 @@ describe("the workspace file", () => {
     ]);
   });
 
+  it("refuses a workspace of version 7 for its version alone", () => {
+    // Version 7 journaled a command without the IDs of what it created.
+    const older = edited((value) => Object.assign(value.meta as Value, { version: 7 }));
+    const result = readWorkspace(older);
+    expect(isLoadError(result) && result.problems).toEqual([
+      { code: "unsupported_version", message: older7, path: ["meta", "version"] },
+    ]);
+  });
+
   it("refuses a workspace of version 4 for its version alone", () => {
     // Version 4 wrote every address as a string: `workspace`, a block id, `<block>/<element>`.
     const older = edited((value) => {
@@ -262,7 +278,7 @@ describe("the workspace file", () => {
     expect(isLoadError(result) && result.problems).toEqual([
       {
         code: "unsupported_version",
-        message: "workspace version 4 is not supported; this editor reads version 7 only",
+        message: olderVersion(4),
         path: ["meta", "version"],
       },
     ]);
@@ -279,7 +295,7 @@ describe("the workspace file", () => {
     expect(isLoadError(result) && result.problems).toEqual([
       {
         code: "unsupported_version",
-        message: "workspace version 5 is not supported; this editor reads version 7 only",
+        message: olderVersion(5),
         path: ["meta", "version"],
       },
     ]);
@@ -390,7 +406,7 @@ describe("the workspace file", () => {
     expect(isLoadError(result) && result.problems).toEqual([
       {
         code: "unsupported_version",
-        message: "workspace version 6 is not supported; this editor reads version 7 only",
+        message: olderVersion(6),
         path: ["meta", "version"],
       },
     ]);

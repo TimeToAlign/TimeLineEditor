@@ -13,7 +13,6 @@ import type { Manifest } from "../src/manifest/types.ts";
 import type { Address, ResolvedAddress } from "../src/workspace/address.ts";
 import { addressWords, manifestIds, resolveAddress } from "../src/workspace/address.ts";
 import { sideEffect } from "../src/workspace/guard.ts";
-import { nextId } from "../src/workspace/ids.ts";
 import { editorKindOf } from "../src/workspace/sessions.ts";
 import type { View } from "../src/workspace/view.ts";
 import { createView } from "../src/workspace/view.ts";
@@ -109,27 +108,36 @@ function namesNothing(view: View, address: Address): string | null {
   return "code" in result ? result.code : null;
 }
 
+/**
+ * The refusal of a new timestamp given `timestamp_3`, which an elision of
+ * `bare.yaml` holds: the schema names the second holder, the elision, since
+ * `graphical.timestamps` precede `graphical.elisions`.
+ */
+const TAKEN_BY_ELISION = {
+  code: "schema_violation",
+  path: [A, "manifest", "graphical", "elisions", 1, "id"],
+  message: "'timestamp_3' is not unique in the manifest, first at #/graphical/timestamps/1/id",
+};
+
 describe("elisions in ordinary edits", () => {
-  it("are skipped by every ID minted and refused as a given one", () => {
+  it("are IDs of the manifest, which no new element takes", () => {
     const first = elision("elision_1", "bare", [1, 1], [2, 1]);
     const named = elision("timestamp_3", "bare", [3, 1], [4, 1]);
     const manifest = withElisions("bare.yaml", first, named);
     const ids = manifestIds(manifest);
     expect([ids.has("elision_1"), ids.has("timestamp_3")]).toEqual([true, true]);
-    expect(nextId("elision", ids)).toBe("elision_2");
     const view = viewWith(manifest);
-    const added = changed(view, {
-      type: "add",
-      into: at("bare"),
-      timestamp: { name: "Bar 2", coordinate: [2, 1] },
-    });
+    const stamp = { name: "Bar 2", coordinate: [2, 1] };
+    const added = changed(view, { type: "add", into: at("bare"), timestamp: stamp, ids: ["bar2"] });
     const timestamps = block(added).manifest.graphical?.timestamps ?? [];
     expect(timestamps.map((timestamp) => timestamp.id)).toEqual([
       "timestamp_1",
-      "timestamp_4",
+      "bar2",
       "timestamp_2",
     ]);
     expect(elisionsOf(added)).toEqual([complete(first), complete(named)]);
+    const taken = { type: "add", into: at("bare"), timestamp: stamp, ids: ["timestamp_3"] };
+    expect(refused(apply(view, taken))).toEqual(TAKEN_BY_ELISION);
     const region = { id: "elision_1", start: [0, 1], end: [1, 1] };
     expect(refused(apply(view, { type: "add", into: at("bare"), region }))).toEqual({
       code: "duplicate_id",
@@ -204,14 +212,14 @@ describe("elisions in ordinary edits", () => {
 describe("add kind elision into a timeline", () => {
   const first = elision("elision_1", "bare", [1, 1], [2, 1]);
   const view = viewWith(withElisions("bare.yaml", first));
-  const add = (value: object) => ({ type: "add", into: at("bare"), elision: value });
+  const add = (value: object) => ({ type: "add", into: at("bare"), elision: value, ids: ["gap"] });
   const path = (...rest: (string | number)[]) => [key(at("bare")), "elision", ...rest];
   const stretch = { start: [3, 1], end: [5, 1] };
 
-  it("mints the next elision_N and fills the timeline from the target", () => {
+  it("takes the command's next ID and fills the timeline from the target", () => {
     expect(elisionsOf(changed(view, add(stretch)))).toEqual([
       complete(first),
-      { id: "elision_2", timeline: "bare", start: [3, 1], end: [5, 1], display: DEFAULT_DISPLAY },
+      { id: "gap", timeline: "bare", start: [3, 1], end: [5, 1], display: DEFAULT_DISPLAY },
     ]);
     const sized = changed(
       view,
@@ -223,7 +231,7 @@ describe("add kind elision into a timeline", () => {
       }),
     );
     expect(elisionsOf(sized)?.[1]).toEqual({
-      id: "elision_2",
+      id: "gap",
       timeline: "bare",
       start: [3, 1],
       end: [5, 1],
@@ -255,7 +263,7 @@ describe("add kind elision into a timeline", () => {
         {
           code: "elision_stretch",
           path: path("start"),
-          message: "start [-1, 1] of 'elision_2' lies before the start of its timeline 'bare'",
+          message: "start [-1, 1] of 'gap' lies before the start of its timeline 'bare'",
         },
       ],
       [
@@ -263,7 +271,7 @@ describe("add kind elision into a timeline", () => {
         {
           code: "elision_stretch",
           path: path("end"),
-          message: "end [9, 1] of 'elision_2' is beyond the length [8, 1] of its timeline 'bare'",
+          message: "end [9, 1] of 'gap' is beyond the length [8, 1] of its timeline 'bare'",
         },
       ],
       [
@@ -271,7 +279,7 @@ describe("add kind elision into a timeline", () => {
         {
           code: "elision_stretch",
           path: path("end"),
-          message: "end [2, 1] of 'elision_2' does not lie after its start [2, 1]",
+          message: "end [2, 1] of 'gap' does not lie after its start [2, 1]",
         },
       ],
       [
@@ -445,43 +453,48 @@ describe("many elisions in one journal entry", () => {
     { timeline: "score", start: [0, 1], end: [16, 1] },
     { timeline: "score", start: [32, 1], end: [64, 1] },
   ];
-  const addAll = (value: unknown) => ({ type: "add", into: blockAddress, elision: value });
+  const addAll = (value: unknown, ids: readonly string[] = ["e1", "e2"]) => ({
+    type: "add",
+    into: blockAddress,
+    elision: value,
+    ids,
+  });
 
   it("stores a card's default elisions and resets them, one entry each", () => {
     const store = storeOf(view);
     const entries = store.journal.length;
-    expect(store.dispatch(addAll(defaults))).toBeNull();
+    expect(store.dispatch(addAll(defaults, ["e1", "e2", "e3"]))).toBeNull();
     expect(store.journal.length).toBe(entries + 1);
     const stored = [
-      complete(elision("elision_1", "movement", [0, 1], [8, 1])),
-      complete(elision("elision_2", "score", [0, 1], [16, 1])),
-      complete(elision("elision_3", "score", [32, 1], [64, 1])),
+      complete(elision("e1", "movement", [0, 1], [8, 1])),
+      complete(elision("e2", "score", [0, 1], [16, 1])),
+      complete(elision("e3", "score", [32, 1], [64, 1])),
     ];
     expect(elisionsOf(store.view)).toEqual(stored);
     // Group elisions of `group_1`: on its member root and on its child member.
-    for (const [timeline, start, end] of [
-      ["recording", 1, 2],
-      ["theme", [1, 1], [2, 1]],
+    for (const [timeline, start, end, id] of [
+      ["recording", 1, 2, "e4"],
+      ["theme", [1, 1], [2, 1], "e5"],
     ] as const) {
       expect(
-        store.dispatch({ type: "add", into: at(timeline), elision: { start, end } }),
+        store.dispatch({ type: "add", into: at(timeline), elision: { start, end }, ids: [id] }),
       ).toBeNull();
     }
     const manifest = block(store.view).manifest;
     const under = elisionsUnder(manifest, "score");
-    expect(under.map((item) => item.id)).toEqual(["elision_1", "elision_2", "elision_3"]);
+    expect(under.map((item) => item.id)).toEqual(["e1", "e2", "e3"]);
     const before = store.journal.length;
     expect(
       store.dispatch({ type: "remove", targets: under.map((item) => at(item.id)) }),
     ).toBeNull();
     expect(store.journal.length).toBe(before + 1);
-    expect(elisionsOf(store.view)?.map((item) => item.id)).toEqual(["elision_4", "elision_5"]);
+    expect(elisionsOf(store.view)?.map((item) => item.id)).toEqual(["e4", "e5"]);
   });
 
   it("store the name an item gives", () => {
-    const named = changed(view, addAll([{ ...defaults[0], name: "Exposition" }]));
+    const named = changed(view, addAll([{ ...defaults[0], name: "Exposition" }], ["e1"]));
     expect(elisionsOf(named)).toEqual([
-      complete({ ...elision("elision_1", "movement", [0, 1], [8, 1]), name: "Exposition" }),
+      complete({ ...elision("e1", "movement", [0, 1], [8, 1]), name: "Exposition" }),
     ]);
   });
 
@@ -517,7 +530,7 @@ describe("many elisions in one journal entry", () => {
         {
           code: "elision_stretch",
           path: path(1, "end"),
-          message: "end [2, 1] of 'elision_2' does not lie after its start [4, 1]",
+          message: "end [2, 1] of 'e2' does not lie after its start [4, 1]",
         },
       ],
     ];
@@ -549,9 +562,10 @@ describe("card and group elisions", () => {
       type: "add",
       into: at("theme"),
       elision: { start: [1, 1], end: [2, 1] },
+      ids: ["theme_gap"],
     });
     const manifest = block(onTheme).manifest;
-    expect(ids(groupElisions(manifest, "group_1"))).toEqual(["elision_3", "elision_8"]);
+    expect(ids(groupElisions(manifest, "group_1"))).toEqual(["elision_3", "theme_gap"]);
     expect(ids(elisionsUnder(manifest, "score"))).toEqual(ids(elisionsUnder(stored, "score")));
   });
 

@@ -10,7 +10,7 @@ import type { JsonObject, PathSegment } from "../json.ts";
 import { isJsonObject, showJson } from "../json.ts";
 import { readRule, toJson } from "../values.ts";
 import type { Address } from "../workspace/address.ts";
-import { readAddress } from "../workspace/address.ts";
+import { isId, readAddress } from "../workspace/address.ts";
 import type {
   AddCommand,
   Change,
@@ -37,10 +37,10 @@ function members(value: unknown): Members | undefined {
 }
 
 const ALLOWED: { readonly [type in CommandType]: readonly string[] } = {
-  add: ["type", "into", ...ADD_KINDS],
-  set: ["type", "changes"],
-  remove: ["type", "targets"],
-  style: ["type", "select", "set", "name", "blocks"],
+  add: ["type", "into", "ids", ...ADD_KINDS],
+  set: ["type", "changes", "ids"],
+  remove: ["type", "targets", "ids"],
+  style: ["type", "select", "set", "name", "blocks", "ids"],
 };
 
 function isCommandType(value: unknown): value is CommandType {
@@ -142,14 +142,27 @@ function parseStyle(input: Members): StyleCommand | CommandError {
   };
 }
 
-/** A command checked for its shape; members whose value is `undefined` are dropped. */
-export function parseCommand(input: unknown): Command | CommandError {
-  const object = members(input);
-  if (object === undefined) return invalid("a command is a JSON object", []);
-  const { type } = object;
-  if (!isCommandType(type)) return invalid(`unknown command type ${showJson(type)}`, ["type"]);
-  const extra = Object.keys(object).find((key) => !ALLOWED[type].includes(key));
-  if (extra !== undefined) return invalid(`unknown member ${extra}`, [extra]);
+/**
+ * The `ids` a command carries: a list of IDs, each a non-empty string
+ * without control characters, none listed twice; `undefined` when it carries
+ * none or an empty list.
+ */
+function parseIds(value: unknown): readonly string[] | undefined | CommandError {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) return invalid("ids is a list of IDs", ["ids"]);
+  const seen = new Set<string>();
+  for (const [index, id] of value.entries()) {
+    if (!isId(id)) {
+      return invalid("an ID is a non-empty string without control characters", ["ids", index]);
+    }
+    if (seen.has(id)) return invalid(`ids lists '${id}' twice`, ["ids", index]);
+    seen.add(id);
+  }
+  return value.length === 0 ? undefined : [...seen];
+}
+
+/** The command of `type` read from `object`, without its `ids`. */
+function parseOf(type: CommandType, object: Members): Command | CommandError {
   switch (type) {
     case "add":
       return parseAdd(object);
@@ -160,4 +173,22 @@ export function parseCommand(input: unknown): Command | CommandError {
     case "style":
       return parseStyle(object);
   }
+}
+
+/**
+ * A command checked for its shape; members whose value is `undefined` are
+ * dropped, and so is an empty `ids` list.
+ */
+export function parseCommand(input: unknown): Command | CommandError {
+  const object = members(input);
+  if (object === undefined) return invalid("a command is a JSON object", []);
+  const { type } = object;
+  if (!isCommandType(type)) return invalid(`unknown command type ${showJson(type)}`, ["type"]);
+  const extra = Object.keys(object).find((key) => !ALLOWED[type].includes(key));
+  if (extra !== undefined) return invalid(`unknown member ${extra}`, [extra]);
+  const ids = parseIds(object.ids);
+  if (isCommandError(ids)) return ids;
+  const command = parseOf(type, object);
+  if (isCommandError(command) || ids === undefined) return command;
+  return { ...command, ids };
 }

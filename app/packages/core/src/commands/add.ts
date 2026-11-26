@@ -5,8 +5,9 @@
  * elisions too; a child, map, region, flow-control element, named timestamp
  * or elision into a timeline. The value carries its ID: a block's taken by
  * no block of the workspace, any other's by no element of the manifest; a
- * named timestamp, an elision and a named MatchStamp alone are given the
- * next free ID.
+ * group may leave it out, and a named timestamp, an elision and a named
+ * MatchStamp never carry one: each is given the next ID of the command's
+ * `ids` (`ChangeSet.ids`), as is every element created with them.
  * Whatever has a default may be left out, `settle` writing it out. A
  * problem of the value lies at `[<address key of into>, <kind>, …]`, one of
  * the manifest the command would leave at `[<block id>, "manifest", …]`.
@@ -37,7 +38,13 @@ import { readName, readObject, readPlaces, toJson, unknownMember } from "../valu
 import { idPath, inBlock, manifestIds, WORKSPACE } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
 import { BLOCK_ID } from "../workspace/blocks.ts";
-import { ELISION_PREFIX, MATCHSTAMP_PREFIX, nextId, TIMESTAMP_PREFIX } from "../workspace/ids.ts";
+import type { Mint } from "../workspace/ids.ts";
+import {
+  ELISION_PREFIX,
+  GROUP_PREFIX,
+  MATCHSTAMP_PREFIX,
+  TIMESTAMP_PREFIX,
+} from "../workspace/ids.ts";
 import { indexBetween } from "../workspace/order.ts";
 import type { View } from "../workspace/view.ts";
 import { placeProblems } from "../workspace/view.ts";
@@ -110,7 +117,7 @@ function addBlock(view: View, value: unknown, changes: ChangeSet): View | Comman
       return problem(ErrorCode.invalidValue, `a new block needs ${member}`, [...path, member]);
     }
   }
-  const manifest = readBlockManifest(object.manifest, id);
+  const manifest = readBlockManifest(object.manifest, id, changes.ids.take);
   if (isCommandError(manifest)) return manifest;
   const places = readPlaces(object.places ?? {}, [...path, "places"]);
   if (isCommandError(places)) return places;
@@ -138,7 +145,7 @@ function addBlock(view: View, value: unknown, changes: ChangeSet): View | Comman
   };
   let current = withBlock(view, block);
   // The block's own members are set as a `set` would; their changes are the block's addition.
-  const own = emptyChanges();
+  const own = emptyChanges(changes.ids);
   for (const [member, item] of Object.entries(object)) {
     if (["id", "manifest", "places"].includes(member)) continue;
     const next = setProperty(current, { block: id }, member, item, own);
@@ -225,12 +232,13 @@ function undescribed(value: JsonObject, found: Map<string, JsonObject>): JsonObj
  * (`undescribed`), as the one root of a manifest of its own beside the
  * measure maps of `manifest`, the manifest it is added to, which its
  * measure views may name: its segment lines covered
- * (`withSegmentLinesCovered`, no ID minted there among `taken`, the IDs of
- * the manifest), checked by the schema, the `locked` it and its subtree
+ * (`withSegmentLinesCovered`, each new segment's ID given by `mint`),
+ * checked by the schema, the `locked` it and its subtree
  * state checked against their place under `parent` (`statedLockProblem`; a
  * root's own lock is its own) before reading unlocks its segments, then
  * completed (`completed`, the schema check done), every ID of its tree
- * checked against `taken` (`duplicate_id` at the first it shares), and given
+ * checked against `taken`, the IDs of the manifest (`duplicate_id` at the
+ * first it shares), and given
  * the locks its place decides (a new timeline is no group member yet). Then
  * what its elements state, where it will lie (`withDescriptionsRead`). A
  * problem is reported at `at`, where the timeline will lie in the block, and
@@ -241,6 +249,7 @@ function readTimeline(
   parent: TimelineManifest | undefined,
   manifest: Manifest,
   taken: ReadonlySet<string>,
+  mint: Mint,
   at: readonly PathSegment[],
   path: readonly PathSegment[],
 ): TimelineManifest | CommandError {
@@ -250,7 +259,7 @@ function readTimeline(
     timelines: [undescribed(value, described)],
     measure_maps: manifest.measure_maps,
   };
-  const checked = schemaChecked(withSegmentLinesCovered(host, taken));
+  const checked = schemaChecked(withSegmentLinesCovered(host, mint));
   if ("code" in checked) return located(checked, FIRST_ROOT, at);
   const [fragment] = checked.timelines;
   if (fragment === undefined) throw new Error("the host holds the timeline");
@@ -328,16 +337,23 @@ interface NewValue {
  * The prologue of every `add` into a manifest: the value of kind `kind`
  * given to `target`, read as an object at its path in the command
  * (`[<address key of into>, <kind>]`), carrying an ID that no element of
- * the target's manifest has (`duplicate_id` at that path and `id`).
+ * the target's manifest has (`duplicate_id` at that path and `id`). With
+ * `mint`, a value may leave its ID out and is given the one `mint` gives
+ * for `prefix`; the object then carries it.
  */
 function readNew(
   target: BlockTarget | TimelineTarget,
   kind: AddKind,
   value: unknown,
+  minted?: { readonly mint: Mint; readonly prefix: string },
 ): NewValue | CommandError {
   const path = [addressKey(target.address), kind];
-  const object = readObject(value, path);
-  if (isCommandError(object)) return object;
+  const read = readObject(value, path);
+  if (isCommandError(read)) return read;
+  const object =
+    read.id === undefined && minted !== undefined
+      ? { ...read, id: minted.mint(minted.prefix) }
+      : read;
   const { id } = object;
   if (typeof id !== "string") {
     return problem(ErrorCode.invalidValue, `the ${kind} carries no id`, path);
@@ -358,11 +374,12 @@ function addTimeline(view: View, target: BlockTarget, value: unknown, changes: C
   const { block } = target;
   const { manifest } = block;
   const at = [block.id, "manifest", "timelines", manifest.timelines.length];
-  const timeline = readTimeline(object, undefined, manifest, ids, at, path);
+  const timeline = readTimeline(object, undefined, manifest, ids, changes.ids.take, at, path);
   if (isCommandError(timeline)) return timeline;
   record(changes, path, block.id, true);
   const added = { ...manifest, timelines: [...manifest.timelines, timeline] };
-  return withBlock(view, { ...block, manifest: withDefaultTimestamps(added, timeline, false) });
+  const timestamped = withDefaultTimestamps(added, timeline, false, changes.ids.take);
+  return withBlock(view, { ...block, manifest: timestamped });
 }
 
 /**
@@ -384,16 +401,16 @@ function readGroup(value: JsonObject, at: readonly PathSegment[]): Group | Comma
 }
 
 /**
- * Add a group to a block's manifest: `{id, name?, meta?, members}`, read
+ * Add a group to a block's manifest: `{id?, name?, meta?, members}`, read
  * through the schema boundary (`readGroup`), its ID taken by no element of
- * the manifest, its members timelines of the manifest, each joining it as
+ * the manifest (one left out is given the next of the command's `ids`), its members timelines of the manifest, each joining it as
  * `set groups` joins a group (`nested_member`, and `invalid_value` for a
  * member listed twice). A member that was drawn in one card of the block is
  * then drawn in the group's frame too, `settle` keeping that card's size
  * when the frame is its only one.
  */
 function addGroup(view: View, target: BlockTarget, value: unknown, changes: ChangeSet) {
-  const read = readNew(target, "group", value);
+  const read = readNew(target, "group", value, { mint: changes.ids.take, prefix: GROUP_PREFIX });
   if (isCommandError(read)) return read;
   const { object, id, path } = read;
   const { block } = target;
@@ -411,7 +428,7 @@ function addGroup(view: View, target: BlockTarget, value: unknown, changes: Chan
     ...block,
     manifest: { ...manifest, groups: [...manifest.groups, group] },
   });
-  const own = emptyChanges();
+  const own = emptyChanges(changes.ids);
   for (const [index, member] of members.entries()) {
     const at = [...path, "members", index];
     const timeline = targetOf(current, inBlock(block.id, idAddress(member)));
@@ -469,7 +486,15 @@ function addElement(
     const on = readOnAxis(offset, timeline, [...path, "offset"]);
     if (isCommandError(on)) return on;
     const where = [block.id, "manifest", ...at.path, "children", timeline.children.length];
-    const placed = readTimeline(child, timeline, block.manifest, ids, where, path);
+    const placed = readTimeline(
+      child,
+      timeline,
+      block.manifest,
+      ids,
+      changes.ids.take,
+      where,
+      path,
+    );
     if (isCommandError(placed)) return placed;
     changed = placeChild(block.manifest, at, placed, on, path);
   } else {
@@ -484,7 +509,7 @@ function addElement(
   return withTimeline(view, block, at, changed);
 }
 
-/** The members a named timestamp `add` is given must have; its ID is minted and its timeline is the target. */
+/** The members a named timestamp `add` is given must have; its ID is given to it and its timeline is the target. */
 const TIMESTAMP_REQUIRED = ["name", "coordinate"];
 
 /** Every member a named timestamp `add` is given may have. */
@@ -498,9 +523,9 @@ const TIMESTAMP_VALUE = [...TIMESTAMP_REQUIRED, "display", "groupstamp"];
  * read by `readDisplay` over `TIMESTAMP_DISPLAY`, the schema's default where it is left
  * out, `groupstamp` read by `readGroupstamp` (`true` only on a group
  * member), `false` where it is left out (the editor gives
- * `groupstampByDefault`). It is given the smallest free `timestamp_N` of the manifest and
- * written into its `graphical` object's `timestamps`, which `settle` puts
- * in canonical order.
+ * `groupstampByDefault`). It is given the next of the command's `ids` and
+ * written into its manifest's `graphical` object's `timestamps`, which
+ * `settle` puts in canonical order.
  */
 function addTimestamp(
   view: View,
@@ -537,7 +562,7 @@ function addTimestamp(
       ? false
       : readGroupstamp(object.groupstamp, manifest, at.timeline.id, [...path, "groupstamp"]);
   if (isCommandError(groupstamp)) return groupstamp;
-  const id = nextId(TIMESTAMP_PREFIX, manifestIds(manifest));
+  const id = changes.ids.take(TIMESTAMP_PREFIX);
   const timeline = at.timeline.id;
   const timestamp = { id, timeline, coordinate, name, display, matchstamp: false, groupstamp };
   const timestamps = [...(manifest.graphical?.timestamps ?? []), timestamp];
@@ -548,8 +573,8 @@ function addTimestamp(
 /**
  * Add an elision into a timeline: `{start, end, name?, width?, display?}`, read by
  * `readElision` on the target timeline, which it lies on. It is given the
- * smallest free `elision_N` of the manifest and written into its
- * `graphical` object's `elisions`, which `settle` puts in canonical order.
+ * next of the command's `ids` and written into its manifest's `graphical`
+ * object's `elisions`, which `settle` puts in canonical order.
  */
 function addElision(
   view: View,
@@ -562,7 +587,7 @@ function addElision(
   if (isCommandError(object)) return object;
   const { block, at } = target;
   const { manifest } = block;
-  const id = nextId(ELISION_PREFIX, manifestIds(manifest));
+  const id = changes.ids.take(ELISION_PREFIX);
   const elision = readElision(object, at.timeline, id, path);
   if (isCommandError(elision)) return elision;
   record(changes, path, block.id, true);
@@ -575,9 +600,8 @@ function addElision(
  * non-empty list (`invalid_value`) of `{timeline, start, end, name?, width?,
  * display?}`, each lying on the timeline its `timeline` names
  * (`elision_timeline` at its `timeline` for an ID naming no timeline of the
- * manifest) and read there by `readElision`, each given the smallest
- * `elision_N` free in the manifest and among those given before it, in list
- * order. What the editor stores of the elisions a card derives, the
+ * manifest) and read there by `readElision`, each given the next of the
+ * command's `ids`, in list order. What the editor stores of the elisions a card derives, the
  * drawing deriving them, goes in this way, as one journal entry. A problem of the
  * `i`-th lies at `[<address key of into>, "elision", i, …]`.
  */
@@ -598,7 +622,6 @@ function addElisions(
   }
   const { block } = target;
   const { manifest } = block;
-  const taken = manifestIds(manifest);
   const added: Elision[] = [];
   for (const [index, item] of list.entries()) {
     const at = [...path, index];
@@ -621,8 +644,7 @@ function addElisions(
         "timeline",
       ]);
     }
-    const id = nextId(ELISION_PREFIX, taken);
-    taken.add(id);
+    const id = changes.ids.take(ELISION_PREFIX);
     const { timeline: _, ...rest } = object;
     const elision = readElision(rest, timeline, id, at);
     if (isCommandError(elision)) return elision;
@@ -633,7 +655,7 @@ function addElisions(
   return withBlock(view, { ...block, manifest: withElisions(manifest, elisions) });
 }
 
-/** The members a named MatchStamp `add` is given: all required, its IDs minted. */
+/** The members a named MatchStamp `add` is given: all required, its IDs given to it. */
 const MATCHSTAMP_VALUE = ["name", "anchors", "match_claims"];
 
 /**
@@ -641,8 +663,8 @@ const MATCHSTAMP_VALUE = ["name", "anchors", "match_claims"];
  * match_claims}`, every member required (`invalid_value`), nothing else
  * (`unknown_property`); the name non-empty, the anchors pairs of
  * coordinates in screen order (`readAnchors`), the claims a list of
- * MatchClaim IDs (`readMatchClaims`). It is given the smallest free
- * `matchstamp_N`, its anchors and new match timestamps theirs
+ * MatchClaim IDs (`readMatchClaims`). It is given the next of the
+ * command's `ids`, then its new match timestamps and its anchors theirs
  * (`namedMatchStamp`), and appended to the manifest's named MatchStamps.
  */
 function addMatchStamp(
@@ -669,10 +691,8 @@ function addMatchStamp(
   if (isCommandError(anchors)) return anchors;
   const claims = readMatchClaims(object.match_claims, [...path, "match_claims"]);
   if (isCommandError(claims)) return claims;
-  const taken = manifestIds(manifest);
-  const id = nextId(MATCHSTAMP_PREFIX, taken);
-  taken.add(id);
-  const named = namedMatchStamp(manifest, taken, id, name, anchors, claims);
+  const id = changes.ids.take(MATCHSTAMP_PREFIX);
+  const named = namedMatchStamp(manifest, changes.ids.take, id, name, anchors, claims);
   const matchstamps = [...(manifest.graphical?.matchstamps ?? []), named.matchstamp];
   record(changes, path, block.id, true);
   const next = withMatchStamps(manifest, named.timestamps, matchstamps);

@@ -4,6 +4,7 @@ import { apply } from "../src/commands/apply.ts";
 import { isCommandError, isLoadError } from "../src/errors.ts";
 import { loadManifest, saveManifest } from "../src/manifest/io.ts";
 import { readWorkspace, writeWorkspace } from "../src/workspace/file.ts";
+import { createIdMinter } from "../src/workspace/ids.ts";
 import type { ListedEntry } from "../src/workspace/sessions.ts";
 import { isSessionEntry } from "../src/workspace/sessions.ts";
 import type { Store, Workspace } from "../src/workspace/store.ts";
@@ -238,10 +239,11 @@ describe("the generator reaches the refusal catalogue", () => {
     const seen = new Set<string>();
     for (const [, source] of SOURCES) {
       const start = changed(changed(createView(), addText(source)), addBlock(B, "bare.yaml"));
+      const minter = createIdMinter({ seed: 20261011n });
       for (const seeds of fc.sample(sequenceArbitrary, { numRuns: 150, seed: 20261011 })) {
         let view = start;
         for (const seed of seeds) {
-          const result = apply(view, commandFor(view, BLOCKS, seed));
+          const result = apply(view, commandFor(view, BLOCKS, seed), minter);
           if (isCommandError(result)) seen.add(result.code);
           else view = result;
         }

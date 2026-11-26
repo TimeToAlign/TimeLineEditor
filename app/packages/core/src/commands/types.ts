@@ -7,6 +7,18 @@ import type { Declaration, Selector } from "@timetoalign/timetoshare";
 import type { Address } from "../workspace/address.ts";
 import type { BlockId } from "../workspace/blocks.ts";
 
+/**
+ * The IDs of the elements a command creates, in the order it creates them:
+ * every command may carry them. The reducer mints nothing; it takes each ID
+ * from this list, and refuses a command whose list is too short or holds an
+ * ID it does not take. The store fills the list of a command it dispatches,
+ * after the IDs the command carries, and journals the command with it, so
+ * replaying the journal creates the same IDs.
+ */
+export interface CarriedIds {
+  readonly ids?: readonly string[];
+}
+
 /** What `add` can put into a target, by the member naming it. */
 export const ADD_KINDS = [
   "block",
@@ -30,21 +42,22 @@ export type AddKind = (typeof ADD_KINDS)[number];
  * `map`, a `region` or a `flow_control` element into a timeline. The value
  * is the thing as its container stores it, carrying its own id; a root
  * timeline comes with its default timestamps, `origin` and `length`. A
- * `timestamp` into a timeline is `{name, coordinate, display?}`: its ID is
- * minted (`timestamp_N`) and its timeline is the one it is added into. An
- * `elision` into a timeline is `{start, end, width?, display?}`: its ID is
- * minted (`elision_N`) and it lies on the timeline it is added into; an
+ * `timestamp` into a timeline is `{name, coordinate, display?}`: it is given
+ * its ID and its timeline is the one it is added into. An `elision` into a
+ * timeline is `{start, end, width?, display?}`: it is given its ID and it
+ * lies on the timeline it is added into; an
  * `elision` into a block is a non-empty list of `{timeline, start, end,
  * width?, display?}`, every one added by the one command, each given the
- * next ID in list order. A `matchstamp` into a block names a potential MatchStamp: `{name, anchors,
+ * next ID in list order. A `group` without an `id` is given one. A
+ * `matchstamp` into a block names a potential MatchStamp: `{name, anchors,
  * match_claims}`, its anchors pairs of `{timeline, coordinate}` in screen
  * order; its ID, its anchors' and those of the match timestamps it needs
- * are minted (`matchstamp_N`, `anchor_N`, `timestamp_N`).
+ * are given to it. Every ID given is the next of the command's `ids`.
  */
 export type AddCommand = {
   readonly type: "add";
   readonly into: Address;
-} & { readonly [kind in AddKind]?: unknown };
+} & { readonly [kind in AddKind]?: unknown } & CarriedIds;
 
 /**
  * One target and the properties a `set` gives it. The properties are their
@@ -59,13 +72,13 @@ export type Change = {
 export type SetCommand = {
   readonly type: "set";
   readonly changes: readonly Change[];
-};
+} & CarriedIds;
 
 /** Remove blocks and elements, mixed. */
 export type RemoveCommand = {
   readonly type: "remove";
   readonly targets: readonly Address[];
-};
+} & CarriedIds;
 
 /**
  * Embed one rule in block manifests: those of `blocks`, or of every
@@ -78,7 +91,7 @@ export type StyleCommand = {
   readonly set: { readonly [property in keyof Declaration]?: Declaration[property] | null };
   readonly name?: string;
   readonly blocks?: readonly BlockId[];
-};
+} & CarriedIds;
 
 /** A command over a workspace: `add`, `set`, `remove` or `style`. */
 export type Command = AddCommand | SetCommand | RemoveCommand | StyleCommand;

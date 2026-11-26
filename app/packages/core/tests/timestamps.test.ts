@@ -15,6 +15,7 @@ import type { Manifest, ManifestGraphical, NamedTimestamp } from "../src/manifes
 import type { Address } from "../src/workspace/address.ts";
 import { addressWords, manifestIds, resolveAddress } from "../src/workspace/address.ts";
 import { sideEffect } from "../src/workspace/guard.ts";
+import { createIdMinter } from "../src/workspace/ids.ts";
 import type { EditorKind } from "../src/workspace/sessions.ts";
 import type { View } from "../src/workspace/view.ts";
 import {
@@ -45,11 +46,21 @@ const at = (id: string): Address => ({ block: A, id });
 const line = (id: string): Address => ({ block: A, id, part: ["line"] });
 const key = (address: Address) => addressKey(address);
 
-const add = (into: string, timestamp: object) => ({
+/**
+ * An `add` of a named timestamp into `into`, its ID `id`: by default its
+ * name in lower case where it has a name (`Coda` → `coda`), else none.
+ */
+type Value = { readonly [member: string]: unknown };
+const add = (into: string, timestamp: Value, id = idOf(timestamp)) => ({
   type: "add",
   into: at(into),
   timestamp,
+  ...(id === undefined ? {} : { ids: [id] }),
 });
+function idOf(timestamp: Value): string | undefined {
+  const { name } = timestamp;
+  return typeof name === "string" && name !== "" ? name.toLowerCase() : undefined;
+}
 const set = (target: Address, values: object) => ({ type: "set", changes: [{ target, values }] });
 const remove = (...targets: Address[]) => ({ type: "remove", targets });
 
@@ -79,7 +90,7 @@ function refused(result: unknown): { code: string; message: string; path: readon
 }
 
 const CODA: NamedTimestamp = {
-  id: "timestamp_4",
+  id: "coda",
   timeline: "clt_1",
   coordinate: [15, 2],
   name: "Coda",
@@ -178,7 +189,7 @@ describe("resolving a named timestamp", () => {
 });
 
 describe("add a named timestamp", () => {
-  it("mints the smallest free ID and lists it in canonical order", () => {
+  it("takes the command's ID and lists it in canonical order", () => {
     const coda = changed(view, add("clt_1", { name: "Coda", coordinate: [15, 2] }));
     expect(timestampsOf(coda)).toEqual([T1, T2, CODA, T3]);
     const exit = changed(view, add("clt_2", { name: "Exit", coordinate: [8, 2] }));
@@ -187,7 +198,7 @@ describe("add a named timestamp", () => {
       T2,
       T3,
       {
-        id: "timestamp_4",
+        id: "exit",
         timeline: "clt_2",
         coordinate: [4, 1],
         name: "Exit",
@@ -197,7 +208,8 @@ describe("add a named timestamp", () => {
       },
     ]);
     const without = changed(view, remove(at("timestamp_1")));
-    const again = changed(without, add("clt_1", { name: "Start", coordinate: [1, 1] }));
+    const start = { name: "Start", coordinate: [1, 1] };
+    const again = changed(without, add("clt_1", start, "timestamp_1"));
     expect(timestampsOf(again)).toEqual([
       {
         id: "timestamp_1",
@@ -211,6 +223,8 @@ describe("add a named timestamp", () => {
       T2,
       T3,
     ]);
+    const { ids: _, ...unnamed } = add("clt_1", start);
+    expect(refusal(apply(without, unnamed))).toEqual({ code: "invalid_command", path: ["ids"] });
   });
 
   it("gives a manifest without a graphical object one", () => {
@@ -218,6 +232,7 @@ describe("add a named timestamp", () => {
       type: "add",
       into: at("bare"),
       timestamp: { name: "Mid", coordinate: [5, 2] },
+      ids: ["mid"],
     });
     expect(graphicalOf(bare)).toEqual({
       order: {},
@@ -225,7 +240,7 @@ describe("add a named timestamp", () => {
       styles: {},
       timestamps: [
         {
-          id: "timestamp_1",
+          id: "mid",
           timeline: "bare",
           coordinate: [5, 2],
           name: "Mid",
@@ -254,7 +269,7 @@ describe("add a named timestamp", () => {
 
   it("refuses a value at fault where it lies", () => {
     const into = key(at("clt_1"));
-    const cases: [object, string, string, string | null][] = [
+    const cases: [Value, string, string, string | null][] = [
       [{ name: "", coordinate: [1, 1] }, "invalid_value", "name", "a name is a non-empty string"],
       [
         { name: "Late", coordinate: [17, 2] },
@@ -276,7 +291,7 @@ describe("add a named timestamp", () => {
         "id",
         "unknown member id",
       ],
-      ...BAD_DISPLAYS.map(([display, message]): [object, string, string, string] => [
+      ...BAD_DISPLAYS.map(([display, message]): [Value, string, string, string] => [
         { name: "Shown", coordinate: [1, 1], display },
         "invalid_value",
         "display",
@@ -418,15 +433,21 @@ describe("the default timestamps", () => {
       { id: "inner", unit: "quarters", number_type: "fraction", length: [1, 1], offset: [1, 1] },
     ],
   };
-  const addRoot = (timeline: object) => ({ type: "add", into: { block: A }, timeline });
+  /** An `add` of a root, the IDs of its `origin` and `length` given. */
+  const addRoot = (timeline: Value & { readonly id: string }, ids = ["origin", "length"]) => ({
+    type: "add",
+    into: { block: A },
+    timeline,
+    ids: ids.map((name) => `${timeline.id}-${name}`),
+  });
 
   it("are given to a new root, never to a timeline below it", () => {
     expect(timestampsOf(changed(view, addRoot(late)))).toEqual([
       T1,
       T2,
       T3,
-      mark("timestamp_4", "late", "origin", [0, 1]),
-      mark("timestamp_5", "late", "length", [4, 1]),
+      mark("late-origin", "late", "origin", [0, 1]),
+      mark("late-length", "late", "length", [4, 1]),
     ]);
   });
 
@@ -436,17 +457,17 @@ describe("the default timestamps", () => {
       addRoot({ id: "midi", unit: "ticks", number_type: "int", length: 960 }),
     );
     expect(timestampsOf(ticks)?.slice(3)).toEqual([
-      mark("timestamp_4", "midi", "origin", 0),
-      mark("timestamp_5", "midi", "length", 960),
+      mark("midi-origin", "midi", "origin", 0),
+      mark("midi-length", "midi", "length", 960),
     ]);
     const audio = changed(
       view,
-      addRoot({ id: "audio", unit: "seconds", number_type: "float", length: null }),
+      addRoot({ id: "audio", unit: "seconds", number_type: "float", length: null }, ["origin"]),
     );
     const [origin, ...more] =
       timestampsOf(audio)?.filter((item) => item.timeline === "audio") ?? [];
     expect(more).toEqual([]);
-    expect(origin).toEqual(mark("timestamp_4", "audio", "origin", new JsonFloat(0)));
+    expect(origin).toEqual(mark("audio-origin", "audio", "origin", new JsonFloat(0)));
     expect(origin?.coordinate).toBeInstanceOf(JsonFloat);
   });
 
@@ -468,23 +489,24 @@ describe("the default timestamps", () => {
   });
 
   it("are given on import to the roots of a manifest without a graphical object", () => {
-    expect(importedManifest(withoutGraphical("bare.yaml")).graphical).toEqual({
+    // The IDs a minter of seed 1 mints first and second, `origin` before `length`.
+    const [FIRST, SECOND] = ["timestamp_3b7gu4iwqkg9i", "timestamp_3my3bzv32t8mj"];
+    const imported = (name: string) =>
+      importedManifest(withoutGraphical(name), createIdMinter({ seed: 1n }));
+    expect(imported("bare.yaml").graphical).toEqual({
       order: {},
       rules: [],
       styles: {},
-      timestamps: [
-        mark("timestamp_1", "bare", "origin", [0, 1]),
-        mark("timestamp_2", "bare", "length", [8, 1]),
-      ],
+      timestamps: [mark(FIRST, "bare", "origin", [0, 1]), mark(SECOND, "bare", "length", [8, 1])],
       matchstamps: [],
       elisions: [],
     });
-    expect(importedManifest(withoutGraphical("nested.yaml")).graphical?.timestamps).toEqual([
-      mark("timestamp_1", "clt_1", "origin", [0, 1]),
-      mark("timestamp_2", "clt_1", "length", [16, 1]),
+    expect(imported("nested.yaml").graphical?.timestamps).toEqual([
+      mark(FIRST, "clt_1", "origin", [0, 1]),
+      mark(SECOND, "clt_1", "length", [16, 1]),
     ]);
-    const unknown = importedManifest(withoutGraphical("unknown_length.yaml"));
-    expect(unknown.graphical?.timestamps).toEqual([mark("timestamp_1", "score", "origin", [0, 1])]);
+    const unknown = imported("unknown_length.yaml");
+    expect(unknown.graphical?.timestamps).toEqual([mark(FIRST, "score", "origin", [0, 1])]);
     const stated = load(FIXTURE);
     expect(importedManifest(stated)).toBe(stated);
   });
@@ -504,7 +526,7 @@ describe("a new length and the named timestamps", () => {
     const coda = changed(view, add("clt_1", { name: "Coda", coordinate: [15, 2] }));
     expect(refused(apply(coda, set(at("clt_1"), { length: [7, 1] })))).toEqual({
       code: "timestamp_exceeds_length",
-      message: "timestamp 'timestamp_4' lies after the end of its timeline 'clt_1'",
+      message: "timestamp 'coda' lies after the end of its timeline 'clt_1'",
       path: [key(at("clt_1")), "length"],
     });
     for (const length of [[15, 2], null]) {
@@ -526,7 +548,7 @@ describe("a new length and the named timestamps", () => {
 
   const ended = deepFreeze(changed(view, add("clt_1", { name: "End", coordinate: [8, 1] })));
   const END = {
-    id: "timestamp_4",
+    id: "end",
     timeline: "clt_1",
     coordinate: [8, 1],
     name: "End",
@@ -562,7 +584,8 @@ describe("a new length and the named timestamps", () => {
       ],
     });
     expect(block(there).manifest.timelines[0]?.length).toEqual([8, 1]);
-    expect(timestampsOf(there)).toEqual([T1, { ...T2, coordinate: [8, 1] }, END, T3]);
+    // Both at [8, 1]: canonical order puts `end` before `timestamp_2`, by ID.
+    expect(timestampsOf(there)).toEqual([T1, END, { ...T2, coordinate: [8, 1] }, T3]);
   });
 
   it("is one journal entry, undone in one step", () => {
@@ -600,11 +623,7 @@ describe("the guard and the named timestamps", () => {
   ];
   const outOfChild: [object, string, readonly unknown[]][] = [
     [set(at("timestamp_1"), { name: "One" }), "timestamp 'Downbeat'", [key(at("timestamp_1"))]],
-    [
-      add("clt_1", { name: "Coda", coordinate: [15, 2] }),
-      "timestamp 'Coda'",
-      [key(at("timestamp_4"))],
-    ],
+    [add("clt_1", { name: "Coda", coordinate: [15, 2] }), "timestamp 'Coda'", [key(at("coda"))]],
     [remove(at("timestamp_2")), "timestamp 'Climax'", [key(at("timestamp_2"))]],
   ];
 
@@ -642,8 +661,8 @@ describe("groupstamps", () => {
   it("are stored by add where a group has the timeline as a member", () => {
     const cue = { name: "Cue", coordinate: 1.0 };
     const added = changed(grouped, add("performance", { ...cue, groupstamp: true }));
-    expect(stampOf(added, "timestamp_6")).toEqual({
-      id: "timestamp_6",
+    expect(stampOf(added, "cue")).toEqual({
+      id: "cue",
       timeline: "performance",
       coordinate: new JsonFloat(1),
       name: "Cue",
@@ -652,7 +671,7 @@ describe("groupstamps", () => {
       groupstamp: true,
     });
     const plain = changed(grouped, add("performance", cue));
-    expect(stampOf(plain, "timestamp_6")?.groupstamp).toBe(false);
+    expect(stampOf(plain, "cue")?.groupstamp).toBe(false);
     const path = (into: string) => [key(at(into)), "timestamp", "groupstamp"];
     expect(problemOf(apply(grouped, add("performance", { ...cue, groupstamp: "yes" })))).toEqual([
       "invalid_value",
@@ -666,7 +685,7 @@ describe("groupstamps", () => {
       path("clt_1"),
     ]);
     const kept = changed(view, add("clt_1", { ...exit, groupstamp: false }));
-    expect(stampOf(kept, "timestamp_4")?.groupstamp).toBe(false);
+    expect(stampOf(kept, "exit")?.groupstamp).toBe(false);
   });
 
   it("are set and unset by set, a match timestamp's too, never off a member", () => {
@@ -738,10 +757,10 @@ describe("groupstamps", () => {
     expect(groupstampByDefault(manifest, "motif", null)).toBe(true);
     const added = changed(
       nested,
-      add("motif", { name: "Motif", coordinate: [1, 1], groupstamp: true }),
+      add("motif", { name: "Motif", coordinate: [1, 1], groupstamp: true }, "motif-stamp"),
     );
-    expect(stampOf(added, "timestamp_6")).toEqual({
-      id: "timestamp_6",
+    expect(stampOf(added, "motif-stamp")).toEqual({
+      id: "motif-stamp",
       timeline: "motif",
       coordinate: [1, 1],
       name: "Motif",
@@ -777,6 +796,7 @@ describe("groupstamps", () => {
         type: "add",
         into: { block: A },
         group: { id: "group_1", members: ["clt_3"] },
+        ids: ["clt_3-origin", "clt_3-length"],
       }),
     ).toBeNull();
     const given = (id: string, timeline: string, coordinate: unknown, name: string) => ({
@@ -790,8 +810,8 @@ describe("groupstamps", () => {
     });
     expect(stamps()).toEqual([
       ...own,
-      given("timestamp_4", "clt_3", [0, 1], "origin"),
-      given("timestamp_5", "clt_3", [8, 1], "length"),
+      given("clt_3-origin", "clt_3", [0, 1], "origin"),
+      given("clt_3-length", "clt_3", [8, 1], "length"),
     ]);
     store.undo();
     expect(store.view).toBe(before);
@@ -800,18 +820,20 @@ describe("groupstamps", () => {
       store.dispatch({ type: "add", into: { block: A }, group: { id: "group_2", members: [] } }),
     ).toBeNull();
     const joined = stamps();
-    expect(store.dispatch(set(at("clt_2"), { groups: ["group_2"] }))).toBeNull();
+    expect(
+      store.dispatch({ ...set(at("clt_2"), { groups: ["group_2"] }), ids: ["clt_2-length"] }),
+    ).toBeNull();
     // In canonical order: by timeline, then coordinate.
     const [first, second, origin, ...onClt3] = joined;
     expect(stamps()).toEqual([
       first,
       second,
       { ...origin, display: ["wedge", "cross_section"], groupstamp: true },
-      given("timestamp_6", "clt_2", [2, 1], "length"),
+      given("clt_2-length", "clt_2", [2, 1], "length"),
       ...onClt3,
     ]);
-    expect(origin?.id).toBe("timestamp_3");
-    expect(store.dispatch(remove(at("timestamp_4")))).toBeNull();
+    expect(origin?.id).toBe("origin");
+    expect(store.dispatch(remove(at("clt_3-origin")))).toBeNull();
     const removed = stamps();
     expect(store.dispatch(set(at("clt_3"), { name: "Inner" }))).toBeNull();
     expect(stamps()).toEqual(removed);

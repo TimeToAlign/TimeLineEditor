@@ -20,6 +20,8 @@ import type { Manifest } from "../src/manifest/types.ts";
 import type { Address } from "../src/workspace/address.ts";
 import type { Block } from "../src/workspace/blocks.ts";
 import { emptyWorkspace } from "../src/workspace/file.ts";
+import type { IdMinter } from "../src/workspace/ids.ts";
+import { createIdMinter } from "../src/workspace/ids.ts";
 import type { Store, StoreOptions } from "../src/workspace/store.ts";
 import { createStore } from "../src/workspace/store.ts";
 import type { View } from "../src/workspace/view.ts";
@@ -193,9 +195,18 @@ export function key(address: Address): string {
   return addressKey(address);
 }
 
-/** The view a command leaves, failing loudly if it is refused. */
-export function changed(view: View, command: Command | object): View {
-  const result = apply(view, command);
+/**
+ * The view a command leaves, failing loudly if it is refused. The IDs of
+ * what it creates past its own `ids` are minted by `minter`, a fresh random
+ * one by default, as a store mints them: a test reads them from the view,
+ * or gives the command `ids` of its own.
+ */
+export function changed(
+  view: View,
+  command: Command | object,
+  minter: IdMinter = createIdMinter(),
+): View {
+  const result = apply(view, command, minter);
   if (isCommandError(result)) throw new Error(`${result.code} at ${JSON.stringify(result.path)}`);
   return result;
 }

@@ -54,7 +54,7 @@ export const WORKSPACE: Address = {};
 const ADDRESS_MEMBERS = ["block", "id", "facet", "part"] as const;
 
 /** Whether `value` is an ID as the schema allows it: a non-empty string without control characters. */
-function isId(value: unknown): value is string {
+export function isId(value: unknown): value is string {
   if (typeof value !== "string" || value === "") return false;
   for (let index = 0; index < value.length; index += 1) {
     if (value.charCodeAt(index) < 0x20) return false;

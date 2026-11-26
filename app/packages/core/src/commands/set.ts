@@ -64,8 +64,8 @@ import {
   unknownMember,
 } from "../values.ts";
 import type { Address } from "../workspace/address.ts";
-import { manifestIds } from "../workspace/address.ts";
 import type { Block, BlockId, BlockPlacement } from "../workspace/blocks.ts";
+import type { Mint } from "../workspace/ids.ts";
 import type { View } from "../workspace/view.ts";
 import {
   PLACEMENT_READERS,
@@ -215,15 +215,19 @@ function coveredRoots(value: Json, covered: unknown): ReadonlySet<unknown> {
 
 /**
  * A whole manifest for block `id`, its segment lines covered
- * (`withSegmentLinesCovered`) and the tree of every line covered given the
+ * (`withSegmentLinesCovered`, each new segment's ID given by `mint`) and the tree of every line covered given the
  * locks its places decide (`withPlaceLocks`), as `set is_segment_line`
  * gives them; its problems located below `[id, "manifest"]`.
  */
-export function readBlockManifest(value: unknown, id: BlockId): Manifest | CommandError {
+export function readBlockManifest(
+  value: unknown,
+  id: BlockId,
+  mint: Mint,
+): Manifest | CommandError {
   const path = [id, "manifest"];
   const json = toJson(value, path);
   if (isCommandError(json)) return json;
-  const covered = withSegmentLinesCovered(json);
+  const covered = withSegmentLinesCovered(json, mint);
   const manifest = normalizeManifest(covered);
   if (isLoadError(manifest)) {
     const [first] = manifest.problems;
@@ -414,7 +418,7 @@ const BLOCK_SET: Setters<BlockTarget> = {
     return withBlock(view, arrangement === null ? rest : { ...rest, arrangement });
   },
   manifest: (view, target, value, path, changes) => {
-    const manifest = readBlockManifest(value, target.block.id);
+    const manifest = readBlockManifest(value, target.block.id, changes.ids.take);
     if (isCommandError(manifest)) return manifest;
     const { block } = target;
     if (sameJson(block.manifest, manifest)) return view;
@@ -1184,8 +1188,7 @@ const MATCHSTAMP_SET: Setters<MatchStampTarget> = {
     const { manifest } = block;
     const anchors = readAnchors(value, manifest, path);
     if (isCommandError(anchors)) return anchors;
-    const taken = manifestIds(manifest);
-    const rewritten = rewrittenMatchStamp(manifest, taken, matchstamp, anchors);
+    const rewritten = rewrittenMatchStamp(manifest, changes.ids.take, matchstamp, anchors);
     const before = anchorsById(matchstamp.alignment_anchors);
     if (sameJson(before, anchorsById(rewritten.matchstamp.alignment_anchors))) return view;
     record(changes, path, block.id, true);

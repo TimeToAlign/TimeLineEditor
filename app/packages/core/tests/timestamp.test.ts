@@ -733,7 +733,7 @@ describe("the JSON value of a timestamp", () => {
     const view = [
       { type: "add", into: at("b2"), map: { ...ticks, id: "b2_ticks" } },
       { type: "add", into: at("b2"), timestamp: { name: "Mark", coordinate: [1, 1] } },
-    ].reduce(changed, viewOf([A, "segment_line.yaml"]));
+    ].reduce((state, command) => changed(state, command), viewOf([A, "segment_line.yaml"]));
     const { manifest } = block(view);
     const named = manifest.graphical?.timestamps?.find((item) => item.timeline === "b2");
     if (named === undefined) throw new Error("b2 holds the timestamp added");

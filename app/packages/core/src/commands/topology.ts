@@ -434,7 +434,9 @@ export function setGroups(
     const located = locateTimeline(next, id);
     if (located !== undefined) next = replaceTimeline(next, located, locked);
   }
-  if (joins && at.parent !== undefined) next = withDefaultTimestamps(next, locked, true);
+  if (joins && at.parent !== undefined) {
+    next = withDefaultTimestamps(next, locked, true, changes.ids.take);
+  }
   record(changes, path, block.id, true);
   return withBlock(view, { ...block, manifest: next });
 }

@@ -66,14 +66,18 @@ const META: { readonly [member: string]: Reader } = {
     value === WORKSPACE_META.format
       ? value
       : problem(ErrorCode.unsupportedFormat, "not a TimeLineEditor workspace", path),
-  version: (value, path) =>
-    value === WORKSPACE_META.version
-      ? value
-      : problem(
-          ErrorCode.unsupportedVersion,
-          `workspace version ${showJson(value)} is not supported; this editor reads version ${WORKSPACE_META.version} only`,
-          path,
-        ),
+  version: (value, path) => {
+    if (value === WORKSPACE_META.version) return value;
+    const older =
+      typeof value === "number" && Number.isInteger(value) && value < WORKSPACE_META.version;
+    return problem(
+      ErrorCode.unsupportedVersion,
+      older
+        ? `workspace version ${showJson(value)} was written before IDs were journaled and must be imported again: import its manifests into a new workspace`
+        : `workspace version ${showJson(value)} is not supported; this editor reads version ${WORKSPACE_META.version} only`,
+      path,
+    );
+  },
 };
 
 function readManifest(value: unknown, path: readonly PathSegment[]): Manifest | Problem[] {

@@ -1230,7 +1230,7 @@ has no case for card".
 ## Workspace view, ids and order (`workspace.test.ts`, `workspace-ids-order.test.ts`)
 
 The view is `{meta, name, settings, graphical, blocks}`; an empty one
-carries the format marker `{format: "tilie-workspace", version: 7}`, the
+carries the format marker `{format: "tilie-workspace", version: 8}`, the
 name `untitled`, the workspace's `graphical` `{}` (its default rules,
 the cascade's layer between the built-in defaults and each manifest's own)
 and the default settings `{grid: {size: 8, snap: true}, blockDefaults:
@@ -1260,13 +1260,92 @@ no kind; a band order is no placement but the manifest's.
    255 refused; fixed byte streams pin the result.
 3. **Timeline prefixes** are the six classes' (`clt`, `dlt`, `cpt`,
    `dpt`, `cgt`, `dgt`), which the IDs a segment line's first segment is
-   minted with take ("Segment lines gain their first segment").
-   `nextId("group", taken)` is the smallest `group_N` not taken: `group_1`
-   for no IDs, `group_3` for `{group_1, group_2, group_4}`, and `group_1`
-   for `{group_2, clt_1}`.
+   minted with take ("Segment lines gain their first segment"). How an
+   element's ID is minted is "Minted IDs".
 4. **Fractional indices** are compatible with `fractional-indexing` 4.0.0:
    its four published vectors, refusal of invalid keys and unordered
    bounds, and generated keys strictly between their bounds.
+
+## Minted IDs (`minting.test.ts`)
+
+Every element a command creates without an ID of its own (a named
+timestamp, an elision, a named MatchStamp with its anchors and new match
+timestamps, a new root's default timestamps, a segment line's first
+segment, a group added without `id`) is given one, and nothing is renamed:
+an ID held twice is refused where the manifest is checked. The reducer
+mints nothing. It takes each ID, in the order it creates the elements, from
+the command's `ids`, then from the minter its caller gives (`apply(view,
+command, minter)`, the store's, a fresh one for `preview`); without a
+minter a command creating more elements than its `ids` lists is refused, so
+a journal entry lacking an ID never replays to another view. The store
+mints with its minter (`StoreOptions.minter`, 64 random bits by default)
+and journals the command with every ID it took. A minted ID is `<prefix>_`
+and 13 base-36 characters: a minter of seed `s` starts at `mix64(s mod
+2^64)`, its k-th suffix is `mix64(start + k) mod 36^L` in base 36, padded
+to `L` characters, one counter for every prefix.
+
+1. **The algorithm** is held equal to timetoalign's by TimeToShare's
+   vectors, `@timetoalign/timetoshare/fixtures/ids/minted_ids.json`, the
+   oracle written by TimeToShare's own reference: every one of its 7
+   `mix64` pairs; for each of its 18 `minters` entries, a fresh minter of
+   that `seed` (a decimal string, `-1` among them) and `length` mints its
+   `ids` with its `prefixes`; for each of its 3 `later_ids`, the
+   `counter`-th ID of a fresh minter is its `id`.
+2. **The minter's options.** A minter of seed 7 holds `seed` `7n` and
+   `length` 13 (`ID_LENGTH`); its first three IDs, minted with `timestamp`,
+   `clt` and `group`, are `timestamp_1hvif5xc2r1fv`, `clt_0g2wfq87pa7jx`,
+   `group_12u94xeswial0` (the suffixes of seed 7, read from a run and
+   checked against the reference of item 1; the fourth is
+   `154xnogdizwvv`). Seed `-1n` is held as 2^64 − 1 and mints that seed's
+   IDs; length 1 gives the last character of the 13-character suffix
+   (`x_v`); lengths 0, 14 and 2.5 throw `RangeError`. Without a seed the
+   seed is the 8 bytes `crypto.getRandomValues` fills, big-endian: bytes 1
+   to 8 give `0x0102030405060708n`, one call.
+3. **The command carries them.** `parseCommand` reads `ids` on every
+   command type (`add`, `remove`, `style` alike) and drops `[]`; refused,
+   `invalid_command`: `"coda"` at `["ids"]` ("ids is a list of IDs");
+   `""`, `"a\u0001b"` and `3` at their place ("an ID is a non-empty string
+   without control characters"); `coda` listed twice at its second place
+   ("ids lists 'coda' twice"). On `timestamps.yaml`, the add of `Coda`
+   (`clt_1`, `[15, 2]`) with `ids: ["coda"]` lists `timestamp_1`,
+   `timestamp_2`, `coda`, `timestamp_3`; without `ids` `apply` refuses it,
+   `invalid_command` at `["ids"]`, "the command creates more elements than
+   the 0 IDs it lists"; with `ids: ["coda", "extra"]` at `["ids", 1]`, "the
+   command creates 1 of the 2 IDs it lists".
+4. **A minter follows the given IDs.** `apply` with a minter of seed 7:
+   the add of `Coda` without `ids` gives `timestamp_1hvif5xc2r1fv`; with
+   `ids: ["coda"]`, `coda`; a group added without `id` (members `clt_1`)
+   is `group_1hvif5xc2r1fv`, one given `id: "g"` keeps `g` and needs no
+   minter. `preview` of the add without `ids` is accepted with a fresh ID,
+   no ID of the manifest before, on the timestamp `{timeline: "clt_1",
+   coordinate: [15, 2], name: "Coda", display: ["wedge", "name",
+   "cross_section"], matchstamp: false, groupstamp: false}`.
+5. **The store journals every ID it took.** A store over `timestamps.yaml`
+   with a minter of seed 7: the add of `Coda` without `ids` is journaled
+   as the command with `ids: ["timestamp_1hvif5xc2r1fv"]`, the ID the view
+   holds; naming `Arrival` (one anchor `clt_1@[1, 1]`, `clt_2@[1, 1]`, no
+   match timestamp there yet, `timestamp_3` being an ordinary one) with
+   `ids: ["arrival"]` is journaled with `["arrival",
+   "timestamp_0g2wfq87pa7jx", "timestamp_12u94xeswial0",
+   "anchor_154xnogdizwvv"]`: the given ID first, then the minted ones in
+   the order the reducer takes them; a `set` of `clt_1`'s name is
+   journaled without `ids`. `createStore` over the snapshot, with a minter
+   of seed 8, verifies and holds the very same view and journal: a replay
+   mints nothing. A command giving `ids: ["coda"]` is journaled with
+   exactly those; one giving `["coda-2", "extra"]` is refused as in item 3.
+6. **A removed timeline the MatchClaim table names.** The table's rows
+   name timelines by ID; nothing removes them. On `nested.yaml` with a
+   minter of seed 7, removing `clt_3` (and so `clt_2`), then making `clt_1`
+   a segment line, gives the segment `clt_1hvif5xc2r1fv`, never a freed
+   `clt_2` or `clt_3`; a table of the timelines `clt_2` and `clt_3` and the
+   one claim `claim_1` keeps both, neither an ID of the manifest, and its
+   anchor index its two coordinates. The rows dangle; no new timeline
+   takes them over.
+
+The workspace file's version 8 and the refusal of older files are "The
+workspace file"; `importedManifest`, which mints the default timestamps of
+an imported manifest before the `add` of its block carries them, is "Named
+timestamps", item 14.
 
 ## Addresses and containers (`address.test.ts`, `containers.test.ts`)
 
@@ -1939,7 +2018,7 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
 1. **Blocks hold any manifest.** A workspace holding blocks of `bare.yaml`,
    `group_child_member.yaml` and `bundle_mixed.yaml` writes and reads back
    deep-equal, and writes again to the same bytes; its file format is
-   version 7.
+   version 8.
 2. **Invariants root by root.** `group_child_member.yaml` with
    `second-half`'s unit changed to `seconds` (its length written `8.0`, as
    the `float` axis of seconds represents it, its timestamps on the
@@ -2599,22 +2678,25 @@ three timestamp IDs beside the timelines'. `clt_1` contains (`contains`)
 `timestamp_1`, `timestamp_3` and `timestamp_1 line`; `clt_2` contains
 `timestamp_3` only.
 
-**add** `{into: <timeline>, timestamp: {name, coordinate, display?}}`:
+**add** `{into: <timeline>, timestamp: {name, coordinate, display?}}`,
+the new timestamp's ID the command's one entry of `ids` (`coda` unless
+stated; how the store mints it is "Minted IDs"):
 
 2. Into `clt_1`, `{name: "Coda", coordinate: [15, 2]}`: the timestamps
-   are exactly `T1`, `T2`, `CODA` = `{id: "timestamp_4", timeline:
+   are exactly `T1`, `T2`, `CODA` = `{id: "coda", timeline:
    "clt_1", coordinate: [15, 2], name: "Coda", display: DEFAULT}`, `T3`
-   (the smallest free `timestamp_N`; ordered by timeline before
-   coordinate, so `clt_2`'s comes last).
-3. Into `clt_2`, `{name: "Exit", coordinate: [8, 2]}`: the new
-   `timestamp_4` holds `[4, 1]` (the value normalised on its axis, at the
+   (ordered by timeline before coordinate, so `clt_2`'s comes last).
+3. Into `clt_2`, `{name: "Exit", coordinate: [8, 2]}`, `ids: ["exit"]`:
+   the new `exit` holds `[4, 1]` (the value normalised on its axis, at the
    timeline's end, which is inside it), after `T3`.
-4. After removing `timestamp_1`, an add into `clt_1` at `[1, 1]` mints
-   `timestamp_1` again and lists it first.
+4. After removing `timestamp_1`, an add into `clt_1` at `[1, 1]` with
+   `ids: ["timestamp_1"]` takes that ID, free again, and lists it first;
+   the same add without `ids` is refused by `apply` without a minter,
+   `invalid_command` at `["ids"]`.
 5. Into `bare` of `bare.yaml` with its `graphical` object left out before
-   reading, `{name: "Mid", coordinate: [5, 2]}`: the manifest's
-   `graphical` is exactly `{order: {},
-   rules: [], styles: {}, timestamps: [{id: "timestamp_1", timeline:
+   reading, `{name: "Mid", coordinate: [5, 2]}`, `ids: ["mid"]`: the
+   manifest's `graphical` is exactly `{order: {},
+   rules: [], styles: {}, timestamps: [{id: "mid", timeline:
    "bare", coordinate: [5, 2], name: "Mid", display: DEFAULT}]}`.
 6. A given `display` is stored canonically: `["cross_section", "id",
    "wedge"]` is stored `["wedge", "id", "cross_section"]`; `[]` is stored
@@ -2666,17 +2748,19 @@ manifest the editor imports without a `graphical` object, are given two
 timestamps (a child joining a group is given them as groupstamps, item
 25), `origin` at the zero of the root's number type and `length` at
 its length when the length is known, each with `display: ["wedge",
-"coordinate"]`, its ID the next free `timestamp_N`. What proves it: the
+"coordinate"]`, each given the next of the command's `ids`, `origin`'s
+first. What proves it: the
 exact timestamps, per number type and with an unknown length; their
 absence for a timeline below a new root and for a manifest that has a
 `graphical` object; and one journal entry undone as one step.
 
 12. `add {into: A, timeline: {id: "late", unit: "quarters", number_type:
     "fraction", length: [4, 1], children: [{id: "inner", unit: "quarters",
-    number_type: "fraction", length: [1, 1], offset: [1, 1]}]}}` leaves
-    `T1`, `T2`, `T3`, then `{id: "timestamp_4", timeline: "late",
+    number_type: "fraction", length: [1, 1], offset: [1, 1]}]}, ids:
+    ["late-origin", "late-length"]}` leaves
+    `T1`, `T2`, `T3`, then `{id: "late-origin", timeline: "late",
     coordinate: [0, 1], name: "origin", display: ["wedge",
-    "coordinate"]}` and `{id: "timestamp_5", timeline: "late", coordinate:
+    "coordinate"]}` and `{id: "late-length", timeline: "late", coordinate:
     [4, 1], name: "length", display: ["wedge", "coordinate"]}`; `inner`
     has none. In a store this is one journal entry: one `undo` gives back
     the view before it, timestamps included.
@@ -2684,10 +2768,14 @@ absence for a timeline below a new root and for a manifest that has a
     `length` at `960`; a `float` root (`seconds`) of unknown length only
     `origin`, at the float `0.0` (a `JsonFloat`, as a reader returns it).
 14. Importing (`importedManifest`), each fixture read with its
-    `graphical` object left out: `bare.yaml` gains exactly the `graphical`
+    `graphical` object left out, mints the IDs itself (the `add` of the
+    block carries them into the journal); given a minter of seed 1, whose
+    first two IDs of prefix `timestamp` are `timestamp_3b7gu4iwqkg9i` and
+    `timestamp_3my3bzv32t8mj` (`I1`, `I2`, the algorithm of "Minted IDs"):
+    `bare.yaml` gains exactly the `graphical`
     `{order: {}, rules: [], styles: {}, timestamps: [{id:
-    "timestamp_1", timeline: "bare", coordinate: [0, 1], name: "origin",
-    display: ["wedge", "coordinate"]}, {id: "timestamp_2", timeline:
+    I1, timeline: "bare", coordinate: [0, 1], name: "origin",
+    display: ["wedge", "coordinate"]}, {id: I2, timeline:
     "bare", coordinate: [8, 1], name: "length", display: ["wedge",
     "coordinate"]}]}`; `nested.yaml` gains them for its root `clt_1` only
     (`[0, 1]`, `[16, 1]`), none for `clt_3` or `clt_2`;
@@ -2702,13 +2790,13 @@ it, and a timestamp at exactly the old end follows the end:
 
 15. After the add of item 2, `clt_1 {length: [7, 1]}` is
     `timestamp_exceeds_length` at `[clt_1, "length"]`, message `timestamp
-    'timestamp_4' lies after the end of its timeline 'clt_1'`; `[15, 2]`
+    'coda' lies after the end of its timeline 'clt_1'`; `[15, 2]`
     (the timestamp's own place) and `null` are accepted. With `clt_2`
     unlocked (`unlockedView`), `clt_2 {length: [1, 2]}` is refused the same
     way for `timestamp_3`, and `[1, 1]` is accepted. Where the timeline's
     children reach further, `length_below_content` still comes first:
     `clt_1 {length: [11, 2]}` is that.
-16. With `End` added on `clt_1` at `[8, 1]` (its end, as `timestamp_4`):
+16. With `End` added on `clt_1` at `[8, 1]` (its end, as `end`):
     `clt_1 {length: [10, 1]}` moves `End` to `[10, 1]`, every other
     timestamp kept; `{length: [7, 1]}` moves `End` to `[7, 1]` (the
     timestamp at the old end is no refusal); `{length: null}` moves
@@ -2719,7 +2807,8 @@ it, and a timestamp at exactly the old end follows the end:
 17. One `set` of two changes, `clt_1 {length: [6, 1]}` then `clt_1
     {length: [8, 1]}`, is accepted although the length ends where it
     began: `End` followed to `[6, 1]` and back, but `Climax` (at `[6, 1]`)
-    followed the second change, so both end at `[8, 1]`. In a store the
+    followed the second change, so both end at `[8, 1]`, `End` (ID `end`)
+    first, by ID. In a store the
     length change of item 16 is one journal entry, undone in one step.
 
 **The guard** (`sideEffect`, with the command's change set and without,
@@ -2729,7 +2818,7 @@ the same result):
     {display: []}` and an add into `clt_2` are accepted; `timestamp_1
     {name: "One"}` is `side_effect` at `[timestamp_1]`, message `timestamp
     'Downbeat' lies outside timeline 'clt_2': an editor changes only what
-    it edits`; an add into `clt_1` of `Coda` is refused at `[timestamp_4]`
+    it edits`; an add into `clt_1` of `Coda` is refused at `[coda]`
     (`timestamp 'Coda' …`); removing `timestamp_2` is refused at
     `[timestamp_2]` (`timestamp 'Climax' …`).
 19. In the editor of `clt_1`: removing `timestamp_2`, removing `clt_2`
@@ -2754,7 +2843,7 @@ timestamp there and in `timestamps.yaml` states `groupstamp: false` (the
 complete form).
 
 20. `add` into `performance` `{name: "Cue", coordinate: 1.0, groupstamp:
-    true}` stores exactly `{id: "timestamp_6", timeline: "performance",
+    true}`, `ids: ["cue"]`, stores exactly `{id: "cue", timeline: "performance",
     coordinate: JsonFloat(1), name: "Cue", display: ["wedge", "name",
     "cross_section"], matchstamp: false, groupstamp: true}`; without
     `groupstamp` it stores `false`. Refused, `invalid_value` at
@@ -2786,8 +2875,9 @@ complete form).
 24. A member's descendant: with a child `motif` (quarters, offset `[2,
     1]`, length `[4, 1]`) added into `score`, `isGroupMember` is true for
     `motif`, its default is `true` with no editor open, and `add` into
-    `motif` `{name: "Motif", coordinate: [1, 1], groupstamp: true}`
-    stores exactly `{id: "timestamp_6", timeline: "motif", coordinate: [1,
+    `motif` `{name: "Motif", coordinate: [1, 1], groupstamp: true}`,
+    `ids: ["motif-stamp"]`, stores exactly `{id: "motif-stamp", timeline:
+    "motif", coordinate: [1,
     1], name: "Motif", display: ["wedge", "name", "cross_section"],
     matchstamp: false, groupstamp: true}`, accepted by the schema
     check. In `groups/group_child_member.yaml` (`group_1` listing
@@ -2801,17 +2891,19 @@ complete form).
     the frame marks the member's start and end): on `nested.yaml` (`clt_1`
     16 quarters ⊃ `clt_3` 8 at 4 ⊃ `clt_2` 2 at 3/2; `clt_1`'s
     `timestamp_1`, `timestamp_2`), `add {into: clt_2, timestamp: {name:
-    "origin", coordinate: [0, 1], display: ["wedge"]}}` gives
-    `timestamp_3`; then `add {into: {block: A}, group: {id: "group_1",
-    members: ["clt_3"]}}` adds exactly `{id: "timestamp_4", timeline:
+    "origin", coordinate: [0, 1], display: ["wedge"]}, ids: ["origin"]}`
+    gives `origin`; then `add {into: {block: A}, group: {id: "group_1",
+    members: ["clt_3"]}, ids: ["clt_3-origin", "clt_3-length"]}` adds
+    exactly `{id: "clt_3-origin", timeline:
     "clt_3", coordinate: [0, 1], name: "origin", display: ["wedge",
     "coordinate", "cross_section"], matchstamp: false, groupstamp: true}`
-    and `{id: "timestamp_5", …, coordinate: [8, 1], name: "length", …}`,
+    and `{id: "clt_3-length", …, coordinate: [8, 1], name: "length", …}`,
     in one journal entry, which one `undo` takes back whole. An empty
-    group `group_2` added, `set {clt_2: {groups: ["group_2"]}}` makes
-    `timestamp_3`, already named `origin` at `clt_2`'s zero, a groupstamp
-    with `display: ["wedge", "cross_section"]` and adds only `length`,
-    `timestamp_6` at `[2, 1]`. Removing `timestamp_4`, then `set {clt_3:
+    group `group_2` added, `set {clt_2: {groups: ["group_2"]}}` with `ids:
+    ["clt_2-length"]` makes `origin`, already named `origin` at `clt_2`'s
+    zero, a groupstamp with `display: ["wedge", "cross_section"]` and adds
+    only `length`, `clt_2-length` at `[2, 1]`. Removing `clt_3-origin`,
+    then `set {clt_3:
     {name: "Inner"}}` gives it no new `origin`: only joining gives them. A
     root joining a group is given nothing: on
     `groups/group_grandchild.yaml`, `add` of `group_2` with the member
@@ -2880,12 +2972,17 @@ read as they are), each elision stated without `display`, so read with
 the default `[ellipsis, name]`. Fraction pairs are written `[n, d]`; a message
 spells a value as canonical YAML does.
 
-1. **Minting skips an elision's ID.** `bare.yaml` (root `bare`, 8
-   quarters; timestamps `timestamp_1`, `timestamp_2`) with `elision_1` on
-   `bare` from 1 to 2 and a second elision `timestamp_3` (IDs are free) from
-   3 to 4: the manifest's IDs hold both, so the next `elision_N` is
-   `elision_2`; `add {into: bare, timestamp: {name: "Bar 2", coordinate: [2,
-   1]}}` mints `timestamp_4` and is accepted with both elisions kept; `add
+1. **An elision's ID is an ID of the manifest.** `bare.yaml` (root
+   `bare`, 8 quarters; timestamps `timestamp_1`, `timestamp_2`) with
+   `elision_1` on `bare` from 1 to 2 and a second elision `timestamp_3`
+   (IDs are free) from 3 to 4: the manifest's IDs hold both; `add {into:
+   bare, timestamp: {name: "Bar 2", coordinate: [2, 1]}, ids: ["bar2"]}` is
+   accepted with both elisions kept, the timestamps `timestamp_1`, `bar2`,
+   `timestamp_2`; the same `add` given `ids: ["timestamp_3"]` is refused by
+   the schema at settle, nothing renamed: `schema_violation` at `[A,
+   "manifest", "graphical", "elisions", 1, "id"]`, "'timestamp_3' is not
+   unique in the manifest, first at #/graphical/timestamps/1/id" (the
+   schema names the second holder; timestamps precede elisions); `add
    {into: bare, region: {id: "elision_1", …}}` is core's own `duplicate_id`
    at `[bare's key, "region", "id"]`, "'elision_1' is already an ID of the
    manifest", never a schema violation at settle.
@@ -2915,21 +3012,21 @@ spells a value as canonical YAML does.
    (its start) is the refusal; `null` leaves it from 13 to 16.
 4. **`add` kind `elision` into a timeline.** On `bare.yaml` with
    `elision_1` from 1 to 2: `add {into: bare, elision: {start: [3, 1], end:
-   [5, 1]}}` adds `{id: "elision_2", timeline: "bare", start: [3, 1], end:
+   [5, 1]}, ids: ["gap"]}` adds `{id: "gap", timeline: "bare", start: [3, 1], end:
    [5, 1], display: [ellipsis, name]}` after `elision_1`; with `name:
    "Development"`, `width: {ratio: 0.25}` and `display: [coordinate, name,
    ellipsis]` the new elision holds that name and width and `display:
    [ellipsis, name, coordinate]`. Each refusal, at `[bare's key, "elision",
-   …]` with `elision_2` the ID it would be given:
+   …]` with `gap` the ID it is given:
    - no `end`: `invalid_value` at `end`, "a new elision needs end";
    - a `timeline` member: `unknown_property` at `timeline`, "unknown
      member timeline" (the target names the timeline);
    - start `[-1, 1]`: `elision_stretch` at `start`, "start [-1, 1] of
-     'elision_2' lies before the start of its timeline 'bare'";
-   - end `[9, 1]`: `elision_stretch` at `end`, "end [9, 1] of 'elision_2'
+     'gap' lies before the start of its timeline 'bare'";
+   - end `[9, 1]`: `elision_stretch` at `end`, "end [9, 1] of 'gap'
      is beyond the length [8, 1] of its timeline 'bare'";
    - start and end `[2, 1]`: `elision_stretch` at `end`, "end [2, 1] of
-     'elision_2' does not lie after its start [2, 1]";
+     'gap' does not lie after its start [2, 1]";
    - name `""`: `invalid_value` at `name`, "a name is a non-empty string",
      and `3` the same;
    - width `{ratio: 0.5, canvas: 10}`: `invalid_value` at `width`, "a width
@@ -2980,21 +3077,22 @@ spells a value as canonical YAML does.
    a card derives them (drawing.md section 8.9): `add {into: {block: A},
    elision: [{timeline: "movement", start: [0, 1], end: [8, 1]}, {timeline:
    "score", start: [0, 1], end: [16, 1]}, {timeline: "score", start: [32,
-   1], end: [64, 1]}]}` through the store adds `elision_1`, `elision_2`,
-   `elision_3` in that order (so stored `movement`'s, then `score`'s two by
-   start) and grows the journal by one entry. With `elision_4` on
-   `recording` from 1 to 2 seconds and `elision_5` on `theme` from 1 to 2
-   added (both group elisions of `group_1`), `elisionsUnder(manifest,
-   "score")` is `elision_1` to `elision_3`, and one `remove` of their three
-   addresses grows the journal by one entry and leaves `elision_4` and
-   `elision_5` alone. Refusals at `[A's key, "elision", …]`: an object, not
+   1], end: [64, 1]}], ids: ["e1", "e2", "e3"]}` through the store adds
+   `e1`, `e2`, `e3`, one ID per item in list order (so stored
+   `movement`'s, then `score`'s two by start) and grows the journal by one
+   entry. With `e4` on `recording` from 1 to 2 seconds and `e5` on `theme`
+   from 1 to 2 added (both group elisions of `group_1`),
+   `elisionsUnder(manifest, "score")` is `e1` to `e3`, and one `remove` of
+   their three addresses grows the journal by one entry and leaves `e4`
+   and `e5` alone. Refusals at `[A's key, "elision", …]`: an object, not
    a list, `invalid_value` "a block takes a list of elisions"; `[]`
    `invalid_value` "a list of elisions holds at least one"; an item without
    `timeline` `invalid_value` at `0, timeline`, "a new elision needs
    timeline"; an item on `nowhere` `elision_timeline` at `0, timeline`,
    "'nowhere' names no timeline of this manifest"; a second item from 4 to 2
-   on `movement` `elision_stretch` at `1, end`, "end [2, 1] of 'elision_2'
-   does not lie after its start [4, 1]" (the first item took `elision_1`);
+   on `movement` `elision_stretch` at `1, end`, "end [2, 1] of 'e2' does
+   not lie after its start [4, 1]" (`ids: ["e1", "e2"]`, the first item
+   took `e1`);
    an item with `name: "Exposition"` stores it.
 7. **Card and group elisions.** `bundles/bundle_elisions_stored.yaml`
    (`group_1` of the root `recording`, of `take`, the child of `session`,
@@ -3007,9 +3105,9 @@ spells a value as canonical YAML does.
    timelines in no group), `page` `elision_2`, `session` `elision_7`,
    `recording` none (a member: `elision_3` is a group elision) and
    `nowhere` none; `groupElisions(manifest, "group_1")` is `elision_3`
-   alone, `groupElisions(manifest, "nowhere")` none. With `elision_8` on
+   alone, `groupElisions(manifest, "nowhere")` none. With `theme_gap` on
    `theme` from 1 to 2 added, `groupElisions` gives `elision_3`,
-   `elision_8` and `elisionsUnder("score")` is unchanged.
+   `theme_gap` and `elisionsUnder("score")` is unchanged.
    `bundles/bundle_groupstamp_shared_member.yaml` (`g1` of `t`, `u`; `g2`
    of `t`, `v`; `elision_1` on `t`): `groupElisions` gives `elision_1` for
    `g1` and for `g2`, `elisionsUnder("t")` none.
@@ -3384,29 +3482,35 @@ whose drawing has that label. `manifestIds` holds
 TimeToShare's table fixture `tables/<version>/manifest.yaml` it holds
 `resource_1` and `resource_2`, which resolve to nothing.
 
-**Naming** (`add {into: A, matchstamp: {name, anchors, match_claims}}`):
+**Naming** (`add {into: A, matchstamp: {name, anchors, match_claims},
+ids}`): the command's `ids` give, in this order, the MatchStamp's ID, each
+new match timestamp's as the anchors meet its coordinate (left, then
+right, anchor by anchor), then each anchor's in screen order. The cases
+name `bar4`, `bar4-score`, `bar4-take1`, `bar4-take2` (a new match
+timestamp on that timeline) and `bar4-a1`, `bar4-a2`, … (the anchors),
+each command listing exactly the IDs it takes:
 
 1. `name` "Bar 4", anchors `[score@[6, 1], take_1@176400]`, `[take_1@176400,
    take_2@198450]`, claims `claim_7`, `claim_8`: one journal entry; the
-   timestamps are `TS` with `match("timestamp_10", "score", [6, 1])`,
-   `match("timestamp_11", "take_1", 176400)`, `match("timestamp_12",
+   timestamps are `TS` with `match("bar4-score", "score", [6, 1])`,
+   `match("bar4-take1", "take_1", 176400)`, `match("bar4-take2",
    "take_2", 198450)` in canonical order (each after the fixture's match
-   timestamp of its timeline); the MatchStamps `M1`, `M2` and
-   `{id: "matchstamp_3", name: "Bar 4", alignment_anchors: [{id:
-   "anchor_3", timestamps: ["timestamp_10", "timestamp_11"], display:
-   ["line", "name"]}, {id: "anchor_4", timestamps: ["timestamp_11",
-   "timestamp_12"], display: ["line"]}], match_claims: ["claim_7",
-   "claim_8"]}`: the middle of two anchors in screen order is the first.
-   One undo gives back the view before it.
-2. **Reuse.** Anchors `[score@[8, 2], take_2@99225]`: no new timestamp
-   (the timestamps are `TS`), the anchor `anchor_3` names `timestamp_1`
-   and `timestamp_3`; the value `[8, 2]` is 4 on `score`'s axis. Anchors
-   `[score@[0, 1], take_1@0]`, where only the ordinary `origin` timestamps
-   lie, give two new match timestamps, `timestamp_10` and `timestamp_11`,
-   beside them.
+   timestamp of its timeline); the MatchStamps, by ID,
+   `{id: "bar4", name: "Bar 4", alignment_anchors: [{id:
+   "bar4-a1", timestamps: ["bar4-score", "bar4-take1"], display:
+   ["line", "name"]}, {id: "bar4-a2", timestamps: ["bar4-take1",
+   "bar4-take2"], display: ["line"]}], match_claims: ["claim_7",
+   "claim_8"]}`, `M1`, `M2`: the middle of two anchors in screen order is
+   the first. One undo gives back the view before it.
+2. **Reuse.** Anchors `[score@[8, 2], take_2@99225]` (`ids` `bar4`,
+   `bar4-a1`): no new timestamp (the timestamps are `TS`), the anchor
+   `bar4-a1` names `timestamp_1` and `timestamp_3`; the value `[8, 2]` is
+   4 on `score`'s axis. Anchors `[score@[0, 1], take_1@0]`, where only the
+   ordinary `origin` timestamps lie, give two new match timestamps,
+   `bar4-score` and `bar4-take1`, beside them.
 3. **The middle in screen order.** Three anchors `[score@[6, 1],
    take_1@176400]`, `[take_1@176400, take_2@198450]`, `[score@[6, 1],
-   take_2@198450]`: the second (`anchor_4`) alone shows the name; with a
+   take_2@198450]`: the second (`bar4-a2`) alone shows the name; with a
    fourth `[score@[6, 1], take_1@200000]` too, the second still.
 4. **Refusals of the value**, at `[A, "matchstamp", …]` (the address key
    of `A` first): a member `colour` → `unknown_property` at `["colour"]`;
@@ -3427,33 +3531,38 @@ TimeToShare's table fixture `tables/<version>/manifest.yaml` it holds
    `["match_claims"]`. Into a timeline: `wrong_target_kind` `nothing of
    kind matchstamp goes into root` at `[score, "matchstamp"]`.
 5. **The schema package's refusals**, `schema_violation` with its message
-   at `[A, "manifest", …]`: an anchor `[take_1@0, take_1@88200]` →
-   `the timestamps of 'anchor_3' both lie on the timeline 'take_1'` at
-   `["graphical", "matchstamps", 2, "alignment_anchors", 0, "timestamps",
+   at `[A, "manifest", …]` (`bar4` first among the MatchStamps): an anchor
+   `[take_1@0, take_1@88200]` (`ids` `bar4`, `bar4-take1`, `bar4-a1`) →
+   `the timestamps of 'bar4-a1' both lie on the timeline 'take_1'` at
+   `["graphical", "matchstamps", 0, "alignment_anchors", 0, "timestamps",
    1]`; anchors `[score@[6, 1], take_1@176400]`, `[score@[7, 1],
-   take_2@198450]` → `the alignment anchors of 'matchstamp_3' are not one
-   connected set` at `["graphical", "matchstamps", 2,
+   take_2@198450]` → `the alignment anchors of 'bar4' are not one
+   connected set` at `["graphical", "matchstamps", 0,
    "alignment_anchors"]`; claims `claim_1`, `claim_1` → the schema's
-   refusal of a repeated item at `["graphical", "matchstamps", 2,
+   refusal of a repeated item at `["graphical", "matchstamps", 0,
    "match_claims"]`.
 
-**Update and the other properties** (`set` on `matchstamp_N`; `anchors`
-takes pairs in screen order as naming does, `match_claims` a list):
+**Update and the other properties** (`set` on a named MatchStamp;
+`anchors` takes pairs in screen order as naming does, its new match
+timestamps' and new anchors' IDs the command's `ids` in that order,
+`match_claims` a list):
 
 6. `matchstamp_1` given anchors `[take_1@88200, score@[4, 1]]` (anchor_1
    reversed), `[take_1@88200, take_2@99225]` and claims `claim_1`,
-   `claim_2`, `claim_4` in one `set`: one journal entry; `anchor_1` kept
-   as it was (its order of timestamps, `["line", "name"]`), `anchor_3`
-   `["timestamp_2", "timestamp_3"]` with `["line"]`; the timestamps are
+   `claim_2`, `claim_4` in one `set` with `ids: ["new-anchor"]`: one
+   journal entry; `anchor_1` kept as it was (its order of timestamps,
+   `["line", "name"]`), `new-anchor` `["timestamp_2", "timestamp_3"]` with
+   `["line"]`; the timestamps are
    `TS`; the claims as given. Undo gives back the view before it.
 7. **An anchor gone takes the name along**: `matchstamp_1` given anchors
-   `[score@[4, 1], take_2@99225]`: its one anchor is `anchor_3`
+   `[score@[4, 1], take_2@99225]` (`ids: ["moved"]`): its one anchor is `moved`
    (`timestamp_1`, `timestamp_3`, `["line", "name"]`), `timestamp_2`,
    which no MatchStamp names any more, is gone; `M2` is unchanged.
 8. **A new coordinate**: `matchstamp_2` given anchors `[score@[4, 1],
-   take_2@110250]`: `timestamp_3` goes (its name with it), and
-   `match("timestamp_10", "take_2", 110250)` comes; the one anchor
-   `anchor_3` shows `["line"]` only, as `anchor_2` did not show the name.
+   take_2@110250]` (`ids: ["take2-new", "anchor-new"]`): `timestamp_3`
+   goes (its name with it), and `match("take2-new", "take_2", 110250)`
+   comes; the one anchor `anchor-new` shows `["line"]` only, as `anchor_2`
+   did not show the name.
 9. **No change**: `matchstamp_1` given its own anchor reversed,
    `[take_1@88200, score@[8, 2]]`, is `invalid_value` `the command
    changes nothing` at `[matchstamp_1, "anchors"]`; its own claims at
@@ -3499,9 +3608,9 @@ takes pairs in screen order as naming does, `match_claims` a list):
     its order, and `resource_2` (Projections) naming `dpt_1`, `cpt_1` in its order.
 
 **A length leaves match timestamps where they are** (18): after naming
-`[score@[8, 1], take_1@352800]` (`timestamp_10`, `timestamp_11`, at both
+`[score@[8, 1], take_1@352800]` (`bar4-score`, `bar4-take1`, at both
 ends), `set` of `score`'s length to `[10, 1]` moves the `length`
-timestamp `timestamp_5` to 10 and leaves `timestamp_10` at 8.
+timestamp `timestamp_5` to 10 and leaves `bar4-score` at 8.
 
 **From a MatchStamp to the comparison** (19): for `M1`,
 `matchStampSpec` gives `{anchors: [{coordinates: [score 4, take_1
@@ -3514,11 +3623,12 @@ group, as any timestamp made above a timeline editor; naming closes the
 editors in the way first, so no editor scope applies. On block `A` holding
 `bundles/bundle_mixed.yaml` (`group_1` "Performance" holds `score` and
 `performance`), naming `{name: "Turn", anchors: [[score@[6, 1],
-performance@3.0]], match_claims: ["claim_1"]}` adds exactly, in
-canonical order, `match("timestamp_12", "performance", 3.0)` and
-`match("timestamp_11", "score", [6, 1])`, each with `groupstamp: true`;
+performance@3.0]], match_claims: ["claim_1"]}` (`ids` `turn`,
+`turn-score`, `turn-performance`, `turn-a1`) adds exactly, in canonical
+order, `match("turn-performance", "performance", 3.0)` and
+`match("turn-score", "score", [6, 1])`, each with `groupstamp: true`;
 naming "Bar 4" (item 1) in `bundle_matchstamps.yaml`, which has no
-groups, adds `timestamp_10`, `timestamp_11`, `timestamp_12`, each with
+groups, adds `bar4-score`, `bar4-take1`, `bar4-take2`, each with
 `groupstamp: false`. A match timestamp a MatchStamp reuses keeps its own
 `groupstamp` (the Update and reuse cases above, all `false`).
 
@@ -3670,8 +3780,10 @@ the block's manifest.
 
 ## The store and the journal (`store.test.ts`)
 
-`createStore(workspace, {author?, clock?})` holds a `Workspace = {view,
-journal, sessions}`. The journal is the authority: a store verifies, before
+`createStore(workspace, {author?, clock?, minter?})` holds a `Workspace =
+{view, journal, sessions}`; its minter gives the IDs a dispatched command
+creates beyond those it carries, and the command is journaled with them
+("Minted IDs", item 5). The journal is the authority: a store verifies, before
 it opens, that replaying the journal from the empty workspace reproduces
 the workspace's view. A journal entry is a command entry `{command, author,
 time}` (the command as the command reader reads it) or a session entry
@@ -3796,7 +3908,9 @@ holding `bare.yaml`, two moves of `A`) and an injected clock.
    file the editor wrote before locations, `data/before-locations.tle.json`
    (one block `block00001`, whose manifest holds no timeline, its `add`
    in the journal, and its entry
-   `{minimal: true, serialization: "yaml", styling: true}`), reads with no
+   `{minimal: true, serialization: "yaml", styling: true}`; written at
+   version 7, its `meta.version` since restated as 8, the one change, which
+   holds because its one command creates no ID), reads with no
    problem and keeps its entry unchanged. Refused, leaving the settings
    as they were, `invalid_value` at `["settings", "manifests", A,
    "location"]`: `""` (a location is never empty), `"/home/x.yaml"` (no
@@ -4468,9 +4582,8 @@ that holds a member without being one.
 
 `writeWorkspace(workspace)` is TimeToShare's `dumps` in pretty JSON (keys sorted) of
 `{meta, name, settings, graphical, blocks, journal, sessions}`, format
-version 7 (since the settings left the journal and the workspace's default
-rules left the settings for the top-level `graphical`, which a
-version-6 file lacks);
+version 8 (since every journaled command carries the IDs of what it
+created, `ids`, which a version-7 journal lacks);
 `readWorkspace(text)` reads with TimeToShare's `parseJson` (lossless) and
 returns a `Workspace` or a `LoadError`. An entry is exactly `{command,
 author, time}` or `{session, author, time}` (chosen by the presence of
@@ -4495,14 +4608,14 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    `manifests` exactly `{[A]: {minimal: false, serialization: "json",
    styling: false}}`, `matchClaimFilters` exactly `{[A]: {beliefs: ["true"],
    timelines: ["melody"]}}`;
-   `meta` is exactly `{format: "tilie-workspace", version: 7}`; `name` is
+   `meta` is exactly `{format: "tilie-workspace", version: 8}`; `name` is
    `untitled`; `sessions` is `{}`.
 2. **Replay.** Replaying the read journal from `createView()` gives exactly
    the read `graphical` and `blocks`; its settings are the defaults, the
    read ones are the file's.
 3. **Refusals**, each exactly one problem `{code, path}`: text `{` →
    `invalid_json` at `[]`; `format: "other"` → `unsupported_format` at
-   `["meta", "format"]`; `version: 8` → `unsupported_version` at `["meta",
+   `["meta", "format"]`; `version: 9` → `unsupported_version` at `["meta",
    "version"]`; no top-level `graphical` → `missing_member` at
    `["graphical"]`; `settings.graphical` → `unknown_member` at
    `["settings", "graphical"]`; a block without `margin` → `missing_member` at `["blocks",
@@ -4552,21 +4665,18 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    The reader is lenient on these three members only: a `grid.size` of 0 in
    the same file is still `non_positive_number` at `["settings", "grid",
    "size"]`.
-5. **Version 4.** A version-4 file (the round trip's text with `version:
-   4` and its commands' addresses written as that format wrote them,
-   strings: the `add`s `into: "workspace"`, each `set` aimed at the bare
-   block id, or at `"workspace"`) is refused for its version alone: exactly one problem,
-   `unsupported_version` at `["meta", "version"]`, message `workspace
-   version 4 is not supported; this editor reads version 7 only`. There is
-   no migration. **Version 5** likewise: the round trip's text with
-   `version: 5` and every block's and the block defaults' `margin` removed,
-   as that format wrote them, is refused with exactly one problem,
-   `unsupported_version` at `["meta", "version"]`, message `workspace
-   version 5 is not supported; this editor reads version 7 only`. **Version
-   6** likewise: the round trip's text written as that format wrote it
-   (`version: 6`, no `granularity`, the workspace's `graphical` inside
-   `settings`) is refused for its version alone, message `workspace version
-   6 is not supported; this editor reads version 7 only`.
+5. **Older versions.** Every older version is refused for its version
+   alone, exactly one problem, `unsupported_version` at `["meta",
+   "version"]`, message `workspace version <N> was written before IDs were
+   journaled and must be imported again: import its manifests into a new
+   workspace`; there is no migration. **Version 7**: the round trip's text
+   with `version: 7` (its commands create no ID, so it is otherwise what
+   version 7 wrote). **Version 4**: that text with `version: 4` and its
+   commands' addresses written as that format wrote them, strings: the
+   `add`s `into: "workspace"`, each `set` aimed at the bare block id, or at
+   `"workspace"`. **Version 5**: `version: 5` and every block's and the
+   block defaults' `margin` removed. **Version 6**: `version: 6`, no
+   `granularity`, the workspace's `graphical` inside `settings`.
 6. **Sessions in the file.** On the text of a workspace whose journal is
    the `add` of block `A` holding `bundles/bundle_mixed.yaml` and one entry
    naming session `s = "session001"`, `{target: {block: A, id: "group_1"},
@@ -4687,20 +4797,21 @@ segment line of known length that holds no segment, one segment from 0
 covering its whole length: a child of the line's unit, stating the line's
 `number_type` when the line states one, at offset 0 in the line's number
 type (`0`, `0.0` or `[0, 1]`), as long as the line (the same JSON value),
-unlocked (a segment is never locked), its id the smallest `{prefix}_{N}`
-of its unit's class that no ID of the manifest (the manifest's own and
-its elements', never a string under `meta` or `graphical`), nor of the
-manifest a timeline is added into, equals. A segment line of unknown length is left
+unlocked (a segment is never locked), its id the next of the command's
+`ids` (the store mints it with the prefix of its unit's class, "Minted
+IDs"). A segment line of unknown length is left
 without segments: nothing fixes where they would end. Reading a manifest
 from a file applies nothing. The replay of a journal reproduces it, since
 the rule is part of the command.
 
-What proves it, each manifest compared exactly:
+What proves it, each manifest compared exactly. The commands give the
+segment its ID through `ids`, `first`, so the cases read what the rule
+makes, never what a minter draws:
 
 1. **Apply.** On `bundles/bundle_mixed.yaml` in block `A`, the manifest
    with `is_segment_line: true` on `page` (pixels, int, length 1920, a
    member of `group_2`, no children) set as `A`'s `manifest` is accepted:
-   `page` holds exactly one child, `{id: "dgt_1", unit: "pixels",
+   `page` holds exactly one child, `{id: "first", unit: "pixels",
    number_type: "int", offset: 0, length: 1920, locked: false,
    is_segment_line: false, …the defaults}`, and the tree of every line
    given a segment takes the locks its places decide, as the setter of
@@ -4715,14 +4826,17 @@ What proves it, each manifest compared exactly:
    command is one journal entry, and `createStore` over the workspace it
    leaves verifies (the replay reproduces the segment). `{is_segment_line:
    true}` on `{block: A, id: "score"}` (fraction quarters, length `[12, 1]`, no
-   children) gives the segment `{id: "clt_1", unit: "quarters",
+   children) gives the segment `{id: "first", unit: "quarters",
    number_type: "fraction", offset: [0, 1], length: [12, 1], …}`;
-   `performance` (float seconds, 12.5) the segment `cpt_1` at offset `0.0`
+   `performance` (float seconds, 12.5) the segment `first` at offset `0.0`
    (a `JsonFloat`) of length `12.5`.
-3. **The id is free in the manifest.** On `bundle_mixed.yaml` with a root
-   `dgt_1` (pixels, 10) added first, the segment of `page` is `dgt_2`. An
-   `id` under `meta` is no ID of the manifest: `page` applied as a segment
-   line with `meta: {id: "dgt_1", note: {id: "dgt_2"}}` gains `dgt_1`.
+3. **The id is the command's.** The setter of case 2 with `ids:
+   ["region_1"]`, an ID the manifest holds (`annotations`' region), is
+   refused as the schema refuses an ID held twice (`schema_violation` at
+   `[A, "manifest", "timelines", 1, "children", 0, "id"]`): nothing is
+   renamed; without `ids` and without a minter, `apply`
+   refuses it as creating more elements than its `ids` lists
+   (`invalid_command` at `["ids"]`).
 4. **Unknown length.** On a root `open` of unknown length (quarters)
    added to `bare.yaml`'s block, `set {block: A, id: "open"} {is_segment_line: true}`
    leaves `open` a segment line without children, its length `null`.
@@ -4740,18 +4854,18 @@ What proves it, each manifest compared exactly:
    Turning the flag off lifts the lock the place rule gave the line for
    being a segment line, and keeps a lock no place decided: on
    `bundle_mixed.yaml`, the member `performance` (unlocked) turned on holds
-   `locked: true`, turned off again `locked: false`, its segment `cpt_1`
+   `locked: true`, turned off again `locked: false`, its segment
    unlocked; the same for a child `c` (quarters, `[0, 1]`, `[4, 1]`, no
    `locked` stated) added into `bare.yaml`'s root. The root `form`, no
    child and no member, set `locked: true` and then turned off keeps
    `locked: true`.
 6. **Adding a segment line.** `add {into: {block: A, id: "bare"}, child: {id: "sl", unit:
    "quarters", offset: [0, 1], length: [4, 1], is_segment_line: true}}`
-   into `bare.yaml`'s root adds `sl` holding the segment `clt_1` from `[0,
-   1]` of `[4, 1]`, `sl` locked by its place (a segment line that is a
-   child).
-7. **Preview.** `preview` of the setter of case 2 gives the same manifest
-   as `apply`.
+   into `bare.yaml`'s root, with `ids: ["first"]`, adds `sl` holding the
+   segment `first` from `[0, 1]` of `[4, 1]`, `sl` locked by its place (a
+   segment line that is a child).
+7. **Preview.** `preview` of the setter of case 2 with `ids: ["first"]`
+   gives the same manifest as `apply`.
 
 ## Properties (`properties.test.ts`, fast-check)
 
@@ -4797,7 +4911,9 @@ Each manifest fixture starts as block `A` beside a block `B` of
 6. `writeWorkspace(readWorkspace(text))` equals `text` byte for byte, and the
    read workspace deep-equals the store's.
 7. The generator reaches every refusal the commands produce on these
-   targets: over a fixed sample (seed `20261011`, 150 sequences per fixture)
+   targets: over a fixed sample (seed `20261011`, 150 sequences per fixture,
+   each fixture's sequences applied with one minter of seed `20261011`, as
+   a store mints, so no command is refused for the IDs it lacks)
    the set of codes observed is exactly `child_exceeds_parent`, `cycle`, `duplicate_id`, `duplicate_index`,
    `elision_exceeds_length`, `id_not_settable`, `invalid_address`, `invalid_coordinate`,
    `invalid_index`, `invalid_order`, `invalid_value`,

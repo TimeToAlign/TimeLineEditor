@@ -34,7 +34,8 @@ import { axisCoordinate } from "../number/coordinate.ts";
 import type { Real } from "../number/real.ts";
 import { compareReal, realOf } from "../number/real.ts";
 import { readObject, unknownMember } from "../values.ts";
-import { ANCHOR_PREFIX, nextId, TIMESTAMP_PREFIX } from "../workspace/ids.ts";
+import type { Mint } from "../workspace/ids.ts";
+import { ANCHOR_PREFIX, TIMESTAMP_PREFIX } from "../workspace/ids.ts";
 import { isGroupMember, readTimestampCoordinate } from "./timestamps.ts";
 
 /** A coordinate of an anchor as a command gives it: the timeline it lies on and its value there. */
@@ -194,8 +195,8 @@ export function namedAsGroupstamp(
 /**
  * The match timestamps the given anchors lie on, and the manifest's named
  * timestamps with the new ones appended: each coordinate's match timestamp
- * is the one the manifest holds there, else a new one with the next free
- * `timestamp_N` of `taken` (to which it is added), without a name, with
+ * is the one the manifest holds there, else a new one with the ID `mint`
+ * gives, without a name, with
  * the default `display` of a match timestamp and a groupstamp exactly where
  * its timeline lies in a group (`isGroupMember`). A named timestamp that is
  * no match timestamp is never taken for one; one taken keeps its own
@@ -204,7 +205,7 @@ export function namedAsGroupstamp(
 function placedTimestamps(
   manifest: Manifest,
   anchors: readonly GivenAnchor[],
-  taken: Set<string>,
+  mint: Mint,
 ): { readonly ends: (readonly [string, string])[]; readonly timestamps: NamedTimestamp[] } {
   const timestamps = [...(manifest.graphical?.timestamps ?? [])];
   const idOf = (given: AnchorCoordinate): string => {
@@ -212,8 +213,7 @@ function placedTimestamps(
     const at = realOf(axisCoordinate(given.coordinate, timeline));
     const found = matchTimestampIn(timestamps, timeline, at);
     if (found !== undefined) return found.id;
-    const id = nextId(TIMESTAMP_PREFIX, taken);
-    taken.add(id);
+    const id = mint(TIMESTAMP_PREFIX);
     const display = [...DEFAULTS.match_timestamp.display];
     timestamps.push({
       id,
@@ -231,23 +231,23 @@ function placedTimestamps(
 
 /**
  * A new named MatchStamp with the ID `id`: its anchors those given, each
- * with the next free `anchor_N` and the default `display`, the middle one
+ * with the ID `mint` gives, after those of the new match timestamps, and the
+ * default `display`, the middle one
  * in screen order showing the name too; and the named timestamps with the
  * match timestamps it needs added.
  */
 export function namedMatchStamp(
   manifest: Manifest,
-  taken: Set<string>,
+  mint: Mint,
   id: string,
   name: string,
   anchors: readonly GivenAnchor[],
   claims: readonly string[],
 ): { readonly matchstamp: NamedMatchStamp; readonly timestamps: NamedTimestamp[] } {
-  const { ends, timestamps } = placedTimestamps(manifest, anchors, taken);
+  const { ends, timestamps } = placedTimestamps(manifest, anchors, mint);
   const middle = middleAnchor(ends.length);
   const listed = ends.map((pair, index): AlignmentAnchor => {
-    const anchorId = nextId(ANCHOR_PREFIX, taken);
-    taken.add(anchorId);
+    const anchorId = mint(ANCHOR_PREFIX);
     const display = [...DEFAULTS.alignment_anchor.display];
     return {
       id: anchorId,
@@ -266,18 +266,18 @@ export function namedMatchStamp(
 /**
  * The named MatchStamp `matchstamp` with its anchors rewritten from those
  * given: an anchor joining the same two match timestamps as one it has
- * keeps that anchor (its ID and `display`), any other is new, with the next
- * free `anchor_N` and the default `display`. Where an anchor showing the
+ * keeps that anchor (its ID and `display`), any other is new, with the ID
+ * `mint` gives and the default `display`. Where an anchor showing the
  * name is gone and no kept one shows it, the middle anchor in screen order
  * shows it. With the named timestamps the new anchors need added.
  */
 export function rewrittenMatchStamp(
   manifest: Manifest,
-  taken: Set<string>,
+  mint: Mint,
   matchstamp: NamedMatchStamp,
   anchors: readonly GivenAnchor[],
 ): { readonly matchstamp: NamedMatchStamp; readonly timestamps: NamedTimestamp[] } {
-  const { ends, timestamps } = placedTimestamps(manifest, anchors, taken);
+  const { ends, timestamps } = placedTimestamps(manifest, anchors, mint);
   const old = matchstamp.alignment_anchors;
   const joins = (anchor: AlignmentAnchor, [left, right]: readonly [string, string]) => {
     const [a, b] = anchor.timestamps;
@@ -286,8 +286,7 @@ export function rewrittenMatchStamp(
   const listed = ends.map((pair): AlignmentAnchor => {
     const kept = old.find((anchor) => joins(anchor, pair));
     if (kept !== undefined) return kept;
-    const id = nextId(ANCHOR_PREFIX, taken);
-    taken.add(id);
+    const id = mint(ANCHOR_PREFIX);
     return { id, timestamps: pair, display: [...DEFAULTS.alignment_anchor.display] };
   });
   const shows = (anchor: AlignmentAnchor) => anchor.display.includes("name");

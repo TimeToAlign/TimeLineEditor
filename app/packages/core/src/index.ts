@@ -28,6 +28,7 @@ export {
 export type {
   AddCommand,
   AddKind,
+  CarriedIds,
   Change,
   Command,
   RemoveCommand,
@@ -291,7 +292,8 @@ export {
 export type { Block, BlockId, ItemArrangement, ItemDirection } from "./workspace/blocks.ts";
 export { ITEM_DIRECTIONS } from "./workspace/blocks.ts";
 export { emptyWorkspace, readWorkspace, writeWorkspace } from "./workspace/file.ts";
-export { mintBlockId, nextId } from "./workspace/ids.ts";
+export type { IdMinter, IdMinterOptions } from "./workspace/ids.ts";
+export { createIdMinter, mintBlockId } from "./workspace/ids.ts";
 export { indexBetween, indicesBetween, isIndex } from "./workspace/order.ts";
 export type {
   CommandEntry,

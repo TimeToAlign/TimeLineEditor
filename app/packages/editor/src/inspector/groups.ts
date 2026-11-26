@@ -26,13 +26,12 @@ import type {
 import {
   apply,
   assertNever,
+  createIdMinter,
   findTimeline,
   idAddress,
   inBlock,
   indexOf,
   isCommandError,
-  manifestIds,
-  nextId,
 } from "@timetoalign/tilie-core";
 
 /** One checkbox of a membership fieldset. */
@@ -63,9 +62,6 @@ export interface NewGroup {
   readonly command: AddCommand;
   readonly refusal: string | null;
 }
-
-/** The ID prefix of a minted group, as the generic ID scheme names a group. */
-const GROUP_PREFIX = "group";
 
 /** Whether the level holds every group of a block: the arranger and the bundle editor. */
 function offered(editing: Editing | null): boolean {
@@ -156,9 +152,13 @@ function groupsChange(block: Block, timeline: string, groups: readonly string[])
   return { target: inBlock(block.id, idAddress(timeline)), values: { groups: [...groups] } };
 }
 
-/** What core says of `command` on `view`: its message when it refuses it, else `null`. */
+/**
+ * What core says of `command` on `view`: its message when it refuses it,
+ * else `null`. The IDs of what it creates are minted as the store mints
+ * them when it is dispatched.
+ */
 function refusalOf(view: View, command: SetCommand | AddCommand): string | null {
-  const result = apply(view, command);
+  const result = apply(view, command, createIdMinter());
   return isCommandError(result) ? result.message : null;
 }
 
@@ -247,9 +247,9 @@ export function membersOf(
 /**
  * The New group button: for selected timelines in one block, an `add` of a
  * group of them, members in selection order; for the selected block alone,
- * an `add` of a group without members. The group's ID is the smallest
- * `group_N` the manifest does not hold. `null` for any other selection, and
- * in a group or timeline editor.
+ * an `add` of a group without members. The group carries no ID: the store
+ * gives it one when it dispatches the command. `null` for any other
+ * selection, and in a group or timeline editor.
  */
 export function newGroupOf(
   view: View,
@@ -263,7 +263,6 @@ export function newGroupOf(
   const members = only ? [] : timelinesOf(subjects);
   if (members === null) return null;
   const into: Address = { block: block.id };
-  const id = nextId(GROUP_PREFIX, manifestIds(block.manifest));
-  const command: AddCommand = { type: "add", into, group: { id, members: [...members] } };
+  const command: AddCommand = { type: "add", into, group: { members: [...members] } };
   return { command, refusal: refusalOf(view, command) };
 }

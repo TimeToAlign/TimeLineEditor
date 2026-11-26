@@ -28,10 +28,11 @@ must keep.
 
 ## Decision
 
-Keep the journal in the file. `createStore(workspace, {author, clock})`
-stamps each accepted command with its author (`"Gerhardt"` until
+Keep the journal in the file. `createStore(workspace, {author, clock,
+minter})` stamps each accepted command with its author (`"Gerhardt"` until
 `setAuthor`) and `clock().toISOString()`, ISO 8601 UTC with milliseconds, and
-appends the command as `parseCommand` normalized it. `undo` moves the last
+appends the command as `parseCommand` normalized it, with the IDs of every
+element it created (below). `undo` moves the last
 entry to an in-memory redo stack and restores the previous view; a new
 command clears the redo stack. The views of the session are kept, sharing
 every unchanged block, so undo and redo within a session return the very
@@ -41,9 +42,39 @@ view of that replay.
 
 **The journal is the authority**: replaying the whole journal from the empty
 workspace reproduces the snapshot's `settings` and `blocks` exactly. It holds
-because `apply` is pure and deterministic and every id a command needs is
-minted by the caller and carried in the command; the property tests prove it
-over every manifest fixture with generated command sequences. Amended
+because `apply` is pure and deterministic and the journal carries every ID a
+command created; the property tests prove it over every manifest fixture with
+generated command sequences.
+
+**The journal carries the minted IDs.** An element a command creates
+without an ID of its own (a named timestamp, an elision, a named MatchStamp
+with its anchors and new match timestamps, a new root's default timestamps, a
+segment line's first segment, a group added without `id`) is given a random
+ID, its type prefix, `_` and 13 base-36 characters (TimeToShare's README,
+"Identity"). The reducer never mints: it takes each ID, in the order it
+creates the elements, from the command's `ids` list, and refuses a command
+whose list is too short, or, once applied, longer than what it created
+(`invalid_command`). `dispatch` applies the command with the store's minter
+behind the IDs the command carries (an agent may write its own), so the
+minter fills what the list lacks, and journals the command with every ID it
+took as its `ids`. A replay reads them from the journal and mints nothing, so
+it reproduces the view whatever minter the replaying store holds. The minter
+(`createIdMinter`, `workspace/ids.ts`) is seeded with 64 random bits per
+store, or with a seed a test gives; from one seed it mints exactly the IDs
+timetoalign's minter mints, since both pass the minted-ID vectors that
+TimeToShare ships (`fixtures/ids/minted_ids.json`). `preview` mints with a
+fresh minter, so a gesture's preview may show other IDs than the command it
+dispatches. Nothing is renamed: an ID a manifest already holds, given or
+minted, is refused when the manifest is checked. A block or session ID is
+ten random base-36 characters, carried in the command or the entry as before.
+
+The workspace file's version is 8 since its journal carries the IDs. A
+journal written before (version 7 and earlier) holds commands whose IDs a
+replay would have to mint again, which a random minter cannot do, so such a
+file is refused for its version alone: "workspace version 7 was written
+before IDs were journaled and must be imported again: import its manifests
+into a new workspace". There is no migration and no second minter that
+would reproduce the old numbering. Amended
 2026-10-19: `createStore` verifies it for every workspace it is given. It
 replays the journal to its end, compares the result's `settings` and blocks
 with the snapshot, and throws `JournalMismatchError {entry, path}` naming the
@@ -128,7 +159,8 @@ work loaded it); the budget test prints this figure and sets no limit on it,
 since the replay is the price of trusting the journal.
 
 Exit cost: the journal is one array in the file and one module in `core`;
-dropping it leaves the snapshot readable as it is.
+dropping it leaves the snapshot readable as it is. Dropping the `ids` of its
+commands would make the journal a description no replay can follow.
 
 ## Review date
 
