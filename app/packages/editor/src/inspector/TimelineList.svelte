@@ -3,9 +3,9 @@
  * The timeline list of a selected bundle in the Properties tab
  * (`timelineList.ts`): a table "Timelines", one row per card the block
  * holds, its kind and name, and a Visible checkbox where the card can be
- * hidden and shown again (a virtual timeline's), so that a hidden card is
- * never out of reach; a frame or a root's card reads "Always drawn". A
- * change sends the row's one `set`; a refusal is posted as information.
+ * hidden and shown again (a root's or a virtual timeline's), so that a
+ * hidden card is never out of reach; a frame reads "Always drawn". A
+ * change sends the row's one command; a refusal is posted as information.
  * Below, where the bundle has groups, how their members are reached.
  */
 import type { Store } from "@timetoalign/tilie-core";
@@ -109,7 +109,7 @@ function change(event: Event & { currentTarget: HTMLInputElement }, row: Timelin
     text-align: center;
   }
 
-  /* A card that cannot be hidden: greyed text that stays readable. */
+  /* A frame, which cannot be hidden: greyed text that stays readable. */
   .always,
   .members {
     color: #6b6b6b;

@@ -9,6 +9,7 @@ import type {
   RemoveCommand,
   SetCommand,
   Store,
+  StyleCommand,
 } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
@@ -216,7 +217,9 @@ interface Props {
    * "Delete all" (`remove`) or "Hide instead" (`hide`), or `null` to store
    * nothing. Without it the deletion is stored as asked, "Delete all".
    */
-  confirmDelete?: (question: DeleteQuestion) => Promise<RemoveCommand | SetCommand | null>;
+  confirmDelete?: (
+    question: DeleteQuestion,
+  ) => Promise<RemoveCommand | SetCommand | StyleCommand | null>;
 }
 
 let {
@@ -1162,6 +1165,7 @@ function keyContext(event: KeyboardEvent): KeyContext {
     select: (next) => (selection = next),
     dispatch,
     refuse: (message) => onrefuse?.(message),
+    confirmDelete: (question) => confirmDelete?.(question) ?? Promise.resolve(question.remove),
     setMode: (next) => (mode = next),
     toggleLock: () => (locked = !locked),
     toggleCoordinates: () => setCoordinates(!coordinates),

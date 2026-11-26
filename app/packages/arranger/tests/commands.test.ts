@@ -1,5 +1,12 @@
-import type { Address, Part, View } from "@timetoalign/tilie-core";
-import { addressKey, apply, isIndex, manifestIds, WORKSPACE } from "@timetoalign/tilie-core";
+import type { Address, Part, StyleCommand, View } from "@timetoalign/tilie-core";
+import {
+  addressKey,
+  apply,
+  FACETS,
+  isIndex,
+  manifestIds,
+  WORKSPACE,
+} from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import type { ZOrderAction } from "../src/commands.ts";
 import {
@@ -8,6 +15,8 @@ import {
   moveCommand,
   nudgeCommand,
   removeCommand,
+  rootDisplayCommand,
+  rootHidden,
   zOrderCommand,
 } from "../src/commands.ts";
 import { NOTHING_SELECTED, selectionOf } from "../src/selection.ts";
@@ -29,7 +38,7 @@ import {
   withGrid,
   withoutAncestorCards,
 } from "./support.ts";
-import { BY_HAND, DEFAULT, virtualView } from "./virtualCards.ts";
+import { BY_HAND, DEFAULT, drawingIn, virtualView } from "./virtualCards.ts";
 
 /**
  * `bundle_mixed` at (40, 80) with `annotations` at `{x: −30, y: −20}`, its ancestor card hidden:
@@ -464,22 +473,58 @@ describe("deleteQuestion", () => {
   const virtualIds = (view: View) =>
     (blockIn(view, A).manifest.virtual_timelines ?? []).map((item) => item.id);
 
-  it("names the virtual timelines a root takes along, with nothing to hide", () => {
+  it("names the virtual timelines a root takes along, and hides the root instead", () => {
     const view = virtualView();
     const question = asked(view, id("allegro"));
+    const hiding: StyleCommand = {
+      type: "style",
+      select: {
+        addresses: [
+          { id: "allegro", part: ["card"] },
+          { id: "allegro" },
+          ...FACETS.map((facet) => ({ id: "allegro", facet })),
+        ],
+      },
+      set: { display: "none" },
+      blocks: [A],
+    };
     expect(question).toEqual({
       question:
-        "Deleting timeline 'Allegro' also deletes what is made from it: virtual timeline 'Allegro, practice', virtual timeline 'Allegro, default' and virtual timeline 'Allegro, single'. Delete all?",
+        "Deleting timeline 'Allegro' also deletes what is made from it: virtual timeline 'Allegro, practice', virtual timeline 'Allegro, default' and virtual timeline 'Allegro, single'. Delete all, or hide its card instead?",
       remove: removing(id("allegro"), id(BY_HAND), id(DEFAULT), id("allegro_single")),
-      hide: null,
+      hide: hiding,
     });
-    if (question === null) throw new Error("no question");
+    expect(rootDisplayCommand(A, "allegro", true)).toEqual(hiding);
+    if (question === null || question.hide === null) throw new Error("no question");
     const manifest = blockIn(changed(view, question.remove), A).manifest;
     expect([manifest.timelines, manifest.flow_maps, manifest.virtual_timelines]).toEqual([
       [],
       [],
       [],
     ]);
+    const before = blockIn(view, A).manifest;
+    const hidden = changed(view, question.hide);
+    const kept = blockIn(hidden, A).manifest;
+    expect([kept.timelines, kept.flow_maps, kept.virtual_timelines]).toEqual([
+      before.timelines,
+      before.flow_maps,
+      before.virtual_timelines,
+    ]);
+    expect(kept.graphical?.rules).toEqual([
+      ...(before.graphical?.rules ?? []),
+      { select: hiding.select, set: { display: "none" } },
+    ]);
+    expect([rootHidden(before, "allegro"), rootHidden(kept, "allegro")]).toEqual([false, true]);
+    // Nothing of allegro's card is drawn; the virtual cards are drawn as before.
+    const ids = (shown: View, keep: (id: string) => boolean) =>
+      drawingIn(shown)
+        .elements.map((element) => ("address" in element ? element.address.id : undefined))
+        .filter((element): element is string => element !== undefined && keep(element));
+    const virtual = (element: string) => [BY_HAND, DEFAULT, "allegro_single"].includes(element);
+    expect(ids(hidden, (element) => !virtual(element))).toEqual([]);
+    expect(ids(hidden, virtual)).toEqual(ids(view, virtual));
+    const shown = changed(hidden, rootDisplayCommand(A, "allegro", false));
+    expect(blockIn(shown, A).manifest.graphical?.rules).toEqual(before.graphical?.rules ?? []);
   });
 
   it("offers to hide a placed virtual card another virtual timeline is made from", () => {

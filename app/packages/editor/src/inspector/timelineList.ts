@@ -6,28 +6,36 @@
  * own only while the block's `places` holds its ID. A group's members, and
  * the roots drawn behind its frame, are reached through the group.
  *
- * A row's Visible checkbox stands only where the card can be hidden and
- * shown again: a virtual timeline's card, hidden as Delete hides it on the
- * canvas (every member of its stated place unstated, the virtual timeline
- * kept) and shown again by stating its place's default scale, so that it
- * lies at its default position, below the items drawn before it (section
- * 8.6). A frame and a root's card are drawn while their group or timeline
- * exists, so their rows offer none.
+ * A row's Visible checkbox stands where the card can be hidden and shown
+ * again. A virtual timeline's card is hidden as Delete hides it on the
+ * canvas (the arranger's `hideCommand`: every member of its stated place
+ * unstated, the virtual timeline kept) and shown again by stating its
+ * place's default scale, so that it lies at its default position, below
+ * the items drawn before it (section 8.6). A root's card is hidden by the
+ * one rule the deletion dialog's "Hide instead" writes for a root (the
+ * arranger's `rootDisplayCommand`, `display: none` on its card, its line
+ * and its bands), and shown again by removing that rule. A frame is drawn
+ * while its group exists, so its row offers none.
  */
 
 import type { Subject } from "@timetoalign/tilie-arranger";
-import { placeChange } from "@timetoalign/tilie-arranger";
-import type { Block, SetCommand, View } from "@timetoalign/tilie-core";
-import { compareCodePoints } from "@timetoalign/tilie-core";
+import {
+  hideCommand,
+  placeChange,
+  rootDisplayCommand,
+  rootHidden,
+} from "@timetoalign/tilie-arranger";
+import type { Block, SetCommand, StyleCommand, View } from "@timetoalign/tilie-core";
+import { compareCodePoints, idAddress, inBlock } from "@timetoalign/tilie-core";
 import { memberDrawings } from "@timetoalign/tilie-core/drawing";
 
 /** What a row of the list is: a group's frame, a root's card, a virtual timeline's card. */
 export type TimelineRowKind = "group" | "timeline" | "virtual_timeline";
 
-/** The Visible checkbox of a row: whether the card is drawn, and the `set` its change sends. */
+/** The Visible checkbox of a row: whether the card is drawn, and the command its change sends. */
 export interface Visibility {
   readonly checked: boolean;
-  readonly command: SetCommand;
+  readonly command: SetCommand | StyleCommand;
 }
 
 /** One row of a bundle's timeline list. */
@@ -37,29 +45,33 @@ export interface TimelineRow {
   readonly kind: TimelineRowKind;
   /** Its name, else its ID. */
   readonly name: string;
-  /** Its Visible checkbox; `null` for a card drawn while its group or timeline exists. */
+  /** Its Visible checkbox; `null` for a frame, drawn while its group exists. */
   readonly visible: Visibility | null;
-}
-
-/** The `set` of the place of `block`'s item `id`: its members `values`. */
-function placeSet(
-  block: Block,
-  id: string,
-  values: { readonly [member: string]: number | null },
-): SetCommand {
-  return { type: "set", changes: [placeChange(block, { item: id }, values)] };
 }
 
 /**
  * The Visible checkbox of the virtual timeline `id`'s card in `block`:
- * checked while `places` holds its ID; unchecking it unstates every member
- * of its place, checking it states `scale` 1.
+ * checked while `places` holds its ID; unchecking it hides the card as
+ * Delete does (`hideCommand`), checking it states `scale` 1.
  */
-function virtualVisibility(block: Block, id: string): Visibility {
-  const place = Object.hasOwn(block.places, id) ? block.places[id] : undefined;
-  if (place === undefined) return { checked: false, command: placeSet(block, id, { scale: 1 }) };
-  const members = Object.fromEntries(Object.keys(place).map((member) => [member, null] as const));
-  return { checked: true, command: placeSet(block, id, members) };
+function virtualVisibility(view: View, block: Block, id: string): Visibility {
+  if (!Object.hasOwn(block.places, id)) {
+    return {
+      checked: false,
+      command: { type: "set", changes: [placeChange(block, { item: id }, { scale: 1 })] },
+    };
+  }
+  return { checked: true, command: hideCommand(view, [inBlock(block.id, idAddress(id))]) };
+}
+
+/**
+ * The Visible checkbox of the root `id`'s card in `block`: checked unless
+ * the manifest holds the rule hiding it (`rootHidden`); a change writes or
+ * removes that rule (`rootDisplayCommand`).
+ */
+function rootVisibility(block: Block, id: string): Visibility {
+  const hidden = rootHidden(block.manifest, id);
+  return { checked: !hidden, command: rootDisplayCommand(block.id, id, !hidden) };
 }
 
 /**
@@ -93,7 +105,7 @@ export function timelineList(view: View, subjects: readonly Subject[]): Timeline
         id: timeline.id,
         kind: "timeline",
         name: timeline.name ?? timeline.id,
-        visible: null,
+        visible: rootVisibility(block, timeline.id),
       }),
     ),
     ...virtual.map(
@@ -101,7 +113,7 @@ export function timelineList(view: View, subjects: readonly Subject[]): Timeline
         id: item.id,
         kind: "virtual_timeline",
         name: item.name ?? item.id,
-        visible: virtualVisibility(block, item.id),
+        visible: virtualVisibility(view, block, item.id),
       }),
     ),
   ];

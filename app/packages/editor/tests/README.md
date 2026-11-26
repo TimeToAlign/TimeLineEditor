@@ -95,7 +95,9 @@ one button "Edit" titled `Open the editor of Score`, and a press opens
 `{block: A, id: "group_1"}` selected it opens the group editor of
 `group_1`; with two addresses selected, and with nothing selected, it
 shows no button. Inside `score`'s timeline editor, `score`'s card selected
-(the edited element) shows no button.
+(the edited element) shows no button. The Properties tab shows it below
+the name field, for every selection (a band selected alone shows it, as
+a double-click on the band opens its timeline's editor).
 
 **The flow editor's server** (`flow-server.test.ts`): `flowServerOf` sends
 the manifest as Save writes it (`saveManifest`) with the root's bare ID to
@@ -1152,7 +1154,14 @@ null}}}]}`, which the store accepts, the four virtual timelines kept;
 "Delete all" gives `remove` [A: allegro_default, A: again], accepted,
 leaving `allegro_by_hand` and `allegro_single`; "Cancel" and `null`
 give `null`. The root `allegro` deleted (`remove` [A: allegro], without
-`again`) is asked with "Delete all" and "Cancel" alone.
+`again`) is asked with the three answers too, and "Hide instead" gives
+the arranger's `rootDisplayCommand(A, "allegro", true)`, which the store
+accepts, `allegro` kept and hidden (`rootHidden`). "Delete virtual
+timeline" asks the same dialog (mounted under a stand-in provided as the
+editor provides its dialog): with the card of `allegro_default` selected
+and `again` added, a click asks exactly that question and journals
+nothing until it is answered; then "Delete all" journals one command,
+`remove` [A: allegro_default, A: again], and "Cancel" none.
 
 ## A flow-control element (`inspector-flow.test.ts`)
 
@@ -1528,11 +1537,14 @@ A selected bundle lists in the Properties tab the cards its block holds
 (TimeToShare's drawing specification, section 8.1): each group's frame,
 each ungrouped root's card, then each virtual timeline no group names,
 whose card is drawn only while the block's `places` holds its ID (section
-8.10). Only a virtual timeline's row has a Visible checkbox: its card is
-the one card that can be hidden (Delete on the canvas unstates its place)
-and must be shown again from here; a frame and a root's card are drawn
-while their group or timeline exists, so their rows offer no control and
-read "Always drawn". A group's members are reached through the group. The
+8.10). A virtual timeline's row and a root's row have a Visible checkbox:
+a virtual card is hidden as Delete on the canvas hides it (its place
+unstated, the arranger's `hideCommand`), a root by the one rule the
+deletion dialog's "Hide instead" writes for it (the arranger's
+`rootDisplayCommand`: `display: none` on its card, its line and its five
+bands, section 2.4), and both are shown again from here; a frame is drawn
+while its group exists, so its row offers no control and reads "Always
+drawn". A group's members are reached through the group. The
 oracle is the fixture's own groups, roots and virtual timelines and the
 block's `places` after each command. Each fixture is held in block
 `0000000000`; a workspace written from fixtures states no place.
@@ -1545,8 +1557,8 @@ block's `places` after each command. Each fixture is held in block
    `allegro_default`, `allegro_single`): Group "Performance", Timeline
    "Allegro", Virtual timeline "Allegro, practice", Virtual timeline
    "Allegro, single" (`recording` and `allegro_default` are members,
-   reached through the group); the first two without Visible, the virtual
-   ones unchecked.
+   reached through the group); the group without Visible, the root
+   checked, the virtual ones unchecked.
 3. **Visible shows and hides a virtual timeline's card.** On
    `flow/virtual_cards` (root `allegro`, virtual timelines
    `allegro_by_hand`, `allegro_default`, `allegro_single`, none placed):
@@ -1559,11 +1571,20 @@ block's `places` after each command. Each fixture is held in block
    "allegro_by_hand"}, values: {place: {x: null, y: null}}}]}`, the
    command Delete stores for a virtual card, accepted; `places` then holds
    no `allegro_by_hand`, the row unchecked.
-4. **The panel.** With the block of `groups/virtual_member` selected, the
+4. **Visible hides and shows a root.** On `flow/virtual_cards`, `allegro`
+   checked; unchecking it → `{type: "style", select: {addresses:
+   [{id: "allegro", part: ["card"]}, {id: "allegro"}, {id: "allegro",
+   facet: F} for each of the five facets in `FACETS` order]}, set:
+   {display: "none"}, blocks: [A]}`, accepted; the manifest's `rules`
+   then end with that rule and the row is unchecked; checking it → the
+   same command with `display: null`, accepted, after which `rules` are
+   as before and the row is checked.
+5. **The panel.** With the block of `groups/virtual_member` selected, the
    Properties tab shows a table captioned "Timelines", headed Card and
    Visible, the rows of item 2 ("Group Performance", "Timeline Allegro",
-   …), "Always drawn" in the first two rows' Visible cells, checkboxes
-   named "Allegro, practice visible" and "Allegro, single visible", and
+   …), "Always drawn" in the group's Visible cell, checkboxes named
+   "Allegro visible" (checked), "Allegro, practice visible" and "Allegro,
+   single visible", and
    below it the note naming how a group's members are reached. A change
    of "Allegro, single visible" journals the command of item 3 for it and
    leaves the checkbox as stored until the store has taken it (then

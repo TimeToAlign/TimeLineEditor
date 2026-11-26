@@ -69,6 +69,7 @@ function press(
         return store.dispatch(command) === null;
       },
       refuse: (message) => refused.push(message),
+      confirmDelete: (question) => Promise.resolve(question.remove),
       setMode: (next) => {
         mode = next;
       },

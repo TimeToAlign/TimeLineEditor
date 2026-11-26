@@ -471,6 +471,7 @@ function keyContext(view: View, selection: Selection, editing: Editing | null) {
       return !isCommandError(apply(view, command));
     },
     refuse: (message) => refused.push(message),
+    confirmDelete: (question) => Promise.resolve(question.remove),
     setMode: () => {},
     toggleLock: () => {},
     toggleCoordinates: () => {},

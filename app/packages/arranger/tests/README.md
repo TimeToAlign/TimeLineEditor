@@ -825,11 +825,21 @@ deleted and each virtual timeline taken along by `addressWords`, in the
 manifest's order of its virtual timelines; "Delete all" is the `remove`
 with those virtual timelines appended to its targets, which core
 accepts (it refuses a virtual timeline another one left is made from, so
-naming them is what lets it pass); "Hide instead" is the `set` of
-`hideCommand` on the targets, offered only when every target is a
-virtual timeline its block places, since only such a card can be hidden
-(a root's card is drawn whether placed or not, a member's has no place
-of its own). What proves it: the exact question, the exact commands, and
+naming them is what lets it pass); "Hide instead" is offered when every
+target is a virtual timeline its block places (the `set` of
+`hideCommand` on the targets, unstating each one's place) or when the one
+target is a root timeline (`rootDisplayCommand`, below), and nowhere else
+(a member's card has no place of its own, and one rule hides one root).
+A root is hidden by one `style` of `display: "none"` whose selector names
+`addresses` alone: the root's card `{id: R, part: ["card"]}`, its line
+`{id: R}`, then its five bands `{id: R, facet: F}` in the order of
+`FACETS`, with `blocks: [A]`; the same command with `display: null`
+removes that rule (`rootHidden` is true while the manifest's own rules
+hold it). The card alone would not do: a card that is not displayed
+keeps everything drawn in it, while a line that is not displayed hides
+its timeline's whole drawing (TimeToShare's `docs/drawing.md`, section
+2.4), so nothing of the root's card is drawn and the card keeps its place
+(section 8.4). What proves it: the exact question, the exact commands, and
 core's verdict on the view after each. On `virtualView` (above), with
 `again` added as one more virtual timeline made from `allegro_default`
 through the FlowMap `single` (one `add` of `{map: "single", timeline:
@@ -837,12 +847,20 @@ through the FlowMap `single` (one `add` of `{map: "single", timeline:
 
 | `remove` targets | question | Delete all targets | Hide instead |
 |---|---|---|---|
-| [A: allegro] (without `again`) | `Deleting timeline 'Allegro' also deletes what is made from it: virtual timeline 'Allegro, practice', virtual timeline 'Allegro, default' and virtual timeline 'Allegro, single'. Delete all?` | [A: allegro, A: allegro_by_hand, A: allegro_default, A: allegro_single] | none |
+| [A: allegro] (without `again`) | `Deleting timeline 'Allegro' also deletes what is made from it: virtual timeline 'Allegro, practice', virtual timeline 'Allegro, default' and virtual timeline 'Allegro, single'. Delete all, or hide its card instead?` | [A: allegro, A: allegro_by_hand, A: allegro_default, A: allegro_single] | the `style` hiding `allegro` |
 | [A: allegro_default] | `Deleting virtual timeline 'Allegro, default' also deletes what is made from it: virtual timeline 'again'. Delete all, or hide its card instead?` | [A: allegro_default, A: again] | `{x: null, y: null}` unstated on A: allegro_default |
 | [A: allegro_default, A: again] / [A: allegro_by_hand] / [A: section_b] / [A] / [A, A: allegro] | no question | | |
 
 Without `again` the first row's Delete all leaves `timelines`,
-`flow_maps` and `virtual_timelines` empty. With `again`, core refuses
+`flow_maps` and `virtual_timelines` empty; its Hide instead leaves every
+timeline, FlowMap and virtual timeline, adds exactly that one rule to the
+manifest's `rules` (`rootHidden` true), and its drawing (`drawingOf`)
+holds no element addressed `{id: "allegro"}` or by an address naming
+`allegro`'s card, line or bands with `display` other than none, i.e. the
+card box, line and five bands of `allegro` are drawn nowhere (each
+cascaded `display: none`), while the three virtual cards stay drawn;
+`rootDisplayCommand(A, "allegro", false)` after it leaves `rules` as
+before. With `again`, core refuses
 the bare [A: allegro_default] (`not_removable`, `virtual timeline
 'allegro_default' is still named: the virtual timelines 'again' come
 from it`), accepts Delete all, after which `virtual_timelines` holds
@@ -855,6 +873,16 @@ allegro_default] asks `Deleting virtual timeline 'Allegro, default' also
 deletes what is made from it: virtual timeline 'again'. Delete all?`
 with no Hide instead. The question is asked by the canvas's host (`confirmDelete`,
 the editor's README); without a host the deletion is stored as asked.
+
+The Delete key asks the same question (`keys.test.ts`, `virtualView` in a
+store): with `allegro`'s card selected, Delete dispatches nothing at once
+and calls `confirmDelete` exactly once with `deleteQuestion`'s question
+for [A: allegro] (the first row above); the command it resolves with is
+dispatched once and the selection cleared: "Delete all" leaves no
+timeline, the `style` of Hide instead leaves `allegro` with `rootHidden`
+true; resolving with `null` dispatches nothing and keeps the selection.
+Deleting the block whole takes its virtual timelines along unasked and
+never calls it.
 
 **What a deletion also takes away** is highlighted before it happens. The
 rule reads the manifest alone: the owners are the IDs the selected
@@ -5220,7 +5248,10 @@ and `changedPlace`, the inspector's readers `blockBox`, `boxOf`,
 and the type `MatchStampPin` its `pinnedMatchStamp` and
 `onmatchstamppin` take; the one screen order of a MatchStamp's
 coordinates, `screenPlace`, `screenOrder`, `inScreenOrder` and the type
-`ScreenCoordinate`; tests import everything else from its modules.
+`ScreenCoordinate`; the deletion's question and its hiding commands,
+`deleteQuestion` with the type `DeleteQuestion`, `hideCommand`,
+`rootDisplayCommand` and `rootHidden`, which the editor's dialog and its
+timeline list share; tests import everything else from its modules.
 `pnpm typecheck` type-checks
 `src` and `tests` strictly, and the workspace's dependency rules keep it
 on `writers`, `layout`, `core`, `svelte` and `@xyflow/svelte`.

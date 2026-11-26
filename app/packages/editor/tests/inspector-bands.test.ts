@@ -11,6 +11,8 @@ import {
   drawingOf,
   liveStore,
   resolveSelection,
+  rootDisplayCommand,
+  rootHidden,
   selectionOf,
 } from "@timetoalign/tilie-arranger";
 import type { Address, Block, ElementAddress, Facet, Store, View } from "@timetoalign/tilie-core";
@@ -19,6 +21,8 @@ import type { DrawnBox } from "@timetoalign/tilie-layout";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
+import type { Ask } from "../src/ConfirmDialog.svelte";
+import { provideAsk } from "../src/ConfirmDialog.svelte";
 import Inspector from "../src/inspector/Inspector.svelte";
 import { manifestOf, manifestText } from "../src/inspector/manifestText.ts";
 import type { Shown } from "../src/inspector/properties.ts";
@@ -307,15 +311,21 @@ describe("askDeletion", () => {
     expect(virtualIds(store)).toEqual(["allegro_by_hand", "allegro_single"]);
   });
 
-  it("offers no Hide instead for a root", async () => {
+  it("hides a root instead by its one rule", async () => {
     const store = virtualCards();
     const asked = deleteQuestion(store.view, { type: "remove", targets: [id("allegro")] });
     if (asked === null) throw new Error("no question");
-    const { ask, asked: questions } = dialog(null);
-    await askDeletion(ask, asked);
+    const { ask, asked: questions } = dialog("Hide instead");
+    const chosen = await askDeletion(ask, asked);
     expect(questions.map(([, choices, focused]) => [choices, focused])).toEqual([
-      [["Delete all", "Cancel"], "Cancel"],
+      [["Delete all", "Hide instead", "Cancel"], "Cancel"],
     ]);
+    expect(chosen).toEqual(rootDisplayCommand(A, "allegro", true));
+    if (chosen === null) throw new Error("nothing chosen");
+    expect(store.dispatch(chosen)).toBeNull();
+    const manifest = store.view.blocks[A]?.manifest;
+    expect(manifest?.timelines.map((timeline) => timeline.id)).toEqual(["allegro"]);
+    expect(manifest === undefined ? null : rootHidden(manifest, "allegro")).toBe(true);
   });
 });
 
@@ -395,7 +405,12 @@ describe("the Properties panel of a band", () => {
     expect(panel().querySelectorAll("dl")).toHaveLength(1);
     expect(texts("dt")).toEqual(["Band", "Level", "Elements"]);
     expect(texts("dd")).toEqual(["Markers", "−1", "4"]);
-    expect(panel().querySelectorAll("form, select, textarea, button")).toHaveLength(0);
+    // The one button is the Edit button, opening the band's timeline as a double-click does.
+    expect(
+      [...panel().querySelectorAll("form, select, textarea, button")].map(
+        (element) => element.getAttribute("data-testid") ?? element.tagName,
+      ),
+    ).toEqual(["edit-button"]);
     expect(
       [...panel().querySelectorAll("input")].map((input) =>
         input.closest("[data-testid]")?.getAttribute("data-testid"),
@@ -503,8 +518,16 @@ describe("the Properties panel of a virtual timeline", () => {
     document.body.innerHTML = "";
   });
 
-  function deleteButtons(store: Store, selection: readonly Address[]): HTMLButtonElement[] {
-    app = mount(Inspector, {
+  function deleteButtons(
+    store: Store,
+    selection: readonly Address[],
+    ask: Ask | null = null,
+  ): HTMLButtonElement[] {
+    const asking = ((...args: Parameters<typeof Inspector>) => {
+      if (ask !== null) provideAsk(ask);
+      return Reflect.apply(Inspector, undefined, args);
+    }) as typeof Inspector;
+    app = mount(asking, {
       target: document.body,
       context: posting(),
       props: { live: liveStore(store), selection: selectionOf(selection) },
@@ -543,4 +566,54 @@ describe("the Properties panel of a virtual timeline", () => {
   it("offers nothing on the root", () => {
     expect(deleteButtons(virtualCards(), [at(A, { id: "allegro" })])).toEqual([]);
   });
+
+  it.each([
+    [
+      "Delete all",
+      [{ type: "remove", targets: [at(A, { id: "allegro_default" }), at(A, { id: "again" })] }],
+    ],
+    ["Cancel", []],
+  ] as const)(
+    "asks the deletion dialog first, then stores what %s chooses",
+    async (answer, stored) => {
+      const store = virtualCards();
+      expect(
+        store.dispatch({
+          type: "add",
+          into: { block: A },
+          virtual_timeline: { map: "single", timeline: "allegro_default" },
+          ids: ["again"],
+        }),
+      ).toBeNull();
+      const asked: string[] = [];
+      let answerNow: (chosen: string | null) => void = () => {};
+      const answered = new Promise<string | null>((resolve) => {
+        answerNow = resolve;
+      });
+      const [button] = deleteButtons(
+        store,
+        [at(A, { id: "allegro_default", part: ["card"] })],
+        (text) => {
+          asked.push(text);
+          return answered;
+        },
+      );
+      if (button === undefined) throw new Error("no Delete virtual timeline");
+      const journal = store.journal.length;
+      button.click();
+      flushSync();
+      expect([asked, store.journal.length]).toEqual([
+        [
+          "Deleting virtual timeline 'Allegro, default' also deletes what is made from it: virtual timeline 'again'. Delete all, or hide its card instead?",
+        ],
+        journal,
+      ]);
+      answerNow(answer);
+      // The answer reaches the store through the dialog's and the button's awaits.
+      for (let tick = 0; tick < 10; tick += 1) await Promise.resolve();
+      expect(
+        store.journal.slice(journal).map((entry) => ("command" in entry ? entry.command : null)),
+      ).toEqual(stored);
+    },
+  );
 });

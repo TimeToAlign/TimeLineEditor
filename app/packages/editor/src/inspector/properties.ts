@@ -50,6 +50,7 @@ import type {
   RemoveCommand,
   ResolvedAddress,
   SetCommand,
+  StyleCommand,
   View,
 } from "@timetoalign/tilie-core";
 import {
@@ -319,14 +320,14 @@ const CANCEL = "Cancel";
 /**
  * Ask `question` through `ask`, the focus on Cancel: "Delete all" gives its
  * `remove`, "Hide instead", offered only where its `hide` is not `null`,
- * that `set`, and Cancel or a dismissed dialog `null`, storing nothing. The
+ * that command (a virtual card's `set`, a root's `style`), and Cancel or a dismissed dialog `null`, storing nothing. The
  * one dialog of a deletion that also deletes virtual timelines, on the
  * canvas and in the Properties tab alike.
  */
 export async function askDeletion(
   ask: Ask,
   { question, remove, hide }: DeleteQuestion,
-): Promise<RemoveCommand | SetCommand | null> {
+): Promise<RemoveCommand | SetCommand | StyleCommand | null> {
   const choices = hide === null ? [DELETE_ALL, CANCEL] : [DELETE_ALL, HIDE_INSTEAD, CANCEL];
   const answer = await ask(question, choices, CANCEL);
   if (answer === DELETE_ALL) return remove;

@@ -8,6 +8,7 @@ import type {
   Manifest,
   RemoveCommand,
   SetCommand,
+  StyleCommand,
   View,
 } from "@timetoalign/tilie-core";
 import {
@@ -15,6 +16,8 @@ import {
   addressKey,
   addressWords,
   assertNever,
+  canonicalText,
+  FACETS,
   idAddress,
   inBlock,
   indicesBetween,
@@ -27,7 +30,7 @@ import {
   WORKSPACE,
 } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
-import type { FontMetrics } from "@timetoalign/timetoshare";
+import type { FontMetrics, Selector } from "@timetoalign/timetoshare";
 import { drawingOf, nodePosition } from "./drawing.ts";
 import { addressParts, type Editing } from "./editing.ts";
 import { GRID_FREE, positionStep, quantize, sameSequence } from "./numbers.ts";
@@ -347,7 +350,8 @@ const DELETE_HINTS = {
  * `{block, id: V}`, its card held by its block): every member of each one's
  * stated place unstated, the virtual timeline kept. Only a virtual
  * timeline's card is hidden so: a root's card is drawn whether its place is
- * stated or not, and a member's card in its frame has no place of its own.
+ * stated or not, so a rule hides it (`rootDisplayCommand`), and a member's
+ * card in its frame has no place of its own.
  */
 export function hideCommand(view: View, targets: readonly Address[]): SetCommand {
   const changes = targets.map((target) => {
@@ -357,6 +361,54 @@ export function hideCommand(view: View, targets: readonly Address[]): SetCommand
     return { target, values: { place: Object.fromEntries(members) } };
   });
   return { type: "set", changes };
+}
+
+/**
+ * The selector of the one rule hiding the root timeline `root`: its card
+ * address (every card of `root`, its ancestor cards behind frames
+ * included), its own address (its line and its ancestor lines) and the
+ * address of each of its five bands. A card that is not displayed keeps
+ * everything drawn in it, so the card alone would hide only its box
+ * (TimeToShare's `docs/drawing.md`, section 2.4); the line that is not
+ * displayed hides the timeline's whole drawing, and the bands are named
+ * too, so the rule states every container of the root.
+ */
+function rootSelector(root: string): Selector {
+  return {
+    addresses: [
+      { id: root, part: ["card"] },
+      { id: root },
+      ...FACETS.map((facet) => ({ id: root, facet })),
+    ],
+  };
+}
+
+/**
+ * The `style` hiding the root timeline `root` of the block `block`
+ * (`display: none` on `rootSelector`'s addresses), or, with `hidden`
+ * false, removing that rule, so the root is drawn again. Its card keeps
+ * its place while hidden (section 8.4); a member of a group lying inside
+ * the root is drawn by its frame and stays, without the root's ancestor
+ * line, and the ancestor cards of the root behind frames are not drawn.
+ */
+export function rootDisplayCommand(block: BlockId, root: string, hidden: boolean): StyleCommand {
+  return {
+    type: "style",
+    select: rootSelector(root),
+    set: { display: hidden ? "none" : null },
+    blocks: [block],
+  };
+}
+
+/** Whether `manifest`'s own rules hide the root `root` with `rootDisplayCommand`'s rule. */
+export function rootHidden(manifest: Manifest, root: string): boolean {
+  const key = canonicalText(rootSelector(root));
+  return (manifest.graphical?.rules ?? []).some(
+    (rule) =>
+      canonicalText(rule.select) === key &&
+      typeof rule.set !== "string" &&
+      rule.set.display === "none",
+  );
 }
 
 /**
@@ -460,12 +512,39 @@ export interface DeleteQuestion {
   /** "Delete all": the `remove` naming those virtual timelines as well. */
   readonly remove: RemoveCommand;
   /**
-   * "Hide instead": the `set` hiding the cards of what is deleted
-   * (`hideCommand`), which removes nothing; `null` unless every target is a
-   * virtual timeline whose card its block holds, the only card that can be
-   * hidden.
+   * "Hide instead", which removes nothing: the `set` hiding the cards of
+   * the targets where every one is a virtual timeline whose card its block
+   * holds (`hideCommand`), the `style` hiding the one target where it is a
+   * root timeline (`rootDisplayCommand`); else `null`.
    */
-  readonly hide: SetCommand | null;
+  readonly hide: SetCommand | StyleCommand | null;
+}
+
+/**
+ * The command hiding instead of deleting `targets` (`DeleteQuestion.hide`):
+ * `hideCommand` where every target is a virtual timeline whose card its
+ * block holds, `rootDisplayCommand` where the one target is a root
+ * timeline; else `null`.
+ */
+function hidingOf(view: View, targets: readonly Address[]): SetCommand | StyleCommand | null {
+  const named = targets.map((target) => {
+    if (target.block === undefined) return null;
+    const { block, element } = addressParts(target);
+    const held = view.blocks[block];
+    const id = element?.id;
+    return held === undefined || id === undefined ? null : { held, id };
+  });
+  const [only] = named;
+  if (named.length === 1 && only?.held.manifest.timelines.some((root) => root.id === only.id)) {
+    return rootDisplayCommand(only.held.id, only.id, true);
+  }
+  const placed = named.every(
+    (item) =>
+      item !== null &&
+      item.held.places[item.id] !== undefined &&
+      (item.held.manifest.virtual_timelines ?? []).some((virtual) => virtual.id === item.id),
+  );
+  return placed ? hideCommand(view, targets) : null;
 }
 
 /** `items` as a sentence lists them: `a`, `a and b`, `a, b and c`. */
@@ -504,22 +583,16 @@ export function deleteQuestion(view: View, command: RemoveCommand): DeleteQuesti
     }
   }
   if (taken.length === 0) return null;
-  const hideable = command.targets.every((target) => {
-    if (target.block === undefined) return false;
-    const { block, element } = addressParts(target);
-    const id = element?.id;
-    const held = view.blocks[block];
-    if (id === undefined || held === undefined || held.places[id] === undefined) return false;
-    return (held.manifest.virtual_timelines ?? []).some((item) => item.id === id);
-  });
+  const hide = hidingOf(view, command.targets);
   const subjects = command.targets.map((target) => addressWords(view, target));
   const pronoun = subjects.length === 1 ? "it" : "them";
-  const choice = hideable
-    ? ` Delete all, or hide ${subjects.length === 1 ? "its card" : "their cards"} instead?`
-    : " Delete all?";
+  const choice =
+    hide !== null
+      ? ` Delete all, or hide ${subjects.length === 1 ? "its card" : "their cards"} instead?`
+      : " Delete all?";
   return {
     question: `Deleting ${listed(subjects)} also deletes what is made from ${pronoun}: ${listed(taken.map((target) => addressWords(view, target)))}.${choice}`,
     remove: { type: "remove", targets: [...command.targets, ...taken] },
-    hide: hideable ? hideCommand(view, command.targets) : null,
+    hide,
   };
 }

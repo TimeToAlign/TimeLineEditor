@@ -2,7 +2,8 @@
 /**
  * The Properties tab: first the name of what is inspected (with nothing
  * selected, the workspace's at the top level, the edited element's in an
- * editor). Then, for a selection in one block, the read-only rows of
+ * editor), and the Edit button opening the editor a double-click on the
+ * one selected address opens (`EditButton`). Then, for a selection in one block, the read-only rows of
  * one band, or the form of the selected containers' geometry, or the hint
  * that the selection has none; the stored lock of the inspected timelines
  * stands right of the container size, read-only. Typed text is the
@@ -22,7 +23,8 @@
  * virtual timeline's with a Visible checkbox, so a hidden card can be shown
  * again. One selected virtual timeline, or its card, offers "Delete
  * virtual timeline", which removes it (Delete on the canvas only hides its
- * card).
+ * card); where other virtual timelines are made from it, the editor's
+ * deletion dialog asks first (`askDeletion`), as Delete on the canvas does.
  */
 import type {
   Editing,
@@ -31,7 +33,7 @@ import type {
   PlaceProperty,
   Subject,
 } from "@timetoalign/tilie-arranger";
-import { liveStore } from "@timetoalign/tilie-arranger";
+import { deleteQuestion, liveStore } from "@timetoalign/tilie-arranger";
 import type {
   AddCommand,
   Address,
@@ -43,16 +45,19 @@ import type {
 } from "@timetoalign/tilie-core";
 import { sameAddress } from "@timetoalign/tilie-core";
 import type { Attachment } from "svelte/attachments";
+import { askOf, hasAsk } from "../ConfirmDialog.svelte";
 import { postOf } from "../messages.svelte.ts";
 import { paneOf } from "../pane.ts";
 import BandList from "./BandList.svelte";
 import DisplayGroups from "./DisplayGroups.svelte";
 import { bandControls, bandList } from "./display.ts";
+import EditButton from "./EditButton.svelte";
 import FlowControlDetails from "./FlowControlDetails.svelte";
 import { flowOf } from "./flow.ts";
 import { groupsOf, membersOf, newGroupOf } from "./groups.ts";
 import type { Geometry, NameField, Shown } from "./properties.ts";
 import {
+  askDeletion,
   bandRows,
   fieldLabel,
   geometryOf,
@@ -164,9 +169,19 @@ const newGroup = $derived(
 /** The `remove` deleting the one selected virtual timeline; else `null`. */
 const virtualDeletion = $derived(virtualDeletionOf(subjects));
 
-/** Delete the selected virtual timeline, posting the store's refusal. */
-function deleteVirtual(command: RemoveCommand): void {
-  const refusal = store.dispatch(command);
+/** The editor's deletion dialog; a panel mounted alone (in tests) has none and deletes all. */
+const ask = hasAsk() ? askOf() : null;
+
+/**
+ * Delete the selected virtual timeline, asking first where other virtual
+ * timelines are made from it (`deleteQuestion`), posting the store's refusal.
+ */
+async function deleteVirtual(command: RemoveCommand): Promise<void> {
+  const question = deleteQuestion(view, command);
+  const chosen =
+    question === null ? command : ask === null ? question.remove : await askDeletion(ask, question);
+  if (chosen === null) return;
+  const refusal = store.dispatch(chosen);
   if (refusal !== null) post("info", refusal.message);
 }
 
@@ -301,6 +316,7 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     <p class="problem" id="{uid}-problem-name">{problem}</p>
   {/if}
 {/if}
+<EditButton {view} {store} {subjects} {editing} />
 
 {#snippet locked()}
   {#if lock !== null}
@@ -437,7 +453,7 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
 {/if}
 {#if virtualDeletion !== null}
   {@const remove = virtualDeletion}
-  <button type="button" class="delete-virtual" onclick={() => deleteVirtual(remove)}
+  <button type="button" class="delete-virtual" onclick={() => void deleteVirtual(remove)}
     >Delete virtual timeline</button
   >
 {/if}

@@ -7,6 +7,7 @@
 
 import { liveStore, resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
 import type { Address, Store } from "@timetoalign/tilie-core";
+import { FACETS } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
@@ -46,7 +47,7 @@ const placeSet = (id: string, place: object) => ({
 
 const MEMBER_ROWS = [
   ["group", "performance", "Performance", null],
-  ["timeline", "allegro", "Allegro", null],
+  ["timeline", "allegro", "Allegro", true],
   ["virtual_timeline", "allegro_by_hand", "Allegro, practice", false],
   ["virtual_timeline", "allegro_single", "Allegro, single", false],
 ];
@@ -83,6 +84,39 @@ describe("a virtual timeline's Visible", () => {
     expect(store.dispatch(row.visible.command)).toBeNull();
     expect(Object.hasOwn(store.view.blocks[A]?.places ?? {}, "allegro_by_hand")).toBe(false);
     expect(rowOf(store, "allegro_by_hand").visible?.checked).toBe(false);
+  });
+});
+
+describe("a root's Visible", () => {
+  it("writes and removes the one rule hiding its card, line and bands", () => {
+    const store = storeOf("flow/virtual_cards");
+    const rules = store.view.blocks[A]?.manifest.graphical?.rules ?? [];
+    const hiding = (display: string | null) => ({
+      type: "style",
+      select: {
+        addresses: [
+          { id: "allegro", part: ["card"] },
+          { id: "allegro" },
+          ...FACETS.map((facet) => ({ id: "allegro", facet })),
+        ],
+      },
+      set: { display },
+      blocks: [A],
+    });
+    const shown = rowOf(store, "allegro");
+    expect([shown.visible?.checked, shown.visible?.command]).toEqual([true, hiding("none")]);
+    if (shown.visible === null) throw new Error("no Visible");
+    expect(store.dispatch(shown.visible.command)).toBeNull();
+    expect(store.view.blocks[A]?.manifest.graphical?.rules).toEqual([
+      ...rules,
+      { select: hiding("none").select, set: { display: "none" } },
+    ]);
+    const hidden = rowOf(store, "allegro");
+    expect([hidden.visible?.checked, hidden.visible?.command]).toEqual([false, hiding(null)]);
+    if (hidden.visible === null) throw new Error("no Visible");
+    expect(store.dispatch(hidden.visible.command)).toBeNull();
+    expect(store.view.blocks[A]?.manifest.graphical?.rules).toEqual(rules);
+    expect(rowOf(store, "allegro").visible?.checked).toBe(true);
   });
 });
 
@@ -141,7 +175,7 @@ describe("the timeline list in the Properties tab", () => {
       ]),
     ).toEqual([
       ["Group Performance", "Always drawn", null],
-      ["Timeline Allegro", "Always drawn", null],
+      ["Timeline Allegro", "", true],
       ["Virtual timeline Allegro, practice", "", false],
       ["Virtual timeline Allegro, single", "", false],
     ]);

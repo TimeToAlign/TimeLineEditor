@@ -4,7 +4,15 @@
  * canvas's rules (`rulesOf`) whether it may run, and nothing else.
  */
 
-import type { Address, Command, Granularity, View } from "@timetoalign/tilie-core";
+import type {
+  Address,
+  Command,
+  Granularity,
+  RemoveCommand,
+  SetCommand,
+  StyleCommand,
+  View,
+} from "@timetoalign/tilie-core";
 import {
   holdingOf,
   isCommandError,
@@ -14,7 +22,14 @@ import {
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { BandDirection } from "./bands.ts";
 import { bandStepCommand } from "./bands.ts";
-import { nudgeCommand, removeCommand, type ZOrderAction, zOrderCommand } from "./commands.ts";
+import type { DeleteQuestion } from "./commands.ts";
+import {
+  deleteQuestion,
+  nudgeCommand,
+  removeCommand,
+  type ZOrderAction,
+  zOrderCommand,
+} from "./commands.ts";
 import type { Arranged, LevelRules } from "./containers.ts";
 import { drawingOf } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
@@ -76,6 +91,10 @@ export interface KeyContext {
   dispatch(command: Command): boolean;
   /** Reports a refusal that no command produced to the canvas's host. */
   refuse(message: string): void;
+  /** Asks what a deletion taking virtual timelines along does (`deleteQuestion`): the command chosen, or null. */
+  confirmDelete(
+    question: DeleteQuestion,
+  ): Promise<RemoveCommand | SetCommand | StyleCommand | null>;
   setMode(mode: ResizeMode): void;
   toggleLock(): void;
   /** Turns "Show coordinates" on or off. */
@@ -376,8 +395,18 @@ export const KEYS: readonly KeyRow[] = [
       );
       if (selection.size === 0) return true;
       const removed = removeCommand(context.view, selection, context.editing);
-      if ("refused" in removed) context.refuse(removed.refused);
-      else if (context.dispatch(removed)) context.select(NOTHING_SELECTED);
+      if ("refused" in removed) {
+        context.refuse(removed.refused);
+        return true;
+      }
+      const question = removed.type === "remove" ? deleteQuestion(context.view, removed) : null;
+      if (question === null) {
+        if (context.dispatch(removed)) context.select(NOTHING_SELECTED);
+        return true;
+      }
+      void context.confirmDelete(question).then((chosen) => {
+        if (chosen !== null && context.dispatch(chosen)) context.select(NOTHING_SELECTED);
+      });
       return true;
     },
   },
