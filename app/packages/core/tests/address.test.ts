@@ -562,9 +562,10 @@ describe("free IDs", () => {
  * The kind every drawn element's address resolves to, by its element type;
  * a virtual timeline's (`virtual`, its IDs) card, bands and line by their
  * virtual kinds, the brace of an entry of its FlowMap (`{id: V, facet:
- * "regions", part: [k]}`) as a chunk.
+ * "regions", part: [k]}`, or on a switched card's line) as a chunk.
  */
 function kindOf(key: ElementKey, virtual: ReadonlySet<string>): ResolvedElement["kind"] {
+  if (key.type === "region" && key.address.facet !== undefined) return "chunk";
   if (key.timeline !== null && virtual.has(key.timeline)) {
     if (key.type === "card") return "virtual_card";
     if (key.type === "band") return "virtual_band";
@@ -642,8 +643,13 @@ describe("every resolvable part", () => {
         [word],
         ...PART_WORDS.map((next) => [word, next]),
       ]);
-      // The entries of a virtual timeline's FlowMap, one index past them, alone and with a word.
-      const chunks = (manifest.virtual_timelines ?? []).flatMap(({ id, map }) => {
+      // The entries of a virtual timeline's FlowMap, and of every FlowMap on its root's line (a
+      // switched card), one index past them, alone and with a word.
+      const lines = [
+        ...(manifest.virtual_timelines ?? []).map(({ id, map }) => ({ id, map })),
+        ...(manifest.flow_maps ?? []).map(({ id, timeline }) => ({ id: timeline, map: id })),
+      ];
+      const chunks = lines.flatMap(({ id, map }) => {
         const count = (manifest.flow_maps ?? []).find((item) => item.id === map)?.chunks.length;
         return Array.from({ length: (count ?? 0) + 1 }, (_, k) => k).flatMap((k) =>
           [[k], ...PART_WORDS.map((word) => [k, word])].map(
@@ -763,7 +769,9 @@ describe("chunks and the timestamps of a virtual timeline", () => {
   const reduced = (resolved: ResolvedAddress): unknown => {
     if (resolved.kind === "part") return [resolved.word, reduced(resolved.owner)];
     if (resolved.kind !== "chunk") return [resolved.kind];
-    return [resolved.virtual.id, resolved.chunk, resolved.flowMap.index];
+    const { line } = resolved;
+    const id = line.kind === "timeline" ? line.at.timeline.id : line.virtual.id;
+    return [id, resolved.chunk, resolved.flowMap.index];
   };
 
   it("resolves a drawn entry of a FlowMap and its parts", () => {
@@ -814,6 +822,17 @@ describe("chunks and the timestamps of a virtual timeline", () => {
       code: "unknown_target",
       path: [addressKey(address)],
     });
+  });
+
+  it("resolves an entry drawn on a switched card's line", () => {
+    const switched = viewOf([A, "flow/switched_card.yaml"]);
+    const address = chunk("allegro", [1]);
+    const resolved = resolveAddress(switched, address);
+    if (isCommandError(resolved)) throw new Error(resolved.message);
+    expect(reduced(resolved)).toEqual(["allegro", 1, 1]);
+    expect(addressWords(switched, address)).toBe("chunk 2 of timeline 'Allegro'");
+    const member = viewOf([A, "groups/virtual_member.yaml"]);
+    expect(refusal(resolveAddress(member, address)).code).toBe("unknown_target");
   });
 
   it("locates a named timestamp on a virtual timeline", () => {

@@ -22,6 +22,7 @@ import { manifestElements } from "../manifest/elements.ts";
 import { defaultElisionTimelines } from "../manifest/elisions.ts";
 import type { EntryKind, ListedElement } from "../manifest/files.ts";
 import { ENTRY_KINDS, ENTRY_LISTS, entriesOf, virtualDrawing } from "../manifest/files.ts";
+import { switchedFlowMap } from "../manifest/switched.ts";
 import type { Located } from "../manifest/tree.ts";
 import { memberAncestry, timelinesInOrder } from "../manifest/tree.ts";
 import type {
@@ -289,18 +290,27 @@ export interface VirtualBandFound extends VirtualFound {
 }
 
 /**
- * An entry of the FlowMap a virtual timeline's card draws in its regions
- * band (`docs/drawing.md` section 8.10): the brace of a chunk, or a gap,
- * which draws no brace and is reached by its label; addressed `{id: V,
- * facet: "regions", part: [k]}`, its label `[k, "label"]` and its boundary
- * `[k, "start"]` its parts.
+ * An entry of the FlowMap drawn on the line of a virtual timeline or of a
+ * timeline whose card is switched (`docs/drawing.md` section 8.10), in its
+ * regions band: the brace of a chunk, or a gap, which draws no brace and is
+ * reached by its label; addressed `{id, facet: "regions", part: [k]}` by the
+ * ID of that line, its label `[k, "label"]` and its boundary `[k, "start"]`
+ * its parts.
  */
-export interface ChunkFound extends VirtualFound {
+export interface ChunkFound {
   /** The entry's index in the FlowMap's `chunks`, from 0. */
   readonly chunk: number;
-  /** The FlowMap the virtual timeline applies, and its index in the manifest's `flow_maps`. */
+  /** The FlowMap drawn, and its index in the manifest's `flow_maps`. */
   readonly flowMap: FlowMapFound;
+  /** The line it is drawn on: the virtual timeline, or the switched card's timeline. */
+  readonly line: ChunkLine;
 }
+
+/** The line a chunk is drawn on: a virtual timeline, or a timeline whose card is switched. */
+export type ChunkLine = Extract<
+  ResolvedElement,
+  { readonly kind: "virtual_timeline" | "timeline" }
+>;
 
 /** An alignment anchor of a named MatchStamp, found with the MatchStamp holding it. */
 export interface AnchorFound extends MatchStampFound {
@@ -640,13 +650,33 @@ export function resolveElement(
     return undefined;
   }
   if (id === undefined) return part.length > 0 ? { kind: "title" } : undefined;
-  // A chunk, whose part begins with its chunk index, is a virtual timeline's (`virtualOf`).
-  if (!part.every(isPart)) return undefined;
+  // A chunk, whose part begins with its chunk index, lies on a virtual timeline's line
+  // (`virtualOf`) or on the line of a switched card's timeline.
+  if (!part.every(isPart)) return switchedChunkOf(manifest, id, facet, part);
   const base = baseOf(manifest, id, facet, part);
   if (base === undefined) return undefined;
   let [resolved] = base;
   for (const word of base[1]) resolved = { kind: "part", owner: resolved, word };
   return resolved;
+}
+
+/**
+ * The entry `part[0]` of the FlowMap the card of the timeline `id` is
+ * switched to (`switchedFlowMap`), drawn on its line (section 8.10), as
+ * `chunkOf` reads it; `undefined` where `id` names no timeline with a
+ * switched card.
+ */
+function switchedChunkOf(
+  manifest: Manifest,
+  id: string,
+  facet: Facet | undefined,
+  part: readonly PartItem[],
+): ResolvedElement | undefined {
+  const found = catalogueOf(manifest).get(id);
+  const flowMap = switchedFlowMap(manifest, id);
+  if (found?.kind !== "timeline" || facet === undefined || flowMap === null) return undefined;
+  const cards = containersOf(manifest).cards.get(id) ?? [];
+  return chunkOf(manifest, { kind: "timeline", at: found.at, cards }, flowMap, facet, part);
 }
 
 /**
@@ -671,7 +701,10 @@ function virtualOf(
   const cards = containers.cards.get(virtual.id) ?? [];
   if (part.length > 0 && !indexOf(manifest).drawn.has(addressKey(element))) return undefined;
   if (facet !== undefined) {
-    if (part.length > 0) return chunkOf(manifest, { index, virtual, cards }, facet, part);
+    if (part.length > 0) {
+      const line: ChunkLine = { kind: "virtual_timeline", index, virtual, cards };
+      return chunkOf(manifest, line, virtual.map, facet, part);
+    }
     const drawn = containers.bands.get(virtual.id)?.get(facet);
     if (drawn === undefined) return undefined;
     return { kind: "virtual_band", index, virtual, cards, facet, containers: drawn };
@@ -687,12 +720,14 @@ function virtualOf(
 }
 
 /**
- * The entry `part[0]` of the FlowMap `virtual` applies, drawn in its regions
- * band, with the part word that follows it, if any, read as its part.
+ * The entry `part[0]` of the FlowMap `flowMap` drawn on `line`, in its
+ * regions band, with the part word that follows it, if any, read as its
+ * part.
  */
 function chunkOf(
   manifest: Manifest,
-  virtual: VirtualFound,
+  line: ChunkLine,
+  flowMap: string,
   facet: Facet,
   part: readonly PartItem[],
 ): ResolvedElement | undefined {
@@ -700,16 +735,16 @@ function chunkOf(
   if (facet !== "regions" || typeof chunk !== "number" || more.length > 0) return undefined;
   if (word !== undefined && !isPart(word)) return undefined;
   const flowMaps = manifest.flow_maps ?? [];
-  const at = flowMaps.findIndex((item) => item.id === virtual.virtual.map);
-  const flowMap = flowMaps[at];
-  if (flowMap === undefined) return undefined;
-  const found: ResolvedElement = {
+  const index = flowMaps.findIndex((item) => item.id === flowMap);
+  const found = flowMaps[index];
+  if (found === undefined) return undefined;
+  const resolved: ResolvedElement = {
     kind: "chunk",
-    ...virtual,
     chunk,
-    flowMap: { index: at, flowMap },
+    flowMap: { index, flowMap: found },
+    line,
   };
-  return word === undefined ? found : { kind: "part", owner: found, word };
+  return word === undefined ? resolved : { kind: "part", owner: resolved, word };
 }
 
 /**
@@ -892,9 +927,8 @@ function elementWords(resolved: ResolvedAddress): {
       return { words: `the ${part} of ${virtual}`, bundled: false };
     }
     case "chunk": {
-      const { name, id } = resolved.virtual;
-      const words = `chunk ${resolved.chunk + 1} of virtual timeline ${quoted(name ?? id)}`;
-      return { words, bundled: false };
+      const line = elementWords({ ...resolved.line, block: resolved.block });
+      return { words: `chunk ${resolved.chunk + 1} of ${line.words}`, bundled: false };
     }
     case "part": {
       const owner = elementWords(resolved.owner);

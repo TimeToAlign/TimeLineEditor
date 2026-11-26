@@ -1179,3 +1179,85 @@ describe("virtual cards", () => {
     ]);
   });
 });
+
+describe("switched cards", () => {
+  /** Every key of `manifest` as type, address key and holder chain, in enumeration order. */
+  const listing = (manifest: Manifest) =>
+    manifestElements(manifest).map((key) => [key.type, addressKey(key.address), key.inside]);
+  /** How often the listing holds the key `[type, address]`. */
+  const count = (manifest: Manifest, type: string, address: ElementAddress) =>
+    listing(manifest).filter(([t, a]) => t === type && a === addressKey(address)).length;
+  const chunk = (k: number, word?: "label" | "start"): ElementAddress => ({
+    id: "allegro",
+    facet: "regions",
+    part: word === undefined ? [k] : [k, word],
+  });
+
+  it("lists an ungrouped root's switched card on its FlowMap", () => {
+    // flow/switched_card: the card of allegro switched to default (A, B, A, C).
+    const manifest = load("flow/switched_card.yaml");
+    const own = listing(manifest).filter(([, address]) => {
+      const parsed: ElementAddress = JSON.parse(String(address));
+      return ["allegro", "section_a", "section_b", "section_c"].includes(parsed.id ?? "");
+    });
+    const line = ["block", "timeline"];
+    const held = [...line, "band"];
+    const region = [...held, "region"];
+    const key = (type: string, address: ElementAddress, inside: string[]) => [
+      type,
+      addressKey(address),
+      inside,
+    ];
+    expect(own).toEqual([
+      key("card", id("allegro", "card"), ["block"]),
+      key("timeline", id("allegro"), ["block"]),
+      key("name", id("allegro", "name"), line),
+      key("boundary", chunk(1, "start"), line),
+      key("boundary", chunk(2, "start"), line),
+      key("boundary", chunk(3, "start"), line),
+      key("band", band("allegro", "children"), line),
+      key("band", band("allegro", "markers"), line),
+      key("band", band("allegro", "regions"), line),
+      ...[0, 1, 2, 3].flatMap((k) => [
+        key("region", chunk(k), held),
+        key("label", chunk(k, "label"), region),
+      ]),
+      ...["section_a", "section_a", "section_b", "section_c"].flatMap((r) => [
+        key("region", id(r), held),
+        key("label", id(r, "label"), region),
+      ]),
+    ]);
+  });
+
+  it("carries the other members of a switched frame onto its FlowMap", () => {
+    // groups/switched_frame: performance (allegro switched to default, recording 702.5 s).
+    const manifest = load("groups/switched_frame.yaml");
+    expect(count(manifest, "region", chunk(2))).toBe(1);
+    expect(count(manifest, "region", id("section_a"))).toBe(2);
+    expect(count(manifest, "wedge", id("timestamp_1"))).toBe(2);
+    expect(count(manifest, "wedge", id("timestamp_2"))).toBe(1);
+    expect(count(manifest, "timeline", id("recording"))).toBe(4);
+    expect(count(manifest, "name", id("recording", "name"))).toBe(1);
+    expect(count(manifest, "wedge", id("timestamp_3"))).toBe(2);
+    expect(count(manifest, "wedge", id("timestamp_4"))).toBe(1);
+    for (const facet of ["conversion_maps", "flow_control"] as const) {
+      expect(count(manifest, "band", band("allegro", facet))).toBe(0);
+      expect(count(manifest, "band", band("recording", facet))).toBe(0);
+    }
+    expect(count(manifest, "jump", id("volta_jump"))).toBe(0);
+  });
+
+  it("lists the card as written again once its flow is removed", () => {
+    const view = changed(viewOf([A, "flow/switched_card.yaml"]), {
+      type: "style",
+      select: { addresses: [{ id: "allegro", part: ["card"] }] },
+      set: { flow: null },
+      blocks: [A],
+    });
+    const manifest = block(view).manifest;
+    expect(count(manifest, "region", chunk(0))).toBe(0);
+    expect(count(manifest, "region", id("section_a"))).toBe(1);
+    expect(count(manifest, "jump", id("volta_jump"))).toBe(1);
+    expect(count(manifest, "band", band("allegro", "flow_control"))).toBe(1);
+  });
+});

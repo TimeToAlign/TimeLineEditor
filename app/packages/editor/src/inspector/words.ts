@@ -211,9 +211,8 @@ function describe(resolved: ResolvedAddress): Described | null {
       return { parts, kind: "virtual timeline", name, id, titled: false };
     }
     case "chunk": {
-      const { name = null, id } = resolved.virtual;
-      const parts = [`chunk ${resolved.chunk + 1}`];
-      return { parts, kind: "virtual timeline", name, id, titled: false };
+      const line = describe({ ...resolved.line, block: resolved.block });
+      return line === null ? null : { ...line, parts: [`chunk ${resolved.chunk + 1}`] };
     }
     case "part": {
       const owner = describe(resolved.owner);

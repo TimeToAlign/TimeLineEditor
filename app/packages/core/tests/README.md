@@ -933,6 +933,43 @@ check of who holds what.
     adds applying `cmap_2` (`score`'s map onto seconds) lists exactly its
     card, its line, its name and its two bands, held by the block.
 
+16. **Switched cards** (drawing.md §2.4, §8.10). A card's `flow` is read
+    from the manifest's own `rules` alone: the last rule selecting `{id:
+    T, part: ["card"]}` by `addresses` alone (each a card's address) that
+    sets `flow`, directly or through a named style; a card is switched
+    where that names a FlowMap of `T` that resolves, or a virtual
+    timeline applying one to `T` without `through`. A switched card's
+    line holds its FlowMap's entries as a virtual card's, addressed by
+    `T` (`{id: T, facet: "regions", part: [k]}`), its runs drawn once
+    only on an ungrouped root's card; every other element of `T`'s tree
+    is listed once in every stretch piece reaching it (a position `t`
+    where `a ≤ t < b`, or `t = b` in a piece that is the last or is
+    followed by a gap or a stretch not starting at `b`; an extent where
+    `max(s, a) < min(e, b)`), a child's name once; no conversion maps or
+    flow control band, nothing they hold, and no elision. A frame with
+    exactly one switched card and no member that is a child timeline is
+    switched: every other member is carried onto the FlowMap's root at
+    `t = m × λT / λM` and listed likewise, its line once per piece it
+    reaches, and the frame lists no group elision; a groupstamp's line
+    across it once per played position. Written out from the
+    specification:
+    - `flow/switched_card.yaml` (`allegro` switched to `default`: the
+      pieces A [0, 953/2) at 0, B [953/2, 500) at 953/2, A again at 500,
+      C [500, 1644] at 1953/2): its card, line and name, the boundaries
+      `[1, "start"]` to `[3, "start"]`, the children, markers and regions
+      bands, the four braces with their labels, then `section_a` twice,
+      `section_b` and `section_c` once each, each with its label.
+    - `groups/switched_frame.yaml` (`performance`: `allegro` switched to
+      `default`, `recording` of 702.5 seconds carried): the brace `[2]`
+      once, `section_a` twice; `timestamp_1` at 0 twice (pieces 1 and 3),
+      `timestamp_2` at 1644 once (the last piece, closed); `recording`'s
+      line four times, its name once; `timestamp_3` at 0.0 twice,
+      `timestamp_4` at 702.5 (carried to 1644) once; no conversion maps
+      or flow control band of either, no jump.
+    - `flow/switched_card.yaml` after `style` sets `flow: null` on
+      `allegro`'s card: no entry, `section_a` once, `volta_jump` and the
+      flow control band listed again.
+
 The elements of manifests with several roots and groups are in "Several
 roots and groups".
 
@@ -1725,7 +1762,12 @@ string form is `addressKey`, and nothing splits or composes an ID.
     chunk 4, and the gap itself `[4]` to nothing; `{id:
     "allegro_by_hand", part: ["name"]}` to the part `name` of the
     virtual timeline. No command aims at a chunk: `set` on one is
-    `unknown_target`. On `groups/virtual_member.yaml` the named timestamp
+    `unknown_target`. On a switched card (`flow/switched_card.yaml`,
+    `allegro` switched to `default`) the entries lie on `allegro`'s line:
+    `{id: "allegro", facet: "regions", part: [1]}` resolves to a chunk on
+    the timeline `allegro`, entry 1 of `default`, worded "chunk 2 of
+    timeline 'Allegro'"; on `groups/virtual_member.yaml`, where no card
+    of `allegro` is switched, it names nothing. On `groups/virtual_member.yaml` the named timestamp
     `timestamp_3` resolves to `timestamp` with its owner `allegro_default`
     (`indexOf(manifest).owners`).
 
