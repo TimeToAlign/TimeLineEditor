@@ -18,9 +18,11 @@ import {
   build,
   drawFixture,
   edit,
+  flowControlAt,
   load,
   metrics,
   quarters,
+  rootOf,
   set,
   target,
 } from "./support.ts";
@@ -87,7 +89,17 @@ describe("jump placement order and rows", () => {
 });
 
 describe("jumps of corpus_score_ms3", () => {
-  const drawing = drawFixture("corpus_score_ms3", [ARCS_ALONE]);
+  const MS3 = "corpus_score_ms3";
+  // The root, which states no name, named `score` by command: an unnamed timeline is labelled with
+  // its ID, which the loader mints, and `score` is narrower than `controls`, so no x of the
+  // derivation depends on the minted ID's spelling.
+  const manifest = edit(MS3, set(rootOf(MS3).id, { name: "score" }));
+  const drawing = draw(
+    manifest,
+    DEFAULT_PLACEMENT,
+    [DEFAULT_LAYER, ARCS_ALONE, manifestLayer(manifest)],
+    metrics,
+  );
   const jumps = drawing.elements.filter((item): item is JumpElement => item.type === "jump");
   /** The first arc drawn at `address`, the one of its smallest span. */
   const jump = (address: ElementAddress) => {
@@ -95,24 +107,19 @@ describe("jumps of corpus_score_ms3", () => {
     if (found === undefined) throw new Error(`no jump ${JSON.stringify(address)}`);
     return found;
   };
+  /** The address of the one jump at the quarter `quarter`, its loader minting its ID. */
+  const jumpAt = (quarter: number) => at(flowControlAt(MS3, "jump", quarter));
 
   it("places the arcs by span in six rows beyond the flow row, one break carrying its name", () => {
     expect(drawing.height).toBe(216.3359375);
-    expect(drawing.elements.find((item) => sameAddress(item.address, at("clt_1")))).toMatchObject({
+    expect(
+      drawing.elements.find((item) => sameAddress(item.address, at(rootOf(MS3).id))),
+    ).toMatchObject({
       y: 59.5,
     });
+    // The jumps by the quarter each stands at, in the order of their spans (README).
     expect(jumps.map((item) => item.address)).toEqual(
-      [
-        "jump_3",
-        "jump_5",
-        "jump_1",
-        "jump_11",
-        "jump_6",
-        "jump_9",
-        "jump_4",
-        "jump_8",
-        "jump_10",
-      ].map((id) => at(id)),
+      [9, 24, 6, 20, 28, 30, 16, 34, 37].map(jumpAt),
     );
     expect(jumps.map((item) => item.start[1])).toEqual(jumps.map(() => 75.4765625));
     const yc = [
@@ -121,14 +128,19 @@ describe("jumps of corpus_score_ms3", () => {
     ];
     const rows = [1, 1, 1, 2, 3, 4, 2, 5, 6];
     expect(jumps.map((item) => item.c1[1])).toEqual(rows.map((row) => yc[row - 1]));
+    const breaks = new Set(
+      rootOf(MS3)
+        .flow_control.filter((item) => item.role === "break")
+        .map((item) => item.id),
+    );
     expect(
       drawing.elements
-        .filter((item) => item.type === "label" && item.address.id?.startsWith("break") === true)
+        .filter((item) => item.type === "label" && breaks.has(item.address.id ?? ""))
         .map(({ style: _, ...label }) => label),
     ).toEqual([
       {
         type: "label",
-        address: at("break_4", "name"),
+        address: at(flowControlAt(MS3, "break", 12), "name"),
         x: 200.83178051097974,
         baseline: 73.35400390625,
         anchor: "start",
@@ -138,7 +150,7 @@ describe("jumps of corpus_score_ms3", () => {
   });
 
   it("arrives steeply on a short jump", () => {
-    expect(jump(at("jump_3"))).toMatchObject({
+    expect(jump(jumpAt(9))).toMatchObject({
       start: [165.3993480785473, 75.4765625],
       c1: [157.2912399704392, 86.14322916666667],
       c2: [141.07502375422297, 86.14322916666667],
@@ -152,7 +164,7 @@ describe("jumps of corpus_score_ms3", () => {
   });
 
   it("arrives flatter on the longest jump", () => {
-    expect(jump(at("jump_10"))).toMatchObject({
+    expect(jump(jumpAt(37))).toMatchObject({
       start: [468.10205078125, 75.4765625],
       c1: [368.10205078125, 222.65364583333334],
       c2: [168.10205078125, 222.65364583333334],

@@ -19,6 +19,7 @@ import {
   deepFreeze,
   fixture,
   load,
+  memberOf,
   refusal,
   unlockedView,
   viewOf,
@@ -551,7 +552,7 @@ describe("locks by place", () => {
     for (const [fixture, id] of [
       ["segment_line.yaml", "b"],
       ["segment_children.yaml", "intro"],
-      ["bundles/corpus_ieee1599.yaml", "original_score:dgt_1"],
+      ["bundles/corpus_ieee1599.yaml", memberOf("bundles/corpus_ieee1599.yaml", "original_score")],
     ] as const) {
       const view = frozen([A, fixture]);
       expect(refusedWith(view, set(at(id), { locked: false }))).toEqual({

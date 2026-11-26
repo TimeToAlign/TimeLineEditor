@@ -105,6 +105,20 @@ export function conversionMapOf(name: string, type: string): string {
   return (found[0] as Tree["conversion_maps"][number]).id;
 }
 
+/**
+ * The ID of the one flow-control element of role `role` at the quarter
+ * `quarter` that a root of a fixture holds: how a test names an element whose
+ * ID a corpus loader mints, by what the fixture states of it.
+ */
+export function flowControlAt(name: string, role: string, quarter: number): string {
+  const place = JSON.stringify(quarters(quarter));
+  const found = loadFile(name)
+    .timelines.flatMap((root) => root.flow_control)
+    .filter((item) => item.role === role && JSON.stringify(item.coordinate) === place);
+  if (found.length !== 1) throw new Error(`${found.length} ${role}s at ${quarter} in ${name}`);
+  return (found[0] as (typeof found)[number]).id;
+}
+
 /** A fixture of one root and no group by name. */
 export function load(name: string): Manifest {
   const manifest = loadFile(name);
@@ -112,6 +126,11 @@ export function load(name: string): Manifest {
     throw new Error(`${name} is no manifest of one root`);
   }
   return manifest;
+}
+
+/** The one root of a fixture of one root and no group (`load`). */
+export function rootOf(name: string): TimelineManifest {
+  return load(name).timelines[0] as TimelineManifest;
 }
 
 /**

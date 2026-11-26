@@ -23,11 +23,13 @@ import {
   edit,
   edited,
   element,
+  flowControlAt,
   HIDDEN_ANCESTOR_CARDS,
   load,
   loadFile,
   metrics,
   quarters,
+  rootOf,
   set,
   target,
 } from "./support.ts";
@@ -126,43 +128,54 @@ describe("a root of unknown length", () => {
   });
 
   it("counts every flow-control coordinate in its reach, a jump target's too, and no measure map", () => {
-    const children = { type: "remove", targets: [target("clt_2"), target("clt_3")] };
+    const MS3 = "corpus_score_ms3";
+    const root = rootOf(MS3).id;
+    const children = {
+      type: "remove",
+      targets: rootOf(MS3).children.map((item) => target(item.id)),
+    };
     // The fixture states the lock its loader set: the reach is read on the unlocked timeline,
     // whose length a command sets and whose known end is an arrowhead.
-    const unlocked = set("clt_1", { locked: false });
+    const unlocked = set(root, { locked: false });
+    // The flow-control element of `role` at the quarter `quarter`, its loader minting its ID.
+    const flowAt = (role: string, quarter: number) => flowControlAt(MS3, role, quarter);
     // A flow-control element is never removed: the manifest is given without the elements after
-    // 30 but the jump target `jump_target_6` at 34, and its Fine without the condition that names
-    // the last jump.
-    const corpus = loadFile("corpus_score_ms3");
-    const dropped = new Set(["jump_7", "break_3", "jump_8", "jump_10"]);
+    // 30 but the jump target at 34, and its Fine without the condition that names the last jump.
+    const corpus = loadFile(MS3);
+    const dropped = new Set([
+      flowAt("jump", 32),
+      flowAt("break", 34),
+      flowAt("jump", 34),
+      flowAt("jump", 37),
+    ]);
     const toTheTarget: Manifest = {
       ...corpus,
-      timelines: corpus.timelines.map((root) => ({
-        ...root,
-        flow_control: root.flow_control
-          .filter((item) => !dropped.has(item.id))
-          .map(({ ends: _, ...item }) => item),
+      timelines: corpus.timelines.map((item) => ({
+        ...item,
+        flow_control: item.flow_control
+          .filter((each) => !dropped.has(each.id))
+          .map(({ ends: _, ...each }) => each),
       })),
     };
     const flow = (drawing: Drawing) =>
       drawing.elements.filter((item) => item.type === "break" || item.type === "jump");
-    const known = drawn(edit("corpus_score_ms3", children, unlocked));
-    const unknown = drawn(
-      edit("corpus_score_ms3", children, unlocked, set("clt_1", { length: null })),
-    );
+    const known = drawn(edit(MS3, children, unlocked));
+    const unknown = drawn(edit(MS3, children, unlocked, set(root, { length: null })));
     expect(flow(unknown)).toEqual(flow(known));
+    // The breaks by their quarters, then the jumps in their placement order of `placement.test.ts`.
     expect(flow(unknown).map((item) => item.address)).toEqual(
-      ["break_1", "break_2", "break_4", "break_3", "jump_3", "jump_5", "jump_1", "jump_11"]
-        .concat(["jump_6", "jump_9", "jump_4", "jump_8", "jump_10"])
+      [9, 10, 12, 34]
+        .map((quarter) => flowAt("break", quarter))
+        .concat([9, 24, 6, 20, 28, 30, 16, 34, 37].map((quarter) => flowAt("jump", quarter)))
         .map((id) => at(id)),
     );
-    const x0 = line(known, "clt_1").xs;
-    expect(line(known, "clt_1")).toEqual({ xs: x0, xe: x0 + 400, end: "arrowhead" });
-    expect(line(unknown, "clt_1")).toEqual({ xs: x0, xe: x0 + 400 + 12, end: "unknown" });
-    // Without them the farthest coordinate is the jump target `jump_target_6` at 34, which draws
-    // nothing; the measure map's rows, reaching past it, are no content.
-    const at34 = drawn(edited(toTheTarget, children, unlocked, set("clt_1", { length: [34, 1] })));
-    const open = drawn(edited(toTheTarget, children, unlocked, set("clt_1", { length: null })));
+    const x0 = line(known, root).xs;
+    expect(line(known, root)).toEqual({ xs: x0, xe: x0 + 400, end: "arrowhead" });
+    expect(line(unknown, root)).toEqual({ xs: x0, xe: x0 + 400 + 12, end: "unknown" });
+    // Without them the farthest coordinate is the jump target at 34, which draws nothing; the
+    // measure map's rows, reaching past it, are no content.
+    const at34 = drawn(edited(toTheTarget, children, unlocked, set(root, { length: [34, 1] })));
+    const open = drawn(edited(toTheTarget, children, unlocked, set(root, { length: null })));
     expect(flow(open)).toEqual(flow(at34));
     expect(flow(open)).not.toEqual(flow(unknown));
   });

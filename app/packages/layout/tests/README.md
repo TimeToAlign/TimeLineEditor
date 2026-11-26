@@ -22,7 +22,10 @@ moved to the new root and its length); the corpus fixtures carry none.
 The commands of such a manifest are applied with a minter of a fixed seed
 (`MINTER_SEED`), so what they create is the same every run; a test names
 only the IDs its commands give (`ids`, a speaking ID such as `here` or
-`gap_1`), never one the minter gives. The
+`gap_1`), never one the minter gives. The IDs a corpus fixture's loader
+mints are named through the fixture likewise: its one root (`rootOf`), a
+flow-control element by its role and quarter (`flowControlAt`), a map by
+its type (`conversionMapOf`), never by a typed spelling. The
 defaults show every ancestor card (section 8.8), which takes no room in
 its frame but moves the origin, and moves the items after its frame where
 it reaches beyond it ("Ancestor cards" point 14): a test whose subject is not the ancestor card (the
@@ -713,17 +716,24 @@ gives 92.57291666666666. Summed in item coordinates (the flow row at
 118.64973958333333 and 145.95182291666669 (summed from the card's top
 first, `one` and `two` would be 64.04557291666667).
 
-**`corpus_score_ms3`**, drawn with `ARCS_ALONE`. Root `clt_1` (no name), quarters, length 37, two
-maps above (the LinearMap `cmap_1` and the MeasureRecordMap `cmap_2`; the
-measure map `cmap_2` reads, which belongs to no timeline, is not drawn);
-children `notes` and `controls`, each from 0 to 37, in rows 1 and 2. The widest name is `controls` (44.10205078125); `x0 =
+**`corpus_score_ms3`**, drawn with `ARCS_ALONE`. Its loader mints every
+ID it writes, so the test names the root through the fixture (`rootOf`) and
+each flow-control element by its role and the quarter it stands at
+(`flowControlAt`; no two jumps share a quarter), here `J`*q* for the jump at
+*q*. The root states no name, and an unnamed timeline is labelled with its
+ID, whose spelling the loader mints: the test names it `score` by command,
+narrower than `controls`, so no `x` below depends on that spelling. Root,
+quarters, length 37, two maps above (the FloatingMeasureMap and the
+MeasureRecordMap; the measure map both read, which belongs to no timeline,
+is not drawn); children `controls` and `notes`, each from 0 to 37, in rows
+1 and 2. The widest name is `controls` (44.10205078125); `x0 =
 68.10205078125`, `x(t) = x0 + 400 × u`, `u` the double nearest `t / 37`.
 Above: the two-map stack (`1.5 + 2 × 5 = 11.5`), the children band from
 `11.5 + 4 = 15.5`, two rows of 14, `Ea = 15.5 + 28 = 43.5`, `y_root =
 51.5`, the root's line at 59.5. Below: a corpus fixture names no
 timestamp, so no markers band is present, and the flow control band lies
 at level −1 from `1.5 + 4 = 5.5`. Of its breaks and barlines only
-`break_4` at 12 has a name, `fine`, and none a label, so by the initial
+the break at 12 has a name, `fine`, and none a label, so by the initial
 `label-display` `name label` its stack is `fine` alone, one tier one line
 high: the flow row lies `5.5 + 10.4765625 = 15.9765625` out, `yf = 8 +
 51.5 + 15.9765625 = 75.4765625`, and `fine` starts at `x(12) + 3 =
@@ -737,20 +747,18 @@ widths at 9 by the advance sums `volta` 5092 → 22.376953125, `repeat_end`
 destination without a place goes to 0 (no section break lies before any
 jump), one with `by` 0 draws none, and one whose `manifestation` is
 `volta` draws none either, being a branch of its jump's fork (hidden
-here): `jump_2` at 7 (three volta destinations) and `jump_7` at 32 (two)
-draw no arc. The arcs: `jump_1` `6→0`, `jump_3` `9→6`, `jump_4` `16→0`,
-`jump_11` `20→30`, `jump_5` `24→20`, `jump_6` `28→16`, `jump_9` `30→16`,
-`jump_8` `34→0`, `jump_10` `37→0`. Sorted stably by span: `jump_3` (3),
-`jump_5` (4), `jump_1` (6), `jump_11` (10), `jump_6` (12), `jump_9` (14),
-`jump_4` (16), `jump_8` (34), `jump_10` (37), the drawing's order of the
-arcs. Rows by the arcs' own extents (`400 × u`; only `jump_11` has a
-label, `coda`, so every row keeps one label tier): `jump_3` `[64.86,
-97.30]`, row 1; `jump_5` `[216.22, 259.46]`, row 1; `jump_1` `[0, 64.86]`
-only touches `jump_3`, row 1; `jump_11` `[216.22, 324.32]` starts with
-`jump_5`, row 2; `jump_6` `[172.97, 302.70]`, row 3; `jump_9` `[172.97,
-324.32]`, row 4; `jump_4` `[0, 172.97]` starts with `jump_1` and meets
-nothing in row 2, row 2; `jump_8` `[0, 367.57]`, row 5; `jump_10` `[0,
-400]`, row 6. With `pj =
+here): `J7` (three volta destinations) and `J32` (two) draw no arc. The
+arcs: `J6` `6→0`, `J9` `9→6`, `J16` `16→0`, `J20` `20→30`, `J24` `24→20`,
+`J28` `28→16`, `J30` `30→16`, `J34` `34→0`, `J37` `37→0`. Sorted stably by
+span: `J9` (3), `J24` (4), `J6` (6), `J20` (10), `J28` (12), `J30` (14),
+`J16` (16), `J34` (34), `J37` (37), the drawing's order of the arcs. Rows
+by the arcs' own extents (`400 × u`; only `J20` has a label, `coda`, so
+every row keeps one label tier): `J9` `[64.86, 97.30]`, row 1; `J24`
+`[216.22, 259.46]`, row 1; `J6` `[0, 64.86]` only touches `J9`, row 1;
+`J20` `[216.22, 324.32]` starts with `J24`, row 2; `J28` `[172.97,
+302.70]`, row 3; `J30` `[172.97, 324.32]`, row 4; `J16` `[0, 172.97]`
+starts with `J6` and meets nothing in row 2, row 2; `J34` `[0, 367.57]`,
+row 5; `J37` `[0, 400]`, row 6. With `pj =
 6 + 4 + 10.4765625 = 20.4765625` the apexes lie `8 + (k − 1) × pj` beyond
 the flow row, `yc = yf + 4/3 × that` (the factor formed first, in item
 coordinates, the flow row at 67.4765625, then drawn `8 +`):
@@ -766,13 +774,13 @@ ones), `q = (Xt − Xf) / 4`, `C1 = (Xf + q, yc)`, `C2 = (Xt − q, yc)`, `u`
 the unit vector from `C2` to the tip, `Bh = tip − 4u`, the corners `Bh ∓ 2n`
 with `n = (−u_y, u_x)`, then drawn 8 right and 8 down.
 
-- **Short jump** (`jump_3`, `9→6`, row 1): `Xf = 165.3993480785473`,
+- **Short jump** (`J9`, `9→6`, row 1): `Xf = 165.3993480785473`,
   `Xt = 132.96691564611487`, `C1 = (157.2912399704392, 86.14322916666667)`,
   `C2 = (141.07502375422297, 86.14322916666667)`, `Bh =
   (135.38752148242557, 78.66100395576875)`, corners `(133.7953007545412,
   79.8713068739241)` and `(136.97974221030995, 77.4507010376134)`: it
   arrives steeply.
-- **Longest jump** (`jump_10`, `37→0`, row 6): `Xf = 468.10205078125`,
+- **Longest jump** (`J37`, `37→0`, row 6): `Xf = 468.10205078125`,
   `Xt = 68.10205078125`, `C1 = (368.10205078125, 222.65364583333334)`,
   `C2 = (168.10205078125, 222.65364583333334)`, `u =
   (−0.5620009405474009, −0.8271365926035654)`, `Bh = (70.3500545434396,
@@ -3331,15 +3339,15 @@ its `origin`'s wedge and `0 ♩` only (a root of unknown length has no
 500.298828125`; empty, it is drawn `L` long; locked, it still ends in three
 chevrons. `corpus_score_ms3` without its children and unlocked (the fixture
 states the lock its loader set; a command sets a length on an unlocked
-timeline, whose known end is an arrowhead) draws the same flow
-control (the breaks `break_1`, `break_2`, `break_4`, `break_3`, then the
-arcs in their placement order of `placement.test.ts`, `jump_3` to `jump_10`) with its length set to null,
-`jump_10` at 37 in its reach; given without `jump_7` (32), `break_3` and
-`jump_8` (34) and `jump_10` (a flow-control element is never removed by a
-command, so the manifest is given without them, and its Fine without the
-condition naming `jump_10`), it draws the same flow control at length null
-as at length 34, the coordinate of the jump target `jump_target_6`,
-which draws nothing: every flow-control coordinate counts, and a measure
+timeline, whose known end is an arrowhead; its elements named by role and
+quarter as in `placement.test.ts`, its root through the fixture) draws the
+same flow control (the breaks at 9, 10, 12 and 34, then the arcs in their
+placement order of `placement.test.ts`, `J9` to `J37`) with its length set
+to null, `J37` in its reach; given without `J32`, the break and the jump
+at 34 and `J37` (a flow-control element is never removed by a command, so
+the manifest is given without them, and its Fine without the condition
+naming `J37`), it draws the same flow control at length null as at length
+34, the coordinate of the jump target there, which draws nothing: every flow-control coordinate counts, and a measure
 map, which belongs to no timeline, does not. The place a destination
 reaches by its `by` counts too: `unknown_length` reaches 14, the end of
 `coda` (offset 10, length 4); with a jump added at 4 whose destinations
@@ -3518,8 +3526,8 @@ it gives `Wb` and `Hb`; at 600 and null `H = Hb`. The block padding `P`
 changes with no spacing: `bare` at the block's `spacing` 24 and its card's 0
 keeps its card at `y = 8`, `Hm = 49.37890625`, `H = 67.37890625`.
 
-**Addresses (section 2.2).** `corpus_mpm`'s map `cmap_1`, of the root
-`score:clt_1`, is `{id: cmap_1}`; a region `region_1` added into the member
+**Addresses (section 2.2).** `corpus_mpm`'s one TableMap, whose ID `M`
+its loader mints (`conversionMapOf`), is `{id: M}`; a region `region_1` added into the member
 `second-half` of `group_child_member` is `{id: region_1}`, its label `{id:
 region_1, part: [label]}`, and these two are the only elements whose
 address carries that ID. Every card of `M` is `{id: M, part: [card]}`,

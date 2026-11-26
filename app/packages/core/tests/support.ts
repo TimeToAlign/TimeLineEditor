@@ -196,6 +196,19 @@ export function conversionMapOf(name: string, type: string): string {
   return theOne(maps, (map) => map.type === type, `${type}s in ${name}`).id;
 }
 
+/**
+ * The ID of the one member of the one group named `groupName` in a manifest
+ * fixture: what a test names a group member by whose ID a loader mints.
+ */
+export function memberOf(name: string, groupName: string): string {
+  const group = theOne(
+    load(name).groups,
+    (item) => item.name === groupName,
+    `groups ${groupName} in ${name}`,
+  );
+  return theOne(group.members, () => true, `members of ${groupName} in ${name}`);
+}
+
 /** The ID of the one FlowMap of a manifest fixture under `convention`, a FlowMap the library computes. */
 export function flowMapUnder(name: string, convention: string): string {
   return theOne(

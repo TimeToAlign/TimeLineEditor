@@ -2143,8 +2143,9 @@ or the exact code, path and message of the refusal, the view unchanged.
    a segment line that is a child, a segment or a group member is not
    supported yet.`. The same refusal for `intro` of `segment_children.yaml`
    (a segment line that is a child of `piece`, no segment) and for the root
-   `original_score:dgt_1` of `bundles/corpus_ieee1599.yaml` (a segment line
-   that is a group member). Each of the three holds `locked: true`, so
+   of `bundles/corpus_ieee1599.yaml` that is the one member of its group
+   `original_score` (a segment line that is a group member; its loader
+   mints its ID, so the test names it through the group, `memberOf`). Each of the three holds `locked: true`, so
    `locked: true` on it changes nothing (refused as such at `[{block: A, id: "<id>"},
    "locked"]`).
 3. **`set locked` to the value a timeline has.** In a block of
