@@ -22,7 +22,7 @@ import type { ElementKey } from "../manifest/elements.ts";
 import { selectorMatches } from "../manifest/elements.ts";
 import { ENTRY_KINDS, entriesOf } from "../manifest/files.ts";
 import type { Manifest, TimelineManifest } from "../manifest/types.ts";
-import type { Address } from "./address.ts";
+import type { Address, ResolvedAddress } from "./address.ts";
 import {
   addressWords,
   elementAddressOf,
@@ -561,7 +561,10 @@ const FLOW_EDITOR_SET: { readonly [kind in FlowEdited]: readonly string[] | null
  * virtual timelines playing it), of such a virtual timeline's `name` and
  * `place` (its card dropped on the canvas) and of any property of a
  * flow-control element of a timeline of the root's tree; a `remove` of any
- * of the three. Never a `style`, and nothing in another block.
+ * of the three; a `style` for the root's block alone (`blocks`), not
+ * naming a style, whose selector names addresses, each a flow-control
+ * element of a timeline of the root's tree or a part of one (the display
+ * controls of such an element). Nothing in another block.
  */
 function flowRefused(
   view: View,
@@ -570,7 +573,9 @@ function flowRefused(
 ): { readonly address: Address; readonly property: string | null } | null {
   const { block, id: root } = target;
   const manifest = block === undefined ? undefined : view.blocks[block]?.manifest;
-  if (manifest === undefined || root === undefined) return { address: target, property: null };
+  if (block === undefined || manifest === undefined || root === undefined) {
+    return { address: target, property: null };
+  }
   const ofRoot = (flowMap: string) =>
     (manifest.flow_maps ?? []).some((item) => item.id === flowMap && item.timeline === root);
   const inTree = (timeline: string) => contains(manifest, root, idAddress(timeline));
@@ -581,7 +586,17 @@ function flowRefused(
   const flowKind = (address: Address): FlowEdited | null => {
     if (address.block !== block) return null;
     const resolved = resolveAddress(view, address);
-    if (isCommandError(resolved)) return null;
+    return isCommandError(resolved) ? null : editedKind(resolved);
+  };
+  /** Whether `address` names a flow-control element of a timeline of the root's tree or a part of one. */
+  const flowControlOrPart = (address: Address): boolean => {
+    let resolved = resolveAddress(view, address);
+    if (isCommandError(resolved)) return false;
+    while (resolved.kind === "part") resolved = resolved.owner;
+    return editedKind(resolved) === "flow_control";
+  };
+  /** The kind of what `resolved` names where the editor edits it, as `flowKind` reads it. */
+  function editedKind(resolved: ResolvedAddress): FlowEdited | null {
     switch (resolved.kind) {
       case "flow_map":
         return ofRoot(resolved.flowMap.id) ? "flow_map" : null;
@@ -611,7 +626,7 @@ function flowRefused(
       default:
         return assertNever(resolved);
     }
-  };
+  }
   switch (command.type) {
     case "add": {
       const { into } = command;
@@ -649,8 +664,18 @@ function flowRefused(
       const address = command.targets.find((item) => flowKind(item) === null);
       return address === undefined ? null : { address, property: null };
     }
-    case "style":
-      return { address: target, property: null };
+    case "style": {
+      const { select, name, blocks = [] } = command;
+      const addresses = select.addresses ?? [];
+      const own = blocks.length > 0 && blocks.every((item) => item === block);
+      if (name !== undefined || !own || addresses.length === 0) {
+        return { address: target, property: null };
+      }
+      const address = addresses
+        .map((item) => inBlock(block, item))
+        .find((item) => !flowControlOrPart(item));
+      return address === undefined ? null : { address, property: null };
+    }
     default:
       return assertNever(command);
   }

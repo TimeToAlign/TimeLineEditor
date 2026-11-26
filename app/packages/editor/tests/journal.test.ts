@@ -287,6 +287,23 @@ describe("journalRows", () => {
     ]);
   });
 
+  it("writes a flow-control editor's session as the flow control of its root", () => {
+    const store = mixedStore();
+    expect(store.open(address(A, "score"), "flow")).toBeNull();
+    expect(
+      store.dispatch({
+        type: "set",
+        changes: [{ target: address(A, "jump_1"), values: { name: "Volta" } }],
+      }),
+    ).toBeNull();
+    store.done();
+    const [row] = journalRows(store, store.view);
+    expect([row?.text, row?.children.map((child) => child.text)]).toEqual([
+      "Edited flow control of Score (1 change)",
+      ["Set name of jump 'Volta' in bundle 'Mixed'"],
+    ]);
+  });
+
   const e1 = set(address(A));
   const e2 = set(address(B));
   const u1 = set(address(C));

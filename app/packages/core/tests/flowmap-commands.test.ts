@@ -647,6 +647,80 @@ describe("The flow-control editor", () => {
   });
 });
 
+describe("The display controls in the flow-control editor", () => {
+  const SCORE = at("score");
+  const SYMBOL = { element: "symbol", addresses: [{ id: "jump_2", part: ["symbol"] }] };
+  const FORK = { element: "fork", addresses: [{ id: "jump_1", part: ["fork"] }] };
+  const JUMP = { element: "jump", addresses: [{ id: "jump_1" }] };
+  const style = (select: object, values: object, more: object = { blocks: [A] }) => ({
+    type: "style",
+    select,
+    set: values,
+    ...more,
+  });
+  const OUTSIDE = (what: string, root: string) =>
+    `${what} lies outside the flow-control editor of timeline '${root}': an editor changes only what it edits`;
+
+  it("styles a flow-control element of its root's tree and its parts", () => {
+    const store = storeOf(sonata());
+    expect(store.open(SCORE, "flow")).toBeNull();
+    expect(store.dispatch(style(SYMBOL, { display: "none" }))).toBeNull();
+    expect(store.dispatch(style(FORK, { display: "none" }))).toBeNull();
+    expect(store.dispatch(style(JUMP, { "label-display": "name" }))).toBeNull();
+    expect(valid(store.view).graphical?.rules).toEqual([
+      { select: SYMBOL, set: { display: "none" } },
+      { select: FORK, set: { display: "none" } },
+      { select: JUMP, set: { "label-display": "name" } },
+    ]);
+    expect(store.dispatch(style(SYMBOL, { display: null }))).toBeNull();
+    expect(valid(store.view).graphical?.rules).toEqual([
+      { select: FORK, set: { display: "none" } },
+      { select: JUMP, set: { "label-display": "name" } },
+    ]);
+  });
+
+  it("refuses a style reaching anything else", () => {
+    const store = storeOf(sonata());
+    expect(store.open(SCORE, "flow")).toBeNull();
+    const card = at("score", ["card"]);
+    const both = { ...JUMP, addresses: [{ id: "jump_1" }, { id: "score", part: ["card"] }] };
+    expect(refused(store.dispatch(style(both, { display: "none" })))).toEqual({
+      code: "side_effect",
+      path: [key(card)],
+      message: OUTSIDE("the card of timeline 'Score'", "Score"),
+    });
+    const atRoot = { code: "side_effect", path: [key(SCORE)] };
+    expect(refusal(store.dispatch(style(JUMP, { display: "none" }, {})))).toEqual(atRoot);
+    const named = { blocks: [A], name: "quiet" };
+    expect(refusal(store.dispatch(style(JUMP, { display: "none" }, named)))).toEqual(atRoot);
+    const band = { element: "jump", within: "score" };
+    expect(refusal(store.dispatch(style(band, { display: "none" })))).toEqual(atRoot);
+    expect(manifestOf(store.view).graphical?.rules ?? []).toEqual([]);
+  });
+
+  it("styles the flow-control elements of a child of its root", () => {
+    const store = storeOf(viewOf([A, "child_flow_control.yaml"]));
+    expect(store.open(at("piece"), "flow")).toBeNull();
+    const symbol = { element: "symbol", addresses: [{ id: "fine", part: ["symbol"] }] };
+    expect(store.dispatch(style(symbol, { display: "none" }))).toBeNull();
+    expect(valid(store.view).graphical?.rules).toEqual([
+      { select: symbol, set: { display: "none" } },
+    ]);
+  });
+
+  it("refuses to style the flow-control elements of another root's tree", () => {
+    const store = storeOf(viewOf([A, "groups/switched_frame.yaml"]));
+    expect(store.open(at("recording"), "flow")).toBeNull();
+    const jump = at("volta_jump");
+    const select = { element: "jump", addresses: [{ id: "volta_jump" }] };
+    expect(refused(store.dispatch(style(select, { display: "none" })))).toEqual({
+      code: "side_effect",
+      path: [key(jump)],
+      message: OUTSIDE("jump 'volta_jump'", "Recording"),
+    });
+  });
+});
+
 describe("Named timestamps on a virtual timeline", () => {
   const member = () => viewOf([A, "groups/virtual_member.yaml"]);
   const into = at("allegro_default");

@@ -4,8 +4,10 @@
  * double-click on it would open (the arranger's `openable`, read from the
  * block's drawing as Enter reads it, and `editorOf` for a root's flow
  * control band), so a touch, which selects with a tap, reaches every
- * editor. Absent where the selection opens none; a refusal of the store is
- * posted to the message bar.
+ * editor. Absent where the selection opens none, and where the canvas
+ * opens no editor (`opens`, its rules' `open`), so it never offers what a
+ * double-click there would not do; a refusal of the store is posted to the
+ * message bar.
  */
 import type { Editing, Subject } from "@timetoalign/tilie-arranger";
 import { drawingOf, editorOf, openable, selectionOf } from "@timetoalign/tilie-arranger";
@@ -20,6 +22,7 @@ let {
   store,
   subjects,
   editing,
+  opens,
 }: {
   view: View;
   store: Store;
@@ -27,6 +30,8 @@ let {
   subjects: readonly Subject[];
   /** The innermost open editor, `null` on the arranger. */
   editing: Editing | null;
+  /** Whether the canvas opens editors (its rules' `open`; false on a read-only canvas). */
+  opens: boolean;
 } = $props();
 
 const post = postOf();
@@ -35,6 +40,7 @@ const pane = paneOf();
 
 /** The editor the selection opens, with its kind; `null` where it opens none. */
 const opened = $derived.by(() => {
+  if (!opens) return null;
   const selection = selectionOf(subjects.map((subject) => subject.address));
   const target = openable(
     view,
