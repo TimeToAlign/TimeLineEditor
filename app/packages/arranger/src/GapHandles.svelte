@@ -16,6 +16,7 @@ import type { ElementAddress, Granularity } from "@timetoalign/tilie-core";
 import { placeKeyText } from "@timetoalign/tilie-core";
 import { useStore, ViewportPortal } from "@xyflow/svelte";
 import type { Attachment } from "svelte/attachments";
+import EdgeHandle from "./EdgeHandle.svelte";
 import type { GapEdge, GapModes, GapPiece } from "./gaps.ts";
 import { piecesOf, subjectOf } from "./gaps.ts";
 import type { GestureOptions } from "./gesture.ts";
@@ -101,10 +102,6 @@ function placeOf(shown: Shown): { x: number; y: number } {
   return dragged?.key === shown.key ? dragged.live.at : shown;
 }
 
-/** The hit area of a handle and its visible mark, in screen pixels. */
-const HIT = 24;
-const MARK = 9;
-
 const MODES: readonly { value: keyof GapModes; label: string; key: string; hint: string }[] = [
   {
     value: "coordinates",
@@ -168,48 +165,16 @@ function gestureOf(shown: Shown): Attachment<Element> {
   <ViewportPortal target="front" class="tilie-overlay">
     {#each handles as shown (shown.key)}
       {@const at = placeOf(shown)}
-      <div
-        class="handle nodrag nopan nowheel"
-        aria-hidden="true"
-        data-testid="gap-handle-{shown.edge}"
+      <EdgeHandle
+        x={at.x}
+        y={at.y}
+        {zoom}
+        testid="gap-handle-{shown.edge}"
         data-piece={shown.piece.index}
         hidden={dragged !== null && dragged.key !== shown.key}
-        style:left="{at.x}px"
-        style:top="{at.y}px"
-        style:width="{HIT / zoom}px"
-        style:height="{HIT / zoom}px"
-        style:--mark="{MARK / zoom}px"
-        style:--line="{1 / zoom}px"
         {@attach gestureOf(shown)}
-      ></div>
+      />
     {/each}
   </ViewportPortal>
 {/if}
 
-<style>
-  .handle {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    touch-action: none;
-    pointer-events: all;
-    cursor: ew-resize;
-  }
-
-  .handle[hidden] {
-    display: none;
-  }
-
-  /* A handle is a small square on the elision's line at the gap's edge, as the resize handles. */
-  .handle::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: var(--mark);
-    height: var(--mark);
-    transform: translate(-50%, -50%);
-    box-sizing: border-box;
-    background: #fff;
-    border: var(--line) solid #0a84ff;
-  }
-</style>

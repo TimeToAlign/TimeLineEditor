@@ -18,6 +18,8 @@ import type { GestureStrategy, Point } from "../gesture.ts";
 import type { BlockNode } from "../node.ts";
 import type { NodeActions } from "../nodeActions.ts";
 import { previewCommand, previewed } from "./host.ts";
+import type { HandlePress } from "./travel.ts";
+import { pixelOf, travelOf } from "./travel.ts";
 
 /** What a dragged handle shows while the pointer holds it: where it lies and what it sets. */
 export interface GapLive {
@@ -44,16 +46,12 @@ export interface GapHost {
 }
 
 /** What a press on a handle holds. */
-export interface GapPress {
+export interface GapPress extends HandlePress {
   /** The view as stored at the press, which the command is built on. */
   readonly view: View;
-  readonly node: BlockNode;
   readonly subject: GapSubject;
   readonly context: GapContext;
   readonly modes: GapModes;
-  /** The pointer's client point at the press, and the viewport's pan then. */
-  readonly screen: Point;
-  readonly pan: Point;
 }
 
 /** A stored width as the flag says it. */
@@ -108,15 +106,6 @@ export function handleOrdinate(drawing: Drawing, piece: GapPiece, timeline: stri
  */
 export function gapGesture(host: GapHost, edge: GapEdge): GestureStrategy<GapPress, GapChange> {
   const { actions } = host;
-  /** The pointer's travel since the press in the block's drawing units. */
-  function travel(press: GapPress, screen: Point): number {
-    const { x, zoom } = host.viewport();
-    return (screen.x - press.screen.x - (x - press.pan.x)) / zoom / press.node.data.block.scale;
-  }
-  /** Block-local units per screen pixel. */
-  function pixel(press: GapPress): number {
-    return 1 / (host.viewport().zoom * press.node.data.block.scale);
-  }
   /** Where the dragged handle lies in `view` (the preview), for the flag. */
   function placed(press: GapPress, view: View, change: GapChange): GapLive | null {
     const block = view.blocks[press.node.id];
@@ -169,8 +158,8 @@ export function gapGesture(host: GapHost, edge: GapEdge): GestureStrategy<GapPre
       };
     },
     value(press, at) {
-      const dx = travel(press, at.screen);
-      const unit = pixel(press);
+      const dx = travelOf(press, host.viewport(), at.screen);
+      const unit = pixelOf(press, host.viewport());
       return gapDrag(
         press.context,
         press.subject,

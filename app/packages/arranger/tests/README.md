@@ -4852,6 +4852,63 @@ What would be wrong: a handle dragged by one card scale across runs of
 another, a width rounded, a default gap edited alone, a group elision's gap
 held by no frame, the pane of one canvas redrawing another's blocks.
 
+## Regions on the canvas (`region-handles.test.ts`)
+
+A selected region gets a handle at each end of its brace, dragging its
+start or its end along its timeline's axis (`gestures/region.ts`,
+`RegionHandles.svelte`); the handles of an elision's gap and of a brace
+are one component (`EdgeHandle.svelte`), and what both read of an edge
+(the timeline's snapping values, the simplest value of its number type,
+the pointer's travel) is shared (`edgeValues.ts`, `gestures/travel.ts`),
+so the elision cases above prove the shared parts unchanged. The oracle
+of every abscissa is layout's record of the brace (the `region` element:
+`x1`, `x2`, `yb`) and of the card's axis; the values follow from those by
+the arithmetic written here. `with_region` (root `clt_1`, 12 quarters,
+fraction; children `clt_2` at 1/3, 4 long, and `clt_3` at 2, 3 long;
+`region_1` 2–6) is block A at (0, 0), scale 1, zoom 1, viewport (0, 0),
+so a block point is a canvas point and a screen pixel a block unit. Its
+card draws one run, so `k = (x2 − x1) / 4`, the block units per quarter,
+is the same everywhere on `clt_1`'s line; the cases below hold because
+`k` lies between 16 and 48 (asserted first), so the hit tolerance of 8
+screen pixels spans less than half a quarter and more than a sixth.
+
+1. **What takes handles** (`regionSubjectsOf`): `{id: region_1}` gives
+   one brace, in `clt_1`'s card `{item: clt_1}`, both ends taking a
+   handle (the card's axis reads `x1` as 2 and `x2` as 6); the line
+   `{id: clt_1}`, the label `{id: region_1, part: [label]}` and an atomic
+   section (`flow/sonata_exposition`'s first region, read only) give
+   none. A region of the child `clt_2`, added 1–3 on its axis, is drawn
+   in the same card on `clt_2`'s line, both ends taking a handle (the
+   axis reads them on `clt_2` through its offset 1/3).
+2. **A drag** (`regionDrag`, tolerance 8, reach 0.5 block units): the
+   start dragged `−k` is 1 (the simplest value within half a pixel of 1;
+   no snapping value lies within 8 units: `clt_2`'s start 1/3 lies
+   `2k/3` away); dragged `−1.5k` it is 1/3, `clt_2`'s start, a snapping
+   value within `k/6` < 8; dragged `+10k` it is held at 6, the region's
+   end (the snapping value 12, the timeline's end, would invert it); the
+   end dragged `+20k` (beyond the axis: the end moved by `20k / k`) is
+   held at 12, the timeline's length. The child's region's start dragged
+   `−k` is 0, `clt_2`'s start on its own axis (1/3 on `clt_1`'s).
+3. **The command** (`regionCommand`): one `set` on `{block: A, id:
+   region_1}` of the end that changes, in the axis's number type: `{start:
+   [1, 1]}`, `{start: [1, 3]}`, `{end: [12, 1]}`; the stored value gives
+   `null`.
+4. **The gesture** (the strategy with recorded node actions): the start's
+   handle moved `k` left previews once and its command is item 3's
+   `{start: [1, 1]}`; the live place it reports is the previewed brace's
+   left end at its arms, `(x1', yb')` of the region drawn after that
+   command is applied through core, its start then 1. A press on
+   a read-only canvas (`resize` false) is not taken.
+5. **The handles** (`CanvasHarness`): with `{block: A, id: region_1}`
+   selected the canvas shows two handles, `region-handle-start` at
+   `(x1, yb)` and `region-handle-end` at `(x2, yb)` (their `left` and
+   `top`); with the line `{block: A, id: clt_1}`, the atomic section or
+   nothing selected, none; no gap handle shows beside them.
+
+What would be wrong: a handle on a brace drawn over another axis, a value
+read as a float and stored as one, an end dragged past the other end or
+off the timeline stored, or a drag storing more than one `set`.
+
 ## Virtual cards, ribbons, the flow flag and the flow switch (`virtual-cards.test.ts`, `ribbons.test.ts`, `flow-flag.test.ts`, `flow-switch.test.ts`)
 
 TimeToShare's drawing specification, section 8.10, draws a virtual

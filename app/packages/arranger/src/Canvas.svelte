@@ -86,6 +86,7 @@ import { CanvasNodes } from "./nodes.svelte.ts";
 import { positionStep } from "./numbers.ts";
 import { Pane } from "./pane.ts";
 import { pickable } from "./picking.ts";
+import RegionHandles from "./RegionHandles.svelte";
 import ResizeToolbar from "./ResizeToolbar.svelte";
 import type { ResizeMode } from "./resize.ts";
 import SnapGuides from "./SnapGuides.svelte";
@@ -1268,6 +1269,15 @@ function onkeydowncapture(event: KeyboardEvent) {
           locked={!rules.resize}
           ontoggle={toggleGapMode}
           onlive={(next) => (gapDrag = next)}
+        />
+      {/if}
+      {#if !moving}
+        <RegionHandles
+          {selection}
+          nodes={nodes.byId}
+          zoom={viewport.zoom}
+          granularity={granularity ?? view.settings.granularity}
+          locked={!rules.resize}
         />
       {/if}
       {#if flowTarget !== null && flowPane !== null && flowNode !== undefined}
