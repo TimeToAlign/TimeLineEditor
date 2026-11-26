@@ -21,7 +21,11 @@ import type {
   CommandEntry,
   ElementAddress,
   Store,
+  TimelineManifest,
 } from "@timetoalign/tilie-core";
+import { findTimeline } from "@timetoalign/tilie-core";
+import { virtualDrawing } from "@timetoalign/tilie-core/drawing";
+import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import { draw } from "@timetoalign/tilie-layout";
 import { fontMetrics } from "@timetoalign/timetoshare";
@@ -30,6 +34,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import ElisionsPanel from "../src/inspector/ElisionsPanel.svelte";
 import type { ElisionForm, GroupElisions, RootElisions } from "../src/inspector/elisions.ts";
 import {
+  blocksOf,
   elisionFormOf,
   fieldCommand,
   groupElisionsOf,
@@ -1272,5 +1277,116 @@ describe("a root drawn once behind a row side by side", () => {
     const root = arrangedRoot(store, { id: "recapitulation" });
     expect(root?.proportional?.automatic).toBe(true);
     expect(root?.proportional?.proportion).toBe("0.29");
+  });
+});
+
+describe("elisions on a virtual timeline", () => {
+  const VIRTUAL = "allegro_default";
+  const card = (id: string): ElementAddress => ({ id, part: ["card"] });
+  /** `flow/virtual_cards` with the card of `allegro_default` placed. */
+  function placed(): Store {
+    const store = storeOf("flow/virtual_cards");
+    const error = store.dispatch({
+      type: "set",
+      changes: [{ target: at(VIRTUAL), values: { place: { scale: 1 } } }],
+    });
+    if (error !== null) throw new Error(error.message);
+    return store;
+  }
+  /** The virtual timeline `id` of the store's block, read as the timeline its axis is. */
+  const axisOf = (store: Store, id: string): TimelineManifest => {
+    const found = virtualDrawing(blockOf(store).manifest, id)?.timeline;
+    if (found === undefined) throw new Error(`${id} is no virtual timeline`);
+    return found;
+  };
+  const MIDDLE_THIRD = { start: [4241, 6], end: [4241, 3] };
+
+  it.each<[ElementAddress]>([
+    [card(VIRTUAL)],
+    [{ id: VIRTUAL }],
+    [{ id: VIRTUAL, facet: "regions" }],
+  ])("offers a placed virtual card's block for %j", (element) => {
+    const root = rootOf(placed(), element);
+    expect(root?.title).toBe('Elisions of "Allegro, default"');
+    expect(root?.options.map((option) => option.mode)).toEqual(["full", "custom"]);
+    expect(root?.mode).toBe("custom");
+    expect(root?.custom).toEqual({
+      rows: [],
+      add: { type: "add", into: at(VIRTUAL), elision: MIDDLE_THIRD },
+      removeAll: null,
+    });
+    expect(root?.options.find((option) => option.mode === "full")?.commands).toEqual([
+      rootStyle(VIRTUAL, { "elision-mode": "full", display: null }),
+    ]);
+  });
+
+  it("offers no block for a virtual card that is not placed", () => {
+    expect(rootOf(placed(), card("allegro_single"))).toBe(null);
+  });
+
+  it("adds, lists, removes and forms its elisions on its played axis", () => {
+    const store = placed();
+    const add = rootOf(store, card(VIRTUAL))?.custom?.add;
+    if (add == null) throw new Error("no Add");
+    const before = store.journal.length;
+    expect(store.dispatch(add)).toBeNull();
+    expect(store.journal.length).toBe(before + 1);
+    const [stored, ...others] = blockOf(store).manifest.graphical?.elisions ?? [];
+    if (stored === undefined) throw new Error("no elision stored");
+    expect(others).toEqual([]);
+    const root = rootOf(store, card(VIRTUAL));
+    const third = (d: bigint) => Rational.fromParts(4241n, d);
+    expect(rowsOf(root?.custom?.rows ?? [])).toEqual([
+      ["—", "Allegro, default", stretchText(axisOf(store, VIRTUAL), third(6n), third(3n))],
+    ]);
+    expect(root?.custom?.removeAll).toEqual({ type: "remove", targets: [at(stored.id)] });
+    const form = formOf(store, { id: stored.id });
+    expect([form?.title, form?.unit, form?.start, form?.end]).toEqual([
+      'Elision on "Allegro, default"',
+      "♩",
+      "4241/6",
+      "4241/3",
+    ]);
+    const blocks = blocksOf(root, groupOf(store, null, { id: stored.id }), form);
+    expect([blocks.root?.opened, blocks.group]).toEqual([true, null]);
+  });
+
+  it("makes one on a virtual member a group elision of its frame", () => {
+    const store = storeOf("groups/virtual_member");
+    const error = store.dispatch({
+      type: "add",
+      into: at(VIRTUAL),
+      elision: { start: [500, 1], end: [1000, 1] },
+      ids: ["gap"],
+    });
+    if (error !== null) throw new Error(error.message);
+    const stretch = stretchText(
+      axisOf(store, VIRTUAL),
+      Rational.fromParts(500n, 1n),
+      Rational.fromParts(1000n, 1n),
+    );
+    for (const element of [card(VIRTUAL), { id: "gap" }]) {
+      const group = groupOf(store, null, element);
+      expect([group?.title, group?.count]).toEqual([
+        'Elisions in group "Performance"',
+        "1 elision",
+      ]);
+      expect(rowsOf(group?.rows ?? [])).toEqual([["—", "Allegro, default", stretch]]);
+      expect(group?.removeAll).toEqual({ type: "remove", targets: [at("gap")] });
+      expect(rootOf(store, element)).toBe(null);
+    }
+    expect(groupOf(store, null, card(VIRTUAL))?.add).toEqual({
+      type: "add",
+      into: at(VIRTUAL),
+      elision: MIDDLE_THIRD,
+    });
+    const recording = findTimeline(blockOf(store).manifest, "recording");
+    if (recording === undefined) throw new Error("no recording");
+    const form = formOf(store, { id: "gap" });
+    expect([form?.start, form?.end, form?.also]).toEqual([
+      "500",
+      "1000",
+      [{ timeline: "Recording", stretch: stretchText(recording, 702500 / 4241, 1405000 / 4241) }],
+    ]);
   });
 });

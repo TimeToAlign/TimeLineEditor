@@ -929,4 +929,47 @@ describe("elisions on a virtual timeline", () => {
     const nextCard = keys.findIndex((item, index) => index > card && item.type === "card");
     expect([card < band, band < gapAt, gapAt < nextCard]).toEqual([true, true, true]);
   });
+
+  it("makes them the card elisions of the virtual timeline", () => {
+    const manifest = block(stored(added())).manifest;
+    expect(elisionsUnder(manifest, VIRTUAL).map((item) => item.id)).toEqual(["gap"]);
+    expect(elisionsUnder(manifest, "allegro_single")).toEqual([]);
+  });
+
+  it("makes one on a virtual member a group elision of its frame", () => {
+    const manifest = withElisions(
+      "groups/virtual_member.yaml",
+      elision("gap", VIRTUAL, [500, 1], [1000, 1]),
+    );
+    expect(groupElisions(manifest, "performance").map((item) => item.id)).toEqual(["gap"]);
+    expect(elisionsUnder(manifest, VIRTUAL)).toEqual([]);
+    const keys = manifestElements(manifest);
+    const own = {
+      type: "elision",
+      address: { id: "gap" },
+      timeline: VIRTUAL,
+      domain: "logical",
+      modality: "continuous",
+      class: "ContinuousLogicalTimeline",
+      facet: null,
+      inside: ["block", "frame"],
+    };
+    expect(keys.filter((item) => item.address.id === "gap")).toEqual([
+      own,
+      {
+        ...own,
+        type: "ellipsis",
+        address: { id: "gap", part: ["ellipsis"] },
+        inside: ["block", "frame", "elision"],
+      },
+      {
+        ...own,
+        type: "label",
+        address: { id: "gap", part: ["name"] },
+        inside: ["block", "frame", "elision"],
+      },
+    ]);
+    const lastCard = keys.findLastIndex((item) => item.type === "card");
+    expect(keys.findIndex((item) => item.address.id === "gap")).toBeGreaterThan(lastCard);
+  });
 });

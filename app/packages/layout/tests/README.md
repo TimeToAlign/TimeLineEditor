@@ -2593,6 +2593,36 @@ less and plus `k` = 8.
     written draws no elision of `virtual_1` (the elision lies on another
     timeline), and switched to `virtual_1` by the manifest's rule it draws
     none either (section 8.10, Switched cards).
+11. **An elision on a virtual member** (section 8.10, Elisions of a
+    virtual timeline, and section 8.9, Group elisions). `allegro_default`
+    is a member of `performance` and lies in no tree, so an elision on it
+    is a group elision of that frame, drawn across it as any member's.
+    `groups/virtual_member` given `gap` on `allegro_default` from 500 to
+    1000, display `[ellipsis, name]`, no `width`, at the default placement
+    (`L` 400): `allegro_default` is its own member `M`, `λ` its length
+    4241/2, so the proportions are `p = 1000/4241` and `q = 2000/4241`
+    rounded once to doubles (0.23579344494223062 and 0.47158688988446124),
+    the natural width `n = 400 × q − 400 × p` = 94.31737797689225, the
+    drawn width the standard 32 and the shrink `s = n − 32` =
+    62.317377976892246. With `x0` the start of `allegro_default`'s line:
+    - one `elision` element `{id: "gap"}`, from `x0 + 400 × p` to `x0 +
+      (400 × q − s)` (`x0 +` 94.31737797689225 and 126.31737797689225),
+      from the top of `allegro_default`'s card to the bottom of
+      `recording`'s (the frame's topmost and bottommost member cards),
+      its elided coordinates 500 to 1000 on `allegro_default`;
+    - both members' lines start at `x0`, are cut at that pair and end at
+      `x0 + (400 − s)` (`x0 +` 337.68262202310774): the gap is carried to `recording`'s axis as to any
+      member's, the frame drawn shorter by `s`;
+    - its ellipsis centred in it, at the middle of its edges, and its
+      `name` label reading `Allegro, default`, the name of the timeline it
+      lies on (section 5.3), not its card's name `Allegro, default ·
+      unfolded from Allegro`;
+    - the frame's exposure lists that one gap with its elided
+      coordinates on every member, card by card: `allegro_default` 500 to
+      1000 (exact), `recording` 702500/4241 and 1405000/4241 rounded once
+      to doubles (165.644895071917 and 331.289790143834, the exact
+      proportions times the float length 702.5);
+    - no other `elision` element: no card draws it as a card elision.
 
 ## Switched cards (`switched.test.ts`)
 

@@ -303,6 +303,95 @@ describe("virtual members", () => {
   });
 });
 
+describe("an elision on a virtual member", () => {
+  const source = loadFile("groups/virtual_member");
+  const manifest = {
+    ...source,
+    graphical: {
+      ...source.graphical,
+      elisions: [
+        {
+          id: "gap",
+          timeline: "allegro_default",
+          start: quarters(500),
+          end: quarters(1000),
+          display: ["ellipsis", "name"],
+        },
+      ],
+    },
+  } as Manifest;
+  const drawing = draw(
+    manifest,
+    DEFAULT_PLACEMENT,
+    [DEFAULT_LAYER, manifestLayer(manifest)],
+    metrics,
+  );
+  const p = 1000 / 4241;
+  const q = 2000 / 4241;
+  const s = L * q - L * p - 32;
+  const x0 = lineOf(drawing, "allegro_default").xs;
+
+  it("is a gap across the frame, carried to every member", () => {
+    expect([p, q, L * q - L * p, s]).toEqual([
+      0.23579344494223062, 0.47158688988446124, 94.31737797689225, 62.317377976892246,
+    ]);
+    const gaps = drawing.elements.flatMap((item) => (item.type === "elision" ? [item] : []));
+    const top = element(drawing, { id: "allegro_default", part: ["card"] });
+    const bottom = element(drawing, { id: "recording", part: ["card"] });
+    if (top.type !== "card" || bottom.type !== "card") throw new Error("two member cards");
+    expect(gaps.map((gap) => [gap.address, gap.x1, gap.x2, gap.yt, gap.yb, gap.elided])).toEqual([
+      [
+        { id: "gap" },
+        x0 + L * p,
+        x0 + (L * q - s),
+        top.y,
+        bottom.y + bottom.height,
+        { timeline: "allegro_default", start: toRational(500), end: toRational(1000) },
+      ],
+    ]);
+    expect([L * p, L * q - s, L - s]).toEqual([
+      94.31737797689225, 126.31737797689225, 337.68262202310774,
+    ]);
+    for (const id of ["allegro_default", "recording"]) {
+      const { xs, xe, cuts } = lineOf(drawing, id);
+      expect([xs, xe, cuts]).toEqual([x0, x0 + (L - s), [[x0 + L * p, x0 + (L * q - s)]]]);
+    }
+  });
+
+  it("draws its ellipsis and its name label, the name of its timeline", () => {
+    const middle = (x0 + L * p + (x0 + (L * q - s))) / 2;
+    const ellipsis = element(drawing, { id: "gap", part: ["ellipsis"] });
+    const name = element(drawing, { id: "gap", part: ["name"] });
+    expect([
+      ellipsis.type === "ellipsis" ? ellipsis.x : ellipsis.type,
+      name.type === "label" ? [name.text, name.x] : name.type,
+    ]).toEqual([middle, ["Allegro, default", middle]]);
+  });
+
+  it("is exposed with its elided coordinates on every member", () => {
+    const frame = drawing.elisions.find((exposure) => exposure.kind === "frame");
+    expect(
+      frame?.gaps.map((gap) => [
+        gap.address,
+        gap.natural,
+        gap.drawn,
+        gap.members.map((member) => [member.timeline, member.start, member.end]),
+      ]),
+    ).toEqual([
+      [
+        { id: "gap" },
+        L * q - L * p,
+        32,
+        [
+          ["allegro_default", toRational(500), toRational(1000)],
+          ["recording", 702500 / 4241, 1405000 / 4241],
+        ],
+      ],
+    ]);
+    expect([702500 / 4241, 1405000 / 4241]).toEqual([165.644895071917, 331.289790143834]);
+  });
+});
+
 describe("elisions of a placed virtual card", () => {
   /** The README's `score`, `flow_map_1` and `virtual_1`, an elision of `virtual_1` over `[start, end]`. */
   function exposition(
