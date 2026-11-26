@@ -249,12 +249,27 @@ function selectorClassIri(context: unknown, text: string): string {
   return expandIri(context, text) ?? text;
 }
 
-/** The key of an element's own text, `name` or `label`, which the element holds. */
+/**
+ * The key of an element's own text, `name` or `label`, which the element
+ * holds: at the element's address with `type` appended to its `part`, a
+ * chunk's keeping its facet (section 2.2).
+ */
 export function textKey(owner: ElementKey, type: "name" | "label"): ElementKey {
-  const { facet, ...address } = owner.address;
-  if (facet !== undefined) throw new Error("a band has no text");
   const { coordinates: _marks, types: _types, ...held } = owner;
-  return { ...held, type, address: partAddress(address, type), inside: holdersOf(owner) };
+  return { ...held, type, address: wordAddress(owner.address, type), inside: holdersOf(owner) };
+}
+
+/**
+ * `address` with `word` appended to its `part`: an owner's address, or a
+ * chunk's, whose `part` begins with its chunk index and which keeps its
+ * facet; a band, which has no part, has no text and no leader.
+ */
+function wordAddress(address: ElementAddress, word: "name" | "label" | "leader"): ElementAddress {
+  const { facet, ...owner } = address;
+  if (facet === undefined) return partAddress(owner, word);
+  const [head] = address.part ?? [];
+  if (typeof head !== "number") throw new Error("a band has no text");
+  return { ...address, part: [head, word] };
 }
 
 /**
@@ -264,14 +279,13 @@ export function textKey(owner: ElementKey, type: "name" | "label"): ElementKey {
  */
 export function leaderKey(label: ElementKey): ElementKey {
   const { coordinates: _marks, types: _types, ...held } = label;
-  const { id } = label.address;
+  const { id, facet } = label.address;
   if (id === undefined) throw new Error("a leader joins the label of an element with an ID");
-  return {
-    ...held,
-    type: "leader",
-    address: partAddress(idAddress(id), "leader"),
-    inside: holdersOf(label),
-  };
+  const address =
+    facet === undefined
+      ? partAddress(idAddress(id), "leader")
+      : wordAddress({ id, facet, part: label.address.part?.slice(0, 1) ?? [] }, "leader");
+  return { ...held, type: "leader", address, inside: holdersOf(label) };
 }
 
 /**

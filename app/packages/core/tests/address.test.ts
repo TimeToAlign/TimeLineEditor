@@ -31,7 +31,7 @@ import {
   resolveElement,
   WORKSPACE,
 } from "../src/workspace/address.ts";
-import { A, allFixtures, B, block, changed, loadText, refusal, viewOf } from "./support.ts";
+import { A, allFixtures, B, block, changed, load, loadText, refusal, viewOf } from "./support.ts";
 
 const MIXED = "bundles/bundle_mixed.yaml";
 const FREE = "bundles/bundle_free_ids.yaml";
@@ -199,6 +199,20 @@ describe("the one string form of an address", () => {
     [{ id: 'say "hi"/2' }, '{"id":"say \\"hi\\"/2"}'],
   ])("writes %j as %s", (address, text) => {
     expect(addressKey(address)).toBe(text);
+  });
+
+  it("writes a chunk's address, its part beginning with its chunk index", () => {
+    const label: ElementAddress = { id: "virtual_1", facet: "regions", part: [2, "label"] };
+    expect(addressKey(label)).toBe('{"facet":"regions","id":"virtual_1","part":[2,"label"]}');
+    const others: ElementAddress[] = [
+      { id: "virtual_1", facet: "regions", part: [2] },
+      { id: "virtual_1", facet: "regions", part: [1, "label"] },
+      { id: "virtual_1", part: ["label"] },
+    ];
+    expect(others.map((other) => sameAddress(label, other))).toEqual([false, false, false]);
+    expect(
+      resolveElement(load("map.yaml"), { id: "score", facet: "regions", part: [0] }),
+    ).toBeUndefined();
   });
 
   it("gives different addresses different keys", () => {

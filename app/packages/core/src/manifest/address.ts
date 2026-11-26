@@ -47,16 +47,28 @@ export function isPart(value: unknown): value is Part {
 }
 
 /**
+ * A chunk index: an integer from 0 at the head of an address's `part`,
+ * naming the chunk at that index of the FlowMap drawn on a line, in that
+ * line's regions band (`docs/drawing.md`, sections 2.2 and 8.10).
+ */
+export type ChunkIndex = number;
+
+/** A member of an address's `part`: a part word, or, at its head, a chunk index. */
+export type PartItem = Part | ChunkIndex;
+
+/**
  * The address of an element of one manifest's drawing, the read-only view of
  * the schema's `Address`: `{}` the bundle (the block draws it), `{part:
  * ["name"]}` the manifest's title, `{id}` an element, `{id, facet}` a band,
- * `{id, part}` a part of an element; a `facet` stands only with an `id`,
- * never with a `part`.
+ * `{id, part}` a part of an element, `{id, facet: "regions", part: [k,
+ * …]}` a chunk drawn in a regions band and its parts; a `facet` stands only
+ * with an `id`, and with a `part` only where the part begins with a chunk
+ * index.
  */
 export interface ElementAddress {
   readonly id?: Id;
   readonly facet?: Facet;
-  readonly part?: readonly Part[];
+  readonly part?: readonly PartItem[];
 }
 
 /** The address of anything but a band, which alone has parts: a band's address states no `facet`. */
@@ -96,7 +108,7 @@ interface AddressMembers {
   readonly block?: string;
   readonly id?: string;
   readonly facet?: Facet;
-  readonly part?: readonly Part[];
+  readonly part?: readonly PartItem[];
 }
 
 /**

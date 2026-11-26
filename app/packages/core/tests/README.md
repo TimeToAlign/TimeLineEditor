@@ -886,6 +886,15 @@ check of who holds what.
     dropped): every region's spellings are the IRI, `tts:AtomicSection` and
     `ex:AtomicSection`, and the three selectors `tts:AtomicSection`,
     `ex:AtomicSection` and the IRI each match the three regions.
+14. **The texts and leaders of chunks** (drawing.md section 2.2): a
+    chunk of a FlowMap drawn in a regions band is addressed `{id: V,
+    facet: "regions", part: [k]}`. `textKey` of a key at that address
+    gives its label at `{id: V, facet: "regions", part: [k, "label"]}`,
+    the key's other members kept and the chunk's type added to `inside`;
+    `leaderKey` of that label gives its leader at `{id: V, facet:
+    "regions", part: [k, "leader"]}`. An owner's text and leader keep
+    their forms (`{id: X, part: ["label"]}`, `{id: X, part: ["leader"]}`),
+    and a band's key (a facet, no part) has no text: `textKey` throws.
 
 The elements of manifests with several roots and groups are in "Several
 roots and groups".
@@ -1401,7 +1410,14 @@ string form is `addressKey`, and nothing splits or composes an ID.
    block, no block) give fourteen keys. `sameAddress` compares whole
    addresses: equal whatever their members' order, unequal for another
    part, a part's words in another order, another facet, or a block on one
-   side only.
+   side only. A chunk's address, whose part begins with its chunk index
+   (drawing.md section 2.2), has its one form too: `{id: "virtual_1",
+   facet: "regions", part: [2, "label"]}` is
+   `{"facet":"regions","id":"virtual_1","part":[2,"label"]}`, and it
+   differs from the chunk `[2]`, from `[1, "label"]` and from the region
+   label `{id: "virtual_1", part: ["label"]}`. No container resolves a
+   chunk: `resolveElement` names nothing at `{id: "score", facet:
+   "regions", part: [0]}` of `map.yaml`.
 4. **Every kind resolves.** On a block of `bundles/bundle_mixed.yaml` (and
    one of `map.yaml`), one address per kind with its expected resolution
    written by hand: the workspace `{}`, a block `{block: A}`, the title
