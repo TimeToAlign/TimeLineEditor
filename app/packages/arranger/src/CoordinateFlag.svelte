@@ -1,7 +1,8 @@
 <script lang="ts">
 import type { Pin, Row } from "@timetoalign/tilie-core";
-import { flagParts, rowValueText } from "./coordinates.ts";
+import { flagParts, flowFlagParts, rowValueText } from "./coordinates.ts";
 import Flag from "./Flag.svelte";
+import { getNodeActions } from "./nodeActions.ts";
 
 interface Props {
   /**
@@ -25,6 +26,17 @@ let { pin, hovered, x, y, top, width }: Props = $props();
 /** The places a float is shown with: the granularity's. */
 const decimals = $derived(pin.timestamp.granularity.decimals);
 const parts = $derived(flagParts(pin));
+
+const actions = getNodeActions();
+
+/**
+ * The parts flows add (`flowFlagParts`), read from the pin's block as the canvas shows it: the
+ * written position of a virtual card's, or a root's played positions on its virtual cards.
+ */
+const flowParts = $derived.by(() => {
+  const block = actions.view().blocks[pin.spec.block];
+  return block === undefined ? [] : flowFlagParts(block.manifest, block.places, pin, decimals);
+});
 
 /** The timeline of the timestamp's primary coordinate: its anchor's. */
 const primary = $derived(pin.spec.anchor.timeline);
@@ -50,6 +62,17 @@ function isHovered(row: Row): boolean {
           <span class="tilie-coordinates-value" data-testid={item.row.map === null ? "coordinate" : undefined}
             >{rowValueText(item, decimals)}</span
           >
+        </div>
+      {/each}
+    </div>
+  {/each}
+  {#each flowParts as part (part.key)}
+    <div class="tilie-coordinates-part" data-flow={part.key}>
+      <div class="tilie-coordinates-head">{part.name}</div>
+      {#each part.rows as row (row.key)}
+        <div class="tilie-coordinates-row" data-flow-row={row.key}>
+          <span class="tilie-coordinates-name">{row.name}</span>
+          <span class="tilie-coordinates-value">{row.value}</span>
         </div>
       {/each}
     </div>

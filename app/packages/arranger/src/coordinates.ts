@@ -24,6 +24,7 @@ import type {
   Block,
   BlockId,
   ConversionMap,
+  Coordinate,
   CrossSectionMember,
   CrossSectionSpec,
   Expressed,
@@ -33,8 +34,10 @@ import type {
   Manifest,
   MeasureKnots,
   NamedTimestamp,
+  Occurrence,
   Pin,
   Real,
+  ResolvedVirtualTimeline,
   Row,
   TimelineAxis,
   TimelineManifest,
@@ -43,22 +46,30 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   ancestorMembers,
+  compareCodePoints,
+  displayOrder,
+  FlowMapError,
   findTimeline,
+  foldVirtual,
   idAddress,
   measureText,
+  placeAt,
   placeKeyText,
   prettyText,
+  resolveVirtualTimeline,
   samePlaceKey,
   saveManifest,
   snapOnRow,
   timelineAxisOf,
   timestampAt,
   timestampRows,
+  unfoldVirtual,
 } from "@timetoalign/tilie-core";
-import { orderedChildren } from "@timetoalign/tilie-core/drawing";
+import { memberDrawings, orderedChildren } from "@timetoalign/tilie-core/drawing";
 import {
   addReal,
   axisCoordinate,
+  compareCoordinates,
   Rational,
   realOf,
   toFloat,
@@ -286,9 +297,50 @@ function crossedAt<T extends TimelineAxis>(
   return { ...axis, ordinate, ...maps };
 }
 
-/** The timeline `id` of `manifest`, which a drawing of it draws. */
+const virtualRoots = new WeakMap<Manifest, Map<string, TimelineManifest>>();
+
+/**
+ * The virtual timeline `id` of `manifest` read as the root its card draws
+ * (TimeToShare's `docs/drawing.md`, section 8.10): a locked root of its ID,
+ * name (else its ID), unit, number type and length, holding nothing; once
+ * per manifest and ID. Undefined where `id` names no virtual timeline.
+ */
+function virtualRoot(manifest: Manifest, id: string): TimelineManifest | undefined {
+  let known = virtualRoots.get(manifest);
+  if (known === undefined) {
+    known = new Map();
+    virtualRoots.set(manifest, known);
+  }
+  const found = known.get(id);
+  if (found !== undefined) return found;
+  const virtual = (manifest.virtual_timelines ?? []).find((item) => item.id === id);
+  if (virtual === undefined) return undefined;
+  const root: TimelineManifest = {
+    id,
+    name: virtual.name ?? id,
+    unit: virtual.unit,
+    number_type: virtual.number_type,
+    length: virtual.length,
+    locked: true,
+    is_segment_line: false,
+    meta: {},
+    children: [],
+    conversion_maps: [],
+    regions: [],
+    flow_control: [],
+  };
+  known.set(id, root);
+  return root;
+}
+
+/** The timeline `id` of `manifest`: one of its trees', or a virtual timeline read as a root (`virtualRoot`). */
+function timelineOrVirtual(manifest: Manifest, id: string): TimelineManifest | undefined {
+  return findTimeline(manifest, id) ?? virtualRoot(manifest, id);
+}
+
+/** The timeline `id` of `manifest`, which a drawing of it draws (`timelineOrVirtual`). */
 function drawnTimeline(manifest: Manifest, id: string): TimelineManifest {
-  const timeline = findTimeline(manifest, id);
+  const timeline = timelineOrVirtual(manifest, id);
   if (timeline === undefined) throw new Error(`the drawn timeline '${id}' is not in its manifest`);
   return timeline;
 }
@@ -992,7 +1044,7 @@ export function timelinePin(
   raised: string | null,
   preferred: string | null,
 ): Pin | null {
-  const found = findTimeline(manifest, timeline);
+  const found = timelineOrVirtual(manifest, timeline);
   if (found === undefined) return null;
   const spec = timelineSpec(
     manifest,
@@ -1066,7 +1118,7 @@ export function namedPin(
   preferred: string | null,
 ): Pin | null {
   const named = manifest.graphical?.timestamps?.find((item) => item.id === id);
-  const timeline = named === undefined ? undefined : findTimeline(manifest, named.timeline);
+  const timeline = named === undefined ? undefined : timelineOrVirtual(manifest, named.timeline);
   if (named === undefined || timeline === undefined) return null;
   const position = namedCoordinate(named, timeline);
   const spec = timelineSpec(
@@ -1131,7 +1183,7 @@ export function affordancesOf(
   if (known?.manifest === manifest) return known.affordances;
   const affordances = (manifest.graphical?.timestamps ?? []).flatMap((named) => {
     if (named.display.length > 0 || named.matchstamp) return [];
-    const timeline = findTimeline(manifest, named.timeline);
+    const timeline = timelineOrVirtual(manifest, named.timeline);
     if (timeline === undefined) return [];
     const coordinate = namedCoordinate(named, timeline);
     const address = idAddress(named.id);
@@ -1507,4 +1559,192 @@ export class FrameCoalescer<T> {
     if (this.#frame !== null) cancelAnimationFrame(this.#frame);
     this.#frame = null;
   }
+}
+
+/** One row the flag adds for a flow: what it names and its value as the flag writes it. */
+export interface FlowFlagRow {
+  /** Unique within its part. */
+  readonly key: string;
+  readonly name: string;
+  readonly value: string;
+}
+
+/**
+ * A part the flag adds below the timestamp's for a flow (plan of the canvas's
+ * virtual cards; TimeToShare's `docs/drawing.md`, section 8.10): the written
+ * position of a virtual timeline's played one, or the played positions of a
+ * root's written one on its virtual cards.
+ */
+export interface FlowFlagPart {
+  /** Unique within the flag: `written <V>` or `played <R>`. */
+  readonly key: string;
+  readonly name: string;
+  readonly rows: readonly FlowFlagRow[];
+}
+
+/** A card of a virtual timeline the block draws: its timeline and the group whose frame holds it, `null` for one of its own. */
+export interface VirtualCard {
+  readonly timeline: string;
+  readonly group: string | null;
+}
+
+/**
+ * The cards of virtual timelines `manifest` draws at `places`, in the order
+ * the block draws them (section 8.1): the virtual members of each frame in
+ * its display order, frame by frame in the canonical order of their groups,
+ * then each placed virtual timeline in no group whose ID `places` holds, by ID.
+ */
+export function virtualCards(manifest: Manifest, places: Block["places"]): VirtualCard[] {
+  const virtual = new Set((manifest.virtual_timelines ?? []).map((item) => item.id));
+  if (virtual.size === 0) return [];
+  const framed = memberDrawings(manifest).frames.flatMap(({ group }) =>
+    displayOrder(manifest, group.id)
+      .filter((id) => virtual.has(id))
+      .map((timeline) => ({ timeline, group: group.id })),
+  );
+  const grouped = new Set(manifest.groups.flatMap((group) => group.members));
+  const placed = [...virtual]
+    .filter((id) => !grouped.has(id) && placeAt(places, { item: id }) !== undefined)
+    .sort(compareCodePoints)
+    .map((timeline) => ({ timeline, group: null }));
+  return [...framed, ...placed];
+}
+
+/** A virtual timeline of `manifest` resolved through a FlowMap of its own root, else `null`. */
+function flowVirtual(manifest: Manifest, id: string): ResolvedVirtualTimeline | null {
+  try {
+    const resolved = resolveVirtualTimeline(manifest, id);
+    return resolved.kind === "flow_map" && resolved.through === null ? resolved : null;
+  } catch (error) {
+    if (error instanceof FlowMapError) return null;
+    throw error;
+  }
+}
+
+/** The name of a timeline, a virtual timeline or a group of `manifest`: its `name`, else its ID. */
+function nameIn(manifest: Manifest, id: string): string {
+  const named =
+    findTimeline(manifest, id) ??
+    (manifest.virtual_timelines ?? []).find((item) => item.id === id) ??
+    manifest.groups.find((item) => item.id === id);
+  return named?.name ?? id;
+}
+
+/** A coordinate as the flag writes it, rounded to `decimals` places. */
+function coordinateText(coordinate: Coordinate, decimals: number): string {
+  return prettyText(coordinate.value, coordinate.numberType, coordinate.unit, decimals);
+}
+
+/**
+ * The parts the flag adds to `pin`'s for flows, the block's manifest
+ * `manifest` drawn at `places`, its values rounded to `decimals` places:
+ *
+ * - where the anchor is a virtual timeline `V` resolved through a FlowMap of
+ *   its root `R`, the part `written <V>`, named by `R`, with the row
+ *   `coordinate`, the position written that `V` plays at the anchor's
+ *   (core's `foldVirtual`), and the row `occurrence`, `k of n`, the place of
+ *   the anchor's position among every played position of that written one
+ *   (`unfoldVirtual`); inside a gap the one row `coordinate`, `in a gap`;
+ * - for every part of the timestamp whose timeline is a root `R` with a
+ *   virtual card drawn (`virtualCards`), the part `played <R>`, named
+ *   `<R's name> played`, with one row per such card in the block's order,
+ *   named by its virtual timeline (followed by ` in <group's name>` for a
+ *   card in a frame), its value every played position of the part's
+ *   coordinate in the order played, joined by `, `, or `not played`.
+ *
+ * None for a pin of a timeline outside every flow.
+ */
+export function flowFlagParts(
+  manifest: Manifest,
+  places: Block["places"],
+  pin: Pin,
+  decimals: number,
+): FlowFlagPart[] {
+  const parts: FlowFlagPart[] = [];
+  const [anchor] = pin.timestamp.parts;
+  const resolved = anchor === undefined ? null : flowVirtual(manifest, anchor.timeline);
+  if (anchor !== undefined && resolved !== null) {
+    const played = { unit: anchor.unit, numberType: anchor.numberType, value: anchor.position };
+    parts.push({
+      key: `written ${anchor.timeline}`,
+      name: nameIn(manifest, resolved.source),
+      rows: writtenRows(resolved, played, decimals),
+    });
+  }
+  const cards = virtualCards(manifest, places);
+  for (const part of pin.timestamp.parts) {
+    if (!manifest.timelines.some((root) => root.id === part.timeline)) continue;
+    const written = { unit: part.unit, numberType: part.numberType, value: part.position };
+    const rows = cards.flatMap(({ timeline, group }): FlowFlagRow[] => {
+      const virtual = flowVirtual(manifest, timeline);
+      if (virtual === null || virtual.source !== part.timeline) return [];
+      const own = nameIn(manifest, timeline);
+      return [
+        {
+          key: `${timeline} ${group ?? ""}`,
+          name: group === null ? own : `${own} in ${nameIn(manifest, group)}`,
+          value: playedText(virtual, written, decimals),
+        },
+      ];
+    });
+    if (rows.length > 0) {
+      parts.push({
+        key: `played ${part.timeline}`,
+        name: `${nameIn(manifest, part.timeline)} played`,
+        rows,
+      });
+    }
+  }
+  return parts;
+}
+
+/** The rows of the written position `resolved` plays at `played`. */
+function writtenRows(
+  resolved: ResolvedVirtualTimeline,
+  played: Coordinate,
+  decimals: number,
+): FlowFlagRow[] {
+  const written = foldOrNull(resolved, played);
+  if (written === null) return [{ key: "coordinate", name: "coordinate", value: "in a gap" }];
+  const occurrences = unfoldVirtual(resolved, written);
+  const index = occurrences.findIndex((each) => compareCoordinates(each.played, played) === 0);
+  const rows: FlowFlagRow[] = [
+    { key: "coordinate", name: "coordinate", value: coordinateText(written, decimals) },
+  ];
+  const found = occurrences[index];
+  if (found !== undefined) {
+    rows.push({
+      key: "occurrence",
+      name: "occurrence",
+      value: `${found.occurrence} of ${found.of}`,
+    });
+  }
+  return rows;
+}
+
+/** The written position `resolved` plays at `played`; `null` in a gap, at its length or outside its axis. */
+function foldOrNull(resolved: ResolvedVirtualTimeline, played: Coordinate): Coordinate | null {
+  try {
+    return foldVirtual(resolved, played);
+  } catch (error) {
+    if (error instanceof FlowMapError) return null;
+    throw error;
+  }
+}
+
+/** Every played position of `written` on `virtual`, joined by `, `; `not played` for none. */
+function playedText(
+  virtual: ResolvedVirtualTimeline,
+  written: Coordinate,
+  decimals: number,
+): string {
+  let occurrences: readonly Occurrence[];
+  try {
+    occurrences = unfoldVirtual(virtual, written);
+  } catch (error) {
+    if (!(error instanceof FlowMapError)) throw error;
+    occurrences = [];
+  }
+  if (occurrences.length === 0) return "not played";
+  return occurrences.map((each) => coordinateText(each.played, decimals)).join(", ");
 }

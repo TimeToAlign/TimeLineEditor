@@ -4607,6 +4607,143 @@ What would be wrong: a handle dragged by one card scale across runs of
 another, a width rounded, a default gap edited alone, a group elision's gap
 held by no frame, the pane of one canvas redrawing another's blocks.
 
+## Virtual cards, ribbons, the flow flag and the flow switch (`virtual-cards.test.ts`, `ribbons.test.ts`, `flow-flag.test.ts`, `flow-switch.test.ts`)
+
+TimeToShare's drawing specification, section 8.10, draws a virtual
+timeline as a card of its own (a placed one, `places` holding its ID) or
+in its group's frame, and a card whose `flow` names a FlowMap of its root
+on that FlowMap's virtual axis (a switched card). Layout owns that drawing;
+these tests own what the canvas does with it. The cases are TimeToShare's
+fixtures `flow/virtual_cards` (the root `allegro`, 1644 quarters, the atomic
+sections A [0, 953/2), B [953/2, 500), C [500, 1644); the FlowMaps
+`by_hand` "Practice" A A A A, a gap of 4, C; `default` A B A C; `printed`;
+`single` A C; the virtual timelines `allegro_by_hand` "Allegro, practice",
+`allegro_default` "Allegro, default", `allegro_single` "Allegro, single",
+none placed), `groups/virtual_member` (the same, with `allegro_default`
+and the seconds root `recording` members of `performance`, `allegro` an
+ungrouped root), `flow/switched_card` (`virtual_cards` with the rule
+`flow: default` on `{id: "allegro", part: ["card"]}`) and
+`groups/switched_frame` (that rule, `allegro` and `recording` members of
+`performance`, no virtual timeline). In `virtual_cards` block A places
+`allegro_default` at (0, 200) and `allegro_by_hand` at (0, 400), each by
+one `set` of its place, so both cards are drawn after `allegro`'s, by ID.
+
+**Played positions.** `default` plays A over [0, 953/2), B over [953/2,
+500), A again over [500, 1953/2), C over [1953/2, 4241/2). `by_hand` plays
+A at 0, 953/2, 953 and 2859/2, the gap over [1906, 1910), C over [1910,
+3054). Its first four entries are a run drawn once in a card of its own
+(section 8.10, Runs): only entry 0's brace is drawn, labelled `A × 4`, and
+entries 1 to 3 draw nothing.
+
+**Virtual cards are cards** (`virtual-cards.test.ts`). Nothing in the
+arranger tells a virtual card from a root's: what proves it is that the
+existing card code, run on it, gives what it gives a root's card. A press
+on its rectangle hits a `card` with the place key `{item:
+"allegro_default"}` and the address `{block: A, id: "allegro_default",
+part: ["card"]}`; a move of it to (16, 240) is one `set` of its place to
+`{x: 16, y: 240}` and `allegro`'s drawn place `{x: 8, y: 28.8046875}`, as
+for any item; a resize by 60 to the right sets `width` its drawn width
+plus 60 (Box, right handle) and `length` 460 (Stretch, right handle), and
+from the bottom-right handle (Scale) the `scale` the same gesture gives
+`allegro`'s card, which is as wide; each applied by core lands in its
+place beside its `x` and `y`, and `allegro`'s card gets the same values
+from the same gestures. A press on a chunk's brace
+hits the element `{id: "allegro_default", facet: "regions", part: [k]}`,
+as a press on a region hits the region.
+
+**Ribbons** (`ribbons.test.ts`). `chunkOf` reads a chunk from an address
+of a virtual timeline's regions facet whose part starts with a chunk
+index (the brace, `[k, "label"]`, `[k, "leader"]`, `[k, "start"]`) and
+nothing else: not `{id: "allegro", facet: "regions"}`, not a timeline
+line, not a region of `allegro`. A chunk's ribbon geometry is derived from
+the drawing alone:
+
+- its **virtual end** lies on the line of its virtual timeline in the card
+  drawing its brace, at that line's ordinate `y`, from the brace element's
+  `x1` to its `x2` (one stretch per chunk here; a chunk naming a virtual
+  timeline plays several, each over its share of the brace);
+- its **written end** lies on every line of the root in the block, at that
+  line's `y`, from `xStart + (s − start) / L × (xEnd − xStart)` to the same
+  of `e`, `[s, e)` the written stretch, `start` and `L` the line's own
+  start and drawn length (layout's `abscissaOf`), clipped to what the line
+  draws;
+- its path is `M a1 ya L a2 ya C a2 m b2 m b2 yb L b1 yb C b1 m a1 m a1 ya Z`,
+  `a` the virtual end, `b` the written end, `m = (ya + yb) / 2`.
+
+`allegro_default`'s chunk 1 (B) has one ribbon to [953/2, 500) on
+`allegro`'s line and lights nothing (no other chunk names B). Its chunk 0
+(A) has one ribbon to [0, 953/2) and lights `allegro_by_hand`'s brace 0
+(`A × 4`) and `allegro_default`'s brace 2, in that order (drawing order;
+the cards are drawn by ID). `allegro_by_hand`'s chunk 5 (C) reaches
+`allegro` over [500, 1644) from its brace, which lies after the run's
+shrink: its `x1` is the brace element's, never the line's linear
+abscissa of 1910; it lights `allegro_default`'s brace 3, the other C. Its chunk 1, the second entry of the run, draws no
+brace, so no ribbon, and lights `allegro_by_hand`'s brace 0 and
+`allegro_default`'s braces 0 and 2. Its chunk 4 (the gap) shows nothing.
+In `groups/virtual_member` chunk 1 of the member card reaches `allegro`'s
+card from the member card's line. Several chunks shown at once give the
+ribbons of each in turn, each key prefixed by its chunk's address key,
+and light each other brace once, never one of the shown chunks.
+
+On the node (`ribbons.test.ts`, `NodeHarness`): a pointer moving onto a
+chunk's brace draws one `path.tilie-ribbon` per ribbon, its `d` the
+ribbon's path, inside one `g.tilie-ribbons` that lets the pointer through
+and carries no address attribute, and one `.tilie-lit` copy per lit brace,
+its `d` the brace's, without `data-id`, `data-facet` or `data-part`;
+leaving the node removes them. With the brace's address among the
+selected elements they are drawn without a pointer; with nothing hovered
+or selected the node draws no `g.tilie-ribbons`.
+
+**The flag** (`flow-flag.test.ts`). The pin is read on a line of the
+drawing (`crossSectionSpec`, core's `timestampAt`), as the canvas reads
+it. Values are written as core's `prettyText` writes a coordinate. On
+`allegro_default`'s line at the played 600 (in chunk 2, the second A) the
+flag adds the part `written allegro_default`, named `Allegro`, with the
+rows `coordinate` 100 and `occurrence` `2 of 2`; at 1000 (in C) `523 1/2`
+written and `1 of 1`. On `allegro_by_hand`'s line at 1907 (in the gap) the
+one row `coordinate` `in a gap`. On `allegro`'s line at 100 the part
+`played allegro`, named `Allegro played`, has one row per virtual card in
+the block's order (`allegro_by_hand`, then `allegro_default`): "Allegro,
+practice" `100, 1053/2, 953 + 100, 2859/2 + 100` and "Allegro, default"
+`100, 600`; at 600 (in C) "Allegro, practice" `2010` and "Allegro,
+default" `1953/2 + 100`. In `groups/virtual_member` the member card's row
+is named "Allegro, default in Performance". A pin on `allegro` in a block
+placing no virtual card adds nothing. A virtual timeline is read as the
+root its card draws (section 8.10), named by its `name`: a line of a
+virtual card is hovered and pinned as any root's, and the named timestamp
+`timestamp_4` of `allegro_default` in `groups/virtual_member` pins at
+4241/2 on its own axis, its part named "Allegro, default".
+
+**The switch** (`flow-switch.test.ts`, the pure functions, then
+`ToolbarHarness`). A card of `allegro` offers "As written", then the
+FlowMaps `by_hand` ("Practice"), `default`, `printed`, `single` (no name,
+labelled by ID), then the virtual timelines "Allegro, practice", "Allegro,
+default", "Allegro, single"; a virtual card offers nothing, nor
+`recording`'s card, nor a band or the block. `performance`'s frame in
+`groups/switched_frame` offers `allegro`'s list (its member `recording`
+has none). The entry shown chosen is `default` in `switched_card` and in
+`switched_frame`'s frame, "As written" in `virtual_cards`. Choosing on a
+card sends one `style` command, `{type: "style", select: {addresses:
+[{id: "allegro", part: ["card"]}]}, set: {flow: F}, blocks: [A]}`, with `F`
+the chosen ID, `null` for "As written"; choosing what is shown sends
+nothing; on a frame "As written" removes the flow of every member setting
+one. Each command applied by core leaves the chosen ID as the card's
+`flow` (`flowOf`) and passes the validators. Mounted above `allegro`'s
+card, the select `flow-switch` lists those labels in that order, the
+chosen one selected; choosing entry 6 ("Allegro, default") dispatches
+exactly that command once; a locked canvas disables it. It stands `10 +
+h + 4` screen pixels above the box, `h` the mode menu's measured height,
+`10` where no mode menu is shown (`switchOffset`).
+
+**The switch's motion.** Where a card becomes switched its chunks move from
+their written stretch on the card's line to their brace on the virtual
+axis (`switchMorphs`); between two drawings of the same manifest nothing
+moves. A moving brace or boundary at progress `t` is stretched onto the
+span `from + (to − from) × t`: `matrix(s 0 0 1 x1(t) − to.x1 × s 0)`, `s` the
+span's width at `t` over `to`'s; a text moves by its span's middle; at
+`t = 1` nothing. Which elements a switched drawing moves is pinned once the
+switched card is drawn by layout.
+
 ## Package (`name.test.ts`)
 
 The package exports its exact name `"@timetoalign/tilie-arranger"`; its
