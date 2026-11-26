@@ -2020,7 +2020,14 @@ stretches written by the arranger's `stretchText` as every row is.
   `remove` of that elision (core's `elisionsUnder` of the virtual
   timeline); the elision selected shows the form titled `Elision on
   "Allegro, default"`, unit ♩, its From and To the texts a typed value
-  gives back (`4241/6` and `4241/3`), held by the root's block.
+  gives back (`4241/6` and `4241/3`), held by the root's block. Its
+  width is read on the card's axis, the virtual timeline's own (base
+  itself, `λ` 4241/2, `L` 400): form Standard, the drawn gap the standard
+  32, its natural width `400 × 2/3 − 400 × 1/3` with each proportion
+  rounded once to a double (133.33333333333331), so the fields read ratio
+  `0.24000000000000005` (32 over it), span `4241/25` (32 × λ / L, exact)
+  and canvas `32`; choosing Span is one `set` of that elision's `width`
+  to `{span: [4241, 25]}`.
 - **A virtual member.** `groups/virtual_member` (`allegro_default` a
   member of `performance` "Performance" with the root `recording`) given
   `gap` on `allegro_default` from 500 to 1000 by one `add`: the group's
@@ -2034,7 +2041,11 @@ stretches written by the arranger's `stretchText` as every row is.
   "1000" and Also elides `Recording` with the stretch `stretchText`
   writes of 702500/4241 to 1405000/4241 on `recording`'s float axis (the
   exact proportions times its length 702.5, rounded once), layout's
-  elided coordinates.
+  elided coordinates. Its width is read on the frame's axis, the virtual
+  member's own (`λ` 4241/2, `L` 400): form Standard, the drawn gap 32
+  over layout's natural width 94.31737797689225, so ratio
+  `0.33927999999999997`, span `4241/25`, canvas `32`; choosing Canvas is
+  one `set` of `gap`'s `width` to `{canvas: 32}`.
 
 **The display command** is one (`stamps/commands.ts`): a named timestamp's,
 an anchor's and a stored elision's `display` toggle through it, taking a
@@ -2693,6 +2704,14 @@ ticks `5760`, coordinate `12` ♩.
      'Performance'." (core's `groupsHolding`: a group holds a timeline when
      it or one of its ancestors is a member, so the group is named
      although `second-half` itself is listed in no group).
+   - *A virtual member.* On `groups/virtual_member` (`allegro_default`
+     "Allegro, default", a virtual timeline listed in `performance`
+     "Performance"), its stored timestamp `timestamp_3` (not a
+     GroupStamp) selected shows GroupStamp not pressed and enabled,
+     described by "A GroupStamp's line crosses every member of
+     'Performance'." (a virtual timeline lies in no tree, so a group
+     holds it exactly where its `members` list it, as `isGroupMember`
+     already says by offering the toggle).
    - *Not offered.* Theme of the example ("Timestamps" holds no group)
      shows no "Group" key and no GroupStamp toggle.
    - *A match timestamp.* The match timestamp `timestamp_1` on `clt_1` of
@@ -3135,6 +3154,15 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    - *Both tabs alike.* The Timestamp tab showing `turn_score` lists, heading for
      heading and row for row ([label, text, unit]), the first coordinate's
      three groups.
+   - *A virtual member.* On `groups/virtual_member` "Turn" named by one
+     `add` with the anchor [`allegro_default` `[500, 1]`, `recording`
+     `3.0`] (the same IDs): both timestamp lines carry the GroupStamp
+     toggle pressed, each described by "A GroupStamp's line crosses every
+     member of 'Performance'.", the anchor none; the Coordinates, as
+     [heading, through, caption]: "Allegro, default" claimed, "Recording"
+     group "through group 'Performance'", then "Allegro, default" group
+     "through group 'Performance'", "Recording" claimed. The virtual
+     member is read through the group it is listed in, as any member.
    - *Potential.* One rule: a potential MatchStamp's timestamp line and
      its Coordinates both show the match timestamp naming will store
      there (core's `namedAsGroupstamp`): where the manifest holds a match

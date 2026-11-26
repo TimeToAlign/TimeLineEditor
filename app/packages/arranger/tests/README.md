@@ -4919,6 +4919,16 @@ the default gaps `first` 0–8 and 16–32 and `second` 1–31, drawn
    `1662.2615751378676`) the abscissa `1662.2615751378676 + 200` reads 60
    (56 + 200 / 50). `zeroOf(score
    tree)`: `theme` lies at 16 on `score`.
+6a. **A virtual timeline's axis** (section 8.10): a virtual timeline lies
+   in no tree and is read on its own played axis, from 0 to its length.
+   `allegro_default` "Allegro, default" (4241/2 quarters) given `gap` from
+   500 to 1000 by one `add`, both in `groups/virtual_member` (a member of
+   the frame `performance`) and in `flow/virtual_cards` with its card
+   placed by one `set` of its `place` `{scale: 1}`: in the frame and in
+   the card alike its base is itself, zero 0, `λ` 4241/2, the container
+   draws that one gap, and the scale beside both edges is `L / λ` = 400 /
+   (4241/2) = `0.18863475595378448` (layout's README, virtual timelines:
+   `L` 400 in either container).
 
 **Handles and keys** (`gapDrag`, `gapStep`, `gapCommand`, the elision
 design's table: the right edge dragged by `Δx`, the left one mirrored):

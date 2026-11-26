@@ -995,6 +995,47 @@ describe("GroupStamps", () => {
     expect(throughGroups()).toEqual(potentialGroups);
   });
 
+  it("name the group of a virtual member", () => {
+    const store = storeOf("groups/virtual_member");
+    expect(
+      store.dispatch({
+        type: "add",
+        into: { block: A },
+        matchstamp: {
+          name: "Turn",
+          anchors: [
+            [
+              { timeline: "allegro_default", coordinate: [500, 1] },
+              { timeline: "recording", coordinate: 3.0 },
+            ],
+          ],
+          match_claims: ["claim_1"],
+        },
+        ids: TURN_IDS,
+      }),
+    ).toBe(null);
+    show(store, { kind: "named", block: A, id: "turn" }, tablesWith(null));
+    expect((lineStates() as unknown[][]).map((line) => [line[0], line[3]])).toEqual([
+      ["timestamp", true],
+      ["anchor", null],
+      ["timestamp", true],
+    ]);
+    expect(
+      [...document.querySelectorAll("section.lines .groupstamp .hint")].map(
+        (item) => item.textContent,
+      ),
+    ).toEqual([
+      "A GroupStamp's line crosses every member of 'Performance'.",
+      "A GroupStamp's line crosses every member of 'Performance'.",
+    ]);
+    expect((throughGroups() as unknown[][]).map((group) => group.slice(0, 3))).toEqual([
+      ["Allegro, default", "claimed", "stated by MatchClaims"],
+      ["Recording", "group", "through group 'Performance'"],
+      ["Allegro, default", "group", "through group 'Performance'"],
+      ["Recording", "claimed", "stated by MatchClaims"],
+    ]);
+  });
+
   it("show a reused match timestamp's own GroupStamp on a potential MatchStamp", () => {
     const store = mixedStore();
     showTurn(store);

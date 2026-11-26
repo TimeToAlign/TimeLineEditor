@@ -1551,6 +1551,12 @@ describe("GroupStamp", () => {
     expect([groupstamp(), describedGroup()]).toEqual([["GroupStamp", "false", false], CROSSES]);
   });
 
+  it("names the group of a virtual member", () => {
+    const store = storeOf("groups/virtual_member");
+    drawer(store, true).selected([{ block: A, id: "timestamp_3" }]);
+    expect([groupstamp(), describedGroup()]).toEqual([["GroupStamp", "false", false], CROSSES]);
+  });
+
   it("is not offered on a timeline in no group", () => {
     const store = example();
     drawer(store, true, T).selected([THEME]);

@@ -1,6 +1,6 @@
 /**
- * The axis of a container (README, "Elisions on the canvas", items 5 and
- * 6): the scale of the run beside each gap edge, the base each timeline is
+ * The axis of a container (README, "Elisions on the canvas", items 5, 6
+ * and 6a): the scale of the run beside each gap edge, the base each timeline is
  * read on, and the abscissas of coordinates on the run list.
  */
 
@@ -11,7 +11,7 @@ import type { Drawing } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
 import { cardAxisAt, zeroOf } from "../src/cardAxis.ts";
 import { drawingOf } from "../src/drawing.ts";
-import { A, blockIn, metrics, viewOf } from "./support.ts";
+import { A, blockIn, changed, metrics, placed, viewOf } from "./support.ts";
 
 const STORED = viewOf({ id: A, fixture: "bundles/bundle_elisions_stored" });
 const MEMBERS = viewOf({ id: A, fixture: "groups/group_elided_members" });
@@ -66,5 +66,40 @@ describe("abscissas on the runs", () => {
       axis.valueAt("score", 1532.2615751378676),
       axis.valueAt("score", 1662.2615751378676 + 200),
     ]).toEqual([1432.2615751378676, 1632.2615751378676, null, null, 60]);
+  });
+});
+
+describe("a virtual timeline's axis", () => {
+  /** `view` with `gap` on `allegro_default` from 500 to 1000, by one `add`. */
+  const withGap = (view: View): View =>
+    changed(view, {
+      type: "add",
+      into: { block: A, id: "allegro_default" },
+      elision: { start: [500, 1], end: [1000, 1] },
+      ids: ["gap"],
+    });
+  const MEMBER = withGap(viewOf({ id: A, fixture: "groups/virtual_member" }));
+  const CARD = withGap(
+    placed(viewOf({ id: A, fixture: "flow/virtual_cards" }), A, "allegro_default", { scale: 1 }),
+  );
+
+  it.each([
+    ["in its frame", MEMBER, { item: "performance" }],
+    ["in its placed card", CARD, { item: "allegro_default" }],
+  ])("is read on its own length %s", (_, view, key) => {
+    const axis = axisAt(view, key);
+    const base = axis.baseOf("allegro_default");
+    expect([base?.base, base?.zero.toString(), String(base?.lambda)]).toEqual([
+      "allegro_default",
+      "0",
+      "4241/2",
+    ]);
+    const [gap, ...others] = axis.exposure.gaps;
+    if (gap === undefined) throw new Error("no gap");
+    expect([others, axis.edgeScale(gap, "start"), axis.edgeScale(gap, "end")]).toEqual([
+      [],
+      0.18863475595378448,
+      0.18863475595378448,
+    ]);
   });
 });

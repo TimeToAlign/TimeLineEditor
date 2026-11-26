@@ -124,14 +124,15 @@ export function memberAncestry(manifest: Manifest): Map<string, readonly string[
  * The groups of `manifest` having the timeline `timeline` as a member, in
  * the order of `groups`: those whose `members` list it or one of its
  * ancestors, since a member's descendants are drawn inside the member's
- * card in the group's frame. An ancestor of a listed member is in none of
+ * card in the group's frame; a virtual timeline, which has no ancestors,
+ * is in those listing it. An ancestor of a listed member is in none of
  * them; a timeline the manifest does not hold is in none. `ancestry` is
- * the manifest's `timelineAncestry`, given where the caller holds it.
+ * the manifest's `memberAncestry`, given where the caller holds it.
  */
 export function groupsHolding(
   manifest: Manifest,
   timeline: string,
-  ancestry: ReadonlyMap<string, readonly string[]> = timelineAncestry(manifest),
+  ancestry: ReadonlyMap<string, readonly string[]> = memberAncestry(manifest),
 ): Manifest["groups"] {
   const lineage = ancestry.get(timeline);
   if (lineage === undefined) return [];

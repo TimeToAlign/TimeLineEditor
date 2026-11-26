@@ -3073,7 +3073,11 @@ complete form).
     `second-half` and `recording`, false for `piece`, the ancestor of a
     listed member. `groupsHolding` gives the groups themselves: `group_1`
     for `motif` and for `second-half`, none for `piece` and for an ID no
-    timeline carries.
+    timeline carries. A virtual timeline lies in no tree, so a group holds
+    it exactly where its `members` list it (drawing.md §8.10): in
+    `groups/virtual_member` `groupsHolding` gives `performance` for
+    `allegro_default` and none for `allegro_by_hand`, without being handed
+    an ancestry, and `isGroupMember` agrees (true, false).
 25. A child joining a group is given its `origin` and `length` as
     groupstamps (drawing.md §6.6 draws their lines across the frame, so
     the frame marks the member's start and end): on `nested.yaml` (`clt_1`
