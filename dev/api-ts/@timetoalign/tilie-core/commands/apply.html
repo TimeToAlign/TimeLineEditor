@@ -539,7 +539,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="applied">
 <h3>Applied<a class="headerlink" href="#applied" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/bfcf3a1def1b1090b72d05c68837801cca9df5d4/app/packages/core/src/commands/apply.ts#L31">commands/apply.ts:31</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/core/src/commands/apply.ts#L31">commands/apply.ts:31</a></p>
 <p>A command applied: the view it leaves and what it changed, the IDs it took in <code class="docutils literal notranslate"><span class="pre">changes.ids</span></code>.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -548,14 +548,14 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>changes</strong>: <a class="reference internal" href="mutations.html#changeset"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ChangeSet</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/bfcf3a1def1b1090b72d05c68837801cca9df5d4/app/packages/core/src/commands/apply.ts#L33">commands/apply.ts:33</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/core/src/commands/apply.ts#L33">commands/apply.ts:33</a></p>
 </section>
 <section id="view">
 <h5>view<a class="headerlink" href="#view" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>view</strong>: <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/bfcf3a1def1b1090b72d05c68837801cca9df5d4/app/packages/core/src/commands/apply.ts#L32">commands/apply.ts:32</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/core/src/commands/apply.ts#L32">commands/apply.ts:32</a></p>
 </section>
 </section>
 </section>
@@ -567,7 +567,7 @@
 <blockquote>
 <div><p><strong>apply</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code>, <code class="docutils literal notranslate"><span class="pre">minter?</span></code>): <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/bfcf3a1def1b1090b72d05c68837801cca9df5d4/app/packages/core/src/commands/apply.ts#L177">commands/apply.ts:177</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/core/src/commands/apply.ts#L177">commands/apply.ts:177</a></p>
 <p>Apply one command to a view: the new view, or why the command was
 refused. The IDs of what it creates are its <code class="docutils literal notranslate"><span class="pre">ids</span></code>; with <code class="docutils literal notranslate"><span class="pre">minter</span></code>, those
 past them are minted by it, as the store mints them for a command it
@@ -599,7 +599,7 @@ gives no ID for is refused, as a journal entry lacking one is.</p>
 <blockquote>
 <div><p><strong>applyChanges</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code>, <code class="docutils literal notranslate"><span class="pre">checked?</span></code>, <code class="docutils literal notranslate"><span class="pre">minter?</span></code>): <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <a class="reference internal" href="#applied"><code class="docutils literal notranslate"><span class="pre">Applied</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/bfcf3a1def1b1090b72d05c68837801cca9df5d4/app/packages/core/src/commands/apply.ts#L95">commands/apply.ts:95</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/core/src/commands/apply.ts#L95">commands/apply.ts:95</a></p>
 <p>Apply a command <code class="docutils literal notranslate"><span class="pre">parseCommand</span></code> accepted and settle what it changed. With
 <code class="docutils literal notranslate"><span class="pre">checked</span></code>, the settled manifests are checked against the schema and the
 invariants and a <code class="docutils literal notranslate"><span class="pre">set</span></code> that changes nothing is refused; without, as a
@@ -638,7 +638,7 @@ refused (<code class="docutils literal notranslate"><span class="pre">invalid_co
 <blockquote>
 <div><p><strong>applyParsed</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code>, <code class="docutils literal notranslate"><span class="pre">minter?</span></code>): <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/bfcf3a1def1b1090b72d05c68837801cca9df5d4/app/packages/core/src/commands/apply.ts#L161">commands/apply.ts:161</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/core/src/commands/apply.ts#L161">commands/apply.ts:161</a></p>
 <p>Apply a command <code class="docutils literal notranslate"><span class="pre">parseCommand</span></code> accepted, the IDs it creates taken from its
 <code class="docutils literal notranslate"><span class="pre">ids</span></code>, then from <code class="docutils literal notranslate"><span class="pre">minter</span></code>.</p>
 <section id="id7">
