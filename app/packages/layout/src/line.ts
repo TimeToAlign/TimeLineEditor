@@ -5,9 +5,10 @@
  * line reaches on each side.
  */
 
+import type { TimelineManifest } from "@timetoalign/tilie-core";
 import { idAddress, partAddress } from "@timetoalign/tilie-core";
-import { elementKey } from "@timetoalign/tilie-core/drawing";
-import { compareReal } from "@timetoalign/tilie-core/numbers";
+import { elementKey, playedAt } from "@timetoalign/tilie-core/drawing";
+import { compareReal, type Real } from "@timetoalign/tilie-core/numbers";
 import type { Centred, LineElements, LinePosition, Side } from "./bands.ts";
 import { BOUNDARY, LABEL_GAP } from "./constants.ts";
 import type { Cut, LineElement } from "./elements.ts";
@@ -92,6 +93,49 @@ export interface StagedZero {
   zero(tiers: SegmentTiers): LevelZero;
 }
 
+/**
+ * The boundaries of the segments `segments` of the line `line` on an
+ * unfolded card (section 8.10): each segment's start but the first's, drawn
+ * at every played position of it in the pieces the line is drawn in (the
+ * root's pieces for the root's line, its own piece for any other), piece by
+ * piece and within a piece in traversal order, each with the segment's
+ * drawing in that piece, or its first drawing where its start closes a piece
+ * that holds nothing else of it. `segments` are the line's own; a segment
+ * of a drawn line is visible only where `line` is displayed.
+ */
+function unfoldedBoundaries(
+  scope: Scope,
+  line: Entry,
+  segments: readonly Entry[],
+): readonly { readonly segment: Entry; readonly at: Real }[] {
+  const { unfolding } = scope;
+  if (unfolding === null) return [];
+  const pieces = line === scope.rootEntry ? rootPieces(scope) : [line];
+  // The segments of every drawing of the line, so that a start closing this piece is found
+  // where only a later piece draws the segment.
+  const all =
+    line === scope.rootEntry
+      ? segments
+      : scope.entries
+          .filter((entry) => entry.line && entry.manifest === line.manifest)
+          .flatMap((entry) => scope.index.segmentsByLine.get(entry) ?? []);
+  const firstOf = new Map<TimelineManifest, Entry>();
+  for (const segment of all) {
+    if (!segment.first && !firstOf.has(segment.manifest)) firstOf.set(segment.manifest, segment);
+  }
+  return pieces.flatMap(({ piece }) => {
+    if (piece === null) return [];
+    return [...firstOf.values()].flatMap((first) => {
+      const at = playedAt(unfolding, piece, first.written.start);
+      if (at === undefined) return [];
+      const own = segments.find(
+        (segment) => segment.manifest === first.manifest && segment.piece === piece,
+      );
+      return [{ segment: own ?? first, at }];
+    });
+  });
+}
+
 /** The segment-label tiers of `staged` by its own first fit alone (`labelTiers`). */
 export function ownTiers(staged: StagedZero): SegmentTiers {
   const rows = new Rows();
@@ -135,11 +179,17 @@ export function levelZero(scope: Scope, line: Entry): StagedZero {
     );
     return { ...styled(key, line.style), key };
   };
-  const boundaries = segments
-    // A segment cut at the start of a switched card's piece has no boundary there (section 8.10).
-    .filter((segment) => !segment.first && !segment.startCut)
-    .map((segment) => ({ segment, at: segment.start, ...part(segment, "start") }))
-    .filter((boundary) => shown(boundary.style));
+  const boundaries = (
+    scope.unfolding === null
+      ? segments
+          .filter((segment) => !segment.first)
+          .map((segment) => ({ segment, at: segment.start, ...part(segment, "start") }))
+      : unfoldedBoundaries(scope, line, segments).map(({ segment, at }) => ({
+          segment,
+          at,
+          ...part(segment, "start"),
+        }))
+  ).filter((boundary) => shown(boundary.style));
   // The line of a virtual timeline or of a switched card holds the boundaries at the drawn starts
   // of the chunks of its FlowMap (section 8.10), and draws a gap line over every gap's span.
   const { flow } = scope;

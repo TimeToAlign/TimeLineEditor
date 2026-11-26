@@ -519,8 +519,9 @@ export interface CardElision {
 
 /**
  * The stored card elisions of the root of `scope` (section 8.9, Where): those
- * lying on the root or a descendant of it that lies in no group, displayed or
- * not, in canonical order, each with its stretch carried to the root's axis
+ * lying on the root or a descendant of it that lies in no group (on a placed
+ * virtual card, on its virtual timeline, section 8.10), displayed or not, in
+ * canonical order, each with its stretch carried to the root's axis
  * and clipped to the root's start and end.
  */
 export function cardElisionsOf(scope: Scope): CardElision[] {
@@ -559,18 +560,19 @@ interface CardPiece {
 /**
  * The pieces of the stored card elisions a card draws under `custom` (section
  * 8.9, Pieces), in canonical order: each drawn where its gap is displayed and
- * its timeline is drawn, what of its stretch lies outside the protected span
- * `protect` and outside every piece drawn before it, each at the width its
+ * its timeline is drawn, what of its stretch lies outside every stretch of
+ * `kept` (the protected span; the run gaps of a placed virtual card, section
+ * 8.10) and outside every piece drawn before it, each at the width its
  * `width` sets as if whole. An elision that is not drawn takes nothing from
  * the elisions after it.
  */
 function storedPieces(
   scope: Scope,
   stored: readonly CardElision[],
-  protect: Stretch | null,
+  kept: readonly Stretch[],
 ): CardPiece[] {
   const { L, lambda } = scope;
-  const taken: Stretch[] = protect === null ? [] : [protect];
+  const taken: Stretch[] = [...kept];
   const pieces: CardPiece[] = [];
   for (const { elision, entry, a: from, b: to } of stored) {
     const timeline = entry.manifest;
@@ -624,14 +626,116 @@ function cardAxisOf(
 }
 
 /**
- * The axis of an ungrouped root's card (section 8.9): under `custom`, its
- * stored card elisions; none otherwise, its card having no protected span
- * and deriving nothing. Undefined where it draws no gap.
+ * The axis of an ungrouped root's card or of a placed virtual card (sections
+ * 8.9 and 8.10): under `custom`, its stored card elisions; none otherwise,
+ * its card having no protected span and deriving nothing. On a placed
+ * virtual card whose runs are drawn once, a card elision's pieces leave out
+ * every run gap, and the axis keeps the run gaps (`runAxisOf`). Undefined
+ * where it draws no gap.
  */
 export function ungroupedAxis(scope: Scope, mode: DrawnMode): CardAxis | undefined {
   if (mode !== "custom") return undefined;
-  const pieces = storedPieces(scope, cardElisionsOf(scope), null);
-  return pieces.length === 0 ? undefined : cardAxisOf(scope, pieces, []);
+  const runGaps = scope.axis?.runGaps ?? [];
+  const pieces = storedPieces(scope, cardElisionsOf(scope), runGaps);
+  if (pieces.length === 0) return undefined;
+  return runGaps.length === 0 ? cardAxisOf(scope, pieces, []) : runAxisOf(scope, runGaps, pieces);
+}
+
+/**
+ * The axis of a placed virtual card whose runs are drawn once and which
+ * draws the gaps of `pieces` (section 8.10, Runs and Elisions of a virtual
+ * timeline): each piece a gap of section 3.2, its natural width `L × ub − L ×
+ * ua`, each run gap of `runGaps` drawn 0 wide. A position `t` before the end
+ * of the first run gap lies at `L × u − D`, `D` the shrinks of the gaps
+ * ending at or before it; one at or after the end `b` of a run gap, and
+ * before the end of the next, at `x(a) + (L × u − L × ub − D)`, `x(a)` that
+ * run gap's start's by this same rule, `D` the shrinks of the gaps lying
+ * from `b` up to `t` (`b ≤ a'` and `b' ≤ t` for a gap over `[a', b']`),
+ * each summed from the left and the two products formed first; so `x(b) =
+ * x(a)` exactly. A position inside a run gap or a gap has no x.
+ */
+function runAxisOf(
+  scope: Scope,
+  runGaps: readonly Stretch[],
+  pieces: readonly CardPiece[],
+): CardAxis {
+  const { L, u, lambda } = scope;
+  const placing = pieces
+    .map((piece) => {
+      const ua = u(piece.a);
+      const ub = u(piece.b);
+      const n = L * ub - L * ua;
+      const g = piece.width(n);
+      return { ...piece, ua, ub, n, g, shrink: n - g };
+    })
+    .sort((left, right) => compareReal(left.a, right.a));
+  // The shrinks of the gaps lying from `from` (the start where null) up to `to`, from the left.
+  const shrinks = (from: Real | null, to: Real): number => {
+    let D = 0;
+    for (const gap of placing) {
+      const after = from === null || compareReal(from, gap.a) <= 0;
+      if (after && compareReal(gap.b, to) <= 0) D = D + gap.shrink;
+    }
+    return D;
+  };
+  // Each run gap with its edge `x(a)` less `x0`, found from the left.
+  const placed: { readonly a: Real; readonly b: Real; readonly ub: number; left: number }[] = [];
+  const relativeWith = (value: Real, count: number): number => {
+    let last: (typeof placed)[number] | undefined;
+    for (const run of placed.slice(0, count)) if (compareReal(run.b, value) <= 0) last = run;
+    return last === undefined
+      ? L * u(value) - shrinks(null, value)
+      : last.left + (L * u(value) - L * last.ub - shrinks(last.b, value));
+  };
+  for (const [a, b] of runGaps) {
+    placed.push({ a, b, ub: u(b), left: relativeWith(a, placed.length) });
+  }
+  const relative = (value: Real): number => relativeWith(value, placed.length);
+  const gaps: Gap[] = placing.map((gap) => ({
+    source: gap.source,
+    a: gap.a,
+    b: gap.b,
+    ua: gap.ua,
+    ub: gap.ub,
+    n: gap.n,
+    g: gap.g,
+    shrink: gap.shrink,
+    left: relative(gap.a),
+    right: relative(gap.b),
+    entry: gap.entry,
+  }));
+  // Each run between two cuts, as an application reads it: `L × u − D` at its start.
+  const cuts = [...runGaps, ...gaps.map((gap): Stretch => [gap.a, gap.b])].sort(([left], [right]) =>
+    compareReal(left, right),
+  );
+  const runs: Run[] = [];
+  let from = 0;
+  let D = 0;
+  for (const [a, b] of cuts) {
+    runs.push({ u0: from, u1: u(a), L, D });
+    from = u(b);
+    D = L * from - relative(b);
+  }
+  runs.push({ u0: from, u1: 1, L, D });
+  const end = relative(lambda);
+  return {
+    gaps,
+    seams: [],
+    runs,
+    total: L - end,
+    endAt: () => end,
+    relative,
+    relativeAt: relative,
+    startAt: relative,
+    gapOf: (value) => gaps.find((gap) => EXACT.inside(gap, value)),
+    runGaps,
+    runGapOf: (value) => {
+      const run = placed.find(({ a, b }) => compareReal(a, value) < 0 && compareReal(value, b) < 0);
+      return run === undefined ? undefined : run.left;
+    },
+    shrinkBefore: (value) => L * u(value) - relative(value),
+    crosses: (gap, start, end) => EXACT.holds(gap, start, end),
+  };
 }
 
 /** A stretch of a timeline at one depth, before it is drawn with its middle left out. */
@@ -807,7 +911,7 @@ export function ancestorElisions(
   const automatic = stated === "auto";
   let pieces: CardPiece[] = [];
   let r = 1;
-  if (mode === "custom") pieces = storedPieces(scope, stored, protect);
+  if (mode === "custom") pieces = storedPieces(scope, stored, [protect]);
   if (mode === "proportional") {
     r = automatic ? proportionOf() : stated;
     if (r < 1)

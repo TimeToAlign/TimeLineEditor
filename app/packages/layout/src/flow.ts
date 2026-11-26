@@ -24,7 +24,13 @@ import {
   isRead,
   partAddress,
 } from "@timetoalign/tilie-core";
-import { elementKey, flowSymbols, memberFlow, passesText } from "@timetoalign/tilie-core/drawing";
+import {
+  elementKey,
+  flowSymbols,
+  memberFlow,
+  passesText,
+  playedAt,
+} from "@timetoalign/tilie-core/drawing";
 import type { Real } from "@timetoalign/tilie-core/numbers";
 import { compareReal, realOf } from "@timetoalign/tilie-core/numbers";
 import type { ElementType } from "@timetoalign/timetoshare";
@@ -54,6 +60,7 @@ import {
   type Measured,
   maxSize,
   nth,
+  rootPieces,
   type Scope,
   type Styled,
   shown,
@@ -106,17 +113,24 @@ function isZero(distance: NonNullable<JumpDestination["by"]>, timeline: Timeline
 type Part = Holder & Styled;
 
 /**
- * One flow-control element as the band draws it: the element, the timeline
- * stating it, where that timeline starts and where the element lies on the
- * root's axis, the timeline's end as the band reads it, the holder of its
- * drawings (its own key, or the band's for a jump target, which is no
- * element), and whether it is displayed at all (its holder chain).
+ * One drawing of a flow-control element as the band draws it: the element,
+ * the timeline stating it, where that timeline starts on the root's axis as
+ * written, where the drawing lies on the root's axis as drawn, how a
+ * position of the root's axis as written is drawn in the same drawing, the
+ * holder of its drawings (its own key, or the band's for a jump target,
+ * which is no element), and the band holding it for the cascade.
  */
 interface Gathered {
   readonly element: FlowControlElement;
   readonly timeline: TimelineManifest;
   readonly start: Real;
   readonly at: Real;
+  /**
+   * Where a position of the root's axis as written is drawn beside this drawing: itself on a card
+   * drawn as written; on an unfolded card its played position in this drawing's stretch piece,
+   * undefined where that piece does not hold it (section 8.10).
+   */
+  readonly play: (value: Real) => Real | undefined;
   readonly holder: Part;
   /** The band holding it for the cascade: its timeline's flow control band, or the member's. */
   readonly band: Holder;
@@ -131,8 +145,7 @@ const believedStyle = (scope: Context, style: Style, element: FlowControlElement
 
 /**
  * The flow-control elements the flow control band of `line` lays out
- * (section 6.4, Flow control): none on a switched card (section 8.10), and
- * none but for the root of the member drawing,
+ * (section 6.4, Flow control): none but for the root of the member drawing,
  * whose band lays out those of every timeline of its tree in traversal
  * order, each timeline's in the order of its `flow_control`, each at its
  * timeline's start plus its coordinate; for a member that is a child
@@ -144,15 +157,14 @@ const believedStyle = (scope: Context, style: Style, element: FlowControlElement
  * element is laid out only where its holders display it: its band (a
  * child's own flow control band included), and, for an element of the
  * member's tree, its timeline's line and every band holding that
- * (`Entry.drawn`).
+ * (`Entry.drawn`). On an unfolded card (section 8.10) each element is drawn
+ * at every played position of its position, piece by piece in the order of
+ * the pieces, and within a piece in the order above.
  */
 function gathered(scope: Scope, line: Entry): readonly Gathered[] {
   const { rootEntry, cascade } = scope;
   const own = rootEntry.bands.flow_control;
-  // A switched card has no flow control band (section 8.10).
-  if (line !== rootEntry || scope.unfolding !== null || !rootEntry.drawn || !shown(own.style)) {
-    return [];
-  }
+  if (line !== rootEntry || !rootEntry.drawn || !shown(own.style)) return [];
   const keyed = (
     type: ElementType | null,
     at: ElementAddress,
@@ -175,25 +187,42 @@ function gathered(scope: Scope, line: Entry): readonly Gathered[] {
       type === null
         ? { key: band.key, address: idAddress(element.id), style: band.style }
         : keyed(type, idAddress(element.id), timeline, band);
-    return { element, timeline, start, at, holder, band };
+    return { element, timeline, start, at, play: (value) => value, holder, band };
   };
   const shownEntry = (entry: Entry) => entry.drawn && shown(entry.bands.flow_control.style);
-  if (scope.member.ancestors.length === 0) {
-    return scope.entries
-      .filter(shownEntry)
-      .flatMap((entry) =>
-        entry.manifest.flow_control.map((element) =>
-          of(element, entry.manifest, entry.start, entry.bands.flow_control),
-        ),
-      );
+  // Each timeline of the tree once, at its start as written: an unfolded card visits it once in
+  // every piece it reaches into, and a switched card's root holds nothing of its own.
+  const entries = new Map<TimelineManifest, Entry>();
+  for (const entry of scope.entries) {
+    if (!entries.has(entry.manifest)) entries.set(entry.manifest, entry);
   }
-  const entries = new Map(scope.entries.map((entry) => [entry.manifest, entry]));
-  return memberFlow(scope.manifest, scope.member).flatMap(({ element, timeline, start }) => {
-    const entry = entries.get(timeline);
-    if (entry !== undefined) {
-      return shownEntry(entry) ? [of(element, timeline, start, entry.bands.flow_control)] : [];
-    }
-    return [of(element, timeline, start, own)];
+  const written =
+    scope.member.ancestors.length === 0
+      ? [...entries.values()]
+          .filter(shownEntry)
+          .flatMap((entry) =>
+            entry.manifest.flow_control.map((element) =>
+              of(element, entry.manifest, entry.written.start, entry.bands.flow_control),
+            ),
+          )
+      : memberFlow(scope.manifest, scope.member).flatMap(({ element, timeline, start }) => {
+          const entry = entries.get(timeline);
+          if (entry !== undefined) {
+            return shownEntry(entry)
+              ? [of(element, timeline, start, entry.bands.flow_control)]
+              : [];
+          }
+          return [of(element, timeline, start, own)];
+        });
+  const { unfolding } = scope;
+  if (unfolding === null) return written;
+  return rootPieces(scope).flatMap(({ piece }) => {
+    if (piece === null) return [];
+    const play = (value: Real) => playedAt(unfolding, piece, value);
+    return written.flatMap((item) => {
+      const at = play(item.at);
+      return at === undefined ? [] : [{ ...item, at, play }];
+    });
   });
 }
 
@@ -258,7 +287,8 @@ const sum = (values: readonly number[]): number =>
  *   branches a fork has;
  * - the **arcs** of each displayed jump, one per destination not `by` 0 and
  *   not `volta` whose place resolves (`placeOf`), in a member's card only where its to
- *   lies on the member's stretch; sorted stably by span and placed by first
+ *   lies on the member's stretch, on an unfolded card only in a piece holding both its from
+ *   and its to (section 8.10); sorted stably by span and placed by first
  *   fit, never widened by their labels, into the `K` jump rows; then each
  *   row's labels, in the order of its arcs, by one first fit of the row
  *   into its `Tk` label tiers (`Tk = 1` without a label), the row's pitch
@@ -360,8 +390,9 @@ export function flowControlBand(scope: Scope, line: Entry): PreparedBand {
       if (destination.manifestation === "volta") return [];
       const place = placeOf(scope, item.timeline, item.element, destination);
       if (place === undefined) return [];
-      const to = add(item.start, place);
-      if (member && !onStretch(scope, to)) return [];
+      // On an unfolded card an arc is drawn only where its piece holds its to (section 8.10).
+      const to = item.play(add(item.start, place));
+      if (to === undefined || (member && !onStretch(scope, to))) return [];
       const text = labelled && shown(label.style) ? (destination.label ?? null) : null;
       return [{ item, style, label, from: item.at, to, text }];
     });

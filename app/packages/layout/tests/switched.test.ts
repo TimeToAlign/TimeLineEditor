@@ -21,10 +21,13 @@ import {
   manifestLayer,
 } from "../src/index.ts";
 import {
+  ARCS_ALONE,
   boxesOf,
   childMemberTwice,
+  edit,
   element,
   HIDDEN_ANCESTOR_CARDS,
+  linearMap,
   load,
   loadFile,
   metrics,
@@ -87,6 +90,32 @@ function chunksOf(drawing: Drawing, id: string) {
   return drawing.elements
     .filter((item) => item.address.id === id && item.address.facet === "regions")
     .map((item) => [item.type, item.address.part, ...at(item)]);
+}
+
+/** The IDs of the flow control of `flow/switched_card`. */
+const FLOW_CONTROL = ["volta_jump", "repeat_end", "second_ending", "volta_break"];
+
+/** One drawing of a flow-control element: its type, its address and its x. */
+type FlowDrawing = readonly [DrawnElement["type"], ElementAddress, ...number[]];
+
+/** Every drawing of `ids`: its type, address and x (a fork's branch point, a jump's ends). */
+function flowOf(drawing: Drawing, ids: readonly string[]): FlowDrawing[] {
+  return drawing.elements.flatMap((item): FlowDrawing[] => {
+    if (!ids.includes(item.address.id ?? "")) return [];
+    switch (item.type) {
+      case "fork":
+        return [[item.type, item.address, item.point[0]]];
+      case "jump":
+        return [[item.type, item.address, item.start[0], item.tip[0]]];
+      case "symbol":
+      case "break":
+      case "section_break":
+      case "barline":
+        return [[item.type, item.address, item.x]];
+      default:
+        return [[item.type, item.address]];
+    }
+  });
 }
 
 /** The text of the element at `address`. */
@@ -166,13 +195,6 @@ describe("a switched card", () => {
       ...["A", "B", "A", "C"].map((text, k) => ["label", [k, "label"], text]),
     ]);
     expect(textAt(drawing, { id: "allegro", part: ["name"] })).toBe("Allegro · default");
-    const flowControl = ["volta_jump", "repeat_end", "second_ending", "volta_break"];
-    expect(drawing.elements.filter((item) => flowControl.includes(item.address.id ?? ""))).toEqual(
-      [],
-    );
-    expect(boxesOf(drawing, "band").filter((box) => box.address.facet === "flow_control")).toEqual(
-      [],
-    );
   });
 
   it("is drawn as written where another layer sets flow", () => {
@@ -275,7 +297,140 @@ describe("a switched card", () => {
   });
 });
 
+describe("a switched card's bands", () => {
+  const source = loadFile("flow/switched_card");
+  const xOf = (drawing: Drawing) => {
+    const [line] = linesOf(drawing, "allegro");
+    if (line === undefined) throw new Error("allegro's line");
+    return (t: number) => line.xs + lx(t);
+  };
+
+  it("draw its flow control at every played position", () => {
+    const drawing = drawn(source);
+    const x = xOf(drawing);
+    expect(flowOf(drawing, FLOW_CONTROL)).toEqual([
+      ["break", { id: "volta_break" }, x(500)],
+      ["break", { id: "volta_break" }, x(1953 / 2)],
+      ["fork", { id: "volta_jump", part: ["fork"] }, x(953 / 2)],
+      ["fork", { id: "volta_jump", part: ["fork"] }, x(1953 / 2)],
+      ["symbol", { id: "repeat_end", part: ["symbol"] }, x(500)],
+      ["symbol", { id: "repeat_end", part: ["symbol"] }, x(1953 / 2)],
+    ]);
+    expect(
+      boxesOf(drawing, "band").filter((box) => box.address.facet === "flow_control"),
+    ).toHaveLength(1);
+  });
+
+  it("draw an arc only in a piece holding both its from and its to", () => {
+    const arcs: Graphical = { rules: ARCS_ALONE.rules?.slice(0, 1) ?? [] };
+    const plain = drawn(source, [arcs]);
+    expect(flowOf(plain, FLOW_CONTROL).filter(([type]) => type === "jump")).toEqual([]);
+    const timelines = source.timelines.map((timeline) => ({
+      ...timeline,
+      flow_control: [
+        ...timeline.flow_control,
+        {
+          id: "dal_segno",
+          role: "jump" as const,
+          coordinate: quarters(1000),
+          name: null,
+          label: null,
+          meta: {},
+          targets: [
+            {
+              determined: true,
+              label: null,
+              manifestation: "dal_segno",
+              reset: true,
+              to: "section_c",
+            },
+          ],
+        },
+      ],
+    }));
+    const drawing = drawn({ ...source, timelines } as Manifest, [arcs]);
+    const x = xOf(drawing);
+    expect(flowOf(drawing, ["dal_segno"]).filter(([type]) => type === "jump")).toEqual([
+      ["jump", { id: "dal_segno" }, x(2953 / 2), x(1953 / 2)],
+    ]);
+  });
+
+  it("hide what the card drawn as written hides", () => {
+    const hidden: Rule = {
+      select: { addresses: [{ id: "allegro", facet: "flow_control" }] },
+      set: { display: "none" },
+    };
+    const drawing = drawn(withRules(source, [...(source.graphical?.rules ?? []), hidden]));
+    expect(flowOf(drawing, FLOW_CONTROL)).toEqual([]);
+  });
+
+  it("draw a conversion map once in every piece, clipped to it", () => {
+    const drawing = drawn(edit("flow/switched_card", linearMap("allegro", "tempo")));
+    const x = xOf(drawing);
+    const maps = drawing.elements.flatMap((item) =>
+      item.type === "map" && item.address.id === "tempo" ? [item] : [],
+    );
+    const [first] = maps;
+    if (first === undefined) throw new Error("tempo's map");
+    expect(maps.map((item) => [item.xs, item.xe, item.yc])).toEqual([
+      [x(0), x(953 / 2), first.yc],
+      [x(953 / 2), x(500), first.yc],
+      [x(500), x(1953 / 2), first.yc],
+      [x(1953 / 2), x(4241 / 2), first.yc],
+    ]);
+  });
+
+  it("draw a segment's boundary at every played position of its start", () => {
+    const [bare] = load("bare").timelines;
+    if (bare === undefined) throw new Error("bare");
+    const segment = (id: string, name: string, offset: number) => ({
+      ...bare,
+      id,
+      name,
+      offset: quarters(offset),
+      length: null,
+      locked: false,
+    });
+    const timelines = source.timelines.map((timeline) => ({
+      ...timeline,
+      is_segment_line: true,
+      children: [segment("s1", "S1", 0), segment("s2", "S2", 500)],
+    }));
+    const drawing = drawn({ ...source, timelines } as Manifest);
+    const x = xOf(drawing);
+    const boundaries = drawing.elements.flatMap((item) =>
+      item.type === "boundary" && item.address.facet === undefined ? [[item.address, item.x]] : [],
+    );
+    expect(boundaries).toEqual([
+      [{ id: "s2", part: ["start"] }, x(500)],
+      [{ id: "s2", part: ["start"] }, x(1953 / 2)],
+    ]);
+    const labels = drawing.elements.flatMap((item) =>
+      item.type === "label" && (item.address.id === "s1" || item.address.id === "s2")
+        ? [[item.text, item.x]]
+        : [],
+    );
+    expect(labels).toEqual([
+      ["S1", x(953 / 4)],
+      ["S1", x(1953 / 4)],
+      ["S1", x(2953 / 4)],
+      ["S2", x(6194 / 4)],
+    ]);
+  });
+});
+
 describe("a switched frame", () => {
+  it("draws the switched card's flow control at every played position", () => {
+    const drawing = drawn(loadFile("groups/switched_frame"));
+    const [line] = linesOf(drawing, "allegro");
+    if (line === undefined) throw new Error("allegro's line");
+    const x = (t: number) => line.xs + lx(t);
+    expect(flowOf(drawing, ["volta_break"])).toEqual([
+      ["break", { id: "volta_break" }, x(500)],
+      ["break", { id: "volta_break" }, x(1953 / 2)],
+    ]);
+  });
+
   it("draws the switched card's timestamps at every played position, labelled as written", () => {
     const drawing = drawn(loadFile("groups/switched_frame"));
     const [line] = linesOf(drawing, "allegro");
