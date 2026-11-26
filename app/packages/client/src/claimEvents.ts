@@ -11,19 +11,21 @@ import { isRecord, member, parametersRequest } from "./claimProvenance.ts";
 /**
  * The events on the two sides of a MatchClaim, as the MatchClaim table
  * states them: each side's timeline, its event's ID and name (`null` where
- * the side has no event, or the event no name); the MatchClaim's certainty
- * and whether it states synchrony.
+ * the event has none); the MatchClaim's certainty and whether it states
+ * synchrony. A side naming no event holds one of the table's two reserved
+ * strings as its event ID, `NOMATCH_SENTINEL` or `CHUNK_SENTINEL`, and no
+ * name; the table's checks allow no null event ID and no null synchrony.
  */
 export interface ClaimEvents {
   readonly id: string;
   readonly timeline_a_id: string;
-  readonly event_a_id: string | null;
+  readonly event_a_id: string;
   readonly event_a_name: string | null;
   readonly timeline_b_id: string;
-  readonly event_b_id: string | null;
+  readonly event_b_id: string;
   readonly event_b_name: string | null;
   readonly certainty: number | null;
-  readonly is_synchronous: boolean | null;
+  readonly is_synchronous: boolean;
 }
 
 /** The message of an events answer that is not of the route's form. */
@@ -75,12 +77,12 @@ function claimOf(value: unknown, id: string): ClaimEvents | undefined {
   if (
     typeof timelineA !== "string" ||
     typeof timelineB !== "string" ||
-    !isStringOrNull(eventA) ||
-    !isStringOrNull(eventB) ||
+    typeof eventA !== "string" ||
+    typeof eventB !== "string" ||
     !isStringOrNull(nameA) ||
     !isStringOrNull(nameB) ||
     !(certainty === null || typeof certainty === "number") ||
-    !(synchronous === null || typeof synchronous === "boolean")
+    typeof synchronous !== "boolean"
   ) {
     return undefined;
   }

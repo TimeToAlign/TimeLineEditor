@@ -28,6 +28,7 @@ import {
   pinnedMatchStampOf,
   potentialStamp,
   removeCommand,
+  SENTINEL_TITLES,
   stampToName,
   updateCommand,
 } from "../src/inspector/matchstamps.ts";
@@ -407,13 +408,15 @@ describe("the tab rule of MatchStamps", () => {
 });
 
 describe("a MatchClaim's events", () => {
-  const events = (id: string, a: Partial<ClaimEvents>, b: Partial<ClaimEvents>): ClaimEvents => ({
+  const events = (
+    id: string,
+    a: Partial<ClaimEvents> & Pick<ClaimEvents, "event_a_id">,
+    b: Partial<ClaimEvents> & Pick<ClaimEvents, "event_b_id">,
+  ): ClaimEvents => ({
     id,
     timeline_a_id: "clt_1",
-    event_a_id: null,
     event_a_name: null,
     timeline_b_id: "dpt_1",
-    event_b_id: null,
     event_b_name: null,
     certainty: null,
     is_synchronous: true,
@@ -421,7 +424,7 @@ describe("a MatchClaim's events", () => {
     ...b,
   });
 
-  it("gives both sides and the certainty", () => {
+  it("gives both sides and the certainty, a sentinel side as its sentinel", () => {
     const manifest = tableManifest();
     const read = [
       events(
@@ -429,7 +432,16 @@ describe("a MatchClaim's events", () => {
         { event_a_id: "note_1", event_a_name: "C4" },
         { event_b_id: "onset_1", certainty: 0.75 },
       ),
-      events("claim_2", { event_a_id: "note_1", event_a_name: "C4" }, { timeline_b_id: "cpt_1" }),
+      events(
+        "claim_2",
+        { event_a_id: "note_1", event_a_name: "C4" },
+        { timeline_b_id: "cpt_1", event_b_id: "CHUNK_SENTINEL" },
+      ),
+      events(
+        "claim_3",
+        { event_a_id: "note_1", event_a_name: "C4" },
+        { event_b_id: "NOMATCH_SENTINEL", is_synchronous: false },
+      ),
     ];
     expect(claimDetails(read, "claim_1", manifest)).toEqual({
       sides: [
@@ -441,11 +453,25 @@ describe("a MatchClaim's events", () => {
     expect(claimDetails(read, "claim_2", manifest)).toEqual({
       sides: [
         { timeline: "clt_1", timelineName: "clt_1", event: "note_1", name: "C4" },
-        { timeline: "cpt_1", timelineName: "cpt_1", event: null, name: null },
+        { timeline: "cpt_1", timelineName: "cpt_1", event: null, sentinel: "CHUNK" },
       ],
       certainty: null,
     });
-    expect(claimDetails(read, "claim_3", manifest)).toBe(null);
+    expect(claimDetails(read, "claim_3", manifest)).toEqual({
+      sides: [
+        { timeline: "clt_1", timelineName: "clt_1", event: "note_1", name: "C4" },
+        { timeline: "dpt_1", timelineName: "dpt_1", event: null, sentinel: "NOMATCH" },
+      ],
+      certainty: null,
+    });
+    expect(claimDetails(read, "claim_4", manifest)).toBe(null);
+  });
+
+  it("words each sentinel", () => {
+    expect(SENTINEL_TITLES).toEqual({
+      CHUNK: "a position on a timeline that holds no event for it",
+      NOMATCH: "no counterpart on this timeline",
+    });
   });
 });
 

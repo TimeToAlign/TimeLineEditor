@@ -70,7 +70,7 @@ const CLAIM_12 = {
   event_a_id: "note_10",
   event_a_name: "E5",
   timeline_b_id: "dpt_1",
-  event_b_id: null,
+  event_b_id: "NOMATCH_SENTINEL",
   event_b_name: null,
   certainty: 1.0,
   is_synchronous: false,
@@ -121,6 +121,8 @@ describe("matchClaimEvents", () => {
     ["an unknown member", withClaim(0, { ...CLAIM_1, is_explicit: true })],
     ["a side's Projection", withClaim(0, { ...CLAIM_1, event_a_projection: null })],
     ["an event ID that is a number", withClaim(0, { ...CLAIM_1, event_a_id: 1 })],
+    ["an event ID that is null", withClaim(2, { ...CLAIM_12, event_b_id: null })],
+    ["a synchrony that is null", withClaim(0, { ...CLAIM_1, is_synchronous: null })],
     ["a certainty that is text", withClaim(0, { ...CLAIM_1, certainty: "1" })],
   ])("rejects an answer with %s", async (_case, body) => {
     stubFetch(async () => Response.json(body));

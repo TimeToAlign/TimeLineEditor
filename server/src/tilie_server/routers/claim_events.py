@@ -57,8 +57,9 @@ def events_answer(body: bytes, bounds: TableBounds) -> dict[str, Any]:
         ``{"id", "timeline_a_id", "event_a_id", "event_a_name",
         "timeline_b_id", "event_b_id", "event_b_name", "certainty",
         "is_synchronous"}``, the values as timetoalign reads the MatchClaim
-        table (``None`` where a cell is null: a side without an event, an
-        event without a name).
+        table (``None`` where a cell is null: an event without a name). A
+        side naming no event answers the table's reserved string as its
+        event ID, ``NOMATCH_SENTINEL`` or ``CHUNK_SENTINEL``, and no name.
 
     Raises:
         Refusal: As :func:`split_parameters` and the table route for the

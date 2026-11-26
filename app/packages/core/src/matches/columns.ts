@@ -42,9 +42,11 @@ export interface ClaimSide {
 /**
  * The MatchClaim table's columns: `rows` rows, a claim ID per row, the sides
  * A and B, and per row whether it has a start anchor and an end anchor
- * (1 or 0). A NOMATCH or conceptual MatchClaim has neither; a row with an
- * end anchor has a start anchor. A value column's cells of a row without
- * that anchor are not read.
+ * (1 or 0). A NOMATCH or conceptual MatchClaim has neither; a synchronous
+ * one has a start anchor whether its sides name events or are CHUNK (the
+ * anchor states a position on a timeline that holds no event for it); a row
+ * with an end anchor has a start anchor. A value column's cells of a row
+ * without that anchor are not read, and no event ID is.
  */
 export interface MatchClaimColumns {
   readonly rows: number;

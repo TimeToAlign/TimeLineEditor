@@ -3,9 +3,8 @@
  * The Matchstamp tab's MatchClaims: each MatchClaim behind the MatchStamp
  * shown, collapsed to its ID. Expanded, it shows what matters of it: the
  * events on both sides (each side's timeline, its event's ID and name, or
- * that the side has no event), read through the server once a MatchClaim
- * is expanded; its certainty;
- * every actor's belief and the user's own (true, unlikely, false, recorded
+ * the sentinel CHUNK or NOMATCH where it names no event), read through the
+ * server once a MatchClaim is expanded; its certainty; every actor's belief and the user's own (true, unlikely, false, recorded
  * through the server, which answers the new table); and a Provenance
  * button that alone opens how it was made (the paradata, as the Metadata
  * tab shows a pair's, `Provenance`). One the table does not hold says so.
@@ -23,7 +22,7 @@ import { userOf } from "../../user.svelte.ts";
 import { claimEntryLine, entryOf, followedMatch } from "../claimProvenance.ts";
 import DisclosureButton from "../DisclosureButton.svelte";
 import type { ClaimLine, MatchIndexes, ShownStamp, SideLine } from "../matchstamps.ts";
-import { claimDetails } from "../matchstamps.ts";
+import { claimDetails, SENTINEL_TITLES } from "../matchstamps.ts";
 import { dayOf } from "../metadata/edits.ts";
 import Provenance from "../Provenance.svelte";
 import ProvenanceDetails from "../ProvenanceDetails.svelte";
@@ -184,7 +183,7 @@ async function believe(claim: string, belief: Belief, mine: Belief | null): Prom
 
 {#snippet event(side: SideLine)}
   {#if side.event === null}
-    <span class="hint">no event</span>
+    <span class="hint" title={SENTINEL_TITLES[side.sentinel]}>{side.sentinel}</span>
   {:else}
     <code class="stamp-code">{side.event}</code>{side.name === null ? "" : ` “${side.name}”`}
   {/if}

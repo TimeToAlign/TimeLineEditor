@@ -65,17 +65,15 @@ const PROVENANCE: Readonly<Record<string, ClaimProvenance["provenance"]>> = {
 /** One side of a MatchClaim's events, as the server answers them. */
 function sides(
   id: string,
-  a: Partial<ClaimEvents>,
-  b: Partial<ClaimEvents>,
+  a: Partial<ClaimEvents> & Pick<ClaimEvents, "event_a_id">,
+  b: Partial<ClaimEvents> & Pick<ClaimEvents, "event_b_id">,
   certainty: number | null,
 ): ClaimEvents {
   return {
     id,
     timeline_a_id: "clt_1",
-    event_a_id: null,
     event_a_name: null,
     timeline_b_id: "dpt_1",
-    event_b_id: null,
     event_b_name: null,
     certainty,
     is_synchronous: true,
@@ -95,7 +93,7 @@ const EVENTS: Readonly<Record<string, ClaimEvents>> = {
   claim_2: sides(
     "claim_2",
     { event_a_id: "note_1", event_a_name: "C4" },
-    { timeline_b_id: "cpt_1" },
+    { timeline_b_id: "cpt_1", event_b_id: "CHUNK_SENTINEL" },
     null,
   ),
 };
@@ -425,8 +423,13 @@ describe("events on demand", () => {
     expect(calls.events.length).toBe(1);
     expect(eventRows("claim_2")).toEqual([
       ["clt_1", "note_1 “C4”"],
-      ["cpt_1", "no event"],
+      ["cpt_1", "CHUNK"],
     ]);
+    expect(
+      claimItem("claim_2")
+        .querySelector("[data-testid=matchclaim-events] dd:nth-of-type(2) .hint")
+        ?.getAttribute("title"),
+    ).toBe("a position on a timeline that holds no event for it");
   });
 
   it("says why the events were not read", async () => {

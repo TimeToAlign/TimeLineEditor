@@ -9,6 +9,8 @@ import struct
 from pathlib import Path
 from typing import Any
 
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 from fastapi.testclient import TestClient
 from refusals import assert_refused_in_timetoshares_words
@@ -39,16 +41,33 @@ def prefixed(data: bytes) -> bytes:
     return struct.pack("<I", len(data)) + data
 
 
-def table_body(manifest: bytes | None = None) -> bytes:
+def table_body(manifest: bytes | None = None, table: bytes | None = None) -> bytes:
     """The table route's body: the manifest behind its length, the table."""
-    table = fixture_path("match_claims.parquet").read_bytes()
+    if table is None:
+        table = fixture_path("match_claims.parquet").read_bytes()
     posted = fixture_manifest() if manifest is None else manifest
     return prefixed(posted) + table
 
 
-def body(parameters: Any, manifest: bytes | None = None) -> bytes:
+def body(
+    parameters: Any, manifest: bytes | None = None, table: bytes | None = None
+) -> bytes:
     """A request: the parameters behind their length, the table route's body."""
-    return prefixed(json.dumps(parameters).encode("utf-8")) + table_body(manifest)
+    text = json.dumps(parameters).encode("utf-8")
+    return prefixed(text) + table_body(manifest, table)
+
+
+def with_event(claim_id: str, column: str, event: str) -> bytes:
+    """The fixture's table, MatchClaim ``claim_id``'s ``column`` set to ``event``."""
+    table = pq.read_table(fixture_path("match_claims.parquet"))
+    ids = table.column("id").to_pylist()
+    cells = table.column(column).to_pylist()
+    cells[ids.index(claim_id)] = event
+    index = table.schema.get_field_index(column)
+    field = table.schema.field(index)
+    sink = pa.BufferOutputStream()
+    pq.write_table(table.set_column(index, field, pa.array(cells, field.type)), sink)
+    return sink.getvalue().to_pybytes()
 
 
 def post(server: TestClient, content: bytes) -> Any:
@@ -87,7 +106,7 @@ ANSWERED = [
     claim(
         "claim_12",
         ("clt_1", "note_10", "E5"),
-        ("dpt_1", None, None),
+        ("dpt_1", "NOMATCH_SENTINEL", None),
         synchronous=False,
     ),
     claim("claim_15", ("clt_2", "note_13", "A5"), ("dpt_1", "projection_9", None)),
@@ -101,6 +120,15 @@ def test_the_events_of_the_claims_asked_for_in_their_order(server: TestClient) -
     answer = response.json()
     assert answer == {"claims": ANSWERED}
     assert [list(item) for item in answer["claims"]] == [list(ANSWERED[0])] * 6
+
+
+def test_a_chunk_side_is_answered_as_its_reserved_string(server: TestClient) -> None:
+    table = with_event("claim_11", "event_b_id", "CHUNK_SENTINEL")
+    response = post(server, body({"claims": ["claim_11"]}, table=table))
+    assert response.status_code == 200
+    chunk = ("cpt_1", "CHUNK_SENTINEL", None)
+    answered = claim("claim_11", ("dpt_1", "projection_6", None), chunk)
+    assert response.json() == {"claims": [answered]}
 
 
 def test_no_claims_asked_for_answer_none(server: TestClient) -> None:

@@ -575,16 +575,37 @@ export function claimLines(
   });
 }
 
-/** One side of a MatchClaim as the tab shows it expanded. */
-export interface SideLine {
-  /** The side's timeline, its ID and its name (else the ID). */
+/** The sentinels a side of a MatchClaim may be instead of an event. */
+export type Sentinel = "CHUNK" | "NOMATCH";
+
+/**
+ * The MatchClaim table's reserved event IDs, each the sentinel it writes:
+ * `CHUNK_SENTINEL` a position on a timeline that holds no event for it (the
+ * anchor states it), `NOMATCH_SENTINEL` no counterpart.
+ */
+const SENTINELS: ReadonlyMap<string, Sentinel> = new Map([
+  ["CHUNK_SENTINEL", "CHUNK"],
+  ["NOMATCH_SENTINEL", "NOMATCH"],
+]);
+
+/** What the tab says a sentinel is, in plain words. */
+export const SENTINEL_TITLES: Readonly<Record<Sentinel, string>> = {
+  CHUNK: "a position on a timeline that holds no event for it",
+  NOMATCH: "no counterpart on this timeline",
+};
+
+/**
+ * One side of a MatchClaim as the tab shows it expanded: its timeline, its
+ * ID and its name (else the ID), then its event (ID and name, `null` for
+ * none), or the sentinel it is where it names no event.
+ */
+export type SideLine = {
   readonly timeline: string;
   readonly timelineName: string;
-  /** The side's event ID; `null` where the side has no event (the sentinel). */
-  readonly event: string | null;
-  /** The event's name; `null` for none. */
-  readonly name: string | null;
-}
+} & (
+  | { readonly event: string; readonly name: string | null }
+  | { readonly event: null; readonly sentinel: Sentinel }
+);
 
 /** What the tab shows of a MatchClaim expanded: its two sides and its certainty. */
 export interface ClaimDetails {
@@ -610,12 +631,13 @@ export function claimDetails(
 ): ClaimDetails | null {
   const events = read.find((item) => item.id === id);
   if (events === undefined) return null;
-  const side = (timeline: string, event: string | null, name: string | null): SideLine => ({
-    timeline,
-    timelineName: timelineNameOf(manifest, timeline),
-    event,
-    name,
-  });
+  const side = (timeline: string, event: string, name: string | null): SideLine => {
+    const timelineName = timelineNameOf(manifest, timeline);
+    const sentinel = SENTINELS.get(event);
+    return sentinel === undefined
+      ? { timeline, timelineName, event, name }
+      : { timeline, timelineName, event: null, sentinel };
+  };
   return {
     sides: [
       side(events.timeline_a_id, events.event_a_id, events.event_a_name),

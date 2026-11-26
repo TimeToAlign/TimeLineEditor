@@ -166,14 +166,19 @@ call or the exact result.
    `event_*_name`, `certainty`, `is_synchronous`: `claim_1` `clt_1`
    `note_1` "C4" against `dpt_1` `projection_1` without a name,
    `claim_11` `dpt_1` `projection_6` against `cpt_1` `projection_7`,
-   `claim_12`'s side B without an event (every member `null` but its
-   timeline) and not synchronous. A 2xx body not of the route's form
+   `claim_12`'s side B `dpt_1` `NOMATCH_SENTINEL` (the MatchClaim table's
+   reserved string for the NOMATCH sentinel), no name, and not
+   synchronous. An event ID is always a string: a side naming no event
+   holds one of the table's two reserved strings, `NOMATCH_SENTINEL` or
+   `CHUNK_SENTINEL`, which the client passes on as it reads them, and
+   `is_synchronous` is always a boolean, since the table's checks refuse
+   a null in either. A 2xx body not of the route's form
    rejects with code `status` and the message "the events answer is not
    the events of the MatchClaims asked for": an answer for other IDs or in
    another order, one MatchClaim too few, a member missing or of an
    unknown name (`is_explicit`, and `event_a_projection`, which the route
-   no longer answers), an event ID that is neither a string nor `null`, a
-   certainty that is no number. A refusal (422, `["claims", 1]`) rejects
+   no longer answers), an event ID that is a number or `null`, an
+   `is_synchronous` that is `null`, a certainty that is no number. A refusal (422, `["claims", 1]`) rejects
    with the server's message and path.
 
 8. **Files** (`decisions/0033-server-file-access.md`). `fileCalls(transport)`

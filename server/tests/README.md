@@ -746,6 +746,7 @@ compares actors (`stated_by` is answered as written).
 | Request | Answer |
 | --- | --- |
 | `claims` `["claim_6", "claim_15", "claim_1"]` | 200 `{"claims": [{"id": "claim_6", "provenance": {"date": "2026-11-20", "method": "imported", "service": "https://example.org/aligner", "beliefs": [{"actor": A, "belief": "unlikely", "date": "2026-11-21", "note": "the onset is blurred"}]}}, {"id": "claim_15", "provenance": null}, {"id": "claim_1", "provenance": {"stated_by": [A], "date": "2026-11-20", "method": "manual", "beliefs": [{"actor": A, "belief": "true", "date": "2026-11-20"}]}}]}`: in the order asked, never more than asked |
+| `claims` `["claim_11"]` of the fixture's table with `claim_11`'s `event_b_id` `CHUNK_SENTINEL` | 200, `claim_11` with side B `cpt_1` `CHUNK_SENTINEL` and no name, synchronous |
 | `claims` `[]` | 200 `{"claims": []}` |
 | the fixture's table without row provenance, the file stating `{"method": "imported", "date": "2026-11-20", "beliefs": [A false, B true]}`, both beliefs of 2026-11-21; `claims` `["claim_4"]` | the file's entry as `claim_4`'s |
 | `claims` `["claim_1", "claim_99"]` | 422 `{"detail": {"path": ["claims", 1], "message": "the MatchClaim table has no MatchClaim 'claim_99'"}}` |
@@ -837,13 +838,20 @@ written out by hand in the test, never read off an answer:
 | `claim_4` | `dpt_1` `projection_4` – | `clt_1` `note_4` `G4` | yes |
 | `claim_7` | `clt_1` `note_6` `A4` | `cpt_1` `onset_2` – | yes |
 | `claim_11` | `dpt_1` `projection_6` – | `cpt_1` `projection_7` – | yes |
-| `claim_12` | `clt_1` `note_10` `E5` | `dpt_1`, no event | no |
+| `claim_12` | `clt_1` `note_10` `E5` | `dpt_1` `NOMATCH_SENTINEL` – | no |
 | `claim_15` | `clt_2` `note_13` `A5` | `dpt_1` `projection_9` – | yes |
 
 Every certainty is 1.0. Each answered MatchClaim has exactly the members
 `{"id", "timeline_a_id", "event_a_id", "event_a_name", "timeline_b_id",
 "event_b_id", "event_b_name", "certainty", "is_synchronous"}`, a null cell
-`null`. The route reads no table but the MatchClaim table: the request
+`null`. An event ID is never null: a side naming no event holds the
+table's reserved string, answered as written, `NOMATCH_SENTINEL` on a
+MatchClaim that is not synchronous (`claim_12`) and `CHUNK_SENTINEL` on a
+synchronous one; the fixture states no CHUNK, so the test writes one:
+the fixture's table with `claim_11`'s `event_b_id` `CHUNK_SENTINEL`
+answers `claim_11` as `dpt_1` `projection_6` – against `cpt_1`
+`CHUNK_SENTINEL` –, synchronous. The sentinels are written in the test as
+the strings they are, never read from a package. The route reads no table but the MatchClaim table: the request
 leaves no place for another, so a body that once carried a second table
 between the parameters and the manifest's length is read as the
 manifest's length and refused by the table route's own split.
@@ -851,6 +859,7 @@ manifest's length and refused by the table route's own split.
 | Request | Answer |
 | --- | --- |
 | `claims` `["claim_1", "claim_4", "claim_7", "claim_11", "claim_12", "claim_15"]` | 200, the six rows above in that order, each of exactly the nine members |
+| `claims` `["claim_11"]` of the fixture's table with `claim_11`'s `event_b_id` `CHUNK_SENTINEL` | 200, `claim_11` with side B `cpt_1` `CHUNK_SENTINEL` and no name, synchronous |
 | `claims` `[]` | 200 `{"claims": []}` |
 | `claims` `["claim_1", "claim_99"]` | 422 `{"detail": {"path": ["claims", 1], "message": "the MatchClaim table has no MatchClaim 'claim_99'"}}` |
 | `claims` `"claim_1"` | 422 at `["claims"]`, `the parameter 'claims' is no list of MatchClaim IDs` |
