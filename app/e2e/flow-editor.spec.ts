@@ -1,6 +1,7 @@
 /**
- * The flow editor in the browser: opened by a double-click on what a
- * root's flow control band draws in the root's timeline editor, its pane
+ * The flow editor in the browser: opened on the arranger by a double-click
+ * in a root card's flow control band, and in the root's timeline editor by
+ * a double-click on what that band draws; its pane
  * under the card with one row per FlowMap and no axe-core violation, a new
  * FlowMap landed by a key, a row dragged out onto the canvas as a card,
  * and Done folding it all into one journal entry. The expected values are
@@ -11,6 +12,7 @@ import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import {
+  bandPoint,
   done,
   editing,
   enter,
@@ -18,6 +20,7 @@ import {
   importFixture,
   journalLength,
   partCentre,
+  settledDrawing,
   setViewport,
 } from "./support.ts";
 
@@ -117,4 +120,25 @@ test("the flow editor opens from the flow control band, lands, places and folds"
   await done(page);
   await expect.poll(() => editing(page)).toEqual([]);
   expect(await journalLength(page)).toBe(journal + 1);
+});
+
+test("on the arranger a double-click in the root card's flow control band opens the flow editor", async ({
+  page,
+}) => {
+  const block = await importFixture(page, "flow/virtual_cards");
+  const allegro = { block, id: "allegro" };
+  await setViewport(page, VIEW);
+  await settledDrawing(page, block);
+  const journal = await journalLength(page);
+  const inBand = await bandPoint(page, block, { id: "allegro", facet: "flow_control" }, 2);
+  await page.mouse.dblclick(inBand.x, inBand.y);
+  await expect.poll(() => editing(page)).toEqual([{ target: allegro, kind: "flow" }]);
+  await expect(page.getByTestId("flow-pane")).toBeVisible();
+  await done(page);
+  await expect.poll(() => editing(page)).toEqual([]);
+  expect(await journalLength(page)).toBe(journal);
+
+  const symbol = await partCentre(page, block, { id: "repeat_end", part: ["symbol"] });
+  await page.mouse.dblclick(symbol.x, symbol.y);
+  await expect.poll(() => editing(page)).toEqual([{ target: allegro, kind: "flow" }]);
 });

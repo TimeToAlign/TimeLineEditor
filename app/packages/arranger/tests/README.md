@@ -2382,21 +2382,30 @@ apply three of them, none `printed`. IDs minted by the store are never
 written here: a test reads a new FlowMap's, Region's or virtual
 timeline's ID through the result, as the one ID the manifest gained.
 
-**Opening.** A band is hit only in its timeline's editor (section "What a
-press hits"), so the flow editor opens from the root's timeline editor:
-there a double-click, a double tap or Enter on `allegro`'s flow control
-band `{block: A, id: "allegro", facet: "flow_control"}`, or on an element
+**Opening.** The flow editor opens from a root's flow control band on
+the arranger and in the root's timeline editor. On the arranger no band
+is hit (section "What a press hits"): a press on `allegro`'s card hits the
+card, and the drawing point decides: a double-click, a double tap at the
+middle of the flow control band's recorded rectangle (layout's record of
+`{id: "allegro", facet: "flow_control"}`, read from the drawing) names
+that band (`editorTargetOf` with the drawing point), which opens the flow
+editor of `{block: A, id: "allegro"}` (`editorOf`: kind `flow`), and the
+store then holds that one editor, of kind `flow`; the same card hit at
+its own top left corner, outside every band, opens `allegro`'s timeline
+editor, as does the card hit with no point (Enter on the selected card).
+In the timeline editor of `allegro`, a band is hit, and the band hit
+itself names the band; the store then holds two editors, the innermost
+`{target: {block: A, id: "allegro"}, kind: "flow"}`. In both, an element
 that band draws (the volta jump `{id: "volta_jump"}`, hit before the
-band), names that band (`editorTargetOf`), which opens the flow editor of `{block: A, id:
-"allegro"}` (`editorOf`: kind `flow`); the store then holds two editors,
-the innermost `{target: {block: A, id: "allegro"}, kind: "flow"}`. Every
-other band opens nothing: `allegro`'s regions band in its timeline
-editor, the flow control band with no editor open, in the bundle editor,
-and in another timeline's editor; the volta jump with no editor open opens
-`allegro`'s timeline editor, as any element of its card does. Inside the
-flow editor nothing opens
-(the card, its line, the band). Every other address opens what it opened
-before (`editorOf` gives it back unchanged, no kind).
+band) names the band, with or without the card it lies in, so Enter on
+the selected volta jump opens the flow editor too. Every other band opens
+nothing: `allegro`'s regions band in its timeline editor, the flow control
+band hit in the bundle editor and in another timeline's editor; in the
+bundle editor a press on the card at the band's middle opens the
+timeline editor of `allegro`, as any press on the card there. Inside the
+flow editor nothing opens (the card, its line, the band). Every other
+address opens what it opened before (`editorOf` gives it back unchanged,
+no kind).
 
 **Rows** (`flowRows`): one per FlowMap of `allegro`, the computed ones
 first, each part in the manifest's order: `default`, `printed`, `single`,
@@ -2472,10 +2481,19 @@ card.
     `default` places `allegro_default` with the `set` alone.
 11. Recompute (`recomputeCommands`): an answer equal to the manifest
     stores nothing; an answer whose `single` plays A B C instead stores
-    `{type: "remove", targets: [{block: A, id: "single"}]}` then the
-    `add` of the answer's `single` with its ID, chunks, convention,
-    canonical and provenance; an answer with an atomic section the
-    manifest lacks first adds it as a Region, whole.
+    one `set` of the held `single`, `{target: {block: A, id: "single"},
+    values: {computed: {chunks: ["section_a", "section_b", "section_c"],
+    provenance}}}` (the answer's provenance), never a `remove` and `add`:
+    a virtual timeline applies `single`, so core refuses its removal; an
+    answer with an atomic section the manifest lacks first adds it as a
+    Region, whole. Through the session (`recompute`, a server answering
+    `default` as A C A C and `single` as A B C), every command is accepted
+    in the open flow editor, nothing is said, and the store holds
+    `default` playing `section_a section_c section_a section_c` and
+    `single` `section_a section_b section_c`, their convention and
+    provenance as before, and the virtual timelines applying them with the
+    new played lengths: `allegro_default` `[3241, 1]` (2 × (953/2 + 1144)),
+    `allegro_single` `[1644, 1]` (the whole written axis).
 
 **Carrying a twin.** Its opacity is a function of the pointer's distance
 `d` (screen pixels) inside the editor's border (`twinOpacity`): `0.2 +

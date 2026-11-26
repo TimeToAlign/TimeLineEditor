@@ -12,7 +12,7 @@ import { keyedBox } from "../src/boxes.ts";
 import { drawingOf } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
 import { editorOf, editorTargetOf } from "../src/editors.ts";
-import { FlowEditorSession, type FlowTarget } from "../src/flowEditor.svelte.ts";
+import { FlowEditorSession, type FlowServer, type FlowTarget } from "../src/flowEditor.svelte.ts";
 import { flowRows, recomputeCommands } from "../src/flowEditor.ts";
 import { flowPaneOf } from "../src/flowEditorRows.ts";
 import {
@@ -72,7 +72,31 @@ describe("opening the flow editor", () => {
     ]);
   });
 
-  it("opens from an element the band draws, hit before the band", () => {
+  it("opens on the arranger from a press on the root's card inside its flow control band", () => {
+    const flow = bandHit("flow_control");
+    const card = keyedBox(drawing, { item: ROOT }) ?? null;
+    if (card === null || flow.box === null) throw new Error("no card");
+    const middle = {
+      x: flow.box.x + flow.box.width / 2,
+      y: flow.box.y + flow.box.height / 2,
+    };
+    const onCard: Hit = { ...flow, kind: "card", address: inBlock(A, card.address), box: card };
+    const band = { block: A, id: ROOT, facet: "flow_control" } as const;
+    expect(editorTargetOf(view, onCard, null, { drawing, point: middle })).toEqual(band);
+    const store = storeOf(view);
+    const opened = editorOf(band);
+    expect(store.open(opened.target, opened.kind)).toBeNull();
+    expect(store.editing.map(({ target, kind }) => ({ target, kind }))).toEqual([
+      { target: allegro, kind: "flow" },
+    ]);
+    const corner = { x: card.x, y: card.y };
+    expect(editorTargetOf(view, onCard, null, { drawing, point: corner })).toEqual(allegro);
+    expect(editorTargetOf(view, onCard, null)).toEqual(allegro);
+    const bundle: Editing = { target: { block: A }, kind: "bundle" };
+    expect(editorTargetOf(view, onCard, bundle, { drawing, point: middle })).toEqual(allegro);
+  });
+
+  it("opens from an element the band draws, hit before the band, on the arranger too", () => {
     const jump: Hit = {
       block: A,
       kind: "element",
@@ -81,18 +105,17 @@ describe("opening the flow editor", () => {
       boundary: false,
       within: null,
     };
-    expect(editorTargetOf(view, jump, timelineEditor)).toEqual({
-      block: A,
-      id: ROOT,
-      facet: "flow_control",
-    });
+    const band = { block: A, id: ROOT, facet: "flow_control" };
+    expect(editorTargetOf(view, jump, timelineEditor)).toEqual(band);
+    expect(editorTargetOf(view, jump, null)).toEqual(band);
     const card = keyedBox(drawing, { item: ROOT }) ?? null;
-    expect(editorTargetOf(view, { ...jump, within: card }, null)).toEqual(allegro);
+    expect(editorTargetOf(view, { ...jump, within: card }, null)).toEqual(band);
+    const bundle: Editing = { target: { block: A }, kind: "bundle" };
+    expect(editorTargetOf(view, { ...jump, within: card }, bundle)).toEqual(allegro);
   });
 
   it("opens nothing from any other band, without the root's timeline editor, or inside", () => {
     expect(editorTargetOf(view, bandHit("regions"), timelineEditor)).toBeNull();
-    expect(editorTargetOf(view, bandHit("flow_control"), null)).toBeNull();
     expect(
       editorTargetOf(view, bandHit("flow_control"), { target: { block: A }, kind: "bundle" }),
     ).toBeNull();
@@ -232,8 +255,8 @@ describe("the pane as drawn", () => {
   });
 });
 
-/** A flow editor open on `allegro`, its session, and what it dispatched and reported. */
-function opened(): {
+/** A flow editor open on `allegro`, its session, and what it dispatched and reported; `server` its flow routes. */
+function opened(server?: FlowServer): {
   store: Store;
   session: FlowEditorSession;
   target: FlowTarget;
@@ -257,7 +280,7 @@ function opened(): {
       const shown = store.view.blocks[id];
       return shown === undefined ? undefined : drawingOf(shown, store.view.graphical, metrics);
     },
-    server: () => undefined,
+    server: () => server,
   });
   const innermost = store.editing.at(-1);
   if (innermost === undefined) throw new Error("no editor");
@@ -450,19 +473,55 @@ describe("recompute", () => {
     };
     expect(recomputeCommands(manifest, A, ROOT, answer)).toEqual([
       { type: "add", into: allegro, region: extra },
-      { type: "remove", targets: [inBlock(A, idAddress("single"))] },
       {
-        type: "add",
-        into: allegro,
-        flow_map: {
-          id: "single",
-          chunks: ["section_a", "section_b", "section_c"],
-          name: single.name,
-          convention: "single",
-          canonical: single.canonical,
-          provenance: single.provenance,
-        },
+        type: "set",
+        changes: [
+          {
+            target: inBlock(A, idAddress("single")),
+            values: {
+              computed: {
+                chunks: ["section_a", "section_b", "section_c"],
+                provenance: single.provenance,
+              },
+            },
+          },
+        ],
       },
+    ]);
+  });
+
+  it("stores a recomputed default and single in the open flow editor, with their lengths", async () => {
+    const recomputed: { readonly [convention: string]: readonly string[] } = {
+      default: ["section_a", "section_c", "section_a", "section_c"],
+      single: ["section_a", "section_b", "section_c"],
+    };
+    const server: FlowServer = {
+      withFlowMaps: async (asked) => ({
+        ...asked,
+        flow_maps: (asked.flow_maps ?? []).map((item) => {
+          const chunks = item.convention === undefined ? undefined : recomputed[item.convention];
+          return chunks === undefined ? item : { ...item, chunks: [...chunks] };
+        }),
+      }),
+      findings: async () => new Map(),
+    };
+    const { store, session, target, said } = opened(server);
+    const before = manifestOf(store).flow_maps ?? [];
+    await session.recompute(target);
+    expect(said).toEqual([]);
+    const flowMaps = manifestOf(store).flow_maps ?? [];
+    for (const id of ["default", "single"]) {
+      const was = before.find((item) => item.id === id);
+      expect(flowMaps.find((item) => item.id === id)).toEqual({ ...was, chunks: recomputed[id] });
+    }
+    const lengths = (manifestOf(store).virtual_timelines ?? []).map(({ id, length }) => [
+      id,
+      length,
+    ]);
+    expect(lengths).toEqual([
+      ["allegro_by_hand", [3054, 1]],
+      ["allegro_default", [3241, 1]],
+      ["allegro_single", [1644, 1]],
     ]);
   });
 });
