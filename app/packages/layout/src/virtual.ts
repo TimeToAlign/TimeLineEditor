@@ -334,6 +334,7 @@ export function withRuns(scope: Scope): Scope {
     relativeAt: relative,
     startAt: relative,
     gapOf: () => undefined,
+    runGaps: gaps,
     runGapOf: (value) => {
       const gap = placed.find(({ a, b }) => compareReal(a, value) < 0 && compareReal(value, b) < 0);
       return gap === undefined ? undefined : gap.left;

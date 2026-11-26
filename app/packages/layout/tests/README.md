@@ -2540,6 +2540,24 @@ less and plus `k` = 8.
    C, boundaries at entries 1 to 5, at `x(953/2)`, `x(953)`, `x(2859/2)`,
    `x(1906)`, `x(1910)` with `D` = 0, and the gap line `[[x(1906),
    x(1910)]]`.
+9. **The axes follow the run.** What a hover, a pin and the coordinate
+   flag read on a line is its axes (`lineAxes`, read by `abscissaOf`), so
+   on `allegro_by_hand`'s card of 5 the line has one axis per run, as an
+   elided line has one per run between its gaps: run 0 over `[0, 953/2]`
+   from `x0` to `x0 + 400 × u(953/2)`, start 0, length and drawn length
+   953/2; run 1 over `[1906, 3054]` from `x(1906)`, which is exactly
+   `x0 + 400 × u(953/2)` (where brace 0 ends), to `x(3054)`, the line's
+   end, start 1906, length and drawn length 1148. No axis holds a
+   position strictly inside the run gap (`953/2 < t < 1906`), which the
+   drawing does not draw. A position is read on the axis holding it by
+   the one linear rule of `abscissaOf`, `xStart + (t − start) / drawn
+   length × (xEnd − xStart)`, each operand a double: 0 at `x0`, 1906 at
+   run 1's `xStart` (the coordinate the drawing shows where the brace
+   ends), 1908 (the gap's middle) at `xStart + (2 / 1148) × (xEnd −
+   xStart)` of run 1. A single straight axis over `[0, 3054]` would put
+   1906 at `x0 + 400 × u(1906)`, about 187.2 to the right of that end. The
+   virtual cards placed beside it, without a run, keep one axis each, from
+   `x0` to `x0 + 400`.
 
 ## Switched cards (`switched.test.ts`)
 

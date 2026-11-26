@@ -24,15 +24,20 @@ import type { CardAxis, Entry, Scope } from "../traversal.ts";
 
 /**
  * The full runs of a line spanning `start` to `end` on its root's axis, the
- * stretches of the gaps of `axis` elided and the span cut at its seams: what
- * `outside` leaves of the span, or, for a line of drawn length 0, the point
- * itself where no gap holds it (`CardAxis.gapOf`), and nothing where one does.
+ * stretches of the gaps and run gaps of `axis` left out (sections 3.2 and
+ * 8.10) and the span cut at its seams: what `outside` leaves of the span,
+ * or, for a line of drawn length 0, the point itself where no gap or run gap
+ * holds it (`CardAxis.gapOf`, `CardAxis.runGapOf`), and nothing where one does.
  */
 function runsOf(start: Real, end: Real, axis: CardAxis | undefined): Stretch[] {
   if (axis === undefined) return [[start, end]];
-  if (compareReal(start, end) === 0) return axis.gapOf(start) === undefined ? [[start, end]] : [];
+  if (compareReal(start, end) === 0) {
+    const held = axis.gapOf(start) !== undefined || axis.runGapOf(start) !== undefined;
+    return held ? [] : [[start, end]];
+  }
   const stretches = [
     ...axis.gaps.map((gap): Stretch => [gap.a, gap.b]),
+    ...axis.runGaps,
     ...axis.seams.map((seam): Stretch => [seam, seam]),
   ];
   return outside(start, end, stretches);
@@ -110,9 +115,10 @@ function spansOf(manifest: Manifest, root: TimelineManifest, lambda: Real): Map<
  * the order they are drawn, each with the timeline it spans.
  *
  * On the elided axis `elided` of a card drawing gaps (sections 3.2 and
- * 8.9), a line is drawn in full runs between its gaps, and has one axis
- * per run, each linear, from the run's start to its end at their elided x
- * (a run starting at a seam at the start of the run right of it),
+ * 8.9), or run gaps (section 8.10, Runs), a line is drawn in full runs
+ * between them, and has one axis per run, each linear, from the run's start
+ * to its end at their drawn x (a run starting at a seam at the start of the
+ * run right of it, one starting at a run gap's end `b` at `x(a)`),
  * with the coordinates there, every one with the timeline's address (`run`
  * telling them apart from the second on) and the named timestamps whose
  * cross-section lines lie on it.

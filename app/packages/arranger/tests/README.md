@@ -4822,8 +4822,8 @@ the drawing alone:
 (`A × 4`) and `allegro_default`'s brace 2, in that order (drawing order;
 the cards are drawn by ID). `allegro_by_hand`'s chunk 5 (C) reaches
 `allegro` over [500, 1644) from its brace, which lies after the run's
-shrink: its `x1` is the brace element's, never the line's linear
-abscissa of 1910; it lights `allegro_default`'s brace 3, the other C. Its chunk 1, the second entry of the run, draws no
+shrink: its `x1` is the brace element's, never the linear abscissa of
+1910 over the drawn line from its `xs` to its `xe`; it lights `allegro_default`'s brace 3, the other C. Its chunk 1, the second entry of the run, draws no
 brace, so no ribbon, and lights `allegro_by_hand`'s brace 0 and
 `allegro_default`'s braces 0 and 2. Its chunk 4 (the gap) shows nothing.
 In `groups/virtual_member` chunk 1 of the member card reaches `allegro`'s
@@ -4842,7 +4842,9 @@ or selected the node draws no `g.tilie-ribbons`.
 
 **The flag** (`flow-flag.test.ts`). The pin is read on a line of the
 drawing (`crossSectionSpec`, core's `timestampAt`), as the canvas reads
-it. Values are written as core's `prettyText` writes a coordinate. On
+it, on the axis of the line holding the position: a line drawn with a run
+once has one axis per run (layout's README, Virtual cards, 9), so 1907 on
+`allegro_by_hand` is read on its second, from 1906. Values are written as core's `prettyText` writes a coordinate. On
 `allegro_default`'s line at the played 600 (in chunk 2, the second A) the
 flag adds the part `written allegro_default`, named `Allegro`, with the
 rows `coordinate` 100 and `occurrence` `2 of 2`; at 1000 (in C) `523 1/2`
