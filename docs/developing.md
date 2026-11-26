@@ -139,7 +139,7 @@ The code treats the four kinds through one model:
   read that list and derive nothing from element order;
 - the arranger's level table (`containers.ts`) says, per level of the
   canvas (the arranger, the bundle editor, the group editor, the timeline
-  editor, the flow editor), what may be moved, reordered, resized, removed and opened, and
+  editor, the flow-control editor), what may be moved, reordered, resized, removed and opened, and
   how each kind of box resizes.
 
 "Item" is a role (a frame or a block-held card is placed freely in the
@@ -200,7 +200,9 @@ through the element holding it, by one `set` of that element's whole
 
 1. **A gesture or a form edit** in the arranger or the inspector builds one
    command: `add`, `set`, `remove` or `style`, aimed at addresses. One
-   completed gesture is one command; a preview shows
+   completed gesture is one command; a choice that needs several (a
+   frame's flow switch) goes through `Store.edit`, which makes them in the
+   editor of their target as one closed session, so one undo step. A preview shows
    `drawingOf(preview(view, command))`, the command applied without the
    schema check, so a preview can never differ from what the release stores.
 2. **The store** parses the command, applies it through the pure reducer
