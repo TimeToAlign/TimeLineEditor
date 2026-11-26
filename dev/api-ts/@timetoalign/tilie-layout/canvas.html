@@ -515,7 +515,7 @@
 <blockquote>
 <div><p><strong>placedAt</strong>(<code class="docutils literal notranslate"><span class="pre">element</span></code>, <code class="docutils literal notranslate"><span class="pre">dx</span></code>, <code class="docutils literal notranslate"><span class="pre">dy</span></code>, <code class="docutils literal notranslate"><span class="pre">scale?</span></code>): <a class="reference internal" href="elements.html#drawnelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnElement</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/layout/src/canvas.ts#L52">layout/src/canvas.ts:52</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/44d14a215a73eec068046de892a7e864abb68ac1/app/packages/layout/src/canvas.ts#L52">layout/src/canvas.ts:52</a></p>
 <p>An element drawn at <code class="docutils literal notranslate"><span class="pre">(dx,</span> <span class="pre">dy)</span></code> and the scale <code class="docutils literal notranslate"><span class="pre">scale</span></code>: each of its positions
 <code class="docutils literal notranslate"><span class="pre">(u,</span> <span class="pre">v)</span></code> taken to <code class="docutils literal notranslate"><span class="pre">(dx</span> <span class="pre">+</span> <span class="pre">scale</span> <span class="pre">×</span> <span class="pre">u,</span> <span class="pre">dy</span> <span class="pre">+</span> <span class="pre">scale</span> <span class="pre">×</span> <span class="pre">v)</span></code> and each of its lengths
 multiplied by <code class="docutils literal notranslate"><span class="pre">scale</span></code>. An item is drawn at its place so (section 8.6), and
@@ -551,7 +551,7 @@ scale 1 (section 8.4), where a position becomes <code class="docutils literal no
 <blockquote>
 <div><p><strong>placedAxis</strong>(<code class="docutils literal notranslate"><span class="pre">axis</span></code>, <code class="docutils literal notranslate"><span class="pre">dx</span></code>, <code class="docutils literal notranslate"><span class="pre">dy</span></code>, <code class="docutils literal notranslate"><span class="pre">scale?</span></code>): <a class="reference internal" href="boxes.html#drawnaxis"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnAxis</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/layout/src/canvas.ts#L203">layout/src/canvas.ts:203</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/44d14a215a73eec068046de892a7e864abb68ac1/app/packages/layout/src/canvas.ts#L203">layout/src/canvas.ts:203</a></p>
 <p>A line’s axis drawn at <code class="docutils literal notranslate"><span class="pre">(dx,</span> <span class="pre">dy)</span></code> and the scale <code class="docutils literal notranslate"><span class="pre">scale</span></code>, as <code class="docutils literal notranslate"><span class="pre">placedAt</span></code> draws its line, and its
 marker and its mark as <code class="docutils literal notranslate"><span class="pre">placedAt</span></code> draws a wedge and a cross-section line.</p>
 <section id="id1">
@@ -584,7 +584,7 @@ marker and its mark as <code class="docutils literal notranslate"><span class="p
 <blockquote>
 <div><p><strong>placedBox</strong>(<code class="docutils literal notranslate"><span class="pre">box</span></code>, <code class="docutils literal notranslate"><span class="pre">dx</span></code>, <code class="docutils literal notranslate"><span class="pre">dy</span></code>, <code class="docutils literal notranslate"><span class="pre">scale?</span></code>): <a class="reference internal" href="boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/layout/src/canvas.ts#L186">layout/src/canvas.ts:186</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/44d14a215a73eec068046de892a7e864abb68ac1/app/packages/layout/src/canvas.ts#L186">layout/src/canvas.ts:186</a></p>
 <p>A container’s record drawn at <code class="docutils literal notranslate"><span class="pre">(dx,</span> <span class="pre">dy)</span></code> and the scale <code class="docutils literal notranslate"><span class="pre">scale</span></code>, as
 <code class="docutils literal notranslate"><span class="pre">placedAt</span></code> draws a frame or a card: its <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">y</span></code>, and a band’s <code class="docutils literal notranslate"><span class="pre">line</span></code>,
 taken to <code class="docutils literal notranslate"><span class="pre">dx</span> <span class="pre">+</span> <span class="pre">scale</span> <span class="pre">×</span> <span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">dy</span> <span class="pre">+</span> <span class="pre">scale</span> <span class="pre">×</span> <span class="pre">y</span></code> and <code class="docutils literal notranslate"><span class="pre">dy</span> <span class="pre">+</span> <span class="pre">scale</span> <span class="pre">×</span> <span class="pre">line</span></code>, its
@@ -620,7 +620,7 @@ stay as they are.</p>
 <blockquote>
 <div><p><strong>scaledStyle</strong>(<code class="docutils literal notranslate"><span class="pre">style</span></code>, <code class="docutils literal notranslate"><span class="pre">scale</span></code>): <a class="reference internal" href="cascade.html#style"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Style</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/5c86ef0e74feb3f5ed99bb86d6d3d33d4d592e74/app/packages/layout/src/canvas.ts#L13">layout/src/canvas.ts:13</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/44d14a215a73eec068046de892a7e864abb68ac1/app/packages/layout/src/canvas.ts#L13">layout/src/canvas.ts:13</a></p>
 <p>A style at the scale <code class="docutils literal notranslate"><span class="pre">scale</span></code>: each of its lengths multiplied by it (section 8.6).</p>
 <section id="id11">
 <h4>Parameters<a class="headerlink" href="#id11" title="Link to this heading">#</a></h4>

@@ -503,7 +503,7 @@ has one, how they are arranged), its default style rules, the settings (outside 
 the command journal that produced them with the sessions of its editors.
 It is one pretty JSON file, written as TimeToShare’s schema package
 writes JSON, by default <code class="docutils literal notranslate"><span class="pre">&lt;name&gt;.tle.json</span></code> after its name, format
-version 7; the manifests it holds are written there in their complete
+version 8; the manifests it holds are written there in their complete
 form with bare IDs, whatever file form each is exported in.</p></li>
 </ul>
 <p>No other noun names any of these. “Document”, “record” and “envelope” name
@@ -619,10 +619,13 @@ verbatim: any non-empty string without control characters, with no
 reserved word (TimeToShare’s README, “Identity”). TiLiE never parses an ID,
 and names a timeline, group or manifest without a <code class="docutils literal notranslate"><span class="pre">name</span></code> by its whole ID.
 Where core creates an element itself (the first segment of an empty
-segment line, the default timestamps), it mints <code class="docutils literal notranslate"><span class="pre">{prefix}_{N}</span></code> with the
-smallest <code class="docutils literal notranslate"><span class="pre">N</span></code> whose ID the manifest does not hold; a command that adds an
-element carries its ID, except a named timestamp, an elision and a named
-MatchStamp, which core mints the same way.</p>
+segment line, the default timestamps, a named timestamp, an elision, a
+named MatchStamp with its anchors, a group added without an ID), it mints
+the ID as timetoalign does: the type prefix, <code class="docutils literal notranslate"><span class="pre">_</span></code> and 13 random base-36
+characters (<code class="docutils literal notranslate"><span class="pre">timestamp_3b7gu4iwqkg9i</span></code>). <code class="docutils literal notranslate"><span class="pre">dispatch</span></code> mints these IDs before
+the command is applied and journals them in the command’s <code class="docutils literal notranslate"><span class="pre">ids</span></code>, so a
+replay reads them and mints nothing; a minted ID is never renamed or
+reissued. Any other element a command adds carries its ID.</p>
 <p>An address names anything a command can target, and it is an object,
 never a string composed from IDs: <code class="docutils literal notranslate"><span class="pre">{}</span></code> the workspace, <code class="docutils literal notranslate"><span class="pre">{block}</span></code> a block,
 and <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id?,</span> <span class="pre">facet?,</span> <span class="pre">part?}</span></code> an element of the block’s manifest, its
