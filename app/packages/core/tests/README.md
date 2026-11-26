@@ -5948,6 +5948,123 @@ check 66 to 69 ms, the build 141 to 152 ms; single runs from 193 to 237
 ms), with the margin of about 15 % the other budgets keep. A hover takes
 about 1 µs.
 
+## Resolving FlowMaps and virtual timelines (`flowmaps.test.ts`, fast-check)
+
+A FlowMap is resolved in core as timetoalign resolves it: every chunk a
+stretch of the root's axis, carried there by exact parent–child offset
+arithmetic in the root's number type, laid end to end from 0 on the
+virtual axis, which has the root's unit and number type; a virtual
+timeline chunk plays the stretches of the FlowMap it applies. Every
+stretch is half-open, its end excluded, as timetoalign's
+`ResolvedFlowMap.unfold` and `fold` have them: a written position is
+played wherever a stretch covers it, the start included and the end not,
+and the virtual axis is `[0, length)`, so its length folds to nothing and
+is refused (`outside_virtual_axis`). The oracle is TimeToShare's expected
+flows (`fixtures/flows/<SCHEMA_VERSION>/`, the flows timetoalign computes
+and is tested against) and the flow fixtures they name: every expected
+value below is derived from a fixture and its expected flow, never read
+off core's output.
+
+1. **The expected flows, convention by convention.** For each of the nine
+   expected flows and each of its conventions (`default`, `single`,
+   `printed`), the fixture is changed before loading: its root gains one
+   Region per atomic section (`section_A`, …, the section's `start` and
+   `end` as the expected flow spells them) and one FlowMap per convention
+   whose chunks are the convention's `sections`, each named by its
+   Region. Resolved, chunk `i` is a `region` chunk of its section, its
+   written stretch the section's bounds, its played stretch starting where
+   the sections before it end (their lengths summed from 0) and as long as
+   the section; the virtual length is the sum of the sections' lengths;
+   the chunks' written stretches and the convention's `runs`, touching
+   ones joined on both sides (a run also ends at a jump or a break, as
+   the schema package's README says), are the same stretches; the runs of
+   equal chunks are the `sections` grouped (`loop`'s `default` is A, then
+   B 128 times, then C: three runs, the second of count 128). At every
+   chunk's played start and at its middle, `fold` gives the section's
+   start and the start plus half the section's length; at the virtual
+   length it is refused. For every atomic section, at its start and its
+   middle, `unfold` gives one occurrence per time the convention plays
+   the section, in played order, numbered 1 to n of n, each at that
+   chunk's played start plus the distance into the section, each naming
+   its chunk; a section the convention never plays (B of
+   `sonata_exposition`'s `single`, D of `ossia`'s `default`) gives none,
+   and the root's length gives none. The axis is `fraction` in eight
+   cases and `float` (`loop`, seconds) in one; every value compared is a
+   coordinate in the root's unit and number type.
+2. **The FlowMaps a fixture states.** `flow/sonata_exposition`'s own
+   FlowMaps resolve as its expected flow says: `flow_map_1` the regions
+   whose bounds are A, B, A, C (`default`), `flow_map_2` A, C (`single`),
+   `flow_map_3` A, B, C (`printed`), with the played stretches of item 1.
+   Its virtual timeline `virtual_1`, resolved, applies `flow_map_1`, comes
+   from `score`, is in quarters, `fraction`, and is 36 long, the length
+   the fixture states. `flow/flow_map_by_hand`'s "Encore order"
+   (`flow_map_1` of `set`: `second`, a gap of 4, `first`) gives a
+   `timeline` chunk `second` written [8, 20) played [0, 12), a `gap`
+   chunk played [12, 16) with no written stretch and no source, and a
+   `timeline` chunk `first` written [0, 8) played [16, 24), the length
+   24; `fold` gives null at 12 and 14 (the gap), 8 at 0, 0 at 16;
+   `unfold` gives 0 at 8 and 16 at 0.
+3. **Children and descendants.** On `flow/ossia` a FlowMap of the
+   sections A, B, C and the child `ossia` (offset 16, length 8) gives
+   the child the `timeline` chunk written [16, 24), the printed flow's D.
+   On `nested.yaml` (root `clt_1`, child `clt_3` at 4, its child
+   `clt_2` at 3/2 of length 2), with a Region `deep` from 1/2 to 1 added
+   to `clt_2`, a FlowMap `clt_2`, `deep`, `clt_3` gives the written
+   stretches [11/2, 15/2), [6, 13/2) and [4, 12) and the played ones
+   [0, 2), [2, 5/2) and [5/2, 21/2): offsets added level by level.
+4. **A virtual timeline chunk.** On `flow/sonata_exposition` a FlowMap
+   `virtual_1`, `region_2` gives a `virtual` chunk `virtual_1` written
+   [0, 36) (its own axis) played [0, 36), then the `region` chunk
+   `region_2` written [12, 16) played [36, 40); the stretches are the
+   four of `flow_map_1` followed by B, five in all, the length 40.
+   `unfold` at 13 gives 13 (1 of 2) and 37 (2 of 2), at 2 gives 2 and 18;
+   `fold` at 20 gives 4, at 37 gives 13.
+5. **The root itself as a chunk** is a `timeline` chunk from 0 to its
+   length: `set` of `flow/flow_map_by_hand` as the one chunk gives the
+   written and played stretch [0, 20). (TimeToShare's validators and
+   timetoalign refuse the root as a chunk today, so this manifest is
+   built from the loaded one without being read again.)
+6. **Refusals**, each a `FlowMapError` with its exact `code` and `path`:
+   an unknown FlowMap ID, `unknown_flow_map` at `["flow_maps"]`; an
+   unknown virtual timeline ID, `unknown_virtual_timeline` at
+   `["virtual_timelines"]`; a FlowMap naming the child `first`,
+   `flow_map_timeline` at `["flow_maps", 0, "timeline"]`; a chunk naming
+   nothing in the tree, `flow_map_chunk` at `["flow_maps", 0, "chunks",
+   1]`; a gap of 1/3 on `loop`'s `float` axis, `gap_number_type` at
+   `["flow_maps", 0, "chunks", 0, "gap"]`, while a gap of 4 on a
+   `fraction` axis is read; the root as a chunk with its length
+   unknown, `unknown_length` at `["flow_maps", 0, "chunks", 0]`;
+   `flow_map_1` of `flow/sonata_exposition` changed to the one chunk
+   `virtual_1`, which applies it (a manifest TimeToShare reads, the
+   length 36 being the chunk's own), `flow_map_cycle` at `["flow_maps",
+   0, "chunks"]`, as timetoalign refuses the circle; a virtual timeline
+   `v` of `flow/flow_map_by_hand` applying `flow_map_1` to the child
+   `first`, `virtual_unresolved` at `["virtual_timelines", 0,
+   "timeline"]`; a position in seconds given to `unfold` on a quarters
+   axis, `unit_mismatch` at `[]`.
+7. **A virtual timeline from a conversion map.** On
+   `bundles/bundle_mixed.yaml` a virtual timeline `score_seconds`
+   applying `cmap_2` (a LinearMap of `score` to seconds, scalar 1/2) in
+   seconds, `float`, stating the length 6.5, resolves to the
+   `conversion_map` kind with source `score` and the length 6.0, the
+   map's value at `score`'s length 12, not the length stated;
+   `unfoldVirtual` at 3 quarters gives the one occurrence 1.5 (1 of 1,
+   no chunk), `foldVirtual` at 1.5 seconds gives 3 quarters. A virtual
+   timeline in seconds applying `cmap_1` (to ticks) is refused,
+   `map_not_evaluated` at `["virtual_timelines", 0, "map"]`, its message
+   naming `cmap_1`; so is one in floating measures applying
+   `conversion_maps__maps_quarters.yaml`'s `cmap_3` (a measure view,
+   whose MeasureMap rows core is not given).
+8. **Properties** (fast-check, seeded, 200 runs): on
+   `flow/sonata_exposition`, FlowMaps of one to eight chunks drawn from
+   its three regions, `virtual_1` and gaps of 1/2 to 4 quarters: for every
+   written position n/4 from 0 to 24, `fold` of each of its played
+   positions is the position again, and it has played positions exactly
+   when a chunk's written stretch covers it; for every played position
+   n/4 below the virtual length, `fold` gives null exactly inside a gap,
+   and otherwise `unfold` of the written position contains the played
+   one.
+
 ## External gates
 
 Strict type checking, Biome, dependency-cruiser and the whole Vitest suite
