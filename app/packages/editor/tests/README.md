@@ -1087,7 +1087,7 @@ Flow control −12 1. The form leaves bands out: a band with the card gives
 the card's geometry exactly, with the block the block's; the band's block
 is the selected block, and a second block makes none. In the component the
 band's panel holds one description list and nothing that edits but the
-band list of its timeline's card ("The band list" below: every input
+band list of its timeline ("The band list" below: every input
 lies in it), and the Manifest tab shows the block's text; with the card
 the form is exactly the card's, without the card's name field and Locked
 checkbox (two things are inspected, one of them no timeline); two bands
@@ -1096,7 +1096,7 @@ reserved ID; an ID is unique across the manifest: the map `tempo` renamed
 `phrase` in the text is refused, listed as `schema_violation` `'phrase' is
 not unique in the manifest, first at #/timelines/0/conversion_maps/0/id`
 at `/timelines/0/children/0/id`, the text and the journal kept. Below
-the rows a band shows its display toggles ("Display toggles" below): the
+the rows a band shows its display controls ("Display controls" below): the
 flow control band of `score` in `flow/sections`, with the manifest's rule
 showing every arc, the key Display beside Arcs (pressed) and Symbols, and
 Labels beside Name, ID and Label, a press journaling one `style`; a
@@ -1267,28 +1267,44 @@ default user, who states as `statedBy(DEFAULT_USER)`; the day is
    another selection (the jump alone) presses none. On
    `sonata_exposition`, `jump_2`'s one destination selects `[{block, id:
    "jump_2"}]`.
-9. **An element's display toggles** ("Display toggles" below): a jump
+9. **An element's display controls** ("Display controls" below): a jump
    shows Display (Arcs, and Symbol and Fork where it draws them) and
    Labels (Name, ID, Label), a flow line Display (Line, Symbol where it
    draws one) and Labels, a jump target Display Symbol where it draws one.
 
-## Display toggles (`inspector-display.test.ts`)
+## Display controls (`inspector-display.test.ts`)
 
-What a selected band or flow-control element shows of the drawing is
-read from the cascade the canvas draws with (layout's `Cascade` over the
-arranger's `styleLayers`: the defaults, the workspace's rules, the
-manifest's own) on core's keys of the manifest's elements; a press
-journals one `style` in the block's manifest, its effect read back
-through the same cascade. The defaults may hide or show arcs (TimeToShare's
-drawing specification decides), so every case on arcs first gives the
-manifest the rule `{element: "jump"}` `{display: "inline"}` (one
-`style`), which outranks every default by its layer: the values below hold
-whatever the defaults say. `flow/sections` (jumps `jump_1`, `jump_2`,
-break `break_1`, section break `section_break_1`, all on `score`) and
-`flow/sonata_exposition` (three atomic sections) are held in block
-`0000000000`.
+Every display control of the Properties tab (a band's Display, Labels and
+Regions controls, a flow-control element's Display and Labels, a
+timeline's band list below) is one declaration: the one rule a press
+writes, the elements of the manifest that rule names, and how its effect
+is judged. A control whose rule names no element is never relevant and is
+not offered; an offered one is pressed as the cascade gives its elements,
+and is **inert**, disabled with its reason, where a press changes nothing
+drawn. What a control shows is read from the cascade the canvas draws
+with (layout's `Cascade` over the arranger's `styleLayers`: the defaults,
+the workspace's rules, the manifest's own) on core's keys of the
+manifest's elements; a press journals one `style` in the block's
+manifest, its effect read back through the same cascade. Whether a press
+changes anything drawn follows TimeToShare's drawing specification: the
+list of section 2.4 of the ways one element hides another (a band hides
+what it holds, a root's flow control band also the flow control of its
+tree, a line its timeline's whole drawing, a flow line its labels), and
+section 2.1 for what an element draws (a jump an arc per destination not
+`by` 0 and not `volta`; a stack label only where the element has the
+text: core keys a label part only then). The oracle is the specification
+read on the fixture, never the code's own output. The defaults may hide
+or show arcs (the specification decides), so every case on arcs first
+gives the manifest the rule `{element: "jump"}` `{display: "inline"}`
+(one `style`), which outranks every default by its layer: the values
+below hold whatever the defaults say. `flow/sections` (jumps `jump_1`,
+`jump_2`, break `break_1` labelled "Fine", section break
+`section_break_1`, all on `score`, none named; only `break_1`, `jump_1`
+and `jump_2` carry a label) and `flow/sonata_exposition` (three atomic
+sections on `score`; `jump_1` with two `volta` destinations, one `by` 0,
+so no arc; `jump_2` a `repeat_end`) are held in block `0000000000`.
 
-1. **What is offered.** A toggle is offered only where an element of its
+1. **What is offered.** A control is offered only where an element of its
    type stands in core's keys of the manifest (the specification's
    section 2.1). The flow control band of `score` shows Display with Arcs
    (`word` `jump`), Symbols (`symbol`) and Forks (`fork`), each for
@@ -1299,7 +1315,7 @@ break `break_1`, section break `section_break_1`, all on `score`) and
    section (`sonata_exposition`), Regions with Atomic sections. Its
    regions band shows Regions alone; a regions band of a manifest without
    atomic sections (`sections`), a markers band, nothing. An element's
-   toggles, each its own rule `{element: type, addresses: [its part's
+   controls, each its own rule `{element: type, addresses: [its part's
    address]}`: a jump Display Arcs, Symbol (`{id, part: ["symbol"]}`) and
    Fork (`{id, part: ["fork"]}`), a flow line Line and Symbol, a
    jump target Symbol, each where it is drawn; a jump or a flow line also
@@ -1309,7 +1325,7 @@ break `break_1`, section break `section_break_1`, all on `score`) and
    symbol) Line, Symbol. On `sonata_exposition`, `jump_1` (two volta
    destinations, no symbol) Display Arcs, Fork; `jump_target_1`
    (volta, no symbol) nothing.
-2. **A band's toggle shows its elements without the rules naming an
+2. **A band's control shows its elements without the rules naming an
    address; an element's with them.** With the rule shown, Arcs of the
    band and of `jump_1` and `jump_2` are pressed.
 3. **A press writes the band's rule or the element's, or removes it where
@@ -1350,51 +1366,93 @@ break `break_1`, section break `section_break_1`, all on `score`) and
      own rule it would draw `name label`; then `jump_1` Label alone;
    - `jump_1`'s Label → `{"label-display": "none"}`; then none of its
      words pressed, the band still Name and Label.
+   (`controlCommand` writes what is asked whether or not the control is
+   inert; the panel never sends an inert control's press, item 7.)
 5. **Atomic sections** is the rule `{element: "region", class:
    "tts:AtomicSection"}` of the specification's section 2.3: not pressed
    while the manifest states no `display` `inline` for it; a press on
    `sonata_exposition`'s regions band journals `{display: "inline"}`
-   with that selector, the toggle then pressed on the regions band and
+   with that selector, the control then pressed on the regions band and
    on the flow control band alike; a second press `{display: null}`, the
    rule gone from the manifest's rules.
-6. **The panel.** With the flow control band of `sections` selected (the
+6. **A control changing nothing drawn is inert, with its reason**; every
+   other offered control's `inert` is `null`.
+   - What the element does not draw: on `sonata_exposition`, `jump_1`'s
+     Arcs "Nothing here draws arcs." (both destinations are voltas, which
+     its fork draws), its Fork not inert; `jump_2`'s Arcs not inert.
+   - A text the elements lack: on `sections`, the band's Name and
+     `jump_1`'s Name "Nothing here has a name to show." (no element is
+     named); the band's ID and Label not inert; `section_break_1`'s Label
+     "Nothing here has a label to show." and its ID not inert.
+   - A hidden holder (section 2.4, a band hides everything it holds): on
+     `sonata_exposition`, after `{element: "band", addresses: [{id:
+     "score", facet: "regions"}]}` `{display: "none"}`, Atomic sections
+     on the flow control band and on the regions band "The regions band
+     of timeline 'Score' is hidden."; after `{element: "band",
+     addresses: [{id: "score", facet: "flow_control"}]}` `{display:
+     "none"}` (on `sections`, the arcs shown), the band's Arcs, Symbols
+     and Labels ID, and `jump_2`'s Arcs, Symbol and ID, "The flow control
+     band of timeline 'Score' is hidden."
+   - A line hides its labels: on `sections`, after `break_1`'s Line
+     pressed (its line hidden), its Label "The lines whose labels it
+     chooses are hidden." (the break is the only element the rule names),
+     its Symbol not inert (a flow line's symbol is not its line's).
+7. **The panel.** With the flow control band of `sections` selected (the
    setting rule given), the band's rows stand above
    `[data-testid="display-toggles"]`: the keys Display and Labels, each
    naming its group, Display holding Arcs (pressed) and Symbols, Labels
-   Name, ID and Label (Name and Label pressed). A click on Arcs journals the one
-   `style` of item 3 and leaves Arcs not pressed; nothing is posted. With
-   `jump_2` selected, its Display group holds Arcs and Symbol, its Labels
-   group Name, ID and Label.
+   Name, ID and Label (Name and Label pressed). Name is disabled, its
+   tooltip "Nothing here has a name to show.", and the group's list
+   `[data-testid="display-inert"]` below its toggles reads "Name: Nothing
+   here has a name to show.", the group described by it; ID and Label are
+   enabled. A click on Arcs journals the one `style` of item 3 and leaves
+   Arcs not pressed; a click on the disabled Name journals nothing;
+   nothing is posted. With `jump_2` selected, its Display group holds
+   Arcs and Symbol, its Labels group Name, ID and Label.
 
 ## The band list (`inspector-band-list.test.ts`)
 
-A selected timeline card lists its bands in the Properties tab, each with
-a Visible checkbox; what a checkbox shows is read from the same cascade
-the canvas draws with, and a change journals one `style` in the block's
-manifest, read back through that cascade, as the display toggles above
-(the press rule is theirs, `toggleCommand`, proven there; here it is
-proven on a band's own `display`). Each fixture is held in block
-`0000000000`; IDs are the fixtures' own speaking ones.
+A selected timeline lists its bands in the Properties tab, each with a
+Visible checkbox, every timeline alike (uniform bands): a root's, a
+child's and a virtual timeline's. Each row is a display control of item
+6 above: what a checkbox shows is read from the same cascade the canvas
+draws with, a change journals one `style` in the block's manifest, read
+back through that cascade (the press rule is the controls',
+`controlCommand`, proven there; here it is proven on a band's own
+`display`), and a row whose change draws nothing differently is disabled
+with its reason. A band's change draws something differently exactly when
+no holder of the band is hidden (its timeline's line, the children band
+and line of each ancestor) and the band holds a displayed element
+directly (section 2.1: regions, maps, named timestamps, children, a
+flow-control element; a root's flow control band also those of its
+tree, which it lays out; an arc only where its jump draws one). Each
+fixture is held in block `0000000000`; IDs are the fixtures' own speaking
+ones.
 
 1. **Which selection lists bands.** On `styled_score_flow_inner` (root
    `score`, children `a` (its line hidden by a rule of the manifest) and
    `b`, no group): the card of `score` (`{id: "score", part: ["card"]}`),
    its line (`{id: "score"}`), one of its bands (`{id: "score", facet:
    "regions"}`) and the card with the line together each list `score`'s
-   bands. Nothing, the block, the line of `b` (a child drawn in no card of
-   its own), a band of `score` with its region `intro`, the region alone,
-   and the lines of `score` and `b` together list none (`null`).
+   bands; the line of the child `b` lists `b`'s. Nothing, the block, a
+   band of `score` with its region `intro`, the region alone, and the
+   lines of `score` and `b` together list none (`null`). On
+   `flow/virtual_cards`, the virtual timeline `allegro_by_hand` by its
+   line (`{id: "allegro_by_hand"}`), its card (`{id: "allegro_by_hand",
+   part: ["card"]}`) or its regions band lists Markers and Regions, the
+   bands a virtual timeline has (core's `VIRTUAL_FACETS`).
 2. **Rows in the band order.** `score` states `graphical.order`
    `["children", "markers", "line", "conversion_maps", "flow_control",
    "regions"]`, so its rows are, in order, Children, Markers, Conversion
-   maps, Flow control, Regions, each checked (no rule hides a band). On
-   `groups/group_child_member`, where `second-half`, a child of `piece`, is
-   a member of `group_1` beside the root `recording` and no timeline
-   states an order: the card of `recording` lists Children, Conversion
-   maps, Markers, Regions, Flow control (the default band order); the
-   card of `second-half` lists Children, Conversion maps, Markers,
-   Regions: a child's flow control is drawn by its root's band, so its
-   own is not listed.
+   maps, Flow control, Regions, each checked (no rule hides a band) and
+   none inert (`score` holds children, named timestamps, a map, the jump
+   `da-capo` and the region `intro`). On `groups/group_child_member`,
+   where `second-half`, a child of `piece`, is a member of `group_1`
+   beside the root `recording` and no timeline states an order, the card
+   of `recording` and that of `second-half` each list Children,
+   Conversion maps, Markers, Regions, Flow control (the default band
+   order): a child's flow control band holds its own flow-control
+   elements, so it is listed as every band is.
 3. **A change writes or removes the band's own rule.** On
    `styled_score_flow_inner`, the card of `score` selected, in order:
    - Regions unchecked → `{type: "style", select: {element: "band",
@@ -1408,12 +1466,83 @@ proven on a band's own `display`). Each fixture is held in block
      `{display: "none"}`, one `style`): Regions unchecked; checking it →
      the band's own rule `{display: "inline"}`; unchecking it →
      `{display: null}` (the rule of every regions band hides it then).
-4. **The panel.** With the card of `score` selected, the Properties tab
-   shows below the form a table captioned "Bands", headed Band and
-   Visible, one row per band of item 2, each row's checkbox named
-   "<band> visible"; a change journals exactly the `style` of item 3 and
-   leaves the checkbox unchecked; nothing is posted. With `intro`
-   selected no table is shown.
+4. **An inert row states why.**
+   - Nothing of its facet: on `unknown_length_child` (root `score`
+     holding no region, its child `movement` one region, no group),
+     `score`'s Regions "Timeline 'score' holds no regions; those of its
+     descendants lie in their own regions bands." (a band hides what it
+     holds; a child's regions are drawn at the child's line by its own
+     band, section 2.4); `movement`'s Regions not inert; `score`'s
+     Children not inert, its Flow control "Timeline 'score' holds no
+     flow-control elements.".
+   - Nothing displayed: on `flow/sonata_exposition`, `score`'s Regions
+     "None of the regions it holds is displayed." (all three are atomic
+     sections, which the defaults hide); after the Atomic sections rule
+     (`{element: "region", class: "tts:AtomicSection"}` `{display:
+     "inline"}`) it is not inert.
+   - A hidden line: on `styled_score_flow_inner`, the child `a`'s rows
+     (Children, Markers, Conversion maps, Flow control, Regions, the
+     order `a` inherits) are each checked and "Timeline 'a' is hidden.".
+   - A virtual timeline: on `flow/virtual_cards`, `allegro_by_hand`'s
+     Markers "Virtual timeline 'Allegro, practice' holds no named
+     timestamps.", its Regions (its chunks' braces) not inert.
+5. **The panel.** With the card of `score` of `styled_score_flow_inner`
+   selected, the Properties tab shows below the form a table captioned
+   "Bands", headed Band and Visible, one row per band of item 2, each
+   row's checkbox named "<band> visible" and enabled; a change journals
+   exactly the `style` of item 3 and leaves the checkbox unchecked;
+   nothing is posted. With `intro` selected no table is shown. With the
+   line of `score` of `unknown_length_child` selected, the Regions
+   checkbox is disabled, its tooltip and the text in its row (which
+   describes it) the reason of item 4.
+
+## The bundle's timeline list (`inspector-timeline-list.test.ts`)
+
+A selected bundle lists in the Properties tab the cards its block holds
+(TimeToShare's drawing specification, section 8.1): each group's frame,
+each ungrouped root's card, then each virtual timeline no group names,
+whose card is drawn only while the block's `places` holds its ID (section
+8.10). Only a virtual timeline's row has a Visible checkbox: its card is
+the one card that can be hidden (Delete on the canvas unstates its place)
+and must be shown again from here; a frame and a root's card are drawn
+while their group or timeline exists, so their rows offer no control and
+read "Always drawn". A group's members are reached through the group. The
+oracle is the fixture's own groups, roots and virtual timelines and the
+block's `places` after each command. Each fixture is held in block
+`0000000000`; a workspace written from fixtures states no place.
+
+1. **Which selection lists timelines.** The block alone lists; nothing, a
+   timeline's card, and the block with a card list none (`null`).
+2. **Rows in drawing order.** On `groups/virtual_member` (group
+   `performance` of the virtual timeline `allegro_default` and the root
+   `recording`, the root `allegro`, virtual timelines `allegro_by_hand`,
+   `allegro_default`, `allegro_single`): Group "Performance", Timeline
+   "Allegro", Virtual timeline "Allegro, practice", Virtual timeline
+   "Allegro, single" (`recording` and `allegro_default` are members,
+   reached through the group); the first two without Visible, the virtual
+   ones unchecked.
+3. **Visible shows and hides a virtual timeline's card.** On
+   `flow/virtual_cards` (root `allegro`, virtual timelines
+   `allegro_by_hand`, `allegro_default`, `allegro_single`, none placed):
+   checking `allegro_single` → `{type: "set", changes: [{target: {block:
+   A, id: "allegro_single"}, values: {place: {scale: 1}}}]}` (its default
+   place, section 8.6), accepted; the block's `places` then holds
+   `allegro_single` `{scale: 1}`, the row checked. After a drag would
+   have placed it (`set` `place` `{x: 40, y: 300}` on `allegro_by_hand`),
+   unchecking it → `{type: "set", changes: [{target: {block: A, id:
+   "allegro_by_hand"}, values: {place: {x: null, y: null}}}]}`, the
+   command Delete stores for a virtual card, accepted; `places` then holds
+   no `allegro_by_hand`, the row unchecked.
+4. **The panel.** With the block of `groups/virtual_member` selected, the
+   Properties tab shows a table captioned "Timelines", headed Card and
+   Visible, the rows of item 2 ("Group Performance", "Timeline Allegro",
+   …), "Always drawn" in the first two rows' Visible cells, checkboxes
+   named "Allegro, practice visible" and "Allegro, single visible", and
+   below it the note naming how a group's members are reached. A change
+   of "Allegro, single visible" journals the command of item 3 for it and
+   leaves the checkbox as stored until the store has taken it (then
+   checked); nothing is posted. With a timeline's card selected no table
+   is shown.
 
 ## The Regions tab (`inspector-regions.test.ts`)
 

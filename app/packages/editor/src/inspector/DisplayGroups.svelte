@@ -1,15 +1,17 @@
 <script lang="ts">
 /**
- * The display toggles of a selected band or flow-control element in the
+ * The display controls of a selected band or flow-control element in the
  * Properties tab (`display.ts`): one row per group, its key beside the
  * toggles the stamp tabs show a timestamp's display with
- * (`DisplayToggles`). A press sends one `style`, a rule in the block's
- * manifest (`toggleCommand`); a refusal is posted as information.
+ * (`DisplayToggles`). A control that changes nothing drawn now is
+ * disabled, its reason its tooltip and a line below the group's toggles.
+ * A press sends one `style`, a rule in the block's manifest
+ * (`controlCommand`); a refusal is posted as information.
  */
 import type { Block, Store, View } from "@timetoalign/tilie-core";
 import { postOf } from "../messages.svelte.ts";
-import type { ToggleGroup } from "./display.ts";
-import { toggleCommand } from "./display.ts";
+import type { ControlGroup } from "./display.ts";
+import { controlCommand } from "./display.ts";
 import DisplayToggles from "./stamps/DisplayToggles.svelte";
 
 let {
@@ -22,17 +24,17 @@ let {
   store: Store;
   /** The block the band or the element lies in. */
   block: Block;
-  groups: readonly ToggleGroup[];
+  groups: readonly ControlGroup[];
 } = $props();
 
 const uid = $props.id();
 const post = postOf();
 
-/** Send the press of the toggle `word` of `group`. */
-function press(group: ToggleGroup, word: string): void {
-  const toggle = group.toggles.find((item) => item.word === word);
-  if (toggle === undefined) return;
-  const refusal = store.dispatch(toggleCommand(view, block, toggle));
+/** Send the press of the control `word` of `group`. */
+function press(group: ControlGroup, word: string): void {
+  const control = group.controls.find((item) => item.word === word);
+  if (control === undefined || control.inert !== null) return;
+  const refusal = store.dispatch(controlCommand(view, block, control));
   if (refusal !== null) post("info", refusal.message);
 }
 </script>
@@ -40,14 +42,25 @@ function press(group: ToggleGroup, word: string): void {
 {#if groups.length > 0}
   <div class="groups" data-testid="display-toggles">
     {#each groups as group, index (group.key)}
+      {@const inert = group.controls.filter((control) => control.inert !== null)}
       <span class="key" id="{uid}-{index}">{group.key}</span>
-      <DisplayToggles
-        words={group.toggles}
-        display={group.toggles.filter((toggle) => toggle.pressed).map((toggle) => toggle.word)}
-        disabled={false}
-        labelledby="{uid}-{index}"
-        ontoggle={(word) => press(group, word)}
-      />
+      <div class="controls">
+        <DisplayToggles
+          words={group.controls}
+          display={group.controls.filter((control) => control.pressed).map((control) => control.word)}
+          disabled={false}
+          labelledby="{uid}-{index}"
+          describedby={inert.length > 0 ? `${uid}-${index}-inert` : undefined}
+          ontoggle={(word) => press(group, word)}
+        />
+        {#if inert.length > 0}
+          <ul class="inert" id="{uid}-{index}-inert" data-testid="display-inert">
+            {#each inert as control (control.word)}
+              <li>{control.label}: {control.inert}</li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
     {/each}
   </div>
 {/if}
@@ -64,5 +77,15 @@ function press(group: ToggleGroup, word: string): void {
 
   .key {
     color: #595959;
+  }
+
+  /* Why a disabled control changes nothing: greyed text that stays readable. */
+  .inert {
+    margin: 0.2rem 0 0;
+    padding: 0;
+    list-style: none;
+    color: #6b6b6b;
+    font-size: 0.75rem;
+    overflow-wrap: anywhere;
   }
 </style>

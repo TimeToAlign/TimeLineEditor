@@ -1,16 +1,18 @@
 <script lang="ts">
 /**
- * The band list of a selected timeline card in the Properties tab
- * (`display.ts` `bandList`): a table "Bands", one row per band in the
- * timeline's band order, its word and a Visible checkbox showing what the
- * cascade gives for the band's `display`. A change sends one `style`, the
- * band's rule in the block's manifest (`toggleCommand`); a refusal is
- * posted as information.
+ * The band list of a selected timeline in the Properties tab (`display.ts`
+ * `bandList`), every timeline alike (a root's, a child's, a virtual
+ * timeline's): a table "Bands", one row per band in the timeline's band
+ * order, its word and a Visible checkbox showing what the cascade gives for
+ * the band's `display`. A band whose showing or hiding changes nothing
+ * drawn now has its checkbox disabled and its reason under its word. A change
+ * sends one `style`, the band's rule in the block's manifest
+ * (`controlCommand`); a refusal is posted as information.
  */
 import type { Block, Store, View } from "@timetoalign/tilie-core";
 import { postOf } from "../messages.svelte.ts";
 import type { BandRow } from "./display.ts";
-import { toggleCommand } from "./display.ts";
+import { controlCommand } from "./display.ts";
 
 let {
   view,
@@ -25,12 +27,13 @@ let {
   rows: readonly BandRow[];
 } = $props();
 
+const uid = $props.id();
 const post = postOf();
 
 /** Send the change of `row`'s checkbox, which shows the stored state until the store has taken it. */
 function change(event: Event & { currentTarget: HTMLInputElement }, row: BandRow): void {
-  event.currentTarget.checked = row.toggle.pressed;
-  const refusal = store.dispatch(toggleCommand(view, block, row.toggle));
+  event.currentTarget.checked = row.control.pressed;
+  const refusal = store.dispatch(controlCommand(view, block, row.control));
   if (refusal !== null) post("info", refusal.message);
 }
 </script>
@@ -46,15 +49,24 @@ function change(event: Event & { currentTarget: HTMLInputElement }, row: BandRow
     </thead>
     <tbody>
       {#each rows as row (row.facet)}
-        <tr>
-          <th scope="row">{row.toggle.label}</th>
+        {@const inert = row.control.inert}
+        <tr class={{ inert: inert !== null }}>
+          <th scope="row">
+            {row.control.label}
+            {#if inert !== null}
+              <span class="reason" id="{uid}-{row.facet}">{inert}</span>
+            {/if}
+          </th>
           <td>
             <input
               type="checkbox"
               name="band-visible"
               value={row.facet}
-              checked={row.toggle.pressed}
-              aria-label="{row.toggle.label} visible"
+              checked={row.control.pressed}
+              disabled={inert !== null}
+              title={inert ?? undefined}
+              aria-label="{row.control.label} visible"
+              aria-describedby={inert === null ? undefined : `${uid}-${row.facet}`}
               onchange={(event) => change(event, row)}
             />
           </td>
@@ -80,6 +92,7 @@ function change(event: Event & { currentTarget: HTMLInputElement }, row: BandRow
     padding: 0.1rem 0.75rem 0.1rem 0;
     font-weight: normal;
     text-align: start;
+    vertical-align: baseline;
   }
 
   thead th {
@@ -88,5 +101,17 @@ function change(event: Event & { currentTarget: HTMLInputElement }, row: BandRow
 
   td {
     text-align: center;
+  }
+
+  /* A band whose Visible changes nothing now: greyed text that stays readable, its reason beside it. */
+  tr.inert th,
+  .reason {
+    color: #6b6b6b;
+  }
+
+  .reason {
+    display: block;
+    font-size: 0.75rem;
+    overflow-wrap: anywhere;
   }
 </style>

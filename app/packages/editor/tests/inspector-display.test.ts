@@ -1,7 +1,8 @@
 /**
- * The display toggles of a selected band or flow-control element: what
- * the cascade shows and the one `style` a press journals; the expected
- * values are derived in `README.md` ("Display toggles").
+ * The display controls of a selected band or flow-control element: what
+ * the cascade shows, the one `style` a press journals, and why a control
+ * changing nothing drawn is inert; the expected values are derived in
+ * `README.md` ("Display controls").
  */
 
 import { liveStore, resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
@@ -9,8 +10,8 @@ import type { Address, ElementAddress, Store } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
-import type { ToggleGroup } from "../src/inspector/display.ts";
-import { bandToggles, elementToggles, toggleCommand } from "../src/inspector/display.ts";
+import type { ControlGroup } from "../src/inspector/display.ts";
+import { bandControls, controlCommand, elementControls } from "../src/inspector/display.ts";
 import { flowOf } from "../src/inspector/flow.ts";
 import PropertiesPanel from "../src/inspector/PropertiesPanel.svelte";
 import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
@@ -43,43 +44,50 @@ const subjectsOf = (store: Store, ...elements: ElementAddress[]) =>
   );
 
 /** The groups as `[key, [word, label, pressed][]]`. */
-const shape = (groups: readonly ToggleGroup[] | null) =>
+const shape = (groups: readonly ControlGroup[] | null) =>
   groups?.map((group) => [
     group.key,
-    group.toggles.map((toggle) => [toggle.word, toggle.label, toggle.pressed]),
+    group.controls.map((control) => [control.word, control.label, control.pressed]),
   ]) ?? null;
 
-/** The toggles of the band of `facet` of `score`. */
+/** The controls of the band of `facet` of `score`. */
 const bandOf = (store: Store, facet: "flow_control" | "regions" | "markers") =>
-  bandToggles(store.view, subjectsOf(store, { id: "score", facet }));
+  bandControls(store.view, subjectsOf(store, { id: "score", facet }));
 
-/** The toggles of the flow-control element `id`. */
-function elementOf(store: Store, id: string): ToggleGroup[] {
+/** The controls of the flow-control element `id`. */
+function elementOf(store: Store, id: string): ControlGroup[] {
   const flow = flowOf(subjectsOf(store, { id }));
   if (flow === null) throw new Error(`no flow-control element ${id}`);
-  return elementToggles(store.view, flow);
+  return elementControls(store.view, flow);
 }
 
-/** Whether the toggle `word` of `groups` is pressed. */
-function isPressed(groups: readonly ToggleGroup[] | null, word: string): boolean {
-  const toggle = groups?.flatMap((group) => group.toggles).find((item) => item.word === word);
-  if (toggle === undefined) throw new Error(`no toggle ${word}`);
-  return toggle.pressed;
+/** The control `word` of `groups`. */
+function controlOf(groups: readonly ControlGroup[] | null, word: string) {
+  const control = groups?.flatMap((group) => group.controls).find((item) => item.word === word);
+  if (control === undefined) throw new Error(`no control ${word}`);
+  return control;
 }
+
+/** Whether the control `word` of `groups` is pressed. */
+const isPressed = (groups: readonly ControlGroup[] | null, word: string): boolean =>
+  controlOf(groups, word).pressed;
+
+/** Why the control `word` of `groups` is inert; `null` where it is not. */
+const inertOf = (groups: readonly ControlGroup[] | null, word: string): string | null =>
+  controlOf(groups, word).inert;
 
 /** The words of the Labels group of `groups` that are pressed. */
-const labelsOf = (groups: readonly ToggleGroup[] | null) =>
+const labelsOf = (groups: readonly ControlGroup[] | null) =>
   groups
     ?.find((group) => group.key === "Labels")
-    ?.toggles.filter((toggle) => toggle.pressed)
-    .map((toggle) => toggle.word) ?? null;
+    ?.controls.filter((control) => control.pressed)
+    .map((control) => control.word) ?? null;
 
-/** Press `toggle`'s button in `store`: the command it journals, which the store must accept. */
-function press(store: Store, groups: readonly ToggleGroup[] | null, word: string) {
-  const toggle = groups?.flatMap((group) => group.toggles).find((item) => item.word === word);
+/** Press the control `word` in `store`: the command it journals, which the store must accept. */
+function press(store: Store, groups: readonly ControlGroup[] | null, word: string) {
   const block = store.view.blocks[A];
-  if (toggle === undefined || block === undefined) throw new Error(`no toggle ${word}`);
-  const command = toggleCommand(store.view, block, toggle);
+  if (block === undefined) throw new Error("no block");
+  const command = controlCommand(store.view, block, controlOf(groups, word));
   expect(store.dispatch(command)).toBeNull();
   return command;
 }
@@ -139,7 +147,7 @@ describe("the toggles offered", () => {
     ]);
     expect(shape(bandOf(sections, "regions"))).toEqual([]);
     expect(shape(bandOf(sections, "markers"))).toEqual([]);
-    expect(bandToggles(sections.view, subjectsOf(sections, { id: "jump_1" }))).toBeNull();
+    expect(bandControls(sections.view, subjectsOf(sections, { id: "jump_1" }))).toBeNull();
   });
 
   it("are an element's own drawing where it is drawn, and its labels", () => {
@@ -277,7 +285,60 @@ describe("a press", () => {
   });
 });
 
-describe("the toggles in the Properties tab", () => {
+describe("an inert control", () => {
+  it("is an arc no destination draws, a text no element has", () => {
+    const sonata = shownStore("flow/sonata_exposition");
+    expect(inertOf(elementOf(sonata, "jump_1"), "jump")).toBe("Nothing here draws arcs.");
+    expect(inertOf(elementOf(sonata, "jump_1"), "fork")).toBeNull();
+    expect(inertOf(elementOf(sonata, "jump_2"), "jump")).toBeNull();
+    const sections = shownStore("flow/sections");
+    const noName = "Nothing here has a name to show.";
+    expect(inertOf(bandOf(sections, "flow_control"), "name")).toBe(noName);
+    expect(inertOf(elementOf(sections, "jump_1"), "name")).toBe(noName);
+    expect(inertOf(bandOf(sections, "flow_control"), "id")).toBeNull();
+    expect(inertOf(bandOf(sections, "flow_control"), "label")).toBeNull();
+    expect(inertOf(elementOf(sections, "section_break_1"), "label")).toBe(
+      "Nothing here has a label to show.",
+    );
+    expect(inertOf(elementOf(sections, "section_break_1"), "id")).toBeNull();
+  });
+
+  it("is one whose elements a hidden band holds", () => {
+    const sonata = storeOf("flow/sonata_exposition");
+    const hidden = (facet: string) =>
+      style({ element: "band", addresses: [{ id: "score", facet }] }, "none");
+    expect(inertOf(bandOf(sonata, "flow_control"), "atomic_sections")).toBeNull();
+    expect(sonata.dispatch(hidden("regions"))).toBeNull();
+    const regions = "The regions band of timeline 'Score' is hidden.";
+    expect(inertOf(bandOf(sonata, "flow_control"), "atomic_sections")).toBe(regions);
+    expect(inertOf(bandOf(sonata, "regions"), "atomic_sections")).toBe(regions);
+
+    const sections = shownStore("flow/sections");
+    expect(sections.dispatch(hidden("flow_control"))).toBeNull();
+    const flow = "The flow control band of timeline 'Score' is hidden.";
+    const band = bandOf(sections, "flow_control");
+    const jump = elementOf(sections, "jump_2");
+    expect([
+      inertOf(band, "jump"),
+      inertOf(band, "symbol"),
+      inertOf(band, "id"),
+      inertOf(jump, "jump"),
+      inertOf(jump, "symbol"),
+      inertOf(jump, "id"),
+    ]).toEqual([flow, flow, flow, flow, flow, flow]);
+  });
+
+  it("is a flow line's label while the line is hidden, never its symbol", () => {
+    const store = shownStore("flow/sections");
+    press(store, elementOf(store, "break_1"), "break");
+    expect(inertOf(elementOf(store, "break_1"), "label")).toBe(
+      "The lines whose labels it chooses are hidden.",
+    );
+    expect(inertOf(elementOf(store, "break_1"), "symbol")).toBeNull();
+  });
+});
+
+describe("the controls in the Properties tab", () => {
   let app: ReturnType<typeof mount> | undefined;
   let informed: string[] = [];
 
@@ -317,7 +378,7 @@ describe("the toggles in the Properties tab", () => {
   const toggles = () => document.querySelector('[data-testid="display-toggles"]');
   const buttons = () => [...(toggles()?.querySelectorAll("button") ?? [])];
 
-  it("shows a band's toggles below its rows, and journals one style for a press", () => {
+  it("shows a band's controls below its rows, and journals one style for a press", () => {
     const store = shownStore("flow/sections");
     show(store, { id: "score", facet: "flow_control" });
     expect(document.querySelector("dl")?.compareDocumentPosition(toggles() as Node)).toBe(
@@ -349,7 +410,23 @@ describe("the toggles in the Properties tab", () => {
         ],
       ],
     ]);
+    const name = buttons()[2];
+    expect(buttons().map((button) => [button.disabled, button.title])).toEqual([
+      [false, ""],
+      [false, ""],
+      [true, "Nothing here has a name to show."],
+      [false, ""],
+      [false, ""],
+    ]);
+    const labels = groups[1];
+    const inert = document.getElementById(labels?.getAttribute("aria-describedby") ?? "");
+    expect(inert?.dataset.testid).toBe("display-inert");
+    expect(inert?.textContent?.trim()).toBe("Name: Nothing here has a name to show.");
+    expect(groups[0]?.getAttribute("aria-describedby")).toBeNull();
     const entries = store.listed.length;
+    name?.click();
+    flushSync();
+    expect(store.listed.length).toBe(entries);
     buttons()[0]?.click();
     flushSync();
     expect(store.listed.length).toBe(entries + 1);
@@ -360,7 +437,7 @@ describe("the toggles in the Properties tab", () => {
     expect(informed).toEqual([]);
   });
 
-  it("shows an element's toggles", () => {
+  it("shows an element's controls", () => {
     show(shownStore("flow/sections"), { id: "jump_2" });
     expect([...(toggles()?.querySelectorAll(".key") ?? [])].map((key) => key.textContent)).toEqual([
       "Display",
