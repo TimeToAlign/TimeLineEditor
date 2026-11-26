@@ -13,7 +13,7 @@ What works in the source tree:
   - element addresses, and the workspace view with its blocks, ids and order keys;
   - the four commands `add`, `set`, `remove` and `style` over addresses, under the library's invariants;
   - a store whose command journal gives undo and redo;
-  - the workspace file `<name>.tle.json` (format version 7), named by default after the workspace.
+  - the workspace file `<name>.tle.json` (format version 8; older versions are refused, their manifests imported again), named by default after the workspace.
 - **Drawing** (`layout`, `writers`). Every manifest is drawn as one block opened by its title, a manifest without timelines as that block and title alone:
   - groups as frames, and each timeline as a root in a card; a member of several groups gets a card in each of their frames;
   - a member that is a child timeline drawn with the lines of its ancestors beside it, each on the side opposite to that ancestor's children band (below the member by default), which its timestamps' lines cross, and its root drawn whole as an ancestor card behind the group's frame, unless a style rule hides it;

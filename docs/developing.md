@@ -52,7 +52,7 @@ have, the schema is changed first.
   the command journal that produced them with the sessions of its editors.
   It is one pretty JSON file, written as TimeToShare's schema package
   writes JSON, by default `<name>.tle.json` after its name, format
-  version 7; the manifests it holds are written there in their complete
+  version 8; the manifests it holds are written there in their complete
   form with bare IDs, whatever file form each is exported in.
 
 No other noun names any of these. "Document", "record" and "envelope" name
@@ -153,10 +153,13 @@ verbatim: any non-empty string without control characters, with no
 reserved word (TimeToShare's README, "Identity"). TiLiE never parses an ID,
 and names a timeline, group or manifest without a `name` by its whole ID.
 Where core creates an element itself (the first segment of an empty
-segment line, the default timestamps), it mints `{prefix}_{N}` with the
-smallest `N` whose ID the manifest does not hold; a command that adds an
-element carries its ID, except a named timestamp, an elision and a named
-MatchStamp, which core mints the same way.
+segment line, the default timestamps, a named timestamp, an elision, a
+named MatchStamp with its anchors, a group added without an ID), it mints
+the ID as timetoalign does: the type prefix, `_` and 13 random base-36
+characters (`timestamp_3b7gu4iwqkg9i`). `dispatch` mints these IDs before
+the command is applied and journals them in the command's `ids`, so a
+replay reads them and mints nothing; a minted ID is never renamed or
+reissued. Any other element a command adds carries its ID.
 
 An address names anything a command can target, and it is an object,
 never a string composed from IDs: `{}` the workspace, `{block}` a block,
