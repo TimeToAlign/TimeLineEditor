@@ -25,7 +25,11 @@ import {
   elementKey,
   type GroupFrame,
   type MemberDrawing,
-  memberDrawings,
+  reachOf,
+  type Switch,
+  switchOf,
+  type Unfolding,
+  unfoldingOf,
   unownedKey,
 } from "@timetoalign/tilie-core/drawing";
 import type { Style } from "../cascade.ts";
@@ -40,7 +44,8 @@ import {
 } from "../elisions.ts";
 import { layoutScope, type MemberLayout } from "../member.ts";
 import { cleanText } from "../metrics.ts";
-import { cutText } from "../names.ts";
+import { cutText, nameOf } from "../names.ts";
+import { lengthValue } from "../numbers.ts";
 import {
   type Context,
   type Holder,
@@ -50,6 +55,7 @@ import {
   traverse,
   withAxis,
 } from "../traversal.ts";
+import { drawnRoots, flowOf, isVirtualMember, virtualFlow, withRuns } from "../virtual.ts";
 
 /** A title (section 8.1): its address, style and font size, and its text cut to its `max-width`. */
 export interface Title {
@@ -196,31 +202,91 @@ function containerOf(context: Context, key: PlaceKey): ContainerRef {
   return known(indexOf(context.manifest).containers.byKey, placeKeyText(key));
 }
 
-/**
- * The card of `member` whose place key is `key`, held by `holder` (the
- * frame of its group, or the block): its container, address and style, and
- * its member drawing traversed at `L`, spacing `S` and margin `V`, a member
- * card of `frame` where one is given.
- */
-function cardOf(
+/** A card's container, address and style, before its member drawing is traversed. */
+type Styled = Pick<Card, "member" | "ref" | "address" | "style">;
+
+/** The card of `member` whose place key is `key`, held by `holder`: its container, address and style. */
+function styledCard(
   context: Context,
   member: MemberDrawing,
   holder: Holder,
   key: PlaceKey,
+): Styled {
+  const ref = containerOf(context, key);
+  const { address } = ref;
+  const style = context.cascade.resolve(
+    elementKey("card", address, member.timeline, holder.key),
+    holder.style,
+  );
+  return { member, ref, address, style };
+}
+
+/** What the card `card` is switched to (section 8.10, core's `switchOf`): none for a virtual timeline's card. */
+function switchOfCard(context: Context, card: Styled): Switch | null {
+  const { manifest } = context;
+  if (isVirtualMember(manifest, card.member)) return null;
+  return switchOf(manifest, card.member.timeline.id);
+}
+
+/** A timeline's length, or its reach where its length is not known (section 3.4). */
+const lambdaOf = (context: Context, member: MemberDrawing) =>
+  lengthValue(member.timeline) ?? reachOf(member.timeline, context.manifest);
+
+/**
+ * How the card `card` is unfolded where it is switched to `own` or lies in a
+ * frame switched by the card of `switched` (section 8.10): the switched
+ * card on its FlowMap's virtual axis, named after it; every other member
+ * carried through the group onto that axis; null where neither holds.
+ */
+function unfoldedOf(
+  context: Context,
+  card: Styled,
+  own: Switch | null,
+  switched: { readonly member: MemberDrawing; readonly to: Switch } | null,
+): { readonly unfolding: Unfolding; readonly name: string | null } | null {
+  const { manifest } = context;
+  if (own !== null && (switched === null || switched.member === card.member)) {
+    return {
+      unfolding: unfoldingOf(manifest, own.flowMap),
+      name: `${nameOf(card.member.timeline)} · ${own.name}`,
+    };
+  }
+  if (switched === null) return null;
+  const carried = {
+    lambdaT: lambdaOf(context, switched.member),
+    lambdaM: lambdaOf(context, card.member),
+  };
+  return { unfolding: unfoldingOf(manifest, switched.to.flowMap, carried), name: null };
+}
+
+/**
+ * The card `card` held by `holder` (the frame of its group, or the block),
+ * its member drawing traversed at `L`, spacing `S` and margin `V`, a member
+ * card of `frame` where one is given, and unfolded as `unfolded` gives
+ * (section 8.10): a virtual timeline's card draws its chunks, a switched
+ * card its FlowMap's, their runs drawn once in a card the block holds.
+ */
+function cardOf(
+  context: Context,
+  card: Styled,
+  holder: Holder,
   L: number,
   S: number,
   V: number,
   frame: GroupFrame | null,
-): Pick<Card, "member" | "ref" | "address" | "style"> & { readonly scope: Scope } {
-  const timeline = member.timeline;
-  const ref = containerOf(context, key);
-  const { address } = ref;
-  const style = context.cascade.resolve(
-    elementKey("card", address, timeline, holder.key),
-    holder.style,
-  );
+  own: Switch | null,
+  unfolded: { readonly unfolding: Unfolding; readonly name: string | null } | null,
+): Styled & { readonly scope: Scope } {
+  const { member } = card;
   const laid: Context = { ...context, placement: { ...context.placement, length: L } };
-  return { member, ref, address, style, scope: traverse(laid, member, holder, S, V, frame) };
+  const once = frame === null;
+  // A virtual member carried through a switched frame unfolds its own chunks (section 8.10).
+  const flow =
+    unfolded !== null && unfolded.name !== null && own !== null
+      ? flowOf(context.manifest, own.flowMap, member.timeline.id, once)
+      : virtualFlow(context.manifest, member, once);
+  const scope = withRuns(traverse(laid, member, holder, S, V, frame, flow, unfolded));
+  return { ...card, scope };
 }
 
 /**
@@ -268,7 +334,7 @@ export function placeItems(
   const padding = arranged.padding ?? new Map<string, number>();
   const free = arranged.order === undefined;
   const { placement, measure } = context;
-  const { frames, ungrouped } = memberDrawings(context.manifest);
+  const { frames, ungrouped, placed } = drawnRoots(context.manifest, placement.places);
   let lowest: number | undefined;
   type Content = Pick<Item, "cards" | "elisions" | "DG"> & { readonly height: number };
   const place = (
@@ -331,22 +397,40 @@ export function placeItems(
     const title = titleOf(context, partAddress(address, "name"), group.id, group.name, holder);
     const frame: Frame = { ref, address, holder, title };
     return place(item, frame, (L, Sf, Vf) => {
-      // Each member drawing is traversed at its card's own spacing and margin, then laid out on
-      // the frame's elided axis where its group elisions draw gaps (section 8.9).
-      const traversed = members.map((member) => {
+      // A frame with exactly one switched card is switched: every member is carried onto that
+      // card's FlowMap; with two or more, every card is drawn as written (section 8.10).
+      const styled = members.map((member) => {
         const key: PlaceKey = { item: group.id, member: member.timeline.id };
+        const card = styledCard(context, member, holder, key);
+        return { key, card, own: switchOfCard(context, card) };
+      });
+      const switching = styled.filter(({ own }) => own !== null);
+      const [only] = switching;
+      const switched =
+        switching.length === 1 && only !== undefined && only.own !== null
+          ? { member: only.card.member, to: only.own }
+          : null;
+      // Each member drawing is traversed at its card's own spacing and margin, then laid out on
+      // the frame's elided axis where its group elisions draw gaps (section 8.9), which a
+      // switched frame draws none of.
+      const traversed = styled.map(({ key, card: styledOne, own }) => {
         const stated = requestOf(context, key);
         const spacing = stated.spacing ?? CARD_SPACING;
         const margin = stated.margin ?? 0;
-        const card = cardOf(context, member, holder, key, L, spacing, margin, drawn);
+        const mine = switched === null ? null : own;
+        const unfolded = unfoldedOf(context, styledOne, mine, switched);
+        const card = cardOf(context, styledOne, holder, L, spacing, margin, drawn, mine, unfolded);
         return { key, stated, spacing, margin, card };
       });
-      const elisions = frameElisions(
-        traversed.map(({ card }) => ({ scope: card.scope })),
-        group.id,
-        holder,
-        L,
-      );
+      const elisions =
+        switched === null
+          ? frameElisions(
+              traversed.map(({ card }) => ({ scope: card.scope })),
+              group.id,
+              holder,
+              L,
+            )
+          : undefined;
       // The title's slot, the frame's margin `Vf`, then the cards the frame's spacing `Sf` apart,
       // each the larger of its member drawing's height and the height its own request asks, and
       // `Vf` again after the last (section 8.4); a frame without cards draws no margin.
@@ -381,13 +465,27 @@ export function placeItems(
       return { cards, height: y + Q, elisions, DG: elisions?.total ?? 0 };
     });
   });
-  const loose = ungrouped.map((member) => () => {
+  const loose = [...ungrouped, ...placed].map((member) => () => {
     const key: PlaceKey = { item: member.timeline.id };
     return place(key, null, (L, spacing, margin) => {
-      const { scope, ...card } = cardOf(context, member, block, key, L, spacing, margin, null);
-      // Its stored card elisions where its mode draws them (section 8.9).
+      const styledOne = styledCard(context, member, block, key);
+      const own = switchOfCard(context, styledOne);
+      const unfolded = unfoldedOf(context, styledOne, own, null);
+      const { scope, ...card } = cardOf(
+        context,
+        styledOne,
+        block,
+        L,
+        spacing,
+        margin,
+        null,
+        own,
+        unfolded,
+      );
+      // Its stored card elisions where its mode draws them (section 8.9); a switched card draws
+      // none (section 8.10).
       const mode = drawnMode(card.style, cardElisionsOf(scope).length > 0);
-      const axis = ungroupedAxis(scope, mode);
+      const axis = unfolded === null ? ungroupedAxis(scope, mode) : undefined;
       const layout = layoutScope(
         axis === undefined ? scope : withAxis(scope, axis),
         key,
@@ -406,7 +504,9 @@ export function placeItems(
   const byId = new Map<string, () => Item>(
     [
       ...frames.map((drawn, index) => [drawn.group.id, framed[index]] as const),
-      ...ungrouped.map((member, index) => [member.timeline.id, loose[index]] as const),
+      ...[...ungrouped, ...placed].map(
+        (member, index) => [member.timeline.id, loose[index]] as const,
+      ),
     ].flatMap(([id, thunk]) => (thunk === undefined ? [] : [[id, thunk] as const])),
   );
   const order = arranged.order ?? [...byId.keys()];

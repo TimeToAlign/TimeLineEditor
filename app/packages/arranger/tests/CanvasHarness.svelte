@@ -4,6 +4,7 @@ import type { Address, Manifest, MeasureKnots, Pin, Store } from "@timetoalign/t
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
 import Canvas from "../src/Canvas.svelte";
+import type { FlowServer } from "../src/flowEditor.svelte.ts";
 import { liveStore } from "../src/liveStore.svelte.ts";
 import type { MatchOverlayInput, MatchStampPin } from "../src/matches.ts";
 import type { TransientCommand } from "../src/node.ts";
@@ -19,6 +20,7 @@ let {
   matches: initialMatches = [],
   onmatchstamppin = () => {},
   onrefuse = () => {},
+  flows,
 }: {
   store: Store;
   metrics: FontMetrics;
@@ -28,6 +30,7 @@ let {
   matches?: readonly MatchOverlayInput[];
   onmatchstamppin?: (pin: MatchStampPin | null) => void;
   onrefuse?: (text: string) => void;
+  flows?: FlowServer;
 } = $props();
 
 const live = $derived(liveStore(store));
@@ -113,5 +116,6 @@ export function pin(next: Pin | null): void {
     {pinnedMatchStamp}
     {onmatchstamppin}
     {onrefuse}
+    {flows}
   />
 </div>

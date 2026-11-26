@@ -18,6 +18,7 @@ import {
   fileText,
   fixtureText,
   key,
+  load,
   loadText,
   storeOf,
   testClock,
@@ -165,6 +166,30 @@ describe("the rules of items side by side", () => {
   it("lists the items and completes a stored order", () => {
     expect(itemOrder(ITEMS, [])).toEqual(["G1", "G2", "U"]);
     expect(itemOrder(ITEMS, ["U", "nope", "G2", "U"])).toEqual(["U", "G2", "G1"]);
+  });
+
+  it("lists the virtual timelines in no group as items, after the ungrouped roots", () => {
+    // groups/virtual_member: the group performance (allegro_default, recording), the ungrouped
+    // root allegro, the virtual timelines allegro_by_hand and allegro_single in no group.
+    const manifest = load("groups/virtual_member.yaml");
+    expect(itemOrder(manifest, [])).toEqual([
+      "performance",
+      "allegro",
+      "allegro_by_hand",
+      "allegro_single",
+    ]);
+    const order = ["allegro_single", "allegro_default", "allegro"];
+    expect(itemOrder(manifest, order)).toEqual([
+      "allegro_single",
+      "allegro",
+      "performance",
+      "allegro_by_hand",
+    ]);
+    expect(row(manifest, order)).toEqual({
+      row: ["allegro_single", "allegro", "performance", "allegro_by_hand"],
+      roots: [],
+      anchors: [],
+    });
   });
 
   it("anchors a group on a root by its first member inside it", () => {

@@ -13,7 +13,11 @@
  * a jump's destinations and its provenance with the user's belief
  * (`FlowControlDetails`); the jump stays inspected while a destination's
  * marks are selected with it. A selected band shows its display toggles
- * below its rows, and a region its start, end and length.
+ * below its rows, and a region its start, end and length. A selected
+ * timeline card (the card, its line, or one of its bands alone) lists its
+ * bands with a Visible checkbox each (`BandList`). One selected virtual
+ * timeline, or its card, offers "Delete virtual timeline", which removes
+ * it (Delete on the canvas only hides its card).
  */
 import type {
   Editing,
@@ -23,13 +27,22 @@ import type {
   Subject,
 } from "@timetoalign/tilie-arranger";
 import { liveStore } from "@timetoalign/tilie-arranger";
-import type { AddCommand, Address, Block, SetCommand, Store, View } from "@timetoalign/tilie-core";
+import type {
+  AddCommand,
+  Address,
+  Block,
+  RemoveCommand,
+  SetCommand,
+  Store,
+  View,
+} from "@timetoalign/tilie-core";
 import { sameAddress } from "@timetoalign/tilie-core";
 import type { Attachment } from "svelte/attachments";
 import { postOf } from "../messages.svelte.ts";
 import { paneOf } from "../pane.ts";
+import BandList from "./BandList.svelte";
 import DisplayGroups from "./DisplayGroups.svelte";
-import { bandToggles } from "./display.ts";
+import { bandList, bandToggles } from "./display.ts";
 import FlowControlDetails from "./FlowControlDetails.svelte";
 import { flowOf } from "./flow.ts";
 import { groupsOf, membersOf, newGroupOf } from "./groups.ts";
@@ -43,6 +56,7 @@ import {
   nameOf,
   regionRows,
   shownOf,
+  virtualDeletionOf,
 } from "./properties.ts";
 import type { PropertyDrafts } from "./propertyDrafts.svelte.ts";
 
@@ -111,21 +125,40 @@ const band = $derived(shown === null ? null : bandRows(inspected, shown));
 /** The display toggles of the one band selected; else `null`. */
 const toggles = $derived(band === null ? null : bandToggles(view, inspected));
 
+/** The bands of the selected timeline card, each with its Visible checkbox; else `null`. */
+const bands = $derived(block === null ? null : bandList(view, inspected));
+
 /** The start, end and length of the one region selected; else `null`. */
 const region = $derived(regionRows(inspected));
 
 /** The stored lock of the inspected timelines; `null` unless every subject is one. */
 const lock = $derived(block === null ? null : lockOf(inspected));
 
-/** The memberships offered: the selected timelines' groups, or the selected group's members; else `null`. */
+/**
+ * The memberships offered: the selected timelines' groups, or the selected
+ * group's members; else `null`. Their refusals are read with a copy of the
+ * store's minter, so a message names the IDs the dispatch would store.
+ */
 const memberships = $derived(
   block === null
     ? null
-    : (groupsOf(view, inspected, editing) ?? membersOf(view, inspected, editing)),
+    : (groupsOf(view, inspected, editing, store.minter()) ??
+        membersOf(view, inspected, editing, store.minter())),
 );
 
 /** The New group button's command, for selected timelines or the selected block; else `null`. */
-const newGroup = $derived(block === null ? null : newGroupOf(view, inspected, editing));
+const newGroup = $derived(
+  block === null ? null : newGroupOf(view, inspected, editing, store.minter()),
+);
+
+/** The `remove` deleting the one selected virtual timeline; else `null`. */
+const virtualDeletion = $derived(virtualDeletionOf(subjects));
+
+/** Delete the selected virtual timeline, posting the store's refusal. */
+function deleteVirtual(command: RemoveCommand): void {
+  const refusal = store.dispatch(command);
+  if (refusal !== null) post("info", refusal.message);
+}
 
 /** A refusal of the store, and the selection it was refused for. */
 interface MembershipRefusal {
@@ -345,6 +378,10 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   </form>
 {/if}
 
+{#if block !== null && bands !== null}
+  <BandList {view} {store} {block} rows={bands} />
+{/if}
+
 {#if memberships !== null}
   <fieldset class="memberships">
     <legend>{memberships.legend}</legend>
@@ -384,6 +421,12 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
 {/if}
 {#if memberships !== null || newGroup !== null}
   <p class="problem" role="status">{membershipProblem ?? ""}</p>
+{/if}
+{#if virtualDeletion !== null}
+  {@const remove = virtualDeletion}
+  <button type="button" class="delete-virtual" onclick={() => deleteVirtual(remove)}
+    >Delete virtual timeline</button
+  >
 {/if}
 
 <style>
@@ -499,7 +542,8 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     cursor: not-allowed;
   }
 
-  .new-group {
+  .new-group,
+  .delete-virtual {
     display: block;
     margin-top: 0.5rem;
     font: inherit;

@@ -75,6 +75,16 @@ export function frameGroupOf(block: BlockId, editing: Editing | null): string | 
   return editedIn(block, editing, "group");
 }
 
+/**
+ * The root whose FlowMaps block `block` edits under `editing`, the innermost
+ * open editor: the edited root when `editing` is a flow editor in this
+ * block, else `null`. The flow subeditor's pane, its drags and its keys ask
+ * this one rule.
+ */
+export function flowRootOf(block: BlockId, editing: Editing | null): string | null {
+  return editedIn(block, editing, "flow");
+}
+
 /** The ID of the element `editing` edits when it is an editor of `kind` in block `block`, else `null`. */
 function editedIn(block: BlockId, editing: Editing | null, kind: EditorKind): string | null {
   if (editing?.kind !== kind) return null;

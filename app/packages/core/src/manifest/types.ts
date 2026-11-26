@@ -167,3 +167,18 @@ export type ManifestGraphical = Omit<Graphical, "timestamps" | "matchstamps" | "
 export type Manifest = ReadonlyView<Omit<CompleteManifest, "graphical">> & {
   readonly graphical?: ManifestGraphical;
 };
+
+/**
+ * A FlowMap of a manifest, `{id, timeline, chunks, convention?, canonical,
+ * name, provenance?}`: one order in which stretches of the root timeline it
+ * names are played, its chunks IDs of what gives an interval in that root's
+ * tree, or gaps `{gap: length}`.
+ */
+export type FlowMap = NonNullable<Manifest["flow_maps"]>[number];
+
+/**
+ * A virtual timeline of a manifest, `{id, map, timeline, unit, number_type,
+ * length, through?, name}`: the statement that a map was applied to a
+ * timeline, giving an axis with its own ID.
+ */
+export type VirtualTimeline = NonNullable<Manifest["virtual_timelines"]>[number];

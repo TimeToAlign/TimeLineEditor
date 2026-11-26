@@ -32,9 +32,10 @@ export const OVERLAY_GAP = 4;
 const STACK_OFFSET = 3;
 
 /**
- * One element drawn in the overlay: its descriptor's index among the
- * drawing's descriptors, its tag, its attributes without its address, its
- * text.
+ * One element drawn in an editor overlay (the flow control band beside a
+ * child, a row of the flow editor's pane): its descriptor's index among its
+ * drawing's descriptors, which tells items apart, its tag, its attributes
+ * without its address, its text.
  */
 export interface OverlayItem {
   readonly index: number;
@@ -155,8 +156,21 @@ const domValue = (value: AttributeValue): string =>
   typeof value === "string" ? value : attributeText(value);
 
 /**
- * A descriptor drawn in the overlay: its attributes without the ones writing
- * its address, so it is never read as the element; a flow line runs across
+ * The descriptor `descriptor`, the `index`th of its drawing, as an editor
+ * overlay draws it: its attributes as the DOM receives them, without the
+ * ones writing its address, so it is never read as the element.
+ */
+export function overlayItem(descriptor: Descriptor, index: number): OverlayItem {
+  const attributes: Record<string, string> = {};
+  for (const [name, value] of descriptor.attrs) {
+    if (ADDRESS_ATTRIBUTES.some((attribute) => attribute === name)) continue;
+    attributes[name] = domValue(value);
+  }
+  return { index, tag: descriptor.tag, attributes, text: descriptor.text };
+}
+
+/**
+ * A descriptor drawn in the overlay (`overlayItem`); a flow line runs across
  * the band, from `top` to `bottom`, rather than across the card.
  */
 function itemOf(
@@ -166,16 +180,12 @@ function itemOf(
   top: number,
   bottom: number,
 ): OverlayItem {
-  const attributes: Record<string, string> = {};
-  for (const [name, value] of descriptor.attrs) {
-    if (ADDRESS_ATTRIBUTES.some((attribute) => attribute === name)) continue;
-    attributes[name] = domValue(value);
-  }
-  if (flowLine) {
-    attributes.y1 = attributeText(top);
-    attributes.y2 = attributeText(bottom);
-  }
-  return { index, tag: descriptor.tag, attributes, text: descriptor.text };
+  const item = overlayItem(descriptor, index);
+  if (!flowLine) return item;
+  return {
+    ...item,
+    attributes: { ...item.attributes, y1: attributeText(top), y2: attributeText(bottom) },
+  };
 }
 
 /** The card's flow control band: the root of its member drawing draws the only one. */

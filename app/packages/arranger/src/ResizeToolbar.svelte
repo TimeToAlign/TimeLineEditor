@@ -17,6 +17,8 @@ import type { Attachment } from "svelte/attachments";
 import { isHeld } from "./boxes.ts";
 import type { Level } from "./containers.ts";
 import { resizeModes } from "./containers.ts";
+import FlowSwitch from "./FlowSwitch.svelte";
+import { flowChoices, switchOffset } from "./flowSwitch.ts";
 import type { GestureOptions } from "./gesture.ts";
 import { pointerGesture } from "./gesture.ts";
 import type { ResizeHost } from "./gestures/resize.ts";
@@ -115,6 +117,28 @@ function anchor(handle: Handle): { x: number; y: number } {
 
 const flow = useStore();
 
+/** The flow switch's list for the box (`flowChoices`); `null` where it shows none. */
+const choices = $derived(flowChoices(block.manifest, box));
+
+/** The mode menu's height in screen pixels while it is shown, measured: the switch stands above it. */
+let menuHeight: number | null = $state(null);
+
+/** Measures the mode menu, the one element of the element it is attached to. */
+const measured: Attachment<HTMLElement> = (wrapper) => {
+  const menu = wrapper.firstElementChild;
+  if (!(menu instanceof HTMLElement)) return;
+  const read = () => {
+    menuHeight = menu.offsetHeight;
+  };
+  read();
+  const observer = new ResizeObserver(read);
+  observer.observe(menu);
+  return () => {
+    observer.disconnect();
+    menuHeight = null;
+  };
+};
+
 /** The toolbar's side of a resize: every member read when the gesture needs it. */
 const host: ResizeHost = {
   actions,
@@ -153,21 +177,29 @@ function gestureOf(handle: Handle): Attachment<Element> {
 }
 </script>
 
+{#if choices !== null}
+<!-- The flow switch, above the mode menu where one is shown. -->
+<FlowSwitch {block} {box} {choices} {bounds} offset={switchOffset(menuHeight)} {locked} />
+{/if}
+
 {#if shown !== undefined}
 <!--
   The menu sits centred above the resized box and follows it through a
   resize and every pan or zoom; while boxes are moved the canvas does not
   show the toolbar at all, and shows it again at the bounds the move leaves.
+  Its wrapper draws no box of its own, only measures it.
 -->
-<ModeMenu
-  label="Resize mode"
-  {entries}
-  pressed={(value) => shown === value}
-  disabled={locked}
-  {bounds}
-  testid="mode"
-  onpress={(value) => (mode = value)}
-/>
+<div class="measured" {@attach measured}>
+  <ModeMenu
+    label="Resize mode"
+    {entries}
+    pressed={(value) => shown === value}
+    disabled={locked}
+    {bounds}
+    testid="mode"
+    onpress={(value) => (mode = value)}
+  />
+</div>
 
 {#if !locked}
 <ViewportPortal target="front" class="tilie-overlay">
@@ -192,6 +224,10 @@ function gestureOf(handle: Handle): Attachment<Element> {
 {/if}
 
 <style>
+  .measured {
+    display: contents;
+  }
+
   .handle {
     position: absolute;
     transform: translate(-50%, -50%);

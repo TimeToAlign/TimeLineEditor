@@ -16,7 +16,7 @@ import { rightEdge } from "../geometry.ts";
 import type { MemberDrawn } from "../member.ts";
 import type { TextMeasure } from "../metrics.ts";
 import { type Context, shown } from "../traversal.ts";
-import { axesOf } from "./axes.ts";
+import { axesOf, unfoldedAxes } from "./axes.ts";
 import {
   type Columns,
   columnsOf,
@@ -108,7 +108,10 @@ export function drawItem(manifest: Manifest, item: Item, { n, s0 }: Columns): It
       const { key } = card.ref;
       if (key === null) throw new Error("a card has no place key");
       const own = drawn[index] ?? EMPTY;
-      return axesOf(manifest, card.member, key, own, s0, item.length, card.layout.scope.axis);
+      const { scope } = card.layout;
+      return scope.unfolding === null
+        ? axesOf(manifest, card.member, key, own, s0, item.length, scope.axis)
+        : unfoldedAxes(scope, key, own, s0);
     }),
   };
 }
@@ -120,6 +123,8 @@ const EMPTY: MemberDrawn = {
   markers: new Map(),
   marks: new Map(),
   timestamps: new Map(),
+  entries: new Map(),
+  ancestorAxes: new Map(),
 };
 
 /**

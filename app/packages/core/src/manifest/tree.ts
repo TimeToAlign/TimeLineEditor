@@ -109,6 +109,18 @@ export function timelineAncestry(manifest: Manifest): Map<string, readonly strin
 }
 
 /**
+ * `timelineAncestry` with every virtual timeline of `manifest` added as its
+ * own ancestry: it lies in no tree, so it contains what belongs to it and
+ * nothing holds it, and a group naming it holds it as any member.
+ */
+export function memberAncestry(manifest: Manifest): Map<string, readonly string[]> {
+  const ancestry = timelineAncestry(manifest);
+  for (const { id } of manifest.virtual_timelines ?? [])
+    if (!ancestry.has(id)) ancestry.set(id, [id]);
+  return ancestry;
+}
+
+/**
  * The groups of `manifest` having the timeline `timeline` as a member, in
  * the order of `groups`: those whose `members` list it or one of its
  * ancestors, since a member's descendants are drawn inside the member's

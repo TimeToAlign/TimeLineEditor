@@ -44,6 +44,7 @@ import {
   openFiles,
   UNTITLED,
 } from "./files.ts";
+import { flowServerOf } from "./flowServer.ts";
 import InspectorDrawer from "./InspectorDrawer.svelte";
 import { readingOf } from "./inspector/flow.ts";
 import { blockIndexes, matchInputs, pinnedMatchStampOf } from "./inspector/matchstamps.ts";
@@ -724,6 +725,7 @@ if (withTestHook) {
         pinned={drawer?.shownPin() ?? null}
         oncoordinatepin={(pin, line) => drawer?.pinTimestamp(pin, line)}
         measureMaps={client === null ? undefined : measureMapsOf(client)}
+        flows={client === null ? undefined : flowServerOf(client)}
         picking={picking.active ? picking.take : null}
         {matches}
         {pinnedMatchStamp}

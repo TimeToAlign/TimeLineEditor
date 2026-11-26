@@ -64,7 +64,7 @@ const refusal = (view: View, command: object) => {
 };
 
 describe("the flow fixtures", () => {
-  it("are the ten of the schema version", () => {
+  it("are the twelve of the schema version", () => {
     expect(FLOW.map((fixture) => fixture.name)).toEqual([
       "flow/da_capo_al_fine.yaml",
       "flow/dal_segno_al_coda.yaml",
@@ -75,6 +75,8 @@ describe("the flow fixtures", () => {
       "flow/repeat_end_and_dal_segno.yaml",
       "flow/sections.yaml",
       "flow/sonata_exposition.yaml",
+      "flow/switched_card.yaml",
+      "flow/virtual_cards.yaml",
       "flow/volta_passes.yaml",
     ]);
   });
@@ -179,12 +181,14 @@ describe("the drawn elements of flow control", () => {
 describe("FlowMaps and virtual timelines", () => {
   const SONATA = "flow/sonata_exposition.yaml";
 
-  it("hold IDs of the manifest that name nothing drawn", () => {
+  it("hold IDs of the manifest that resolve to their own kinds", () => {
     const manifest = load(SONATA);
     const ids = manifestIds(manifest);
     for (const id of ["flow_map_1", "flow_map_2", "flow_map_3", "virtual_1"]) {
       expect(ids.has(id)).toBe(true);
-      expect(resolveElement(manifest, idAddress(id))).toBeUndefined();
+      expect(resolveElement(manifest, idAddress(id))?.kind).toBe(
+        id === "virtual_1" ? "virtual_timeline" : "flow_map",
+      );
     }
   });
 

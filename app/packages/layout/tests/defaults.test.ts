@@ -143,7 +143,11 @@ describe("the constants", () => {
       "fork row height `Hf`",
       `(h(zf) / 2 + ${FORK_BRANCH} × sM) + h(zf) / 2, \`zf\` the largest font size of the drawn forks, \`N\` the most branches a drawn fork has and \`sM\` the \`sk\` of the last branch of a fork of \`N\` branches (section 6.4, Forks); 0 when none is drawn`,
     ],
-    ["boundary half-height `k`", `${BOUNDARY}`],
+    ["boundary half-height `k`, of a segment's start and of a chunk's alike", `${BOUNDARY}`],
+    [
+      "gap line of a FlowMap's gap (section 6.6): stroke width, dash, space",
+      "`w / 2`, `w / 2`, `w`, `w` the stroke width of its line",
+    ],
     ["group frame padding `Q`", `${Q}`],
     ["card padding `K`", `${K}`],
     ["gap after the manifest's title `F`", `${F}`],
@@ -175,7 +179,7 @@ describe("the constants", () => {
 
   it("give no wedge an initial rotation but 0, and the elision and label properties theirs, as section 2.5 states them", () => {
     expect(sectionOf(specification, "### 2.5 The cascade").replace(/\s+/g, " ")).toContain(
-      "`max-width` `none`, `rotation` 0, `elision-mode` `auto`, `elision-proportion` `auto`, `elision-depths` `auto`, `elision-display` `ellipsis name`, `label-display` `name label`.",
+      "`max-width` `none`, `rotation` 0, `elision-mode` `auto`, `elision-proportion` `auto`, `elision-depths` `auto`, `elision-display` `ellipsis name`, `label-display` `name label`, and `flow` none",
     );
   });
 });

@@ -789,6 +789,33 @@ five flow-control elements stay, in their order (`jump_target_1`, `jump_target_2
 along: `{A: jump_1, A: flow:quarters}` gives `[A: flow:quarters]`,
 which leaves no timeline.
 
+**A virtual card is hidden, never deleted** (`commands.test.ts`). On
+`flow/virtual_cards` with `allegro_default` placed at (0, 200) and
+`allegro_by_hand` at (0, 400) (each one `set` of its place), Delete on the
+card `{A: allegro_default [card]}` stores one `set` unstating every member
+of its stated place, `{type: "set", changes: [{target: {block: A, id:
+"allegro_default"}, values: {place: {x: null, y: null}}}]}`; core applies
+it, `places` no longer holds `allegro_default` and `virtual_timelines`
+still holds all three. Both cards selected give one `set` with one change
+each, in selection order. A place stating more members (`allegro_default`
+also given `width: 300`) unstates each: `{x: null, y: null, width:
+null}`. The virtual timeline's own address `{A: allegro_default}` (its
+line) is removed, `remove` [`A: allegro_default`], as any element is; the
+Properties tab offers the same as "Delete virtual timeline" (the editor's
+README). A virtual card hidden beside an element deleted is refused whole
+with `Virtual cards are hidden apart from what is deleted; select the
+virtual cards alone to hide them.`: `{A: allegro_default [card], A:
+section_b}`. A chunk, `{A: allegro_default [regions] [1]}` (its brace) or
+its label `[1, label]`, is changed in its FlowMap, never deleted on the
+canvas: alone it is refused with `A chunk is changed in its FlowMap; open
+the flow editor of its root to change it.`, beside `section_b` it is
+left out (`remove` [`A: section_b`]). On `groups/virtual_member` the
+card of `allegro_default` in `performance`'s frame has no place of its
+own to unstate: alone it is refused with `A virtual card in a frame is
+not hidden; delete its virtual timeline in the Properties tab.`. A
+selected virtual card takes nothing away (below): `{allegro_default
+[card]}` affects nothing.
+
 **What a deletion also takes away** is highlighted before it happens. The
 rule reads the manifest alone: the owners are the IDs the selected
 element addresses carry (the title carries none, a band is no owner, nor
@@ -1554,6 +1581,8 @@ the block's own hit is `{block: A}`.
 | timeline `{block: A, id: "excerpt"}` | the card of `excerpt`; the line `recording` (its ancestor) | nothing |
 | timeline `{block: A, id: "dlt_1"}` | the line `dlt_1` | nothing |
 | any | a band `{id: "excerpt", facet: "children"}`; a block the view does not hold | nothing |
+| timeline `{block: A, id: R}`, R a root | R's flow control band `{id: R, facet: "flow_control"}`, or an element it draws (a flow-control element of R's tree) | that band, which opens the flow editor of R (section "The flow subeditor") |
+| flow `{block: A, id: R}` | anything | nothing |
 
 Two editors are equal by target, compared as a whole address, and kind. **What each level permits** is
 one row per level, compared whole; with an editor open, the innermost
@@ -1565,6 +1594,7 @@ editor's row applies:
 | bundle | yes | | | | elements | yes | | yes | | yes | yes | yes |
 | group | | | yes | | elements | | yes | yes | | yes | yes | yes |
 | timeline | | | | yes | elements | | | yes | | yes | yes | yes |
+| flow | | | | | elements | | | yes | | | yes | yes |
 
 A locked canvas changes no placement, so it moves and nudges nothing,
 moves no band and resizes nothing, at every level, and keeps every other
@@ -2363,6 +2393,214 @@ What would be wrong: the band drawn in the root's or a member card's
 editor, an element off the stretch in it, an element of it carrying an
 address (it would be hovered, selected or read as the element), or the
 band changing the drawing or its exports.
+
+## The flow subeditor (`flow-editor.test.ts`, `flow-editor-pane.test.ts`)
+
+The flow editor is the editor of a root's FlowMaps: a mode of the canvas
+on the root's card, its FlowMaps folded out in a pane under the card, an
+overlay never part of the drawing. Every case runs on block A holding
+TimeToShare's `flow/virtual_cards` at (40, 80): the root `allegro` (1644
+quarters, fraction; atomic sections A [0, 953/2), B [953/2, 500), C [500,
+1644)), its computed FlowMaps `default` (A B A C, 4241/2), `printed` (A B
+C) and `single` (A C), each a convention with an inferred provenance, and
+the hand-made `by_hand` "Practice" (A A A A, a gap of 4, C: 3054); the
+virtual timelines `allegro_default`, `allegro_single`, `allegro_by_hand`
+apply three of them, none `printed`. IDs minted by the store are never
+written here: a test reads a new FlowMap's, Region's or virtual
+timeline's ID through the result, as the one ID the manifest gained.
+
+**Opening.** The flow editor opens from a root's flow control band on
+the arranger and in the root's timeline editor. On the arranger no band
+is hit (section "What a press hits"): a press on `allegro`'s card hits the
+card, and the drawing point decides: a double-click, a double tap at the
+middle of the flow control band's recorded rectangle (layout's record of
+`{id: "allegro", facet: "flow_control"}`, read from the drawing) names
+that band (`editorTargetOf` with the drawing point), which opens the flow
+editor of `{block: A, id: "allegro"}` (`editorOf`: kind `flow`), and the
+store then holds that one editor, of kind `flow`; the same card hit at
+its own top left corner, outside every band, opens `allegro`'s timeline
+editor, as does the card hit with no point (Enter on the selected card).
+In the timeline editor of `allegro`, a band is hit, and the band hit
+itself names the band; the store then holds two editors, the innermost
+`{target: {block: A, id: "allegro"}, kind: "flow"}`. In both, an element
+that band draws (the volta jump `{id: "volta_jump"}`, hit before the
+band) names the band, with or without the card it lies in, so Enter on
+the selected volta jump opens the flow editor too. Every other band opens
+nothing: `allegro`'s regions band in its timeline editor, the flow control
+band hit in the bundle editor and in another timeline's editor; in the
+bundle editor a press on the card at the band's middle opens the
+timeline editor of `allegro`, as any press on the card there. Inside the
+flow editor nothing opens (the card, its line, the band). Every other
+address opens what it opened before (`editorOf` gives it back unchanged,
+no kind).
+
+**The card's choices** (`cardChoices`, what the card offers without a
+pointer): its Regions A, B and C are each named `A (atomic section)` and
+so on, an atomic section being core's (`isAtomicSection`: the class
+`tts:AtomicSection` in any spelling standing for its IRI); with every
+Region's `type` written as the full IRI
+`https://timetoalign.github.io/timetoshare/ns#AtomicSection` instead, the
+same three texts.
+
+**Rows** (`flowRows`): one per FlowMap of `allegro`, the computed ones
+first, each part in the manifest's order: `default`, `printed`, `single`,
+`by_hand`, named `default`, `printed`, `single`, `Practice` (a FlowMap's
+name, else its convention, else its ID); computed for the first three;
+the virtual timeline giving each its axis `allegro_default`, none,
+`allegro_single`, `allegro_by_hand`; chips, compared whole: for a
+computed one its convention (`{kind: "convention", text: "default",
+title: "Convention: default"}`) and provenance (`{kind: "provenance",
+text: "inferred", title: "Provenance: inferred"}`), for `by_hand` only
+`{kind: "provenance", text: "manual", title: "Provenance: manual"}`. With
+findings `{default: ["one", "two"]}` the `default` row gains `{kind:
+"findings", text: "2 findings", title: "one\ntwo"}` and no other row
+changes; one finding reads `1 finding`.
+
+**The pane as drawn** (`flowPaneOf`, on the drawing of block A at the
+default placement, `length` 400). Its oracle is layout's drawing of a
+virtual card (section 8.10): each row is drawn as the card of a virtual
+timeline applying its FlowMap, at the graphical length `400 × Λ / 1644`,
+`Λ` its played length, so a played stretch is as long as the written
+stretch it plays. `allegro`'s card lies from x 8, 471.6396484375 wide, its
+line from x 62.6396484375 (layout's card); so the pane lies at x 8, its
+rows' lines start at 54.6396484375 in the pane, and the row of `default`
+ends at `54.6396484375 + 400 × 2120.5 / 1644 = 570.5763880968674`. Its
+entries are drawn at `54.6396484375 + L × u`, `L = 400 × 2120.5 / 1644`:
+entry 0 (A) from 54.6396484375 to 170.5763880968674, exactly as long as
+section A on the card (`400 × 476.5 / 1644 = 115.9367396593674`); entries
+1 to 3 follow, each its own index (`last` = `index`), no gap. `by_hand`
+draws its run of four As once: one span for entries 0 to 3 (`index` 0,
+`last` 3), the gap entry 4 a span of its own (`gap` true), and C entry 5,
+its texts `A × 4`, `4 ♩` and `C`; its line runs `D` short of its length
+(section 8.10, Runs). Rows carry no address attribute (an overlay), and
+draw no card rectangle, name or band of their own: every item a row draws
+is a line, a brace, a label, a leader or a boundary of the row's virtual
+card.
+
+**What each action stores** (`FlowEditorSession` on a store opened in
+`allegro`'s flow editor), each command compared whole. The **edited row**
+is the new FlowMap's (Add +) or a hand-made FlowMap's (`edit`); one row at
+a time is edited, with its own Done and Cancel, and every gesture below
+acts on it, whichever it is:
+
+1. Without the new row (Add +), a drop stores nothing and says "Add a new
+   FlowMap (Add +) to drop into it"; Add + stores nothing.
+2. Dropping section B from the card: `{type: "add", into: {block: A, id:
+   "allegro"}, flow_map: {chunks: ["section_b"]}}`; the new row's FlowMap
+   is then the one FlowMap `allegro` gained, F.
+3. Dropping entry 0 of `default` (`section_a`) before index 0: `{type:
+   "set", changes: [{target: {block: A, id: F}, values: {chunks:
+   ["section_a", "section_b"]}}]}`.
+4. Dropping the card's own line (the whole root) at the end: first `{type:
+   "add", into: {block: A, id: "allegro"}, region: {start: [0, 1], end: [1644,
+   1]}}` (0 written in the axis's number type), then the `set` with the new Region R appended; the root dropped
+   again lands as R and stores the `set` alone. A Region over the whole
+   root is found by value, never by spelling: with a Region `whole`
+   written `[0, 2]` to `[3288, 2]` on `allegro` (its length `[1644, 1]`),
+   the root lands as `whole` and nothing more is written.
+5. Dropping the row `printed`, which no virtual timeline applies: `{type:
+   "add", into: {block: A}, virtual_timeline: {map: "printed", timeline:
+   "allegro"}}`, then the `set` with the new virtual timeline appended;
+   the row `default` lands as `allegro_default` with the `set` alone.
+6. Moving entry 0 before index 2 stores the entries with it moved
+   (`[section_b, section_a, …]`), Alt copies it there
+   (`[section_a, section_b, section_a, …]`); removing entry 0 drops it.
+7. "+ Gap" `4` stores a gap `{gap: [4, 1]}` at the end; `0` says "a gap
+   is longer than 0: 0", `-4` "a gap is longer than 0: -4", `x` the
+   parser's message, and nothing is stored. The text is read by the one
+   reader of a typed axis value, `typedValue`, which the inspector's
+   fields import from this package.
+8. The new row's Cancel undoes every step since Add + (the store's
+   entries back to their count at Add +, the Regions and virtual
+   timelines written for it gone, `allegro`'s FlowMaps as before) and
+   closes the row; its Done closes the row and keeps the FlowMap.
+9. A Shift sweep opens the new row where none is and lands as the Region
+   it writes: `{type: "add", into: {block: A, id: "allegro"}, region:
+   {start: [10, 1], end: [20, 1]}}` for the stretch [10, 20], then the FlowMap's
+   `add`.
+12. **A hand-made row edited.** `edit` makes `by_hand` the edited row (its
+    FlowMap `by_hand` from the start, its mark the session's entries then)
+    and refuses the computed `default` (read only) and a second row while
+    one is edited. On it: moving entry 5 (C) before 0 stores `set
+    by_hand` with `[section_c, section_a, section_a, section_a, section_a,
+    {gap: [4, 1]}]`; Alt copies entry 1 to before 1 (five As); removing
+    entry 6 (the gap by then) drops it; dropping `section_b` from the card
+    lands it at the end; "+ Gap" `2` appends `{gap: [2, 1]}`. Removing
+    entry 4 of `by_hand` as written (its gap) and Done keep `[section_a ×
+    4, section_c]`, one more entry in the session. Each change is one `set`
+    of `chunks` (Done keeps them, as for the new row). Its Cancel undoes
+    every one of them: the store's entries back to the mark and `by_hand`
+    as written; its Done keeps them and ends the edit. Moving an entry to
+    where it is (`move(0, 0)`, `move(0, 1)`) stores nothing: the entries
+    are compared by value (a gap `[8, 2]` and `[4, 1]` are one length).
+
+**Findings** are asked of the server only from a handler: when the flow
+editor opens (the canvas's `openEditor`) and after Recompute; the pane's
+rows read the answer kept for the root (`findingsOf`), which never asks.
+With a server answering `{default: ["one"]}`, `findingsOf` is empty
+before `askFindings` and `{default: ["one"]}` after it, with no further
+request however often it is read; Recompute asks once more; a failed
+request keeps none. On the canvas (`flow-editor-pane.test.ts`, a server
+answering `{default: ["one"]}`), Enter on the selected repeat sign
+`{id: "repeat_end", part: ["symbol"]}`, an element the flow control band
+draws, opens the flow editor and sends the request once; the row
+`default` shows the chip "1 finding"; Add + and an entry landed by Enter
+change the manifest and send none, the chip kept.
+10. A row placed as a card at (120, 400): its virtual timeline written
+    where none is (`printed`), then one `set` of exactly one change,
+    `{target: {block: A, id: V}, values: {place: {x: 120, y: 400}}}` (the
+    flow editor changes no other item's place, which its guard refuses);
+    `default` places `allegro_default` with the `set` alone.
+11. Recompute (`recomputeCommands`): an answer equal to the manifest
+    stores nothing; an answer whose `single` plays A B C instead stores
+    one `set` of the held `single`, `{target: {block: A, id: "single"},
+    values: {computed: {chunks: ["section_a", "section_b", "section_c"],
+    provenance}}}` (the answer's provenance), never a `remove` and `add`:
+    a virtual timeline applies `single`, so core refuses its removal; an
+    answer with an atomic section the manifest lacks first adds it as a
+    Region, whole. Through the session (`recompute`, a server answering
+    `default` as A C A C and `single` as A B C), every command is accepted
+    in the open flow editor, nothing is said, and the store holds
+    `default` playing `section_a section_c section_a section_c` and
+    `single` `section_a section_b section_c`, their convention and
+    provenance as before, and the virtual timelines applying them with the
+    new played lengths: `allegro_default` `[3241, 1]` (2 × (953/2 + 1144)),
+    `allegro_single` `[1644, 1]` (the whole written axis).
+
+**Carrying a twin.** Its opacity is a function of the pointer's distance
+`d` (screen pixels) inside the editor's border (`twinOpacity`): `0.2 +
+0.8 × max(0, 1 − d / 96)` inside, 1 on and beyond the border: at −5, 0,
+24, 48, 72, 96, 200: 1, 1, 0.8, 0.6000000000000001, 0.4, 0.2, 0.2. The
+distance inside a rectangle is the nearest edge's (`insideDistance`), the
+editor's rectangle the union of the card's and the pane's. A release
+decides (`dropAt`): on the new row it inserts, inside the editor the twin
+flies back, beyond the border a row becomes a card and anything else
+flies back. An entry lands before the first drawn entry whose middle lies
+right of the pointer (`dropIndex`), else at the end.
+
+**The pane on the canvas** (`flow-editor-pane.test.ts`, the canvas in
+jsdom on that store, the viewport at the identity, so a client point is
+a canvas point; block A at (40, 80), scale 1, the grid 8 and snapping): opening the flow editor shows the pane with four
+rows in the order above and Recompute disabled, saying "Recomputing needs
+a server", with no server; Add + shows the new row with Done and Cancel;
+Enter on entry 0 of `default` lands it (the `add` of item 2's form with
+`section_a`); a press on the card's region brace moved past the click
+distance and released over the pane but outside the new row writes
+nothing (the twin flies back), and released on the new row lands the
+Region; Escape during a drag writes nothing; the new row's Cancel leaves
+the store's entries as they were at Add +. The row `printed` lifted by its
+name and released inside the pane flies back and stores nothing; carried
+past the editor's right border (the pane from x 0 to 800 on screen) and
+brought back inside before the release it flies back too and stores
+nothing (the release decides, never the path); released past the border
+at (900, 340), pressed at (100, 300) with the row's drawing lying at
+(0, 0) on screen (jsdom lays nothing out), it stores its virtual
+timeline's `add` and its place's `set`, two entries, and the new virtual
+timeline's place is the twin's top left `(900 − 100, 340 − 300)` less the
+block's (40, 80), each rounded to the grid's 8: exactly `{x: 760, y:
+-40}`. A hand-made row's Edit button makes it the edited row (class
+`draft`, its Done and Cancel shown, no Edit button left on any row);
+computed rows have none.
 
 ## The editor's viewport (`focus.test.ts`)
 
@@ -4614,10 +4852,162 @@ What would be wrong: a handle dragged by one card scale across runs of
 another, a width rounded, a default gap edited alone, a group elision's gap
 held by no frame, the pane of one canvas redrawing another's blocks.
 
+## Virtual cards, ribbons, the flow flag and the flow switch (`virtual-cards.test.ts`, `ribbons.test.ts`, `flow-flag.test.ts`, `flow-switch.test.ts`)
+
+TimeToShare's drawing specification, section 8.10, draws a virtual
+timeline as a card of its own (a placed one, `places` holding its ID) or
+in its group's frame, and a card whose `flow` names a FlowMap of its root
+on that FlowMap's virtual axis (a switched card). Layout owns that drawing;
+these tests own what the canvas does with it. The cases are TimeToShare's
+fixtures `flow/virtual_cards` (the root `allegro`, 1644 quarters, the atomic
+sections A [0, 953/2), B [953/2, 500), C [500, 1644); the FlowMaps
+`by_hand` "Practice" A A A A, a gap of 4, C; `default` A B A C; `printed`;
+`single` A C; the virtual timelines `allegro_by_hand` "Allegro, practice",
+`allegro_default` "Allegro, default", `allegro_single` "Allegro, single",
+none placed), `groups/virtual_member` (the same, with `allegro_default`
+and the seconds root `recording` members of `performance`, `allegro` an
+ungrouped root), `flow/switched_card` (`virtual_cards` with the rule
+`flow: default` on `{id: "allegro", part: ["card"]}`) and
+`groups/switched_frame` (that rule, `allegro` and `recording` members of
+`performance`, no virtual timeline). In `virtual_cards` block A places
+`allegro_default` at (0, 200) and `allegro_by_hand` at (0, 400), each by
+one `set` of its place, so both cards are drawn after `allegro`'s, by ID.
+
+**Played positions.** `default` plays A over [0, 953/2), B over [953/2,
+500), A again over [500, 1953/2), C over [1953/2, 4241/2). `by_hand` plays
+A at 0, 953/2, 953 and 2859/2, the gap over [1906, 1910), C over [1910,
+3054). Its first four entries are a run drawn once in a card of its own
+(section 8.10, Runs): only entry 0's brace is drawn, labelled `A × 4`, and
+entries 1 to 3 draw nothing.
+
+**Virtual cards are cards** (`virtual-cards.test.ts`). Nothing in the
+arranger tells a virtual card from a root's: what proves it is that the
+existing card code, run on it, gives what it gives a root's card. A press
+on its rectangle hits a `card` with the place key `{item:
+"allegro_default"}` and the address `{block: A, id: "allegro_default",
+part: ["card"]}`; a move of it to (16, 240) is one `set` of its place to
+`{x: 16, y: 240}` and `allegro`'s drawn place `{x: 8, y: 28.8046875}`, as
+for any item; a resize by 60 to the right sets `width` its drawn width
+plus 60 (Box, right handle) and `length` 460 (Stretch, right handle), and
+from the bottom-right handle (Scale) the `scale` the same gesture gives
+`allegro`'s card, which is as wide; each applied by core lands in its
+place beside its `x` and `y`, and `allegro`'s card gets the same values
+from the same gestures. A press on a chunk's brace
+hits the element `{id: "allegro_default", facet: "regions", part: [k]}`,
+as a press on a region hits the region.
+
+**Ribbons** (`ribbons.test.ts`). `chunkOf` reads a chunk from an address
+of a virtual timeline's regions facet whose part starts with a chunk
+index (the brace, `[k, "label"]`, `[k, "leader"]`, `[k, "start"]`) and
+nothing else: not `{id: "allegro", facet: "regions"}`, not a timeline
+line, not a region of `allegro`. A chunk's ribbon geometry is derived from
+the drawing alone:
+
+- its **virtual end** lies on the line of its virtual timeline in the card
+  drawing its brace, at that line's ordinate `y`, from the brace element's
+  `x1` to its `x2` (one stretch per chunk here; a chunk naming a virtual
+  timeline plays several, each over its share of the brace);
+- its **written end** lies on every line of the root in the block, at that
+  line's `y`, from `xStart + (s − start) / L × (xEnd − xStart)` to the same
+  of `e`, `[s, e)` the written stretch, `start` and `L` the line's own
+  start and drawn length (layout's `abscissaOf`), clipped to what the line
+  draws;
+- its path is `M a1 ya L a2 ya C a2 m b2 m b2 yb L b1 yb C b1 m a1 m a1 ya Z`,
+  `a` the virtual end, `b` the written end, `m = (ya + yb) / 2`.
+
+`allegro_default`'s chunk 1 (B) has one ribbon to [953/2, 500) on
+`allegro`'s line and lights nothing (no other chunk names B). Its chunk 0
+(A) has one ribbon to [0, 953/2) and lights `allegro_by_hand`'s brace 0
+(`A × 4`) and `allegro_default`'s brace 2, in that order (drawing order;
+the cards are drawn by ID). `allegro_by_hand`'s chunk 5 (C) reaches
+`allegro` over [500, 1644) from its brace, which lies after the run's
+shrink: its `x1` is the brace element's, never the linear abscissa of
+1910 over the drawn line from its `xs` to its `xe`; it lights `allegro_default`'s brace 3, the other C. Its chunk 1, the second entry of the run, draws no
+brace, so no ribbon, and lights `allegro_by_hand`'s brace 0 and
+`allegro_default`'s braces 0 and 2. Its chunk 4 (the gap) shows nothing.
+In `groups/virtual_member` chunk 1 of the member card reaches `allegro`'s
+card from the member card's line. Several chunks shown at once give the
+ribbons of each in turn, each key prefixed by its chunk's address key,
+and light each other brace once, never one of the shown chunks.
+
+On the node (`ribbons.test.ts`, `NodeHarness`): a pointer moving onto a
+chunk's brace draws one `path.tilie-ribbon` per ribbon, its `d` the
+ribbon's path, inside one `g.tilie-ribbons` that lets the pointer through
+and carries no address attribute, and one `.tilie-lit` copy per lit brace,
+its `d` the brace's, without `data-id`, `data-facet` or `data-part`;
+leaving the node removes them. With the brace's address among the
+selected elements they are drawn without a pointer; with nothing hovered
+or selected the node draws no `g.tilie-ribbons`.
+
+**The flag** (`flow-flag.test.ts`). The pin is read on a line of the
+drawing (`crossSectionSpec`, core's `timestampAt`), as the canvas reads
+it, on the axis of the line holding the position: a line drawn with a run
+once has one axis per run (layout's README, Virtual cards, 9), so 1907 on
+`allegro_by_hand` is read on its second, from 1906. Values are written as core's `prettyText` writes a coordinate. On
+`allegro_default`'s line at the played 600 (in chunk 2, the second A) the
+flag adds the part `written allegro_default`, named `Allegro`, with the
+rows `coordinate` 100 and `occurrence` `2 of 2`; at 1000 (in C) `523 1/2`
+written and `1 of 1`. On `allegro_by_hand`'s line at 1907 (in the gap) the
+one row `coordinate` `in a gap`. On `allegro`'s line at 100 the part
+`played allegro`, named `Allegro played`, has one row per virtual card in
+the block's order (`allegro_by_hand`, then `allegro_default`): "Allegro,
+practice" `100, 1053/2, 953 + 100, 2859/2 + 100` and "Allegro, default"
+`100, 600`; at 600 (in C) "Allegro, practice" `2010` and "Allegro,
+default" `1953/2 + 100`. In `groups/virtual_member` the member card's row
+is named "Allegro, default in Performance". A pin on `allegro` in a block
+placing no virtual card adds nothing. A virtual timeline is read as the
+root its card draws (section 8.10), named by its `name`: a line of a
+virtual card is hovered and pinned as any root's, and the named timestamp
+`timestamp_4` of `allegro_default` in `groups/virtual_member` pins at
+4241/2 on its own axis, its part named "Allegro, default".
+
+**The switch** (`flow-switch.test.ts`, the pure functions, then
+`ToolbarHarness`). A card of `allegro` offers "As written", then the
+FlowMaps `by_hand` ("Practice"), `default`, `printed`, `single` (no name,
+labelled by ID), then the virtual timelines "Allegro, practice", "Allegro,
+default", "Allegro, single"; a virtual card offers nothing, nor
+`recording`'s card, nor a band or the block. `performance`'s frame in
+`groups/switched_frame` offers `allegro`'s list (its member `recording`
+has none). The entry shown chosen is `default` in `switched_card` and in
+`switched_frame`'s frame, "As written" in `virtual_cards`. Choosing on a
+card sends one `style` command, `{type: "style", select: {addresses:
+[{id: "allegro", part: ["card"]}]}, set: {flow: F}, blocks: [A]}`, with `F`
+the chosen ID, `null` for "As written"; choosing what is shown sends
+nothing; on a frame "As written" removes the flow of every member setting
+one. Each command applied by core leaves the chosen ID as the card's
+`flow` (core's `cardFlow`) and passes the validators. Mounted above `allegro`'s
+card, the select `flow-switch` lists those labels in that order, the
+chosen one selected; choosing entry 6 ("Allegro, default") dispatches
+exactly that command once; a locked canvas disables it. It stands `10 +
+h + 4` screen pixels above the box, `h` the mode menu's measured height,
+`10` where no mode menu is shown (`switchOffset`).
+
+**The switch's motion.** Where a card becomes switched its chunks move from
+their written stretch on the card's line to their brace on the virtual
+axis (`switchMorphs`); between two drawings of the same manifest nothing
+moves (the switched drawing against itself). `flow/switched_card` drawn as written (its rule's `flow` removed
+by the switch's own command) and as switched moves four chunks, in chunk
+order, `default`'s A B A C, each its elements in the switched drawing
+(every element addressed `{id: "allegro", facet: "regions", part: [k,
+…]}`, in drawing order: its brace `[k]`, from k = 1 its boundary `[k,
+"start"]`, its label `[k, "label"]`), from its written stretch on the as-written card's line
+(`xs + (s / 1644) × 400` to the same of `e`, the line's `xs` and its 400
+units as drawn, layout's `abscissaOf`) to its brace on the switched line
+(`x(t) = x0 + 400 × u`, `x0` that line's start, `u = t / (4241/2)`,
+layout's README, Switched cards, 2): A from `[0, 953/2]` to `[x(0),
+x(953/2)]`, B from `[953/2, 500]` to `[x(953/2), x(500)]`, A again from
+`[0, 953/2]` to `[x(500), x(1953/2)]`, C from `[500, 1644]` to
+`[x(1953/2), x(4241/2)]`. A moving brace or boundary at progress `t` is stretched onto the
+span `from + (to − from) × t`: `matrix(s 0 0 1 x1(t) − to.x1 × s 0)`, `s` the
+span's width at `t` over `to`'s; a text moves by its span's middle; at
+`t = 1` nothing.
+
 ## Package (`name.test.ts`)
 
 The package exports its exact name `"@timetoalign/tilie-arranger"`; its
-surface is `Canvas`, `liveStore`, `addCommand`, the selection helpers
+surface is `Canvas`, `liveStore`, `addCommand`, the readers of a typed
+axis value `axisValueAt` and `typedValue` (the inspector's fields and the
+flow editor's "+ Gap" share them), the selection helpers
 `resolveSelection`, `blockOf`, `existing`, `editedSelection`,
 `selectionOf`, `isSelected` and `NOTHING_SELECTED`, the key helpers
 `isTextInput` and `within`, `drawingOf`, `styleLayers`, `placeChange`

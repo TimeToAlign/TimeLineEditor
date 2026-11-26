@@ -60,6 +60,7 @@ export const ErrorCode = {
   cycle: "cycle",
   nestedMember: "nested_member",
   arrangementConflict: "arrangement_conflict",
+  computedFlowMap: "computed_flow_map",
 } as const;
 
 /** One problem code: a value of the `ErrorCode` constants. */

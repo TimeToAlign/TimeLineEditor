@@ -1,9 +1,9 @@
 /**
- * The inspector's tab row wraps: at the drawer's least width the eight tabs
- * take two rows and nothing in the inspector scrolls sideways, whichever tab
- * is shown, in the arranger and in a bundle's editor; every tab is
- * reached by pointer and by the arrow keys in reading order; where the tabs
- * fit, one row. The expected values are derived in `README.md`
+ * The inspector's tab row wraps: at the drawer's least width the nine tabs
+ * take three rows and nothing in the inspector scrolls sideways, whichever
+ * tab is shown, in the arranger and in a bundle's editor; every tab is
+ * reached by pointer and by the arrow keys in reading order; at the
+ * drawer's largest width, two rows. The expected values are derived in `README.md`
  * ("tab-row.spec.ts").
  */
 
@@ -14,10 +14,11 @@ import { BUNDLES, drawer, editing, open, select, tab, tabs } from "./support.ts"
 
 test.use({ reducedMotion: "reduce", deviceScaleFactor: 1 });
 
-/** The eight tabs at the top level, in reading order. */
+/** The nine tabs at the top level, in reading order. */
 const TABS: readonly TabName[] = [
   "Arranger",
   "Properties",
+  "Regions",
   "Metadata",
   "Manifest",
   "Journal",
@@ -26,7 +27,7 @@ const TABS: readonly TabName[] = [
   "Elisions",
 ];
 
-/** The eight tabs in the bundle's editor: the level tab named Bundle. */
+/** The nine tabs in the bundle's editor: the level tab named Bundle. */
 const BUNDLE_TABS: readonly TabName[] = ["Bundle", ...TABS.slice(1)];
 
 /** The tab buttons' tops, left edges and widths, in DOM order. */
@@ -98,11 +99,11 @@ async function openInspector(page: Page): Promise<void> {
 test.describe("at the drawer's least width", () => {
   test.use({ viewport: { width: 1000, height: 800 } });
 
-  test("the tabs take two rows, each reached by pointer and by key", async ({ page }) => {
+  test("the tabs take three rows, each reached by pointer and by key", async ({ page }) => {
     await openInspector(page);
     expect(await drawer(page).evaluate((aside) => getComputedStyle(aside).width)).toBe("352px");
     await expect(tabs(page).getByRole("tab")).toHaveText([...TABS]);
-    expect((await rows(page)).length).toBe(2);
+    expect((await rows(page)).length).toBe(3);
     await expectNoSidewaysScroll(page);
     await everyTabFits(page, TABS);
 
@@ -141,13 +142,13 @@ test.describe("at the drawer's least width", () => {
   });
 });
 
-test.describe("where the tabs fit", () => {
+test.describe("at the drawer's largest width", () => {
   test.use({ viewport: { width: 2400, height: 900 } });
 
-  test("the tabs take one row", async ({ page }) => {
+  test("the tabs take two rows", async ({ page }) => {
     await openInspector(page);
     expect(await drawer(page).evaluate((aside) => getComputedStyle(aside).width)).toBe("640px");
-    expect((await rows(page)).length).toBe(1);
+    expect((await rows(page)).length).toBe(2);
     await expectNoSidewaysScroll(page);
   });
 });

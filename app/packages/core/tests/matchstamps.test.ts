@@ -641,6 +641,42 @@ describe("match timestamps on grouped timelines", () => {
   });
 });
 
+describe("a named MatchStamp on a virtual timeline", () => {
+  it("lies on the virtual timeline as on a root, a groupstamp where it is a group member", () => {
+    // groups/virtual_member: the virtual timeline allegro_default (4241/2 quarters) and
+    // recording (702.5 seconds) are members of performance.
+    const members = deepFreeze(viewOf([A, "groups/virtual_member.yaml"]));
+    const before = new Set((timestampsOf(members) ?? []).map((item) => item.id));
+    const start = changed(
+      members,
+      name(
+        {
+          name: "Start",
+          anchors: [[c("recording", new JsonFloat(0)), c("allegro_default", [953, 2])]],
+          match_claims: ["claim_1"],
+        },
+        ["start", "start-recording", "start-played", "start-a1"],
+      ),
+    );
+    const added = (timestampsOf(start) ?? []).filter((item) => !before.has(item.id));
+    expect(added).toEqual([
+      { ...match("start-played", "allegro_default", [953, 2]), groupstamp: true },
+      { ...match("start-recording", "recording", new JsonFloat(0)), groupstamp: true },
+    ]);
+    const named = stamp(start, "start");
+    if (named === undefined) throw new Error("start is named");
+    expect(matchStampSpec(block(start).manifest, named).anchors).toEqual([
+      {
+        coordinates: [
+          { timeline: "recording", value: 0 },
+          { timeline: "allegro_default", value: Rational.fromParts(953n, 2n) },
+        ],
+        carriesName: true,
+      },
+    ]);
+  });
+});
+
 describe("a named MatchStamp for the comparison", () => {
   it("gives its anchors' values and the name's anchor", () => {
     expect(matchStampSpec(fixture, M1)).toEqual({

@@ -215,6 +215,27 @@ function writerOf(element: DrawnElement, index: number) {
         stroked,
       ),
     }),
+    /**
+     * A gap line from `(x1, y)` to `(x2, y)` (section 6.6, Gap lines): stroked in the line's
+     * `stroke`, half its stroke width, dashed `w / 2` on and `w` off.
+     */
+    gapLine: (x1: number, y: number, x2: number): LineDescriptor => ({
+      tag: "line",
+      x1,
+      y1: y,
+      x2,
+      y2: y,
+      text: null,
+      ...written(
+        [
+          ["x1", x1],
+          ["y1", y],
+          ["x2", x2],
+          ["y2", y],
+        ],
+        strokeAttributes(style.stroke, w / 2, `${w / 2} ${w}`),
+      ),
+    }),
     circle: (cx: number, cy: number, r: number, paint: Attributes): CircleDescriptor => ({
       tag: "circle",
       cx,
@@ -319,13 +340,17 @@ function elementDescriptors(element: DrawnElement, index: number): Descriptor[] 
     case "timeline":
     case "child":
     case "ancestor": {
-      // The line to where it stops, in pieces from run to run where it crosses gaps, its start
-      // circle or left chevrons, its end mark or chevrons.
+      // The line to where it stops, in pieces from run to run where it crosses gaps or the gaps
+      // of its FlowMap interrupt it, then its gap lines from the left, its start circle or left
+      // chevrons, its end mark or chevrons.
       const line = lineGeometry(element);
+      const gapLines = element.gapLines ?? [];
+      const cuts = [...element.cuts, ...gapLines].sort(([left], [right]) => left - right);
       return [
-        ...piecesOf(line.x1, line.x2, element.cuts).map(([from, to]) =>
+        ...piecesOf(line.x1, line.x2, cuts).map(([from, to]) =>
           writer.line(from, line.y, to, line.y),
         ),
+        ...gapLines.map(([from, to]) => writer.gapLine(from, line.y, to)),
         ...[...line.start, ...line.end].map((mark) => markDescriptor(mark, writer)),
       ];
     }

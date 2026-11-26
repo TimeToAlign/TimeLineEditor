@@ -66,6 +66,8 @@ export const ADD_KINDS = [
   "timestamp",
   "elision",
   "matchstamp",
+  "flow_map",
+  "virtual_timeline",
 ] as const;
 /** A kind of thing `add` can put into a target. */
 export type AddKind = (typeof ADD_KINDS)[number];
@@ -86,8 +88,13 @@ export type AddKind = (typeof ADD_KINDS)[number];
  * `matchstamp` into a block names a potential MatchStamp: `{name, anchors,
  * match_claims}`, its anchors pairs of `{timeline, coordinate}` in screen
  * order; it is given its ID, then the IDs of the match timestamps it
- * needs, then its anchors' IDs. Every ID given is the next of the
- * command's `ids`, in the order `CarriedIds` states for each kind.
+ * needs, then its anchors' IDs. A `flow_map` into a root timeline is `{id?,
+ * timeline?, chunks, name?, canonical?, convention?, provenance?}`,
+ * ordering that root; a `virtual_timeline` into a block is `{id?, map,
+ * timeline, name?, through?, length?}`, its unit, number type and length
+ * computed; a `region`, `map` or `flow_control` element into a timeline may
+ * leave its ID out. Every ID given is the next of the command's `ids`, in
+ * the order `CarriedIds` states for each kind.
  */
 export type AddCommand = {
   readonly type: "add";

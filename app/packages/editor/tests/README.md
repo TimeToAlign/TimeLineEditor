@@ -78,7 +78,21 @@ and Cancel, in that order, then "Editing:" and an ordered list "Editing
 path" whose items are the open editors' names alone, outermost first, as
 "Words" defines them: `["Mixed", "Performance", "Score"]` for block `A`'s
 three editors, `["Anonymous bundle", "clt_1", "clt_3"]` for block `B`'s,
-`["mixed", "group_2"]` for block `C`'s. A renaming shows at once.
+`["mixed", "group_2"]` for block `C`'s. A renaming shows at once. A flow
+editor is named as the FlowMaps of its timeline: `score`'s timeline editor
+with its flow editor open inside it reads `["Score", "FlowMaps of Score"]`
+for block `A` (the editors opened directly on `score`, no group editor
+around them).
+
+**The flow editor's server** (`flow-server.test.ts`): `flowServerOf` sends
+the manifest as Save writes it (`saveManifest`) with the root's bare ID to
+the server's two flow routes and reads the answers back: the flow-maps
+answer, a manifest file's text, as the manifest it holds (equal to
+`readManifestFile`'s of the same text); the flows answer as each
+convention's findings, their `message`s in order, keyed by convention, a
+convention without findings an empty list. A flow-maps answer TiLiE cannot
+read rejects with "the server's manifest with its flows written could not
+be read" followed by the first problem's message.
 
 Done closes the innermost editor, one per click. Cancel without changes
 closes at once and opens no dialog. Cancel with changes asks "Are you sure
@@ -1059,11 +1073,12 @@ band records written for the test the rows are Markers 1 3, Regions −2 4,
 Flow control −12 1. The form leaves bands out: a band with the card gives
 the card's geometry exactly, with the block the block's; the band's block
 is the selected block, and a second block makes none. In the component the
-band's panel holds one description list and nothing that edits, and the
-Manifest tab shows the block's text; with the card the form is exactly
-the card's, without the card's name field and Locked checkbox (two things
-are inspected, one of them no timeline); two bands show the geometry
-hint. A band is addressed `{block, id: T, facet}`, so a facet word is no
+band's panel holds one description list and nothing that edits but the
+band list of its timeline's card ("The band list" below: every input
+lies in it), and the Manifest tab shows the block's text; with the card
+the form is exactly the card's, without the card's name field and Locked
+checkbox (two things are inspected, one of them no timeline); two bands
+show the geometry hint and the band list. A band is addressed `{block, id: T, facet}`, so a facet word is no
 reserved ID; an ID is unique across the manifest: the map `tempo` renamed
 `phrase` in the text is refused, listed as `schema_violation` `'phrase' is
 not unique in the manifest, first at #/timelines/0/conversion_maps/0/id`
@@ -1083,6 +1098,22 @@ geometry hint, on its timeline's axis in pretty text: "Start", "End" and
 no rows for two regions, a region with its timeline, or a flow-control
 element. Mounted, the region's name field (`B`) stands above the rows
 `[data-testid="region-rows"]`, no geometry hint and no other input.
+
+**A selected virtual timeline** (`virtualDeletionOf`,
+`inspector-bands.test.ts`). Delete on the canvas hides a virtual card
+(the arranger's README, Deleting); deleting the virtual timeline is the
+Properties tab's. In `flow/virtual_cards` with `allegro_default` placed
+by one `set` of its place, the virtual timeline alone, by its address
+`{id: "allegro_default"}` or by its card `{id: "allegro_default", part:
+["card"]}`, gives `{type: "remove", targets: [{block: A, id:
+"allegro_default"}]}`; none for both virtual timelines, a virtual
+timeline with `allegro`, a chunk `{id: "allegro_default", facet:
+"regions", part: [0]}`, the FlowMap `default` or `allegro`. Mounted with
+the card selected, the tab shows one button "Delete virtual timeline"; a
+press journals exactly that command, after which the manifest holds no
+`allegro_default`, its place is gone, and the FlowMap `default` and the
+two other virtual timelines stay. `allegro` selected shows no such
+button.
 
 ## A flow-control element (`inspector-flow.test.ts`)
 
@@ -1321,6 +1352,120 @@ break `break_1`, section break `section_break_1`, all on `score`) and
    `style` of item 3 and leaves Arcs not pressed; nothing is posted. With
    `jump_2` selected, its Display group holds Arcs and Symbol, its Labels
    group Name, ID and Label.
+
+## The band list (`inspector-band-list.test.ts`)
+
+A selected timeline card lists its bands in the Properties tab, each with
+a Visible checkbox; what a checkbox shows is read from the same cascade
+the canvas draws with, and a change journals one `style` in the block's
+manifest, read back through that cascade, as the display toggles above
+(the press rule is theirs, `toggleCommand`, proven there; here it is
+proven on a band's own `display`). Each fixture is held in block
+`0000000000`; IDs are the fixtures' own speaking ones.
+
+1. **Which selection lists bands.** On `styled_score_flow_inner` (root
+   `score`, children `a` (its line hidden by a rule of the manifest) and
+   `b`, no group): the card of `score` (`{id: "score", part: ["card"]}`),
+   its line (`{id: "score"}`), one of its bands (`{id: "score", facet:
+   "regions"}`) and the card with the line together each list `score`'s
+   bands. Nothing, the block, the line of `b` (a child drawn in no card of
+   its own), a band of `score` with its region `intro`, the region alone,
+   and the lines of `score` and `b` together list none (`null`).
+2. **Rows in the band order.** `score` states `graphical.order`
+   `["children", "markers", "line", "conversion_maps", "flow_control",
+   "regions"]`, so its rows are, in order, Children, Markers, Conversion
+   maps, Flow control, Regions, each checked (no rule hides a band). On
+   `groups/group_child_member`, where `second-half`, a child of `piece`, is
+   a member of `group_1` beside the root `recording` and no timeline
+   states an order: the card of `recording` lists Children, Conversion
+   maps, Markers, Regions, Flow control (the default band order); the
+   card of `second-half` lists Children, Conversion maps, Markers,
+   Regions: a child's flow control is drawn by its root's band, so its
+   own is not listed.
+3. **A change writes or removes the band's own rule.** On
+   `styled_score_flow_inner`, the card of `score` selected, in order:
+   - Regions unchecked → `{type: "style", select: {element: "band",
+     addresses: [{id: "score", facet: "regions"}]}, set: {display:
+     "none"}, blocks: [A]}`; Regions then unchecked, the other four
+     checked;
+   - Regions checked → the same selector with `{display: null}`, since
+     without it the cascade displays the band; the manifest's rules are
+     again those of the fixture, Regions checked;
+   - a rule hiding every regions band given first (`{facet: "regions"}`
+     `{display: "none"}`, one `style`): Regions unchecked; checking it →
+     the band's own rule `{display: "inline"}`; unchecking it →
+     `{display: null}` (the rule of every regions band hides it then).
+4. **The panel.** With the card of `score` selected, the Properties tab
+   shows below the form a table captioned "Bands", headed Band and
+   Visible, one row per band of item 2, each row's checkbox named
+   "<band> visible"; a change journals exactly the `style` of item 3 and
+   leaves the checkbox unchecked; nothing is posted. With `intro`
+   selected no table is shown.
+
+## The Regions tab (`inspector-regions.test.ts`)
+
+The tab lists the regions of the selected timeline and of its
+descendants; every edit is one command on a region's address, what the
+store does with it being core's. Rows are read from the manifest the
+store holds (canonical order), values written in the axis's number type
+as Copy writes them, with the axis's pretty unit. `styled_score_flow_inner`
+is held in block `A` = `0000000000`, and one `add` gives its child `b` the
+region `{id: "motif", name: "motif", start: [1, 1], end: [3, 1]}` (an ID
+of the test's own, not a minted one); `flow/sonata_exposition` (three
+atomic sections of `score`) and `unknown_length` are each held alone.
+
+1. **Which timeline is listed.** The card, the line or a band of `score`,
+   the region `intro`, its label (`{id: "intro", part: ["label"]}`), and
+   `intro` with its label list `score`; the line of `b` and `motif` list
+   `b`. Nothing, the block, the lines of `score` and `b` together, `intro`
+   with `motif`, and the flow-control element `da-capo` list nothing
+   (`null`), and the panel says "Select a timeline, its card or one of its
+   regions to list its regions."
+2. **The rows.** `score`: a section without a heading, one row `intro`:
+   name "intro", type empty (no `type` statement), start "0", end "2",
+   unit "♩", editable, its removal `{type: "remove", targets: [{block: A,
+   id: "intro"}]}`; then the section headed "b" (its name is null, so its
+   ID), one row `motif`: "motif", start "1", end "3". `a` holds no region
+   and has no section. `b` alone: its one section, without a heading. On
+   `sonata_exposition`, `score`'s rows `region_1`, `region_2`,
+   `region_3` (read through the store, never pasted) are named A, B, C,
+   typed "Atomic section", from 0 to 12, 12 to 16 and 16 to 24, read only,
+   without a removal.
+3. **The marked rows** are those of the selected regions: `intro` and
+   its label select `intro`; the card of `score` selects none.
+4. **Add region** adds a region over the whole selected timeline, from 0
+   to its length, or to its reach where its length is unknown, without an
+   ID, which core gives: `score` → `{type: "add", into: {block: A, id:
+   "score"}, region: {start: [0, 1], end: [8, 1]}}`; `b` → `end: [4, 1]`;
+   `unknown_length`'s `score` (no length; its child `coda` at 10, 4 long,
+   reaches 14) → `end: [14, 1]`.
+5. **Field edits** (`regionFieldCommand`): on `intro`, the name "Intro" →
+   `{type: "set", changes: [{target: {block: A, id: "intro"}, values:
+   {name: "Intro"}}]}`, an empty name → `{name: null}`, "intro" (the
+   stored name) → `null` (nothing to send); start "1/2" → `{start: [1,
+   2]}`, " 0 " (the stored text, blanks trimmed) → `null`, end "2.5" →
+   `{end: [5, 2]}` (a decimal is the exact value it spells); start "x" →
+   refused before dispatch with core's words for the axis, `"x" is no
+   fraction value; write an integer, n/d, a b/c or a decimal`, at
+   `['{"block":"0000000000","id":"intro"}', "start"]`.
+6. **The panel** (mounted with the store, its resolved selection and a
+   recorder of `onselect`): `score`'s card selected shows two sections, the
+   second headed "b"; each row its ID and, for an editable one, the fields
+   Name, Start and End holding its values, the unit "♩" beside Start and
+   End, and a button "Remove region <name>". A click on the head of
+   `motif`'s row calls `onselect` with `[{block: A, id: "motif"}]`; with
+   `intro` selected its row's head is pressed (`aria-pressed` "true") and
+   the row marked (`selected`), `motif`'s not. Typing "Intro" into
+   `intro`'s Name and Enter journals item 5's `set`; typing "3" into its
+   Start and Enter is refused by the store (an end before its start), the
+   store's message shown below the field, the field `aria-invalid`, its
+   draft kept, nothing journalled; Escape drops it and shows "0" again.
+   "x" in Start and Enter shows the refusal of item 5. Remove journals the
+   removal of item 2 and the row is gone. Add region sends exactly item
+   4's `add` to the store, and the status line below the list shows the
+   store's refusal, if any, else nothing. On `sonata_exposition` the rows
+   hold no field and no Remove button, their values shown as text ("A",
+   "0 ♩", "12 ♩") with the type "Atomic section".
 
 ## The Elisions tab (`inspector-elision.test.ts`)
 
@@ -1703,7 +1848,11 @@ core's message, so the oracle is core's own nesting rule written out:
    item 2, "Excerpt" indented by 1.25rem. For the block the button "New
    group" adds one group in one entry, journaled with the one ID it was
    given (`ids`), and the manifest then holds three groups, `group_1`,
-   `group_2` and that one. A command the store refuses although core takes it (the store
+   `group_2` and that one. For `recording` and `excerpt` the button is
+   disabled, its title item 3's message with `<ID>` the first ID a copy of
+   the store's own minter (`Store.minter`) mints for `group`: the panel
+   reads the verdict with the store's minter, so the message names the ID
+   the dispatch would store. A command the store refuses although core takes it (the store
    has the group editor of `group_1` open while the panel shows the
    arranger, so `score` joining `group_2` is a side effect) leaves the
    journal as it was, the box unchecked, and the status line holds exactly
@@ -1712,10 +1861,10 @@ core's message, so the oracle is core's own nesting rule written out:
 
 ## The tabs and panels (`Inspector.test.ts`, `inspector-tabs.test.ts`)
 
-**The tab rule** is proven as a table on the rule alone. The eight tabs are
-always present, in this order: the level tab, Properties, Metadata,
-Manifest, Journal, Timestamp, Matchstamp, Elisions (last, so End reaches
-it and ArrowRight from it wraps to the level tab). The level tab is labelled by the level's word: "Arranger" with no
+**The tab rule** is proven as a table on the rule alone. The nine tabs are
+always present, in this order: the level tab, Properties, Regions,
+Metadata, Manifest, Journal, Timestamp, Matchstamp, Elisions (last, so End
+reaches it and ArrowRight from it wraps to the level tab). The level tab is labelled by the level's word: "Arranger" with no
 editor open, else "Bundle", "Group" or "Timeline" for the innermost
 editor's kind. The tab chosen is recorded with the store's count of editor
 openings when it was chosen or when the inspector was last shown or

@@ -1,5 +1,13 @@
 <script lang="ts">
-import type { Address, Command, Granularity, Manifest, Pin, Store } from "@timetoalign/tilie-core";
+import type {
+  Address,
+  Command,
+  Granularity,
+  Manifest,
+  OpenEditor,
+  Pin,
+  Store,
+} from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
@@ -32,7 +40,13 @@ import {
 import type { Editing } from "./editing.ts";
 import { addressParts } from "./editing.ts";
 import { EditorFocus } from "./editorFocus.svelte.ts";
+import { editorOf } from "./editors.ts";
 import Flag from "./Flag.svelte";
+import FlowEditorPane from "./FlowEditorPane.svelte";
+import type { FlowServer, FlowTarget } from "./flowEditor.svelte.ts";
+import { FlowEditorSession } from "./flowEditor.svelte.ts";
+import { flowRows } from "./flowEditor.ts";
+import { flowPaneOf, PANE_GAP, paneHeight } from "./flowEditorRows.ts";
 import GapHandles from "./GapHandles.svelte";
 import type { GapEdge, GapModes } from "./gaps.ts";
 import { DEFAULT_GAP_MODES, gapHoverAt, isGap } from "./gaps.ts";
@@ -69,6 +83,7 @@ import {
 import type { LivePlacement, TransientCommand } from "./node.ts";
 import { setNodeActions } from "./nodeActions.ts";
 import { CanvasNodes } from "./nodes.svelte.ts";
+import { positionStep } from "./numbers.ts";
 import { Pane } from "./pane.ts";
 import { pickable } from "./picking.ts";
 import ResizeToolbar from "./ResizeToolbar.svelte";
@@ -184,6 +199,12 @@ interface Props {
    * so both draw at it; the canvas's own when not given.
    */
   pane?: Pane;
+  /**
+   * The server's flow routes, which the flow editor's Recompute and its
+   * findings ask; without it (`undefined`: no server) Recompute is disabled
+   * and says why, and no findings are shown.
+   */
+  flows?: FlowServer | undefined;
 }
 
 let {
@@ -207,6 +228,7 @@ let {
   onmatches,
   onrefuse,
   pane = new Pane(),
+  flows,
 }: Props = $props();
 
 /**
@@ -319,6 +341,48 @@ const nodes = new CanvasNodes(
   () => transientPreview,
 );
 
+// --- The flow editor ---------------------------------------------------------
+
+/** The flow editor `editor` is, where it is one; `null` otherwise. */
+function flowTargetOf(editor: OpenEditor | undefined): FlowTarget | null {
+  if (editor?.kind !== "flow" || editor.target.id === undefined) return null;
+  const { block } = addressParts(editor.target);
+  return { session: editor.session, block, root: editor.target.id };
+}
+
+/** The open flow editor: the innermost editor where it is one; `null` otherwise. */
+const flowTarget: FlowTarget | null = $derived(flowTargetOf(live.editing.at(-1)));
+
+const flowSession = new FlowEditorSession({
+  store: () => store,
+  dispatch: (command) => dispatch(command),
+  refuse: (message) => onrefuse?.(message),
+  drawing: (block) => nodes.byId.get(block)?.data.drawing,
+  server: () => flows,
+});
+
+/** The edited block's node while a flow editor is open. */
+const flowNode = $derived(flowTarget === null ? undefined : nodes.byId.get(flowTarget.block));
+
+/** The flow editor's pane as drawn under the edited card; `null` without a flow editor. */
+const flowPane = $derived.by(() => {
+  if (flowTarget === null || flowNode === undefined) return null;
+  const { block, drawing } = flowNode.data;
+  const rows = flowRows(block.manifest, flowTarget.root, flowSession.findingsOf(flowTarget));
+  return flowPaneOf(block, drawing, view.graphical, metrics, flowTarget.root, rows);
+});
+
+/** The new FlowMap's row of the open flow editor; `null` while none is open. */
+const flowDraft = $derived(flowSession.draftOf(flowTarget));
+
+let flowPaneView: ReturnType<typeof FlowEditorPane> | undefined = $state();
+
+/** Whether `event` arose inside the flow editor's pane, which handles its own pointer and keys. */
+function inFlowPane(event: Event): boolean {
+  const target = event.target;
+  return target instanceof Element && target.closest(".tilie-flow-pane") !== null;
+}
+
 const editorFocus = new EditorFocus({
   store: () => store,
   viewport: () => viewport,
@@ -328,6 +392,10 @@ const editorFocus = new EditorFocus({
   root: () => root,
   pane: () => pane,
   reducedMotion: () => reducedMotion.current,
+  below: () =>
+    flowPane === null || flowNode === undefined
+      ? 0
+      : (PANE_GAP + paneHeight(flowPane, flowDraft?.flowMap === null)) * flowNode.data.block.scale,
 });
 
 /**
@@ -455,9 +523,19 @@ function dispatch(command: unknown): boolean {
   return error === null;
 }
 
+/**
+ * Open the editor `target` opens: a root's flow control band, its root's
+ * flow editor (`editorOf`), whose findings are then asked of the server.
+ */
 function openEditor(target: Address): void {
-  const error = store.open(target);
-  if (error !== null) onrefuse?.(error.message);
+  const opened = editorOf(target);
+  const error = store.open(opened.target, opened.kind);
+  if (error !== null) {
+    onrefuse?.(error.message);
+    return;
+  }
+  const flow = flowTargetOf(store.editing.at(-1));
+  if (flow !== null) void flowSession.askFindings(flow);
 }
 
 setNodeActions({
@@ -1009,7 +1087,14 @@ function pickOnKey(event: KeyboardEvent): boolean {
 /** A press records itself and gives the canvas the focus, unless the focus is already inside it. */
 function onpointerdowncapture(event: PointerEvent) {
   if (pickOnPress(event)) return;
+  if (inFlowPane(event)) return;
   pointer.pointerdowncapture(event);
+  if (flowTarget !== null && pointer.pressedAt(event.target).node?.id === flowTarget.block) {
+    if (flowPaneView?.pressCard(event) === true) {
+      if (root !== undefined && !root.contains(document.activeElement)) focus();
+      return;
+    }
+  }
   pinOnPress(event);
   if (root !== undefined && !root.contains(document.activeElement)) focus();
 }
@@ -1065,7 +1150,7 @@ function keyContext(event: KeyboardEvent): KeyContext {
 function onkeydowncapture(event: KeyboardEvent) {
   if (event.defaultPrevented || isTextInput(event.target)) return;
   if (picking !== null && event.key === "Escape") return;
-  if (!within(root, event.target) || inToolbar(event)) return;
+  if (!within(root, event.target) || inToolbar(event) || inFlowPane(event)) return;
   if (!pickOnKey(event) && !handleKey(keyContext(event), event)) return;
   event.preventDefault();
   event.stopPropagation();
@@ -1105,7 +1190,9 @@ function onkeydowncapture(event: KeyboardEvent) {
   {onpointerdowncapture}
   {onpointerupcapture}
   {onclickcapture}
-  ondblclick={pointer.dblclick}
+  ondblclick={(event) => {
+    if (!inFlowPane(event)) pointer.dblclick(event);
+  }}
   onpointermovecapture={onpointermove}
   {onpointerleave}
   {@attach shiftWheel((dx) => setViewport({ ...viewport, x: viewport.x + dx }))}
@@ -1181,6 +1268,26 @@ function onkeydowncapture(event: KeyboardEvent) {
           locked={!rules.resize}
           ontoggle={toggleGapMode}
           onlive={(next) => (gapDrag = next)}
+        />
+      {/if}
+      {#if flowTarget !== null && flowPane !== null && flowNode !== undefined}
+        <FlowEditorPane
+          bind:this={flowPaneView}
+          pane={flowPane}
+          target={flowTarget}
+          session={flowSession}
+          draft={flowDraft}
+          block={flowNode.data.block}
+          drawing={flowNode.data.drawing}
+          origin={flowNode.position}
+          {viewport}
+          {canvasWidth}
+          server={flows !== undefined}
+          granularity={granularity ?? view.settings.granularity}
+          step={positionStep(view.settings.grid)}
+          reducedMotion={reducedMotion.current}
+          slot={gestures}
+          toCanvas={(client) => toolbar?.toCanvas(client)}
         />
       {/if}
       <SnapGuides {guides} zoom={viewport.zoom} />

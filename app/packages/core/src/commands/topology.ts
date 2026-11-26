@@ -33,7 +33,7 @@ import {
   withBlock,
   withKey,
 } from "./mutations.ts";
-import type { TimelineTarget } from "./targets.ts";
+import type { TimelineTarget, VirtualTarget } from "./targets.ts";
 import { withDefaultTimestamps } from "./timestamps.ts";
 
 /** The refusal of a child reaching past its parent's known length. */
@@ -381,18 +381,21 @@ function withGroup(manifest: Manifest, group: Group, next: Group): Manifest {
  * becomes a member is locked). A child timeline joining a group is given
  * its `origin` and `length` as groupstamps (`withDefaultTimestamps`), so
  * that their lines mark its start and end across the frame; only on
- * joining, so one deleted later stays deleted.
+ * joining, so one deleted later stays deleted. A virtual timeline joins and
+ * leaves groups alike; it lies in no tree, so it holds no other member and
+ * no member holds it, and it takes no lock.
  */
 export function setGroups(
   view: View,
-  target: TimelineTarget,
+  target: TimelineTarget | VirtualTarget,
   value: unknown,
   path: readonly PathSegment[],
   changes: ChangeSet,
 ): View | CommandError {
-  const { block, at } = target;
+  const { block } = target;
   const { manifest } = block;
-  const { id } = at.timeline;
+  const at = target.kind === "virtual_timeline" ? null : target.at;
+  const id = target.kind === "virtual_timeline" ? target.virtual.id : target.at.timeline.id;
   if (!Array.isArray(value)) {
     return problem(ErrorCode.invalidValue, "a timeline's groups are a list of group ids", path);
   }
@@ -428,14 +431,18 @@ export function setGroups(
     next = withGroup(next, group, { ...group, members });
   }
   if (next === manifest) return view;
-  const members = new Set(next.groups.flatMap((group) => group.members));
-  const locked = withPlaceLocks(at.timeline, at.parent?.timeline, (member) => members.has(member));
-  if (locked !== at.timeline) {
-    const located = locateTimeline(next, id);
-    if (located !== undefined) next = replaceTimeline(next, located, locked);
-  }
-  if (joins && at.parent !== undefined) {
-    next = withDefaultTimestamps(next, locked, true, changes.ids.take);
+  if (at !== null) {
+    const members = new Set(next.groups.flatMap((group) => group.members));
+    const locked = withPlaceLocks(at.timeline, at.parent?.timeline, (member) =>
+      members.has(member),
+    );
+    if (locked !== at.timeline) {
+      const located = locateTimeline(next, id);
+      if (located !== undefined) next = replaceTimeline(next, located, locked);
+    }
+    if (joins && at.parent !== undefined) {
+      next = withDefaultTimestamps(next, locked, true, changes.ids.take);
+    }
   }
   record(changes, path, block.id, true);
   return withBlock(view, { ...block, manifest: next });

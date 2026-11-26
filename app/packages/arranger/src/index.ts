@@ -9,6 +9,7 @@ export const name = "@timetoalign/tilie-arranger" as const;
 export { default as ArrangeMenu } from "./ArrangeMenu.svelte";
 export type { ArrangeChoice, ArrangeMenuProps } from "./arrangeMenu.ts";
 export { arrangeMenuOf } from "./arrangeMenu.ts";
+export { axisValueAt, typedValue } from "./axisValues.ts";
 export type { CardBox, ItemBox } from "./boxes.ts";
 export { blockBox, boxOf, isHeld, isItem, keyedBox, raisedRoot } from "./boxes.ts";
 export { default as Canvas } from "./Canvas.svelte";
@@ -22,6 +23,8 @@ export { namedPin, readsGroup, rereadPin, timelinePin } from "./coordinates.ts";
 export { drawingOf, styleLayers } from "./drawing.ts";
 export type { Editing } from "./editing.ts";
 export { changedPlace, placeChange } from "./editing.ts";
+export type { FlowServer } from "./flowEditor.svelte.ts";
+export type { FlowFindings } from "./flowEditor.ts";
 export type { Viewport } from "./focus.ts";
 export type { GapChange, GapPiece, GapSubject, StoredEntry } from "./gaps.ts";
 export {

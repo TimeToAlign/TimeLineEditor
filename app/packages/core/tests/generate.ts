@@ -11,7 +11,8 @@
  * include ones the schema refuses; a timeline's new parent and groups are
  * drawn from the manifest's timelines and groups, itself and unknown ids
  * included; a named timestamp is added, set (its display among the rest)
- * and removed.
+ * and removed; FlowMaps and virtual timelines are added, their chunks,
+ * names, places and groups set, and removed (`flowCommand`).
  * Every refusal the commands produce on these targets is reachable.
  *
  * A step of an editing sequence is such a seed with an operation: a
@@ -25,6 +26,7 @@ import fc from "fast-check";
 import { DEFAULT_BAND_ORDER } from "../src/manifest/order.ts";
 import type { AxisValue, Manifest, TimelineManifest } from "../src/manifest/types.ts";
 import type { Address } from "../src/workspace/address.ts";
+import type { EditorKind } from "../src/workspace/sessions.ts";
 import type { View } from "../src/workspace/view.ts";
 
 /** The address of the workspace. */
@@ -38,7 +40,7 @@ export interface Seed {
   readonly picks: readonly number[];
 }
 
-const KINDS = 15;
+const KINDS = 16;
 
 export const seedArbitrary: fc.Arbitrary<Seed> = fc.record({
   kind: fc.nat({ max: KINDS - 1 }),
@@ -309,13 +311,15 @@ export function editorFor(
  * display order, a member's group length and scale, the block's width,
  * the name of a named timestamp on a timeline it holds, or a named
  * timestamp added to one), sometimes any command of `commandFor`. In the bundle editor
- * every command is `commandFor`'s on its block.
+ * every command is `commandFor`'s on its block; in a flow editor (`kind`), mostly a command
+ * over its root's FlowMaps and virtual timelines (`flowCommand`).
  */
 export function commandIn(
   view: View,
   blocks: readonly string[],
   target: Address | null,
   seed: Seed,
+  kind?: EditorKind,
 ): object {
   const block = target?.block ?? "";
   const element = target?.id;
@@ -325,6 +329,7 @@ export function commandIn(
     return commandFor(view, blocks, seed);
   }
   if (element === undefined) return commandFor(view, [block], seed);
+  if (kind === "flow") return flowCommand(view, block, element, seed);
   const held = heldBy(manifest, element);
   const timeline = pick(held.length > 0 ? held : [element], p1);
   const members = manifest.groups.find((group) => group.id === element)?.members ?? [];
@@ -406,6 +411,94 @@ function halved(value: AxisValue): unknown {
   if (value instanceof JsonFloat) return value.value / 2;
   const [numerator, denominator] = value;
   return [numerator, typeof denominator === "number" ? denominator * 2 : denominator];
+}
+
+/**
+ * A command over the FlowMaps and virtual timelines of `block`'s manifest in
+ * `view`: a FlowMap added into `root` (or into another timeline or the
+ * block), its chunks (regions, timelines, virtual timelines, gaps, unknown
+ * IDs) or name set, a virtual timeline added applying a FlowMap or a
+ * conversion map, its name, place or groups set, or either removed.
+ */
+function flowCommand(view: View, block: string, root: string, seed: Seed): object {
+  const [, , , p3 = 0, p4 = 0, p5 = 0, p6 = 0, p7 = 0] = seed.picks;
+  const manifest = view.blocks[block]?.manifest;
+  const all = manifest === undefined ? [] : places(manifest);
+  const located = all.find((item) => item.timeline.id === root)?.timeline;
+  const axis: Axis = located ?? { unit: "quarters", number_type: "fraction", length: [8n, 1n] };
+  const flowMaps = [...(manifest?.flow_maps ?? []).map((item) => item.id), "ghost"];
+  const virtual = [...(manifest?.virtual_timelines ?? []).map((item) => item.id), "ghost"];
+  const regions = all.flatMap(({ timeline }) => timeline.regions.map((item) => item.id));
+  const known = all.map((item) => item.timeline.id);
+  const maps = all.flatMap(({ timeline }) => timeline.conversion_maps.map((item) => item.id));
+  const chunk = (n: number): unknown =>
+    n % 6 === 0
+      ? { gap: coordinate(axis, n, p6) }
+      : pick([...regions, ...regions, ...known, ...virtual], n);
+  const chunks = [chunk(p4), chunk(p5), chunk(p6)].slice(p7 % 3);
+  const name = pick([`F${p5 % 3}`, null, 3], p5);
+  const at = (id: string): Address => ({ block, id });
+  const set = (id: string, values: object) => ({
+    type: "set",
+    changes: [{ target: at(id), values }],
+  });
+  switch (p3 % 6) {
+    case 0:
+    case 1:
+      return {
+        type: "add",
+        into: pick(
+          [
+            at(root),
+            at(root),
+            at(root),
+            at(pick(known.length > 0 ? known : [root], p6)),
+            { block },
+          ],
+          p4,
+        ),
+        flow_map: {
+          chunks,
+          ...(p5 % 3 === 0 ? { name } : {}),
+          ...(p6 % 7 === 0 ? { id: pick([...known, ...flowMaps], p6) } : {}),
+        },
+      };
+    case 2:
+      return set(pick(flowMaps, p4), p6 % 2 === 0 ? { chunks } : { name });
+    case 3:
+      return {
+        type: "add",
+        into: pick([{ block }, { block }, at(root)], p7),
+        virtual_timeline: {
+          map: pick([...flowMaps, ...maps], p4),
+          timeline: pick([root, root, ...known, ...virtual], p5),
+          ...(p6 % 4 === 0 ? { length: coordinate(axis, p6, p7) } : {}),
+          ...(p6 % 9 === 0 ? { through: "ghost", length: coordinate(axis, p6, p7) } : {}),
+        },
+      };
+    case 4: {
+      const groups = manifest?.groups.map((group) => group.id) ?? [];
+      const values = pick(
+        [
+          { name },
+          { place: { x: canvas(p6), y: canvas(p7) } },
+          { place: { x: null, y: null } },
+          { groups: groups.slice(0, 1 + (p6 % 2)) },
+          { groups: [] },
+        ],
+        p5,
+      );
+      return set(pick(virtual, p4), values);
+    }
+    default:
+      return {
+        type: "remove",
+        targets: [
+          pick([...flowMaps, ...virtual], p4),
+          ...(p5 % 3 === 0 ? [pick(virtual, p6)] : []),
+        ].map(at),
+      };
+  }
 }
 
 /** The concrete command a seed stands for in `view`, whose blocks are `blocks`. */
@@ -693,6 +786,10 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
       }
       if (branch === 2) return { type: "remove", targets: [at(block, stamp)] };
       return set(at(block, stamp), { display: display(p4) });
+    }
+    case 15: {
+      const roots = manifest?.timelines.map((timeline) => timeline.id) ?? [];
+      return flowCommand(view, block, pick([...roots, ...roots, id], p2), seed);
     }
     default: {
       const addresses: Address[] = [

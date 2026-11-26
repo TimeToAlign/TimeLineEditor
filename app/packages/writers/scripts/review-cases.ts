@@ -20,7 +20,9 @@
  * side with every root that groups hang on drawn once behind the row, the
  * bundle "Arranged" in a stored order the row repairs, the LayerIt suite, a
  * bundle with a root member, and one whose groups overlap on their root, which
- * is refused and drawn one under another. Each is also a drawing fixture of the schema
+ * is refused and drawn one under another; `flow/virtual_cards` with its
+ * three virtual timelines placed; and `flow/switched_card`, its card
+ * switched to a FlowMap. Each is also a drawing fixture of the schema
  * package (`fixtures/<version>/drawings/`).
  */
 
@@ -148,6 +150,14 @@ export function reviewCases(): ReviewCase[] {
       add(`${kind}__${stem}`, `${kind}s/${stem}`, DEFAULT_PLACEMENT);
     }
   }
+  // The virtual timelines of `flow/virtual_cards`, each placed at its default place.
+  add(
+    "flow__virtual_cards",
+    "flow/virtual_cards",
+    at({ places: { allegro_by_hand: {}, allegro_default: {}, allegro_single: {} } }),
+  );
+  // A card switched to a FlowMap (section 8.10).
+  add("flow__switched_card", "flow/switched_card", DEFAULT_PLACEMENT);
   add(
     "bundle_mixed__places",
     "bundles/bundle_mixed",

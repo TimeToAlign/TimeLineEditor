@@ -10,7 +10,14 @@ import { compareCodePoints } from "../json.ts";
 import { expressAs } from "../maps/express.ts";
 import { axisCoordinate } from "../number/coordinate.ts";
 import { Rational } from "../number/rational.ts";
-import { addReal, compareReal, type Real, realOf, toRational } from "../number/real.ts";
+import {
+  addReal,
+  compareReal,
+  type Real,
+  realOf,
+  subtractReal,
+  toRational,
+} from "../number/real.ts";
 import type { ElementAddress, Facet } from "./address.ts";
 import {
   BUNDLE_ADDRESS,
@@ -21,12 +28,16 @@ import {
   partAddress,
   sameAddress,
   TITLE_ADDRESS,
+  VIRTUAL_FACETS,
 } from "./address.ts";
 import { ELISION_LABELS, elisionsOn, elisionsUnder, groupElisions } from "./elisions.ts";
 import type { GroupFrame, MemberDrawing } from "./files.ts";
-import { isNamed, memberDrawings } from "./files.ts";
+import { isNamed, memberDrawings, virtualDrawing, withVirtualMembers } from "./files.ts";
 import { FLOW_LINE_ROLES, type FlowLineRole, flowSymbols } from "./flow.ts";
-import { findTimeline, groupsHolding, timelineAncestry } from "./tree.ts";
+import { FlowMapError, resolveFlowMap } from "./flowmaps.ts";
+import type { Unfolding } from "./switched.ts";
+import { piecesHolding, piecesReached, switchOf, unfoldingOf } from "./switched.ts";
+import { findTimeline, groupsHolding, memberAncestry } from "./tree.ts";
 import type {
   ChildTimeline,
   ConversionMap,
@@ -238,6 +249,15 @@ export function regionClasses(manifest: Manifest, region: Region): readonly stri
 }
 
 /**
+ * Whether the region `region` of `manifest` is an atomic section: its
+ * `type` statement names the class `tts:AtomicSection` in any spelling
+ * standing for its IRI (`regionClasses`), as computed flows write it.
+ */
+export function isAtomicSection(manifest: Manifest, region: Region): boolean {
+  return regionClasses(manifest, region)?.includes(`${FORMAT_PREFIX}:AtomicSection`) ?? false;
+}
+
+/**
  * The IRI a selector's `class` holding `:` stands for (section 2.3): the
  * format's namespace followed by `rest` for `tts:rest`, else its expansion
  * under `context`, else itself; a class without `:` stands for itself.
@@ -249,12 +269,27 @@ function selectorClassIri(context: unknown, text: string): string {
   return expandIri(context, text) ?? text;
 }
 
-/** The key of an element's own text, `name` or `label`, which the element holds. */
+/**
+ * The key of an element's own text, `name` or `label`, which the element
+ * holds: at the element's address with `type` appended to its `part`, a
+ * chunk's keeping its facet (section 2.2).
+ */
 export function textKey(owner: ElementKey, type: "name" | "label"): ElementKey {
-  const { facet, ...address } = owner.address;
-  if (facet !== undefined) throw new Error("a band has no text");
   const { coordinates: _marks, types: _types, ...held } = owner;
-  return { ...held, type, address: partAddress(address, type), inside: holdersOf(owner) };
+  return { ...held, type, address: wordAddress(owner.address, type), inside: holdersOf(owner) };
+}
+
+/**
+ * `address` with `word` appended to its `part`: an owner's address, or a
+ * chunk's, whose `part` begins with its chunk index and which keeps its
+ * facet; a band, which has no part, has no text and no leader.
+ */
+function wordAddress(address: ElementAddress, word: "name" | "label" | "leader"): ElementAddress {
+  const { facet, ...owner } = address;
+  if (facet === undefined) return partAddress(owner, word);
+  const [head] = address.part ?? [];
+  if (typeof head !== "number") throw new Error("a band has no text");
+  return { ...address, part: [head, word] };
 }
 
 /**
@@ -264,14 +299,13 @@ export function textKey(owner: ElementKey, type: "name" | "label"): ElementKey {
  */
 export function leaderKey(label: ElementKey): ElementKey {
   const { coordinates: _marks, types: _types, ...held } = label;
-  const { id } = label.address;
+  const { id, facet } = label.address;
   if (id === undefined) throw new Error("a leader joins the label of an element with an ID");
-  return {
-    ...held,
-    type: "leader",
-    address: partAddress(idAddress(id), "leader"),
-    inside: holdersOf(label),
-  };
+  const address =
+    facet === undefined
+      ? partAddress(idAddress(id), "leader")
+      : wordAddress({ id, facet, part: label.address.part?.slice(0, 1) ?? [] }, "leader");
+  return { ...held, type: "leader", address, inside: holdersOf(label) };
 }
 
 /**
@@ -433,6 +467,15 @@ function gapElements(
  * card's `elision-mode`, which the cascade decides as it decides `display`;
  * a member's card in a frame draws none, nor does any card draw a group
  * elision on a timeline of its own (`manifestElements` lists those).
+ *
+ * A virtual timeline's drawing (`virtualDrawing`, section 8.10), `chunks`
+ * the entries of its FlowMap as its card draws them (`chunkEntries`, null
+ * where it does not resolve), has its markers and regions bands only
+ * (`VIRTUAL_FACETS`); its regions band holds, before anything else, every
+ * drawn entry `k`: a chunk's brace `{id: V, facet: "regions", part: [k]}`
+ * of type `region` with its label `[k, "label"]`, and a gap's label alone,
+ * keyed as the label of a brace that is not drawn; its line holds, after
+ * its name, the boundary `[k, "start"]` of every entry that draws one.
  */
 function memberElements(
   manifest: Manifest,
@@ -442,12 +485,48 @@ function memberElements(
   card: "card" | "ancestor_card" = "card",
   frame: GroupFrame | null = null,
   elides = false,
+  flow: DrawnFlow = AS_WRITTEN,
 ): void {
   const root = member.timeline;
+  const { chunks, unfolding, switched } = flow;
+  const virtual = isVirtualDrawing(manifest, member);
   keys.push(elementKey(card, cardAddress(root.id), root, holder));
   const line = elementKey("timeline", idAddress(root.id), root, holder);
   const drawn = cardStamps(manifest, member, frame);
-  const cardElisions = elides ? new Set(elisionsUnder(manifest, root.id)) : undefined;
+  const cardElisions =
+    elides && unfolding === null ? new Set(elisionsUnder(manifest, root.id)) : undefined;
+  // How often an element at a position or over an extent is drawn: once as written, once in
+  // every piece reaching it on an unfolded card (section 8.10), the position read on the
+  // member's own axis, from its start `drawn.window[0]` on the axis of its tree's root.
+  const [from, to] = drawn.window;
+  const onMember = (position: Real) => subtractReal(position, from);
+  const atPoint = (position: Real) =>
+    unfolding === null ? 1 : piecesHolding(unfolding, onMember(position));
+  const overSpan = (start: Real, end: Real) =>
+    unfolding === null ? 1 : piecesReached(unfolding, onMember(start), onMember(end));
+  // What the switched card's own line draws (its line, its chunks and boundaries) is drawn once
+  // on the virtual axis; a carried member's, once in every piece reaching it.
+  const carriedOnly = switched ? null : unfolding;
+  const times = (count: number, ...items: ElementKey[]) => {
+    for (let drawing = 0; drawing < count; drawing += 1) keys.push(...items);
+  };
+  const extents = new Map(
+    drawn.timelines.filter((item) => !item.ancestor).map((item) => [item.timeline, item]),
+  );
+  const startOf = (timeline: TimelineManifest) => extents.get(timeline)?.start ?? zeroOf(timeline);
+  const extentTimes = (timeline: TimelineManifest) => {
+    const extent = extents.get(timeline);
+    return extent === undefined || extent.end === null ? 1 : overSpan(extent.start, extent.end);
+  };
+  const positions = new Map(
+    drawn.stamps.flatMap(({ timestamp, position, source }) =>
+      source === "member" ? [[timestamp, position] as const] : [],
+    ),
+  );
+  const stampTimes = (timestamp: NamedTimestamp) => {
+    const position = positions.get(timestamp);
+    return position === undefined ? 1 : atPoint(position);
+  };
   // The wedge and the labels its `display` lists of a coordinate of `timestamp` on `timeline`,
   // held by `band` (a markers band or an ancestor line); no `coordinate` label where the
   // coordinate has no value (a secondary coordinate of the frame, section 6.6).
@@ -457,40 +536,45 @@ function memberElements(
     band: ElementKey,
     coordinates: StampCoordinate,
     valued = true,
+    count = 1,
   ) => {
     const at = idAddress(timestamp.id);
     const { display } = timestamp;
     if (display.includes("wedge")) {
-      keys.push({ ...elementKey("wedge", at, timeline, band), coordinates });
+      times(count, { ...elementKey("wedge", at, timeline, band), coordinates });
     }
     for (const word of TIMESTAMP_LABELS) {
       if (display.includes(word) && (valued || word !== "coordinate")) {
-        keys.push({ ...elementKey("label", partAddress(at, word), timeline, band), coordinates });
+        const label = elementKey("label", partAddress(at, word), timeline, band);
+        times(count, { ...label, coordinates });
       }
     }
   };
   // The secondary coordinates on `timeline` (section 2, core's `cardStamps`).
   const secondary = (timeline: TimelineManifest, band: ElementKey) => {
-    for (const { timestamp, value } of drawn.secondaries.get(timeline.id) ?? []) {
-      marks(timestamp, timeline, band, "secondary", value !== null);
+    for (const { timestamp, value, position } of drawn.secondaries.get(timeline.id) ?? []) {
+      marks(timestamp, timeline, band, "secondary", value !== null, atPoint(position));
     }
   };
+  const ancestorEnds = new Map(
+    drawn.timelines.filter((item) => item.ancestor).map((item) => [item.timeline, item.end]),
+  );
   for (const { timeline } of member.ancestors) {
     const ancestor = elementKey("ancestor", idAddress(timeline.id), timeline, line);
-    keys.push(ancestor, textKey(ancestor, "name"));
-    // The timestamps of the ancestor within the member's span, drawn on its line (section 8.3).
-    for (const { timestamp, source } of drawn.stamps) {
+    // An ancestor line is drawn over the member's span up to its own end, once in every piece
+    // reaching it on a carried card (section 8.10); its name once.
+    const end = ancestorEnds.get(timeline) ?? null;
+    times(overSpan(from, end === null || compareReal(end, to) > 0 ? to : end), ancestor);
+    keys.push(textKey(ancestor, "name"));
+    // The timestamps of the ancestor within the member's span, drawn on its line (section 8.3),
+    // at every played position on a carried card.
+    for (const { timestamp, source, position } of drawn.stamps) {
       if (source !== "ancestor" || timestamp.timeline !== timeline.id) continue;
-      marks(timestamp, timeline, ancestor, "primary");
+      const count = atPoint(position);
+      marks(timestamp, timeline, ancestor, "primary", true, count);
       if (timestamp.display.includes("cross_section")) {
-        keys.push(
-          elementKey(
-            "cross_section",
-            partAddress(idAddress(timestamp.id), "line"),
-            timeline,
-            ancestor,
-          ),
-        );
+        const at = partAddress(idAddress(timestamp.id), "line");
+        times(count, elementKey("cross_section", at, timeline, ancestor));
       }
     }
     secondary(timeline, ancestor);
@@ -533,10 +617,11 @@ function memberElements(
       type: ElementType,
       at: ElementAddress,
       band: ElementKey,
-      types?: readonly string[],
+      types: readonly string[] | undefined,
+      count: number,
     ) => {
       const owned = elementKey(type, at, timeline, band);
-      keys.push(types === undefined ? owned : { ...owned, types }, textKey(owned, "label"));
+      times(count, types === undefined ? owned : { ...owned, types }, textKey(owned, "label"));
     };
     const held: { readonly [facet in Facet]: (band: ElementKey) => void } = {
       children: (band) => {
@@ -548,16 +633,22 @@ function memberElements(
               own,
               band,
             );
-            keys.push(node);
+            const count = extentTimes(own);
+            times(count, node);
             // A segment's boundary and label are parts of its segment line's line, in no band.
             const segment = idAddress(own.id);
-            if (index > 0)
-              keys.push(elementKey("boundary", partAddress(segment, "start"), own, key));
-            keys.push(elementKey("label", partAddress(segment, "label"), own, key));
+            if (index > 0) {
+              const boundary = elementKey("boundary", partAddress(segment, "start"), own, key);
+              times(atPoint(startOf(own)), boundary);
+            }
+            times(count, elementKey("label", partAddress(segment, "label"), own, key));
             visit(node, own);
           } else {
             const node = elementKey("child", idAddress(own.id), own, band);
-            keys.push(node, textKey(node, "name"));
+            const count = extentTimes(own);
+            // A row names its timeline once, however many pieces draw it.
+            times(count, node);
+            times(Math.min(count, 1), textKey(node, "name"));
             visit(node, own);
           }
         });
@@ -569,17 +660,32 @@ function memberElements(
       },
       markers: (band) => {
         for (const timestamp of namedTimestamps(manifest, timeline.id)) {
-          marks(timestamp, timeline, band, "primary");
+          const count = stampTimes(timestamp);
+          marks(timestamp, timeline, band, "primary", true, count);
           if (timestamp.display.includes("cross_section")) {
             const at = partAddress(idAddress(timestamp.id), "line");
-            keys.push(elementKey("cross_section", at, timeline, key));
+            times(count, elementKey("cross_section", at, timeline, key));
           }
         }
         secondary(timeline, band);
       },
       regions: (band) => {
+        for (const chunk of timeline === root ? (chunks ?? []) : []) {
+          if (!chunk.drawn) continue;
+          const brace = elementKey("region", chunkAddress(root.id, chunk.index), root, band);
+          const count =
+            carriedOnly === null ? 1 : piecesReached(carriedOnly, chunk.start, chunk.end);
+          if (!chunk.gap) times(count, brace);
+          times(count, textKey(brace, "label"));
+        }
+        const start = startOf(timeline);
         for (const region of timeline.regions) {
-          labelled("region", idAddress(region.id), band, regionClasses(manifest, region));
+          const count = overSpan(
+            addReal(start, value(region.start, timeline)),
+            addReal(start, value(region.end, timeline)),
+          );
+          const classes = regionClasses(manifest, region);
+          labelled("region", idAddress(region.id), band, classes, count);
         }
       },
       flow_control: (band) => {
@@ -615,7 +721,9 @@ function memberElements(
         }
       },
     };
-    for (const facet of FACETS) {
+    // An unfolded card draws no conversion maps and no flow control (section 8.10).
+    const facets = virtual ? VIRTUAL_FACETS : unfolding === null ? FACETS : UNFOLDED_FACETS;
+    for (const facet of facets) {
       const band = bandKey(timeline.id, facet, key);
       keys.push(band);
       held[facet](band);
@@ -625,8 +733,153 @@ function memberElements(
       if (cardElisions.has(elision)) gapElements(elision, timeline, key, keys, true);
     }
   };
-  keys.push(line, textKey(line, "name"));
+  // A carried member's line is drawn once in every piece reaching it, named once.
+  times(carriedOnly === null ? 1 : piecesReached(carriedOnly, onMember(from), onMember(to)), line);
+  keys.push(textKey(line, "name"));
+  for (const chunk of chunks ?? []) {
+    if (!chunk.boundary) continue;
+    const at = { ...chunkAddress(root.id, chunk.index), part: [chunk.index, "start"] as const };
+    const count = carriedOnly === null ? 1 : piecesHolding(carriedOnly, chunk.start);
+    times(count, elementKey("boundary", at, root, line));
+  }
   visit(line, root);
+}
+
+/** The facets an unfolded card draws bands of: no conversion maps and no flow control. */
+const UNFOLDED_FACETS: readonly Facet[] = FACETS.filter(
+  (facet) => facet !== "conversion_maps" && facet !== "flow_control",
+);
+
+/**
+ * How a card draws the axis of a FlowMap (section 8.10): `chunks`, the
+ * entries its line draws (a virtual timeline's or its switched card's
+ * FlowMap's), null for none; `unfolding`, how the card is unfolded onto a
+ * FlowMap, which draws an element of its tree once in every piece reaching
+ * it, null where it is drawn as written; `switched`, whether it is the switched card itself, whose
+ * line and entries lie on the FlowMap's virtual axis once, rather than a
+ * member carried onto it.
+ */
+interface DrawnFlow {
+  readonly chunks: readonly ChunkEntry[] | null;
+  readonly unfolding: Unfolding | null;
+  readonly switched: boolean;
+}
+
+/** A card drawn as written, with no FlowMap's entries. */
+const AS_WRITTEN: DrawnFlow = { chunks: null, unfolding: null, switched: false };
+
+/** The address of the entry `index` of the FlowMap drawn on the line of `timeline` (section 2.2). */
+function chunkAddress(timeline: string, index: number): ElementAddress {
+  return { id: timeline, facet: "regions", part: [index] };
+}
+
+/** Whether `member` is the drawing of a virtual timeline of `manifest` (`virtualDrawing`). */
+function isVirtualDrawing(manifest: Manifest, member: MemberDrawing): boolean {
+  return virtualDrawing(manifest, member.timeline.id) === member;
+}
+
+/**
+ * An entry of a FlowMap as a card draws it (section 8.10): its index in
+ * `chunks`, whether it is a gap, its span on the virtual axis, whether it
+ * is drawn (every entry but the second and later entries of a run drawn
+ * once) and whether its line draws a boundary at its start (every drawn
+ * entry but the first).
+ */
+interface ChunkEntry {
+  readonly index: number;
+  readonly gap: boolean;
+  readonly start: Real;
+  readonly end: Real;
+  readonly drawn: boolean;
+  readonly boundary: boolean;
+}
+
+/**
+ * The entries of the FlowMap `flowMap` of `manifest`, which resolves, as a
+ * line draws them (section 8.10), its runs (`ResolvedFlowMap.runs`) drawn
+ * once where `once` (a card the block holds, never a frame).
+ */
+function flowEntries(manifest: Manifest, flowMap: string, once: boolean): readonly ChunkEntry[] {
+  const { chunks, runs } = resolveFlowMap(manifest, flowMap);
+  const firsts = new Set(runs.map((run) => run.chunk.index));
+  return chunks.map((chunk, index): ChunkEntry => {
+    const later = once && !firsts.has(index);
+    return {
+      index,
+      gap: chunk.source === null,
+      start: realOf(chunk.played.start),
+      end: realOf(chunk.played.end),
+      drawn: !later,
+      boundary: index >= 1 && !later,
+    };
+  });
+}
+
+/**
+ * The entries of the FlowMap the virtual timeline `id` of `manifest`
+ * applies, as its card draws them (`flowEntries`); `null` where the virtual
+ * timeline does not resolve: its `map` is no FlowMap that resolves, its
+ * `timeline` is not that FlowMap's, or it states `through`.
+ */
+function chunkEntries(manifest: Manifest, id: string, once: boolean): readonly ChunkEntry[] | null {
+  const virtual = (manifest.virtual_timelines ?? []).find((item) => item.id === id);
+  if (virtual === undefined || virtual.through !== undefined) return null;
+  const flowMap = (manifest.flow_maps ?? []).find((item) => item.id === virtual.map);
+  if (flowMap === undefined || flowMap.timeline !== virtual.timeline) return null;
+  try {
+    return flowEntries(manifest, flowMap.id, once);
+  } catch (error) {
+    if (error instanceof FlowMapError) return null;
+    throw error;
+  }
+}
+
+/** A timeline's length, or its reach where its length is not known (section 3.4). */
+const lambdaOf = (manifest: Manifest, timeline: TimelineManifest): Real =>
+  lengthOf(timeline) ?? reachOf(timeline, manifest);
+
+/**
+ * How each card of the frame `frame` draws (section 8.10, Switched
+ * frames): where exactly one member's card is switched (`switchOf`), that
+ * card on its FlowMap and every other member carried onto it, a virtual
+ * member with its own entries, a child member with its ancestor lines;
+ * every card as written otherwise, a virtual member with its entries. By
+ * member drawing.
+ */
+function frameFlows(manifest: Manifest, frame: GroupFrame): Map<MemberDrawing, DrawnFlow> {
+  const real = frame.members.filter((member) => !isVirtualDrawing(manifest, member));
+  const switching = real.flatMap((member) => {
+    const flowMap = switchOf(manifest, member.timeline.id)?.flowMap;
+    return flowMap === undefined ? [] : [{ member, flowMap }];
+  });
+  const [only, ...more] = switching;
+  const switched = only !== undefined && more.length === 0 ? only : null;
+  return new Map(
+    frame.members.map((member): [MemberDrawing, DrawnFlow] => {
+      const own = chunkEntries(manifest, member.timeline.id, false);
+      if (switched === null) return [member, { ...AS_WRITTEN, chunks: own }];
+      if (member === switched.member) {
+        const chunks = flowEntries(manifest, switched.flowMap, false);
+        const unfolding = unfoldingOf(manifest, switched.flowMap);
+        return [member, { chunks, unfolding, switched: true }];
+      }
+      const lambdaT = lambdaOf(manifest, switched.member.timeline);
+      const lambdaM = lambdaOf(manifest, member.timeline);
+      const unfolding = unfoldingOf(manifest, switched.flowMap, { lambdaT, lambdaM });
+      return [member, { chunks: own, unfolding, switched: false }];
+    }),
+  );
+}
+
+/**
+ * How an ungrouped root's card draws: on its FlowMap where it is switched
+ * (`switchOf`), its runs drawn once; as written otherwise.
+ */
+function rootFlow(manifest: Manifest, member: MemberDrawing): DrawnFlow {
+  const flowMap = switchOf(manifest, member.timeline.id)?.flowMap;
+  if (flowMap === undefined) return AS_WRITTEN;
+  const chunks = flowEntries(manifest, flowMap, true);
+  return { chunks, unfolding: unfoldingOf(manifest, flowMap), switched: true };
 }
 
 /**
@@ -689,26 +942,62 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
     memberElements(ordered, root, BLOCK_KEY, keys, "ancestor_card", null, true);
     groupGaps(group.id, frameOf(group.id), false);
   }
-  const drawnFrames = frames.map((drawn) => {
+  const drawnFrames = frames.map((core) => {
+    const drawn = withVirtualMembers(ordered, core);
     const { group, members } = drawn;
     const frame = frameOf(group.id);
     keys.push(frame, unownedKey("name", partAddress(idAddress(group.id), "name"), frame));
-    for (const member of members) memberElements(ordered, member, frame, keys, "card", drawn);
-    return { group, frame };
+    const flows = frameFlows(ordered, drawn);
+    for (const member of members) {
+      memberElements(ordered, member, frame, keys, "card", drawn, false, flows.get(member));
+    }
+    // A groupstamp's line across a switched frame is drawn at every played position of it.
+    const lineTimes = (timestamp: NamedTimestamp): number => {
+      for (const member of members) {
+        const { unfolding } = flows.get(member) ?? AS_WRITTEN;
+        const card = cardStamps(ordered, member, drawn);
+        const stamp = card.stamps.find(
+          (item) => item.source === "member" && item.timestamp === timestamp,
+        );
+        if (stamp === undefined) continue;
+        if (unfolding === null) return 1;
+        return piecesHolding(unfolding, subtractReal(stamp.position, card.window[0]));
+      }
+      return 1;
+    };
+    return { group, frame, lineTimes, switched: [...flows.values()].some((f) => f.switched) };
   });
-  for (const member of ungrouped)
-    memberElements(ordered, member, BLOCK_KEY, keys, "card", null, true);
-  for (const { group, frame } of drawnFrames) groupGaps(group.id, frame, true);
-  const ancestry = timelineAncestry(ordered);
+  for (const member of ungrouped) {
+    memberElements(ordered, member, BLOCK_KEY, keys, "card", null, true, rootFlow(ordered, member));
+  }
+  const grouped = new Set(ordered.groups.flatMap((group) => group.members));
+  const placeable = (ordered.virtual_timelines ?? [])
+    .map((virtual) => virtual.id)
+    .filter((id) => !grouped.has(id))
+    .sort(compareCodePoints);
+  for (const id of placeable) {
+    const member = virtualDrawing(ordered, id);
+    if (member === undefined) throw new Error(`'${id}' is a virtual timeline`);
+    const flow = { ...AS_WRITTEN, chunks: chunkEntries(ordered, id, true) };
+    memberElements(ordered, member, BLOCK_KEY, keys, "card", null, false, flow);
+  }
+  // A switched frame draws no group elision (section 8.10).
+  for (const { group, frame, switched } of drawnFrames) {
+    if (!switched) groupGaps(group.id, frame, true);
+  }
+  const ancestry = memberAncestry(ordered);
   for (const timestamp of ordered.graphical?.timestamps ?? []) {
     if (!timestamp.groupstamp || !timestamp.display.includes("cross_section")) continue;
-    const timeline = findTimeline(ordered, timestamp.timeline);
+    const timeline =
+      findTimeline(ordered, timestamp.timeline) ??
+      virtualDrawing(ordered, timestamp.timeline)?.timeline;
     if (timeline === undefined) continue;
     const holding = groupsHolding(ordered, timeline.id, ancestry);
     const address = partAddress(idAddress(timestamp.id), "line");
-    for (const { group, frame } of drawnFrames) {
+    for (const { group, frame, lineTimes } of drawnFrames) {
       if (holding.some((held) => held.id === group.id)) {
-        keys.push(elementKey("cross_section", address, timeline, frame));
+        const line = elementKey("cross_section", address, timeline, frame);
+        for (let drawing = lineTimes(timestamp); drawing > 0; drawing -= 1) keys.push(line);
       }
     }
   }

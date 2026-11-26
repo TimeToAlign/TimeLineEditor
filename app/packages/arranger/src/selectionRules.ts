@@ -155,13 +155,18 @@ export function pressedIn(pressed: Pressed, editing: Editing | null): Address | 
 /**
  * The editor target a double-click or a double tap on `pressed` opens
  * (`editorTargetOf`): `null` off every block, outside the edited element, on
- * the edited element itself and on a band. A pointer gives its drawing
- * point, so that text or a region opens the last drawn card or frame under
- * it, the innermost where none overlap.
+ * the edited element itself and on a band other than a root's flow control
+ * band. A pointer gives its drawing point, so that text or a region opens
+ * the last drawn card or frame under it, the innermost where none overlap,
+ * and a press on a root's card on the arranger in that card's flow control
+ * band opens the root's flow editor.
  */
 export function openableAt(view: View, pressed: Pressed, editing: Editing | null): Address | null {
   const hit = hitAt(pressed, editing);
-  return hit === null ? null : editorTargetOf(view, hit, editing);
+  const { node, point } = pressed;
+  const at =
+    node === undefined || point === null ? undefined : { drawing: node.data.drawing, point };
+  return hit === null ? null : editorTargetOf(view, hit, editing, at);
 }
 
 /**

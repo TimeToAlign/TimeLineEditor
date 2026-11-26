@@ -13,7 +13,7 @@ import type { CommandError, Problem } from "../errors.ts";
 import { assertNever, ErrorCode, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { compareCodePoints, isJsonObject } from "../json.ts";
-import type { ElementAddress, Facet, Part } from "../manifest/address.ts";
+import type { ElementAddress, Facet, Part, PartItem } from "../manifest/address.ts";
 import { addressKey, isFacet, isPart } from "../manifest/address.ts";
 import type { ContainerRef, Containers } from "../manifest/containers.ts";
 import { containersOf } from "../manifest/containers.ts";
@@ -21,19 +21,22 @@ import type { ElementKey } from "../manifest/elements.ts";
 import { manifestElements } from "../manifest/elements.ts";
 import { defaultElisionTimelines } from "../manifest/elisions.ts";
 import type { EntryKind, ListedElement } from "../manifest/files.ts";
-import { ENTRY_KINDS, ENTRY_LISTS, entriesOf } from "../manifest/files.ts";
+import { ENTRY_KINDS, ENTRY_LISTS, entriesOf, locateVirtual } from "../manifest/files.ts";
+import { switchOf } from "../manifest/switched.ts";
 import type { Located } from "../manifest/tree.ts";
-import { timelineAncestry, timelinesInOrder } from "../manifest/tree.ts";
+import { memberAncestry, timelinesInOrder } from "../manifest/tree.ts";
 import type {
   AlignmentAnchor,
   ConversionMap,
   Elision,
   FlowControlElement,
+  FlowMap,
   Group,
   Manifest,
   MeasureMap,
   NamedMatchStamp,
   NamedTimestamp,
+  VirtualTimeline,
 } from "../manifest/types.ts";
 import type { Block, BlockId } from "./blocks.ts";
 import { BLOCK_ID } from "./blocks.ts";
@@ -65,9 +68,10 @@ export function isId(value: unknown): value is string {
 /**
  * `value` read as an address, or `invalid_address` at `path`: an object of
  * only `block`, `id`, `facet` and `part`; `block` a block id; `id` an ID;
- * `facet` one of the five facets, standing with an `id` and never with a
- * `part`; `part` a non-empty array of part words; and any of `id`, `facet`
- * and `part` only with a `block`.
+ * `facet` one of the five facets, standing with an `id`, and with a `part`
+ * only where the part holds a chunk index; `part` a non-empty array of part
+ * words and chunk indices (integers from 0), as the schema's `Address`
+ * reads it; and any of `id`, `facet` and `part` only with a `block`.
  */
 export function readAddress(value: unknown, path: readonly PathSegment[]): Address | Problem {
   const invalid = (message: string) => problem(ErrorCode.invalidAddress, message, path);
@@ -84,16 +88,17 @@ export function readAddress(value: unknown, path: readonly PathSegment[]): Addre
     return invalid("an address's id is a non-empty string without control characters");
   }
   if (facet !== undefined && !isFacet(facet)) return invalid("an address's facet is a facet");
-  let words: Part[] | undefined;
+  let words: PartItem[] | undefined;
   if (part !== undefined) {
-    if (!Array.isArray(part) || part.length === 0 || !part.every(isPart)) {
-      return invalid("an address's part is a non-empty array of part words");
+    if (!Array.isArray(part) || part.length === 0 || !part.every(isPartItem)) {
+      return invalid("an address's part is a non-empty array of part words and chunk indices");
     }
     words = part;
   }
   if (facet !== undefined && id === undefined) return invalid("a facet stands with an id");
-  if (facet !== undefined && words !== undefined)
-    return invalid("a facet never stands with a part");
+  if (facet !== undefined && words?.every(isPart)) {
+    return invalid("a facet stands with a part only where the part holds a chunk index");
+  }
   if (block === undefined && (id !== undefined || facet !== undefined || words !== undefined)) {
     return invalid("an element's address names its block");
   }
@@ -103,6 +108,11 @@ export function readAddress(value: unknown, path: readonly PathSegment[]): Addre
     ...(facet === undefined ? {} : { facet: facet as Facet }),
     ...(words === undefined ? {} : { part: words }),
   };
+}
+
+/** Whether `value` is a part word or a chunk index, an integer from 0. */
+function isPartItem(value: unknown): value is PartItem {
+  return isPart(value) || (typeof value === "number" && Number.isSafeInteger(value) && value >= 0);
 }
 
 /** The address, in the block `block`, of the element of its manifest addressed `element`. */
@@ -187,6 +197,11 @@ export type ResolvedAddress =
   | ({ readonly kind: "elision"; readonly block: Block } & ElisionFound)
   | ({ readonly kind: "matchstamp"; readonly block: Block } & MatchStampFound)
   | ({ readonly kind: "anchor"; readonly block: Block } & AnchorFound)
+  | ({ readonly kind: "flow_map"; readonly block: Block } & FlowMapFound)
+  | ({ readonly kind: "virtual_timeline"; readonly block: Block } & VirtualFound)
+  | ({ readonly kind: "virtual_card"; readonly block: Block } & VirtualFound)
+  | ({ readonly kind: "virtual_band"; readonly block: Block } & VirtualBandFound)
+  | ({ readonly kind: "chunk"; readonly block: Block } & ChunkFound)
   | {
       readonly kind: "part";
       readonly block: Block;
@@ -223,6 +238,11 @@ export type ResolvedElement =
   | ({ readonly kind: "elision" } & ElisionFound)
   | ({ readonly kind: "matchstamp" } & MatchStampFound)
   | ({ readonly kind: "anchor" } & AnchorFound)
+  | ({ readonly kind: "flow_map" } & FlowMapFound)
+  | ({ readonly kind: "virtual_timeline" } & VirtualFound)
+  | ({ readonly kind: "virtual_card" } & VirtualFound)
+  | ({ readonly kind: "virtual_band" } & VirtualBandFound)
+  | ({ readonly kind: "chunk" } & ChunkFound)
   | { readonly kind: "part"; readonly owner: ResolvedElement; readonly word: Part };
 
 /** A stored elision, found in a manifest's `graphical.elisions` with the timeline it lies on. */
@@ -241,6 +261,57 @@ export interface MatchStampFound {
   readonly matchstamp: NamedMatchStamp;
 }
 
+/** A FlowMap, found in a manifest's `flow_maps`. */
+export interface FlowMapFound {
+  /** Its index in the manifest's `flow_maps`. */
+  readonly index: number;
+  readonly flowMap: FlowMap;
+}
+
+/**
+ * A virtual timeline, found in a manifest's `virtual_timelines`, with its
+ * cards in drawing order: one in the frame of each group that has it as a
+ * member, or its one block-held card in no group (`containersOf`). The
+ * address `{id: V}` names the virtual timeline, `{id: V, part: ["card"]}`
+ * its cards (`virtual_card`) and `{id: V, facet}` the drawings of one of its
+ * bands, markers or regions (`virtual_band`).
+ */
+export interface VirtualFound {
+  /** Its index in the manifest's `virtual_timelines`. */
+  readonly index: number;
+  readonly virtual: VirtualTimeline;
+  readonly cards: readonly ContainerRef[];
+}
+
+/** A band of a virtual timeline's cards: its facet and every drawing of it, in drawing order. */
+export interface VirtualBandFound extends VirtualFound {
+  readonly facet: Facet;
+  readonly containers: readonly ContainerRef[];
+}
+
+/**
+ * An entry of the FlowMap drawn on the line of a virtual timeline or of a
+ * timeline whose card is switched (`docs/drawing.md` section 8.10), in its
+ * regions band: the brace of a chunk, or a gap, which draws no brace and is
+ * reached by its label; addressed `{id, facet: "regions", part: [k]}` by the
+ * ID of that line, its label `[k, "label"]` and its boundary `[k, "start"]`
+ * its parts.
+ */
+export interface ChunkFound {
+  /** The entry's index in the FlowMap's `chunks`, from 0. */
+  readonly chunk: number;
+  /** The FlowMap drawn, and its index in the manifest's `flow_maps`. */
+  readonly flowMap: FlowMapFound;
+  /** The line it is drawn on: the virtual timeline, or the switched card's timeline. */
+  readonly line: ChunkLine;
+}
+
+/** The line a chunk is drawn on: a virtual timeline, or a timeline whose card is switched. */
+export type ChunkLine = Extract<
+  ResolvedElement,
+  { readonly kind: "virtual_timeline" | "timeline" }
+>;
+
 /** An alignment anchor of a named MatchStamp, found with the MatchStamp holding it. */
 export interface AnchorFound extends MatchStampFound {
   /** Its index in the MatchStamp's `alignment_anchors`. */
@@ -253,8 +324,8 @@ export interface AnchorFound extends MatchStampFound {
  * entry of a timeline's list, a conversion map another map holds (at
  * `path`, which nothing draws or addresses), a group, a MeasureMap, a
  * named timestamp or an elision (with the timeline it lies on), a named
- * MatchStamp, an alignment anchor (with its MatchStamp), or a resource, a
- * FlowMap or a virtual timeline (which nothing draws or addresses).
+ * MatchStamp, an alignment anchor (with its MatchStamp), a FlowMap, a
+ * virtual timeline, or a resource (which nothing draws or addresses).
  */
 type Found =
   | { readonly kind: "timeline"; readonly at: Located }
@@ -266,8 +337,8 @@ type Found =
     }
   | { readonly kind: "held"; readonly path: readonly PathSegment[] }
   | { readonly kind: "resource" }
-  | { readonly kind: "flow_map" }
-  | { readonly kind: "virtual_timeline" }
+  | ({ readonly kind: "flow_map" } & FlowMapFound)
+  | { readonly kind: "virtual_timeline"; readonly index: number; readonly virtual: VirtualTimeline }
   | ({ readonly kind: "elision" } & ElisionFound)
   | ({ readonly kind: "matchstamp" } & MatchStampFound)
   | ({ readonly kind: "anchor" } & AnchorFound)
@@ -300,8 +371,10 @@ function heldMaps(map: ConversionMap): readonly (readonly [PathSegment, Conversi
  * pre-order its own, its entries' and, after each conversion map, the maps
  * it holds at any depth; then the groups', the MeasureMaps', the
  * resources', the FlowMaps', the virtual timelines', the named timestamps', the elisions' and the named
- * MatchStamps', each followed by its alignment anchors'. An ID repeated in a manifest the
- * schema refuses keeps its first finding, and a timestamp or an elision on
+ * MatchStamps', each followed by its alignment anchors'. A named timestamp
+ * on a virtual timeline lies on it as on a root (`locateVirtual`). An ID
+ * repeated in a manifest the schema refuses keeps its first finding, and a
+ * timestamp on neither a timeline nor a virtual timeline, or an elision on
  * a timeline the manifest lacks, which the schema refuses too, is passed
  * over.
  */
@@ -335,14 +408,21 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
     note(map.id, { kind: "measure_map", map, index });
   });
   for (const resource of manifest.resources) note(resource.id, { kind: "resource" });
-  for (const flowMap of manifest.flow_maps ?? []) note(flowMap.id, { kind: "flow_map" });
-  for (const virtual of manifest.virtual_timelines ?? []) {
-    note(virtual.id, { kind: "virtual_timeline" });
-  }
+  (manifest.flow_maps ?? []).forEach((flowMap, index) => {
+    note(flowMap.id, { kind: "flow_map", index, flowMap });
+  });
+  (manifest.virtual_timelines ?? []).forEach((virtual, index) => {
+    note(virtual.id, { kind: "virtual_timeline", index, virtual });
+  });
   (manifest.graphical?.timestamps ?? []).forEach((timestamp, index) => {
     const on = found.get(timestamp.timeline);
-    if (on?.kind === "timeline")
-      note(timestamp.id, { kind: "timestamp", at: on.at, index, timestamp });
+    const at =
+      on?.kind === "timeline"
+        ? on.at
+        : on?.kind === "virtual_timeline"
+          ? locateVirtual(manifest, on.virtual.id)
+          : undefined;
+    if (at !== undefined) note(timestamp.id, { kind: "timestamp", at, index, timestamp });
   });
   (manifest.graphical?.elisions ?? []).forEach((elision, index) => {
     const on = found.get(elision.timeline);
@@ -442,6 +522,14 @@ export function resolvedPath(resolved: ResolvedAddress): readonly PathSegment[] 
       return ["graphical", "matchstamps", resolved.index];
     case "anchor":
       return ["graphical", "matchstamps", resolved.index, "alignment_anchors", resolved.position];
+    case "flow_map":
+      return ["flow_maps", resolved.index];
+    case "virtual_timeline":
+    case "virtual_card":
+    case "virtual_band":
+      return ["virtual_timelines", resolved.index];
+    case "chunk":
+      return ["flow_maps", resolved.flowMap.index, "chunks", resolved.chunk];
     case "part":
       return resolvedPath(resolved.owner);
     default:
@@ -453,12 +541,13 @@ export function resolvedPath(resolved: ResolvedAddress): readonly PathSegment[] 
  * The element an ID names with what its address adds: a group's frame, a
  * measure map, a timeline, its cards (`part` beginning with `card`) or one
  * of its bands (`facet`), an entry, a named timestamp, a stored elision, a
- * named MatchStamp or an alignment anchor; with the part words that address
- * left to read, or `undefined` when it names nothing. A band or a card
- * exists only for a timeline drawn in a card; a map another map holds, a
- * resource, a FlowMap and a virtual timeline are neither drawn nor
- * addressed, and a MatchStamp, which is
- * drawn by its anchors, has no part.
+ * named MatchStamp, an alignment anchor or a FlowMap; with the part words
+ * that address left to read, or `undefined` when it names nothing. A band
+ * or a card exists only for a timeline drawn in a card; a map another map
+ * holds and a resource are neither drawn nor addressed, a virtual timeline
+ * is resolved apart (`virtualOf`), and a MatchStamp, which is drawn by its
+ * anchors, and a FlowMap, which is drawn as the virtual timelines applying
+ * it, have no part.
  */
 function baseOf(
   manifest: Manifest,
@@ -485,10 +574,10 @@ function baseOf(
   switch (found.kind) {
     case "held":
     case "resource":
-    case "flow_map":
     case "virtual_timeline":
       return undefined;
     case "matchstamp":
+    case "flow_map":
       return part.length > 0 ? undefined : [{ ...found }, []];
     case "anchor":
       return [{ ...found }, part];
@@ -539,6 +628,8 @@ export function resolveElement(
   element: ElementAddress,
 ): ResolvedElement | undefined {
   const { id, facet, part = [] } = element;
+  const virtual = id === undefined ? undefined : catalogueOf(manifest).get(id);
+  if (virtual?.kind === "virtual_timeline") return virtualOf(manifest, virtual, element);
   if (
     part.length > 0 &&
     !indexOf(manifest).drawn.has(addressKey(element)) &&
@@ -547,11 +638,101 @@ export function resolveElement(
     return undefined;
   }
   if (id === undefined) return part.length > 0 ? { kind: "title" } : undefined;
+  // A chunk, whose part begins with its chunk index, lies on a virtual timeline's line
+  // (`virtualOf`) or on the line of a switched card's timeline.
+  if (!part.every(isPart)) return switchedChunkOf(manifest, id, facet, part);
   const base = baseOf(manifest, id, facet, part);
   if (base === undefined) return undefined;
   let [resolved] = base;
   for (const word of base[1]) resolved = { kind: "part", owner: resolved, word };
   return resolved;
+}
+
+/**
+ * The entry `part[0]` of the FlowMap the card of the timeline `id` is
+ * switched to (`switchOf`), drawn on its line (section 8.10), as
+ * `chunkOf` reads it; `undefined` where `id` names no timeline with a
+ * switched card.
+ */
+function switchedChunkOf(
+  manifest: Manifest,
+  id: string,
+  facet: Facet | undefined,
+  part: readonly PartItem[],
+): ResolvedElement | undefined {
+  const found = catalogueOf(manifest).get(id);
+  const flowMap = switchOf(manifest, id)?.flowMap;
+  if (found?.kind !== "timeline" || facet === undefined || flowMap === undefined) return undefined;
+  const cards = containersOf(manifest).cards.get(id) ?? [];
+  return chunkOf(manifest, { kind: "timeline", at: found.at, cards }, flowMap, facet, part);
+}
+
+/**
+ * What an address of a virtual timeline names: the virtual timeline
+ * itself (`{id: V}`) and its parts (its name), its cards (`{id: V, part:
+ * ["card"]}`), one of their
+ * bands (`{id: V, facet}`, markers or regions, where a card holds it), an
+ * entry of its FlowMap (`{id: V, facet: "regions", part: [k]}`, a `chunk`)
+ * and the parts of one (`[k, "label"]`, `[k, "start"]`); a part only where
+ * the manifest's drawing lists it (`ManifestIndex.drawn`), as every part,
+ * and a gap, which draws no brace, as the owner of its label. `undefined`
+ * for any other part or facet.
+ */
+function virtualOf(
+  manifest: Manifest,
+  found: { readonly index: number; readonly virtual: VirtualTimeline },
+  element: ElementAddress,
+): ResolvedElement | undefined {
+  const { index, virtual } = found;
+  const { facet, part = [] } = element;
+  const containers = containersOf(manifest);
+  const cards = containers.cards.get(virtual.id) ?? [];
+  if (part.length > 0 && !indexOf(manifest).drawn.has(addressKey(element))) return undefined;
+  if (facet !== undefined) {
+    if (part.length > 0) {
+      const line: ChunkLine = { kind: "virtual_timeline", index, virtual, cards };
+      return chunkOf(manifest, line, virtual.map, facet, part);
+    }
+    const drawn = containers.bands.get(virtual.id)?.get(facet);
+    if (drawn === undefined) return undefined;
+    return { kind: "virtual_band", index, virtual, cards, facet, containers: drawn };
+  }
+  const own: VirtualFound = { index, virtual, cards };
+  const card = part[0] === "card";
+  let resolved: ResolvedElement = { kind: card ? "virtual_card" : "virtual_timeline", ...own };
+  for (const word of card ? part.slice(1) : part) {
+    if (!isPart(word)) return undefined;
+    resolved = { kind: "part", owner: resolved, word };
+  }
+  return resolved;
+}
+
+/**
+ * The entry `part[0]` of the FlowMap `flowMap` drawn on `line`, in its
+ * regions band, with the part word that follows it, if any, read as its
+ * part.
+ */
+function chunkOf(
+  manifest: Manifest,
+  line: ChunkLine,
+  flowMap: string,
+  facet: Facet,
+  part: readonly PartItem[],
+): ResolvedElement | undefined {
+  const [chunk, word, ...more] = part;
+  if (facet !== "regions" || typeof chunk !== "number" || more.length > 0) return undefined;
+  if (word !== undefined && !isPart(word)) return undefined;
+  const flowMaps = manifest.flow_maps ?? [];
+  const index = flowMaps.findIndex((item) => item.id === flowMap);
+  const found = flowMaps[index];
+  if (found === undefined) return undefined;
+  const resolved: ResolvedElement = {
+    kind: "chunk",
+    chunk,
+    flowMap: { index, flowMap: found },
+    line,
+  };
+  return word === undefined ? resolved : { kind: "part", owner: resolved, word };
 }
 
 /**
@@ -571,7 +752,7 @@ function namesDefaultElision(manifest: Manifest, { id, facet, part = [] }: Eleme
     return false;
   }
   const [, word] = part;
-  if (word !== undefined && !DERIVED_ELISION_PARTS.includes(word)) return false;
+  if (word !== undefined && (!isPart(word) || !DERIVED_ELISION_PARTS.includes(word))) return false;
   return defaultElisionTimelines(manifest).has(id);
 }
 
@@ -720,6 +901,23 @@ function elementWords(resolved: ResolvedAddress): {
       return { words: `MatchStamp ${quoted(resolved.matchstamp.name)}`, bundled: false };
     case "anchor":
       return { words: `alignment anchor ${quoted(resolved.anchor.id)}`, bundled: false };
+    case "flow_map": {
+      const { name, id } = resolved.flowMap;
+      return { words: `FlowMap ${quoted(name ?? id)}`, bundled: false };
+    }
+    case "virtual_timeline":
+    case "virtual_card":
+    case "virtual_band": {
+      const { name, id } = resolved.virtual;
+      const virtual = `virtual timeline ${quoted(name ?? id)}`;
+      if (resolved.kind === "virtual_timeline") return { words: virtual, bundled: false };
+      const part = resolved.kind === "virtual_card" ? "card" : `${facetWord(resolved.facet)} band`;
+      return { words: `the ${part} of ${virtual}`, bundled: false };
+    }
+    case "chunk": {
+      const line = elementWords({ ...resolved.line, block: resolved.block });
+      return { words: `chunk ${resolved.chunk + 1} of ${line.words}`, bundled: false };
+    }
     case "part": {
       const owner = elementWords(resolved.owner);
       const titled = resolved.owner.kind === "block" || resolved.owner.kind === "frame";
@@ -788,10 +986,14 @@ function inBundle(view: View, { block }: Address, words: string): string {
 /** What a manifest's readers need once per manifest, memoised by identity. */
 export interface ManifestIndex {
   readonly containers: Containers;
+  /**
+   * Every timeline's ID mapped to the IDs from its root down to itself; a
+   * virtual timeline's to itself alone.
+   */
   readonly ancestry: ReadonlyMap<string, readonly string[]>;
   /**
-   * Every timeline's, entry's, named timestamp's and stored elision's ID, mapped to the timeline
-   * it belongs to.
+   * Every timeline's, virtual timeline's, entry's, named timestamp's and stored elision's ID,
+   * mapped to the timeline it belongs to.
    */
   readonly owners: ReadonlyMap<string, string>;
   /** Every element of the manifest's drawing (`manifestElements`). */
@@ -818,7 +1020,7 @@ export function indexOf(manifest: Manifest): ManifestIndex {
       return containersOf(manifest);
     },
     get ancestry() {
-      ancestry ??= timelineAncestry(manifest);
+      ancestry ??= memberAncestry(manifest);
       return ancestry;
     },
     get owners() {
@@ -839,9 +1041,9 @@ export function indexOf(manifest: Manifest): ManifestIndex {
 }
 
 /**
- * Every timeline's ID mapped to itself, every entry's ID to the timeline
- * holding it and every named timestamp's and stored elision's to the
- * timeline it lies on.
+ * Every timeline's and virtual timeline's ID mapped to itself, every
+ * entry's ID to the timeline holding it and every named timestamp's and
+ * stored elision's to the timeline it lies on.
  */
 function ownersOf(manifest: Manifest): ReadonlyMap<string, string> {
   const owners = new Map<string, string>();
@@ -853,7 +1055,7 @@ function ownersOf(manifest: Manifest): ReadonlyMap<string, string> {
       found.kind === "elision"
     ) {
       owners.set(id, found.at.timeline.id);
-    }
+    } else if (found.kind === "virtual_timeline") owners.set(id, id);
   }
   return owners;
 }

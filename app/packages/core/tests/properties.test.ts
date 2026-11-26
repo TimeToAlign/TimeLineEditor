@@ -98,17 +98,20 @@ describe("generated command sequences", () => {
 /** Open the editor of a generated target, or reopen the latest session of the innermost level; whether it opened. */
 function open(store: Store, reopen: boolean, seed: Seed): boolean {
   const latest = store.entries.findLast(isSessionEntry);
-  const reopened =
-    reopen && latest !== undefined ? store.sessions[latest.session]?.target : undefined;
-  const target =
-    reopened ?? editorFor(store.view, BLOCKS, store.editing.at(-1)?.target ?? null, seed);
-  return store.open(target) === null;
+  const session = reopen && latest !== undefined ? store.sessions[latest.session] : undefined;
+  if (session !== undefined) return store.open(session.target, session.kind) === null;
+  const target = editorFor(store.view, BLOCKS, store.editing.at(-1)?.target ?? null, seed);
+  // Every fifth opening asks for the flow editor, which opens on a root timeline only.
+  const flow = (seed.picks[3] ?? 0) % 5 === 0;
+  return store.open(target, flow ? "flow" : undefined) === null;
 }
 
 /** Dispatch a generated command in the innermost open editor; whether it was accepted. */
-const command = (store: Store, seed: Seed): boolean =>
-  store.dispatch(commandIn(store.view, BLOCKS, store.editing.at(-1)?.target ?? null, seed)) ===
-  null;
+const command = (store: Store, seed: Seed): boolean => {
+  const editor = store.editing.at(-1);
+  const generated = commandIn(store.view, BLOCKS, editor?.target ?? null, seed, editor?.kind);
+  return store.dispatch(generated) === null;
+};
 
 /** What the store holds at an opening, which Cancel gives back. */
 interface Opening {
@@ -252,6 +255,7 @@ describe("the generator reaches the refusal catalogue", () => {
     expect([...seen].sort()).toEqual(
       [
         "child_exceeds_parent",
+        "computed_flow_map",
         "cycle",
         "duplicate_id",
         "duplicate_index",

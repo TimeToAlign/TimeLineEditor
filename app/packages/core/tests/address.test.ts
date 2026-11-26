@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { apply } from "../src/commands/apply.ts";
+import { isCommandError } from "../src/errors.ts";
 import type { ElementAddress, Part } from "../src/manifest/address.ts";
 import {
   addressKey,
@@ -31,7 +33,7 @@ import {
   resolveElement,
   WORKSPACE,
 } from "../src/workspace/address.ts";
-import { A, allFixtures, B, block, changed, loadText, refusal, viewOf } from "./support.ts";
+import { A, allFixtures, B, block, changed, load, loadText, refusal, viewOf } from "./support.ts";
 
 const MIXED = "bundles/bundle_mixed.yaml";
 const FREE = "bundles/bundle_free_ids.yaml";
@@ -92,6 +94,7 @@ describe("the shape of an address", () => {
     [{ block: A, part: ["name"] }],
     [{ block: A, id: "https://example.org/piece/score#exposition" }],
     [{ block: A, id: "perf/take 2" }],
+    [{ block: A, id: "allegro_default", facet: "regions", part: [2, "label"] }],
   ])("reads %j as itself", (value) => {
     expect(readAddress(value, ["into"])).toEqual(value);
   });
@@ -110,19 +113,30 @@ describe("the shape of an address", () => {
     ],
     [{ block: A, id: 3 }, "an address's id is a non-empty string without control characters"],
     [{ block: A, id: "score", facet: "region" }, "an address's facet is a facet"],
-    [{ block: A, id: "score", part: [] }, "an address's part is a non-empty array of part words"],
+    [
+      { block: A, id: "score", part: [] },
+      "an address's part is a non-empty array of part words and chunk indices",
+    ],
     [
       { block: A, id: "score", part: ["middle"] },
-      "an address's part is a non-empty array of part words",
+      "an address's part is a non-empty array of part words and chunk indices",
     ],
     [
       { block: A, id: "score", part: "name" },
-      "an address's part is a non-empty array of part words",
+      "an address's part is a non-empty array of part words and chunk indices",
     ],
     [{ block: A, facet: "regions" }, "a facet stands with an id"],
     [
+      { block: A, id: "score", part: [-1] },
+      "an address's part is a non-empty array of part words and chunk indices",
+    ],
+    [
+      { block: A, id: "score", part: [1.5] },
+      "an address's part is a non-empty array of part words and chunk indices",
+    ],
+    [
       { block: A, id: "score", facet: "regions", part: ["label"] },
-      "a facet never stands with a part",
+      "a facet stands with a part only where the part holds a chunk index",
     ],
     [{ id: "score" }, "an element's address names its block"],
     [{ part: ["name"] }, "an element's address names its block"],
@@ -199,6 +213,20 @@ describe("the one string form of an address", () => {
     [{ id: 'say "hi"/2' }, '{"id":"say \\"hi\\"/2"}'],
   ])("writes %j as %s", (address, text) => {
     expect(addressKey(address)).toBe(text);
+  });
+
+  it("writes a chunk's address, its part beginning with its chunk index", () => {
+    const label: ElementAddress = { id: "virtual_1", facet: "regions", part: [2, "label"] };
+    expect(addressKey(label)).toBe('{"facet":"regions","id":"virtual_1","part":[2,"label"]}');
+    const others: ElementAddress[] = [
+      { id: "virtual_1", facet: "regions", part: [2] },
+      { id: "virtual_1", facet: "regions", part: [1, "label"] },
+      { id: "virtual_1", part: ["label"] },
+    ];
+    expect(others.map((other) => sameAddress(label, other))).toEqual([false, false, false]);
+    expect(
+      resolveElement(load("map.yaml"), { id: "score", facet: "regions", part: [0] }),
+    ).toBeUndefined();
   });
 
   it("gives different addresses different keys", () => {
@@ -413,7 +441,10 @@ describe("resolving an address", () => {
 
   it.each<[Address, string]>([
     [{ block: "short" }, "an address's block is a block id"],
-    [inA({ id: "score", facet: "regions", part: ["label"] }), "a facet never stands with a part"],
+    [
+      inA({ id: "score", facet: "regions", part: ["label"] }),
+      "a facet stands with a part only where the part holds a chunk index",
+    ],
     [{ id: "score" }, "an element's address names its block"],
   ])("refuses the malformed %j", (address, message) => {
     const key = addressKey(address);
@@ -527,8 +558,20 @@ describe("free IDs", () => {
   });
 });
 
-/** The kind every drawn element's address resolves to, by its element type. */
-function kindOf(key: ElementKey): ResolvedElement["kind"] {
+/**
+ * The kind every drawn element's address resolves to, by its element type;
+ * a virtual timeline's (`virtual`, its IDs) card, bands and line by their
+ * virtual kinds, the brace of an entry of its FlowMap (`{id: V, facet:
+ * "regions", part: [k]}`, or on a switched card's line) as a chunk.
+ */
+function kindOf(key: ElementKey, virtual: ReadonlySet<string>): ResolvedElement["kind"] {
+  if (key.type === "region" && key.address.facet !== undefined) return "chunk";
+  if (key.timeline !== null && virtual.has(key.timeline)) {
+    if (key.type === "card") return "virtual_card";
+    if (key.type === "band") return "virtual_band";
+    if (key.type === "timeline") return "virtual_timeline";
+    if (key.type === "region") return "chunk";
+  }
   switch (key.type) {
     case "card":
     case "ancestor_card":
@@ -574,10 +617,11 @@ describe("every drawn element", () => {
       // A band of a timeline drawn in no card but an ancestor card has no container: it names
       // nothing, though its elements are listed and styled.
       const { bands } = containersOf(manifest);
+      const virtual = new Set((manifest.virtual_timelines ?? []).map(({ id }) => id));
       const kind = (key: ElementKey) =>
         key.type === "band" && key.timeline !== null && !bands.has(key.timeline)
           ? undefined
-          : kindOf(key);
+          : kindOf(key, virtual);
       expect(found).toEqual(drawn.map((key) => [key.address, kind(key)]));
       expect(resolveElement(manifest, BUNDLE_ADDRESS)).toBeUndefined();
     },
@@ -599,11 +643,26 @@ describe("every resolvable part", () => {
         [word],
         ...PART_WORDS.map((next) => [word, next]),
       ]);
-      const resolvable = [undefined, ...manifestIds(manifest)].flatMap((id) =>
-        parts
-          .map((part) => (id === undefined ? { part } : { id, part }))
-          .filter((address) => resolveElement(manifest, address) !== undefined),
-      );
+      // The entries of a virtual timeline's FlowMap, and of every FlowMap on its root's line (a
+      // switched card), one index past them, alone and with a word.
+      const lines = [
+        ...(manifest.virtual_timelines ?? []).map(({ id, map }) => ({ id, map })),
+        ...(manifest.flow_maps ?? []).map(({ id, timeline }) => ({ id: timeline, map: id })),
+      ];
+      const chunks = lines.flatMap(({ id, map }) => {
+        const count = (manifest.flow_maps ?? []).find((item) => item.id === map)?.chunks.length;
+        return Array.from({ length: (count ?? 0) + 1 }, (_, k) => k).flatMap((k) =>
+          [[k], ...PART_WORDS.map((word) => [k, word])].map(
+            (part): ElementAddress => ({ id, facet: "regions", part }),
+          ),
+        );
+      });
+      const resolvable = [
+        ...[undefined, ...manifestIds(manifest)].flatMap((id) =>
+          parts.map((part): ElementAddress => (id === undefined ? { part } : { id, part })),
+        ),
+        ...chunks,
+      ].filter((address) => resolveElement(manifest, address) !== undefined);
       const defaulted = (address: ElementAddress) => address.part?.[0] === "elision";
       expect(new Set(resolvable.filter((item) => !defaulted(item)).map(addressKey))).toEqual(drawn);
       // The derived elisions: an ancestor card may derive them on its root and on the children
@@ -694,5 +753,100 @@ describe("where an address lies in its manifest", () => {
     expect(at(pathOf(inA({ id: "score", facet: "markers" })) ?? [])).toBe(score);
     expect(pathOf(WORKSPACE)).toBeNull();
     expect(pathOf({ block: A })).toBeNull();
+  });
+});
+
+describe("chunks and the timestamps of a virtual timeline", () => {
+  const cards = viewOf([A, "flow/virtual_cards.yaml"]);
+  const chunk = (id: string, part: readonly (Part | number)[]): Address =>
+    inA({ id, facet: "regions", part });
+  const found = (address: Address) => {
+    const resolved = resolveAddress(cards, address);
+    if (isCommandError(resolved)) throw new Error(`${addressKey(address)}: ${resolved.code}`);
+    return resolved;
+  };
+  /** A chunk reduced to its virtual timeline, its entry and its FlowMap's index; a part to its word. */
+  const reduced = (resolved: ResolvedAddress): unknown => {
+    if (resolved.kind === "part") return [resolved.word, reduced(resolved.owner)];
+    if (resolved.kind !== "chunk") return [resolved.kind];
+    const { line } = resolved;
+    const id = line.kind === "timeline" ? line.at.timeline.id : line.virtual.id;
+    return [id, resolved.chunk, resolved.flowMap.index];
+  };
+
+  it("resolves a drawn entry of a FlowMap and its parts", () => {
+    const brace = found(chunk("allegro_default", [2]));
+    expect(reduced(brace)).toEqual(["allegro_default", 2, 1]);
+    const path = resolvedPath(brace);
+    expect(path).toEqual(["flow_maps", 1, "chunks", 2]);
+    const manifest = block(cards).manifest;
+    expect(manifest.flow_maps?.[1]?.chunks[2]).toBe("section_a");
+    expect(addressWords(cards, chunk("allegro_default", [2]))).toBe(
+      "chunk 3 of virtual timeline 'Allegro, default'",
+    );
+    expect(reduced(found(chunk("allegro_default", [2, "label"])))).toEqual([
+      "label",
+      ["allegro_default", 2, 1],
+    ]);
+    expect(reduced(found(chunk("allegro_default", [2, "start"])))).toEqual([
+      "start",
+      ["allegro_default", 2, 1],
+    ]);
+    expect(addressWords(cards, chunk("allegro_default", [2, "label"]))).toBe(
+      "the label of chunk 3 of virtual timeline 'Allegro, default'",
+    );
+    expect(reduced(found(inA({ id: "allegro_by_hand", part: ["name"] })))).toEqual([
+      "name",
+      ["virtual_timeline"],
+    ]);
+  });
+
+  it("resolves no entry it does not draw", () => {
+    // The second entry of the run A × 4, drawn once in a block-held card; the gap's own brace.
+    for (const address of [chunk("allegro_by_hand", [1]), chunk("allegro_by_hand", [4])]) {
+      expect(refusal(resolveAddress(cards, address))).toEqual({
+        code: "unknown_target",
+        path: [addressKey(address)],
+      });
+    }
+    expect(reduced(found(chunk("allegro_by_hand", [4, "label"])))).toEqual([
+      "label",
+      ["allegro_by_hand", 4, 0],
+    ]);
+  });
+
+  it("is aimed at by no command", () => {
+    const address = chunk("allegro_default", [2]);
+    const set = { type: "set", changes: [{ target: address, values: { name: "X" } }] } as const;
+    expect(refusal(apply(cards, set))).toEqual({
+      code: "unknown_target",
+      path: [addressKey(address)],
+    });
+  });
+
+  it("resolves an entry drawn on a switched card's line", () => {
+    const switched = viewOf([A, "flow/switched_card.yaml"]);
+    const address = chunk("allegro", [1]);
+    const resolved = resolveAddress(switched, address);
+    if (isCommandError(resolved)) throw new Error(resolved.message);
+    expect(reduced(resolved)).toEqual(["allegro", 1, 1]);
+    expect(addressWords(switched, address)).toBe("chunk 2 of timeline 'Allegro'");
+    const member = viewOf([A, "groups/virtual_member.yaml"]);
+    expect(refusal(resolveAddress(member, address)).code).toBe("unknown_target");
+  });
+
+  it("locates a named timestamp on a virtual timeline", () => {
+    const member = viewOf([A, "groups/virtual_member.yaml"]);
+    const resolved = resolveAddress(member, inA({ id: "timestamp_3" }));
+    if (isCommandError(resolved) || resolved.kind !== "timestamp") throw new Error("a timestamp");
+    const { timeline, path, parent } = resolved.at;
+    expect([timeline.id, timeline.unit, timeline.number_type, timeline.length]).toEqual([
+      "allegro_default",
+      "quarters",
+      "fraction",
+      [4241, 2],
+    ]);
+    expect([path, parent]).toEqual([["virtual_timelines", 1], undefined]);
+    expect(indexOf(block(member).manifest).owners.get("timestamp_3")).toBe("allegro_default");
   });
 });

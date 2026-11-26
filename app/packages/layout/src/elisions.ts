@@ -301,6 +301,8 @@ function axisOf(
     relativeAt: (value, side) => L * u(value) - (gapsBefore(value) - seamsBefore(value, side)),
     startAt: (value) => L * u(value) - shrinkBefore(value),
     gapOf: (value) => gaps.find((gap) => comparing.inside(gap, value)),
+    runGaps: [],
+    runGapOf: () => undefined,
     shrinkBefore,
     crosses: (gap, start, end) => comparing.holds(gap, start, end),
   };
@@ -390,6 +392,8 @@ export function placedAxis(
         ? at(value, true)
         : relative(value),
     gapOf: (value) => placed.find((gap) => EXACT.inside(gap, value)),
+    runGaps: [],
+    runGapOf: () => undefined,
     shrinkBefore: (value) => L * u(value) - relative(value),
     crosses: (gap, start, end) => EXACT.holds(gap, start, end),
   };
@@ -656,8 +660,9 @@ function derivedPieces(
   const root: Stretch = [zero(rootEntry.manifest.number_type), lambda];
   const atDepth = (j: number): readonly Entry[] => {
     if (j === 1) return rootEntry.drawn ? [rootEntry] : [];
-    const parent = chain[j - 2];
-    return (index.childrenByParent.get(parent ?? "") ?? []).filter((entry) => entry.drawn);
+    const parent = scope.entries.find((entry) => entry.manifest.id === chain[j - 2]);
+    if (parent === undefined) return [];
+    return (index.childrenByParent.get(parent) ?? []).filter((entry) => entry.drawn);
   };
   const covered: Stretch[] = [protect];
   const found: DerivedPiece[] = [];

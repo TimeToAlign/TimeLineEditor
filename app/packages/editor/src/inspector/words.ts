@@ -30,9 +30,10 @@ const LEVEL_WORDS: { readonly [level in Level]: string } = {
   bundle: "Bundle",
   group: "Group",
   timeline: "Timeline",
+  flow: "Flow",
 };
 
-/** The word of a level, capitalised: `Arranger`, `Bundle`, `Group`, `Timeline`. */
+/** The word of a level, capitalised: `Arranger`, `Bundle`, `Group`, `Timeline`, `Flow`. */
 export function levelWord(level: Level): string {
   return LEVEL_WORDS[level];
 }
@@ -74,6 +75,11 @@ export function editorName(view: View, target: Address): string {
     case "matchstamp":
     case "anchor":
     case "elision":
+    case "flow_map":
+    case "virtual_timeline":
+    case "virtual_card":
+    case "virtual_band":
+    case "chunk":
     case "part":
       return addressWords(view, target);
     default:
@@ -188,6 +194,26 @@ function describe(resolved: ResolvedAddress): Described | null {
       };
     case "elision":
       return { parts: [], kind: "elision", name: null, id: resolved.elision.id, titled: false };
+    case "flow_map": {
+      const { name = null, id } = resolved.flowMap;
+      return { parts: [], kind: "FlowMap", name, id, titled: false };
+    }
+    case "virtual_timeline":
+    case "virtual_card":
+    case "virtual_band": {
+      const { name = null, id } = resolved.virtual;
+      const parts =
+        resolved.kind === "virtual_timeline"
+          ? []
+          : resolved.kind === "virtual_card"
+            ? ["card"]
+            : [`${bandWord(resolved.facet).toLowerCase()} band`];
+      return { parts, kind: "virtual timeline", name, id, titled: false };
+    }
+    case "chunk": {
+      const line = describe({ ...resolved.line, block: resolved.block });
+      return line === null ? null : { ...line, parts: [`chunk ${resolved.chunk + 1}`] };
+    }
     case "part": {
       const owner = describe(resolved.owner);
       if (owner === null) return null;
@@ -201,9 +227,10 @@ function describe(resolved: ResolvedAddress): Described | null {
  * The subject the selection names: for one address, what core resolves it
  * to (the bundle, a group, a measure map, a timeline, a conversion map, a
  * region, a jump, a jump target, a break, a section break, a barline, a timestamp, a
- * MatchStamp or an alignment anchor), each part the
+ * MatchStamp, an alignment anchor, a FlowMap or a virtual timeline), each part the
  * address appends prefixed (`Card of
- * timeline`, `Coordinate of timestamp`, `Regions band of timeline`); for
+ * timeline`, `Coordinate of timestamp`, `Regions band of timeline`, `Chunk 3
+ * of virtual timeline`, `Label of chunk 3 of virtual timeline`); for
  * several addresses their count; `null` for no selection or an address
  * naming nothing.
  */

@@ -26,8 +26,13 @@ import {
   leaderKey,
   type MemberDrawing,
   orderedChildren,
+  type Piece,
+  type PlayedSpan,
+  playedAt,
+  playedSpan,
   reachOf,
   textKey,
+  type Unfolding,
 } from "@timetoalign/tilie-core/drawing";
 import type { Rational, Real } from "@timetoalign/tilie-core/numbers";
 import type { ElementType } from "@timetoalign/timetoshare";
@@ -37,6 +42,7 @@ import { ROW_PITCH } from "./constants.ts";
 import type { GapOrigin, LineEnd, Placement } from "./elements.ts";
 import { cleanText, type TextMeasure } from "./metrics.ts";
 import { add, coordinateValue, lengthValue, proportion, zero } from "./numbers.ts";
+import { unfoldedRoot } from "./switched.ts";
 
 /** A drawn element: its address and its cascaded style. */
 export interface Styled {
@@ -59,10 +65,26 @@ export interface Entry extends Holder {
   readonly manifest: TimelineManifest;
   /** The entry of its parent; undefined for the root. */
   readonly parent: Entry | undefined;
-  /** Where it starts on the root's axis: the sum of its offsets and its ancestors'. */
+  /**
+   * Where it starts on the root's axis: the sum of its offsets and its ancestors'; on a switched
+   * card (section 8.10), where its drawing in its piece starts on the virtual axis.
+   */
   readonly start: Real;
-  /** Where it ends on the root's axis (section 3.4). */
+  /** Where it ends on the root's axis (section 3.4); on a switched card, where its drawing ends. */
   readonly end: Real;
+  /**
+   * Where it starts and ends on the axis of the member drawing's root as written (sections 3.1
+   * and 3.4): `start` and `end`, but on a switched card.
+   */
+  readonly written: { readonly start: Real; readonly end: Real };
+  /**
+   * The stretch piece of a switched card's FlowMap it is drawn in (section 8.10); null on a card
+   * drawn as written, and for a switched card's root, which holds nothing of its own.
+   */
+  readonly piece: Piece | null;
+  /** Its drawing starts or ends at its piece's end, not at its own, and keeps no mark there. */
+  readonly startCut: boolean;
+  readonly endCut: boolean;
   /** Its end is open: no length and nothing else fixes it (section 3.4). */
   readonly open: boolean;
   /** Its end is the open end of the root, drawn at `x0 + L` whatever the reach (section 3.4). */
@@ -106,10 +128,44 @@ export interface Measured {
 
 /** The relationships every later layout pass reads from the one pre-order traversal. */
 export interface TraversalIndex {
-  /** Direct children in traversal order, keyed by their parent's timeline id. */
-  readonly childrenByParent: ReadonlyMap<string, readonly Entry[]>;
-  /** The line itself and the segments without a line whose bands join it, in traversal order. */
+  /** Direct children in traversal order, keyed by their parent's entry. */
+  readonly childrenByParent: ReadonlyMap<Entry, readonly Entry[]>;
+  /**
+   * The line itself and the segments without a line whose bands join it, in traversal order; a
+   * switched card's root followed by its pieces.
+   */
   readonly sourcesByLine: ReadonlyMap<Entry, readonly Entry[]>;
+  /** The segments of each segment line, in traversal order, its pieces' on a switched card's root. */
+  readonly segmentsByLine: ReadonlyMap<Entry, readonly Entry[]>;
+}
+
+/**
+ * One entry of a FlowMap's `chunks` as a line draws it (section 8.10): its
+ * index `k`, whether it is a gap, its span on the virtual axis, its label's
+ * text, whether it is drawn (the second and later entries of a run drawn
+ * once are not), and whether a boundary marks its drawn start.
+ */
+export interface DrawnChunk {
+  readonly index: number;
+  readonly gap: boolean;
+  readonly start: Real;
+  readonly end: Real;
+  readonly text: string;
+  readonly drawn: boolean;
+  readonly boundary: boolean;
+}
+
+/**
+ * The chunks a line draws (section 8.10): `timeline` the ID its chunks'
+ * addresses carry (a virtual timeline's, or a switched card's timeline's),
+ * its entries in the order of `chunks`, and the run gaps of its runs drawn
+ * once, each over `[a, b]`, the end of a run's first entry to the end of its
+ * last, from the left.
+ */
+export interface DrawnFlow {
+  readonly timeline: string;
+  readonly chunks: readonly DrawnChunk[];
+  readonly runGaps: readonly (readonly [Real, Real])[];
 }
 
 /** What every member drawing of one manifest shares. */
@@ -126,8 +182,40 @@ export interface Context {
 /** One timeline drawn as a root, traversed, with the measures of its axis and its texts. */
 export interface Scope extends Context {
   readonly member: MemberDrawing;
+  /**
+   * The chunks of the FlowMap its root's line draws (section 8.10): a virtual timeline's, or a
+   * switched card's; null for a line that draws none.
+   */
+  readonly flow: DrawnFlow | null;
   /** The frame whose member card draws it, null for an ungrouped root's card and an ancestor card. */
   readonly frame: GroupFrame | null;
+  /**
+   * How its tree is unfolded onto a FlowMap's virtual axis, on a switched card or a card of a
+   * switched frame (section 8.10); null for a card drawn as written.
+   */
+  readonly unfolding: Unfolding | null;
+  /**
+   * Its root is a member carried through a switched frame onto another member's FlowMap (section
+   * 8.10): its root's line, and a virtual member's chunks, are drawn once in each piece.
+   */
+  readonly carried: boolean;
+  /**
+   * Where the coordinate `value` of the own axis of `entry`'s timeline is drawn on the root's
+   * axis: its position (section 3.1), played in `entry`'s piece on a switched card, undefined
+   * where it is played elsewhere.
+   */
+  readonly at: (entry: Entry, value: Real) => Real | undefined;
+  /**
+   * The span from `start` to `end` of the own axis of `entry`'s timeline as it is drawn (section
+   * 8.10): whole on a card drawn as written; in `entry`'s piece on a switched card, undefined
+   * where it does not reach into it.
+   */
+  readonly over: (entry: Entry, start: Real, end: Real) => PlayedSpan | undefined;
+  /**
+   * A position of the member drawing's root's axis as written, drawn in `entry`'s piece: itself
+   * on a card drawn as written.
+   */
+  readonly play: (entry: Entry, value: Real) => Real | undefined;
   /** The timeline drawn as the root. */
   readonly root: TimelineManifest;
   /** Every timeline of its tree in traversal order, the root first. */
@@ -291,6 +379,17 @@ export interface CardAxis {
   startAt(value: Real): number;
   /** The gap a position lies in, its ends excluded; undefined for a position in no gap. */
   gapOf(value: Real): Gap | undefined;
+  /**
+   * The run gaps of its runs drawn once (section 8.10, Runs), each `[a, b]` on its root's axis,
+   * from the left: what no line drawn on it draws, so that a line's axes leave them out.
+   */
+  readonly runGaps: readonly (readonly [Real, Real])[];
+  /**
+   * The run gap of a run drawn once a position lies in, its ends excluded (section 8.10, Runs):
+   * `L × u − D` of its drawn start, where it takes no room and is not drawn; undefined for a
+   * position in none.
+   */
+  runGapOf(value: Real): number | undefined;
   /** `D` at a position: the shrinks of the gaps ending at or before it, summed from the left. */
   shrinkBefore(value: Real): number;
   /**
@@ -299,6 +398,14 @@ export interface CardAxis {
    */
   crosses(gap: Gap, start: Real, end: Real | null): boolean;
 }
+
+/**
+ * The pieces of the root of `scope` (section 8.10), in their order: the
+ * entries a switched card's or a carried card's root draws its tree in,
+ * one per stretch piece; none on a card drawn as written.
+ */
+export const rootPieces = (scope: Scope): readonly Entry[] =>
+  (scope.index.sourcesByLine.get(scope.rootEntry) ?? []).filter((entry) => entry.piece !== null);
 
 /** Whether a style displays its element: its `display` is `inline`. */
 export const shown = (style: Style): boolean => style.display === "inline";
@@ -336,7 +443,12 @@ export function endOf(timeline: TimelineManifest, topLevel: boolean, open = fals
 /**
  * Traverse one timeline drawn as a root (section 6.1), its line held by
  * `holder`, the block or its group's frame, in a card of spacing `S` and
- * margin `V`, a member card of `frame` where one is given.
+ * margin `V`, a member card of `frame` where one is given, its line drawing
+ * the chunks `flow` where they are given (section 8.10). Where `switched`
+ * is given, the card is switched or a card of a switched frame (section
+ * 8.10): the root holds nothing and spans the virtual axis, named `name`
+ * where that is given, and every element of its tree is visited once per
+ * stretch piece it reaches into, clipped to it, in the order of the pieces.
  */
 export function traverse(
   context: Context,
@@ -345,9 +457,12 @@ export function traverse(
   S: number,
   V: number,
   frame: GroupFrame | null,
+  flow: DrawnFlow | null = null,
+  switched: { readonly unfolding: Unfolding; readonly name: string | null } | null = null,
 ): Scope {
   const { manifest, placement, cascade, measure, reading } = context;
   const root = member.timeline;
+  const unfolding = switched?.unfolding ?? null;
   const L = placement.length;
   const h = (size: number) => measure.lineHeight(size);
   const a = (size: number) => measure.ascent(size);
@@ -369,7 +484,13 @@ export function traverse(
   const entries: Entry[] = [];
   const reaches = new WeakMap<TimelineManifest, Real>();
   const rootLength = lengthValue(root);
-  const lambda = rootLength ?? reachOf(root, manifest, reaches);
+  // The root's length or reach as written, and `λ`: that, or the played length of the FlowMap
+  // its card is unfolded onto.
+  const written = rootLength ?? reachOf(root, manifest, reaches);
+  const lambda = unfolding?.length ?? written;
+  type Ending = Pick<Entry, "end" | "open" | "rootEnd">;
+  // Where each entry ends as written, which its children and segments read (section 3.4).
+  const endings = new Map<Entry, Ending>();
   /**
    * Where a timeline starting at `start` ends, by the first rule of section
    * 3.4 that applies: its length; the root's reach; the next segment's
@@ -380,23 +501,25 @@ export function traverse(
     parent: Entry | undefined,
     start: Real,
     next: Real | undefined,
-  ): Pick<Entry, "end" | "open" | "rootEnd"> => {
+  ): Ending => {
     const length = lengthValue(timeline);
     if (length !== null) return { end: add(start, length), open: false, rootEnd: false };
-    if (parent === undefined) return { end: lambda, open: true, rootEnd: true };
+    if (parent === undefined) return { end: written, open: true, rootEnd: true };
     if (parent.manifest.is_segment_line) {
       if (next !== undefined) return { end: next, open: false, rootEnd: false };
-      return { end: parent.end, open: parent.open, rootEnd: parent.rootEnd };
+      return known(endings, parent);
     }
     return { end: add(start, reachOf(timeline, manifest, reaches)), open: true, rootEnd: false };
   };
-  const visit = (
+  /** The entry of `timeline`, held by `parent`'s children band (the root's by `holder`). */
+  const entryOf = (
     timeline: TimelineManifest,
     parent: Entry | undefined,
     start: Real,
-    next: Real | undefined,
+    ended: Ending,
+    drawnAs: Pick<Entry, "start" | "end" | "open" | "rootEnd" | "piece" | "startCut" | "endCut">,
     first: boolean,
-  ) => {
+  ): Entry => {
     const segment = parent?.manifest.is_segment_line === true;
     const line = !segment || timeline.is_segment_line;
     const type = parent === undefined ? "timeline" : line ? "child" : null;
@@ -418,8 +541,8 @@ export function traverse(
     const entry: Entry = {
       manifest: timeline,
       parent,
-      start,
-      ...ending(timeline, parent, start, next),
+      ...drawnAs,
+      written: { start, end: ended.end },
       key,
       style,
       name: line
@@ -433,36 +556,128 @@ export function traverse(
         shown(style) &&
         (parent === undefined || (shown(parent.bands.children.style) && parent.drawn)),
     };
+    endings.set(entry, ended);
     entries.push(entry);
+    return entry;
+  };
+  /** Visit the children of `timeline`, starting at `start` as written, held by `parent`. */
+  const visitChildren = (
+    timeline: TimelineManifest,
+    parent: Entry,
+    start: Real,
+    piece: Piece | null,
+  ) => {
     const children = orderedChildren(timeline);
     const starts = children.map((child) =>
       add(start, coordinateValue(child.offset, timeline.number_type)),
     );
     children.forEach((child, index) => {
-      visit(child, entry, nth(starts, index), starts[index + 1], index === 0);
+      visit(child, parent, nth(starts, index), starts[index + 1], index === 0, piece);
     });
   };
-  visit(root, undefined, zero(root.number_type), undefined, false);
+  const visit = (
+    timeline: TimelineManifest,
+    parent: Entry,
+    start: Real,
+    next: Real | undefined,
+    first: boolean,
+    piece: Piece | null,
+  ) => {
+    const ended = ending(timeline, parent, start, next);
+    if (unfolding === null || piece === null) {
+      const whole = { start, ...ended, piece: null, startCut: false, endCut: false };
+      visitChildren(timeline, entryOf(timeline, parent, start, ended, whole, first), start, null);
+      return;
+    }
+    // On a switched card, drawn once in its piece where it reaches into it, cut to it.
+    const span = playedSpan(unfolding, piece, start, ended.end);
+    if (span === undefined) return;
+    const drawnAs = { ...span, open: ended.open && !span.endCut, rootEnd: false, piece };
+    visitChildren(timeline, entryOf(timeline, parent, start, ended, drawnAs, first), start, piece);
+  };
+  const origin = zero(root.number_type);
+  const rootEnding = ending(root, undefined, origin, undefined);
+  if (unfolding === null || switched === null) {
+    const whole = { start: origin, ...rootEnding, piece: null, startCut: false, endCut: false };
+    visitChildren(root, entryOf(root, undefined, origin, rootEnding, whole, false), origin, null);
+  } else {
+    // The root spans the virtual axis and holds nothing; each stretch piece draws the root's
+    // tree in it, joined to the root's line as a segment without a line is.
+    const shownRoot = unfoldedRoot(root, switched.name);
+    const virtual = { end: lambda, open: false, rootEnd: false };
+    const top = entryOf(
+      shownRoot,
+      undefined,
+      origin,
+      rootEnding,
+      { start: origin, ...virtual, piece: null, startCut: false, endCut: false },
+      false,
+    );
+    for (const piece of unfolding.pieces) {
+      const span = playedSpan(unfolding, piece, origin, written);
+      if (span === undefined) continue;
+      const entry: Entry = {
+        ...top,
+        manifest: root,
+        parent: top,
+        ...span,
+        open: rootEnding.open && !span.endCut,
+        rootEnd: false,
+        piece,
+        line: false,
+      };
+      endings.set(entry, rootEnding);
+      entries.push(entry);
+      visitChildren(root, entry, origin, piece);
+    }
+  }
   const rootEntry = nth(entries, 0);
-  const childrenByParent = new Map<string, Entry[]>();
+  const childrenByParent = new Map<Entry, Entry[]>();
   const sourcesByLine = new Map<Entry, Entry[]>();
+  const segmentsByLine = new Map<Entry, Entry[]>();
   const append = <K>(lists: Map<K, Entry[]>, key: K, entry: Entry) => {
     const list = lists.get(key);
     if (list === undefined) lists.set(key, [entry]);
     else list.push(entry);
   };
+  // The line an entry's bands join: its own, else its parent's (a segment's segment line, a
+  // piece's root).
+  const lineOf = (entry: Entry): Entry =>
+    entry.line || entry.parent === undefined ? entry : lineOf(entry.parent);
   for (const entry of entries) {
-    if (entry.parent !== undefined) append(childrenByParent, entry.parent.manifest.id, entry);
-    // A segment that is no line joins the line of its segment line, its parent.
-    append(sourcesByLine, entry.line ? entry : (entry.parent ?? entry), entry);
+    if (entry.parent !== undefined) append(childrenByParent, entry.parent, entry);
+    if (entry.segment && entry.parent !== undefined) {
+      append(segmentsByLine, lineOf(entry.parent), entry);
+    }
+    // A segment that is no line, and a piece, join the line of their parent.
+    append(sourcesByLine, lineOf(entry), entry);
   }
-  const index: TraversalIndex = { childrenByParent, sourcesByLine };
+  const index: TraversalIndex = { childrenByParent, sourcesByLine, segmentsByLine };
   const traversal = new Map(entries.map((entry, index) => [entry, index]));
   const byTraversal = (left: Entry, right: Entry) =>
     known(traversal, left) - known(traversal, right);
   const u = (value: Real) => proportion(value, lambda);
   const relativeX = (value: Real) => L * u(value);
   const relativeEnd = (entry: Entry) => (entry.rootEnd ? L : relativeX(entry.end));
+  const play = (entry: Entry, value: Real): Real | undefined => {
+    if (unfolding === null) return value;
+    return entry.piece === null ? undefined : playedAt(unfolding, entry.piece, value);
+  };
+  const at = (entry: Entry, value: Real): Real | undefined =>
+    unfolding === null ? add(entry.start, value) : play(entry, add(entry.written.start, value));
+  const over = (entry: Entry, start: Real, end: Real): PlayedSpan | undefined => {
+    if (unfolding === null) {
+      return {
+        start: add(entry.start, start),
+        end: add(entry.start, end),
+        startCut: false,
+        endCut: false,
+      };
+    }
+    if (entry.piece === null) return undefined;
+    const from = entry.written.start;
+    return playedSpan(unfolding, entry.piece, add(from, start), add(from, end));
+  };
 
   const held = (
     type: ElementType,
@@ -498,7 +713,13 @@ export function traverse(
     measure,
     reading,
     member,
+    flow,
     frame,
+    unfolding,
+    carried: switched !== null && switched.name === null,
+    at,
+    over,
+    play,
     root,
     entries,
     rootEntry,
@@ -530,6 +751,9 @@ export function withAxis(scope: Scope, axis: CardAxis): Scope {
   return {
     ...scope,
     axis,
-    drawnX: (value) => (axis.gapOf(value) === undefined ? axis.relative(value) : undefined),
+    drawnX: (value) =>
+      axis.gapOf(value) === undefined && axis.runGapOf(value) === undefined
+        ? axis.relative(value)
+        : undefined,
   };
 }

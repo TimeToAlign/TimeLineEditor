@@ -11,7 +11,9 @@
  * anchors and the match timestamps no MatchStamp left names; a MatchStamp
  * goes with every match timestamp one of its anchors names, so a removed
  * timeline or match timestamp takes it along. A resource keeps naming the
- * timelines left. A FlowMap goes with the root timeline it orders, and a
+ * timelines left. A rule's `flow` naming a removed FlowMap or virtual
+ * timeline goes, and a rule left setting nothing with it. A FlowMap goes
+ * with the root timeline it orders, and a
  * virtual timeline with the map applied or the timeline it comes from, at
  * any depth of virtual timelines; a FlowMap chunk or a jump's destination
  * left naming a removed element leaves the manifest dangling, which the
@@ -23,6 +25,7 @@
  * provenance of the elements left (`withoutReferencesTo`) is taken out.
  */
 
+import type { Rule } from "@timetoalign/timetoshare";
 import { ENTRY_KINDS, entriesOf } from "./files.ts";
 import { withoutReferencesTo } from "./statements.ts";
 import type { Manifest, ManifestGraphical, TimelineManifest } from "./types.ts";
@@ -95,6 +98,18 @@ export function removedBy(manifest: Manifest, elements: Iterable<string>): Set<s
   return removed;
 }
 
+/**
+ * `rule` without its `flow` where that names a removed FlowMap or virtual
+ * timeline, so the cards it switched are drawn as written again;
+ * `undefined` where it sets nothing else.
+ */
+function withoutRemovedFlow(rule: Rule, removed: ReadonlySet<string>): Rule | undefined {
+  const { set } = rule;
+  if (typeof set === "string" || set.flow === undefined || !removed.has(set.flow)) return rule;
+  const { flow: _, ...rest } = set;
+  return Object.keys(rest).length === 0 ? undefined : { ...rule, set: rest };
+}
+
 /** `manifest` with `elements` removed, and everything `removedBy` names with them. */
 export function withoutElements(manifest: Manifest, elements: Iterable<string>): Manifest {
   const removed = removedBy(manifest, elements);
@@ -147,7 +162,9 @@ export function withoutElements(manifest: Manifest, elements: Iterable<string>):
     changed.elisions = graphical.elisions.filter(kept);
   }
   if (graphical.rules !== undefined) {
-    changed.rules = graphical.rules.flatMap((rule) => {
+    changed.rules = graphical.rules.flatMap((stated) => {
+      const rule = withoutRemovedFlow(stated, removed);
+      if (rule === undefined) return [];
       const { addresses, within } = rule.select;
       if (within !== undefined && removed.has(within)) return [];
       if (addresses === undefined) return [rule];

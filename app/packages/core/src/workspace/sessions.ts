@@ -1,9 +1,11 @@
 /**
  * Editor sessions: the commands made in one editor (the bundle editor on a
  * block, the group editor on a group, the timeline editor on a root or a
- * child timeline) between opening it and Done or Cancel. A closed session is
- * journalled as one entry on the level it was opened on; its target is
- * stored once, with the session, never in that entry.
+ * child timeline, the flow editor on a root timeline's FlowMaps) between
+ * opening it and Done or Cancel. A closed session is journalled as one entry
+ * on the level it was opened on; its target is stored once, with the
+ * session, never in that entry, and so is its kind where the target alone
+ * does not tell it (a flow editor's).
  */
 
 import type { Command } from "../commands/types.ts";
@@ -23,8 +25,15 @@ export type SessionId = string;
 /** A session id is minted as a block id is, so it is checked by the same pattern. */
 export const SESSION_ID = BLOCK_ID;
 
-/** The editor of an element: of a block, of a group, of a root or child timeline. */
-export type EditorKind = "bundle" | "group" | "timeline";
+/**
+ * The editor of an element: of a block, of a group, of a root or child
+ * timeline, and the flow editor of a root timeline, which edits its
+ * FlowMaps and the virtual timelines applying them.
+ */
+export type EditorKind = "bundle" | "group" | "timeline" | "flow";
+
+/** The kind of editor a session's target does not tell: the flow editor, on a root timeline's address. */
+export type StatedEditorKind = Extract<EditorKind, "flow">;
 
 /** One command as it was applied: by whom and when (ISO 8601 UTC with milliseconds). */
 export interface CommandEntry {
@@ -43,9 +52,14 @@ export interface SessionEntry {
 /** One entry of a journal or of a session. */
 export type Entry = CommandEntry | SessionEntry;
 
-/** One closed session: the element it edited and its entries, in order. */
+/**
+ * One closed session: the element it edited, its entries in order, and,
+ * for a flow editor's, its `kind` (every other kind follows from the
+ * target, `editorKindOf`).
+ */
 export interface Session {
   readonly target: Address;
+  readonly kind?: StatedEditorKind;
   readonly entries: readonly Entry[];
 }
 
@@ -188,7 +202,7 @@ export function keepChanges(
       }
       const session = sessions[entry.session] as Session;
       const inner = keep(session.entries);
-      if (!inner.whole) result[entry.session] = { target: session.target, entries: inner.kept };
+      if (!inner.whole) result[entry.session] = { ...session, entries: inner.kept };
     }
     return { kept, whole: kept.length === from.length };
   };
@@ -199,9 +213,32 @@ export function keepChanges(
  * The editor an address opens (`resolveAddress`): a block the bundle
  * editor, a group the group editor, a root or child timeline the timeline
  * editor; `no_editor` for the workspace and any other element or part;
- * `unknown_target` for an address naming nothing.
+ * `unknown_target` for an address naming nothing. Asked for `kind`, the
+ * editor of that kind: the flow editor opens on a root timeline only
+ * (`no_editor` for any other address), any other kind where the address
+ * opens it.
  */
-export function editorKindOf(view: View, address: Address): EditorKind | CommandError {
+export function editorKindOf(
+  view: View,
+  address: Address,
+  kind?: EditorKind,
+): EditorKind | CommandError {
+  const opened = defaultKindOf(view, address);
+  if (kind === undefined || isCommandError(opened)) return opened;
+  const resolved = resolveAddress(view, address);
+  const root = !isCommandError(resolved) && resolved.kind === "timeline" && !resolved.at.parent;
+  if (kind === opened || (kind === "flow" && root)) return kind;
+  return problem(
+    ErrorCode.noEditor,
+    kind === "flow"
+      ? `${addressWords(view, address)} has no flow editor: only a root timeline has one`
+      : `${addressWords(view, address)} has no ${kind} editor`,
+    [addressKey(address)],
+  );
+}
+
+/** The kind of the editor an address opens when no kind is asked for (`editorKindOf`). */
+function defaultKindOf(view: View, address: Address): EditorKind | CommandError {
   const resolved = resolveAddress(view, address);
   if (isCommandError(resolved)) return resolved;
   switch (resolved.kind) {
@@ -221,6 +258,11 @@ export function editorKindOf(view: View, address: Address): EditorKind | Command
     case "elision":
     case "matchstamp":
     case "anchor":
+    case "flow_map":
+    case "virtual_timeline":
+    case "virtual_card":
+    case "virtual_band":
+    case "chunk":
     case "part":
       return problem(ErrorCode.noEditor, `${addressWords(view, address)} has no editor`, [
         addressKey(address),
@@ -228,6 +270,24 @@ export function editorKindOf(view: View, address: Address): EditorKind | Command
     default:
       return assertNever(resolved);
   }
+}
+
+/**
+ * Whether the editor of `kind` on `target` opens inside the open editor
+ * `outer`: never inside a flow editor; a flow editor inside the timeline
+ * editor of its own root too; else where `target` lies inside `outer`'s
+ * target (`opensInside`).
+ */
+export function opensIn(view: View, outer: OpenEditor, target: Address, kind: EditorKind): boolean {
+  if (outer.kind === "flow") return false;
+  if (kind === "flow" && outer.kind === "timeline" && sameAddress(outer.target, target))
+    return true;
+  return opensInside(view, outer.target, target);
+}
+
+/** The kind a session states: `flow` for a flow editor's, none for another's (`Session.kind`). */
+export function statedKind(kind: EditorKind): StatedEditorKind | undefined {
+  return kind === "flow" ? kind : undefined;
 }
 
 /**

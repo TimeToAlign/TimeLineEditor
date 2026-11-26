@@ -67,10 +67,17 @@ export function cutText(
   return { text: cut, width: measure.widthOf(kept + tail, size) };
 }
 
-/** The names a row's lines give it, in their order: a segment's line gives none (section 6.6). */
+/**
+ * The names a row's lines give it, in their order: a segment's line gives none (section 6.6),
+ * and a timeline drawn in several pieces of a switched card names its row once (section 8.10).
+ */
 export const lineNames = (lines: readonly Entry[]): NameItem[] =>
   lines
-    .filter((line) => !line.segment)
+    .filter(
+      (line, index) =>
+        !line.segment &&
+        !lines.slice(0, index).some((before) => before.manifest.id === line.manifest.id),
+    )
     .map((line) => ({ name: line.name, text: nameOf(line.manifest) }));
 
 /**

@@ -74,6 +74,7 @@ import {
   readItemArrangement,
 } from "../workspace/view.ts";
 import { readElisionEnd, readElisionStart, readElisionWidth, stretchProblem } from "./elisions.ts";
+import { FLOW_MAP_SET, setVirtualName } from "./flowmaps.ts";
 import { readAnchors, readMatchClaims, rewrittenMatchStamp } from "./matchstamps.ts";
 import type { ChangeSet } from "./mutations.ts";
 import {
@@ -105,6 +106,7 @@ import type {
   TargetOfKind,
   TimelineTarget,
   TimestampTarget,
+  VirtualTarget,
   WorkspaceTarget,
 } from "./targets.ts";
 import { targetOf } from "./targets.ts";
@@ -442,12 +444,25 @@ export const BLOCK_PROPERTIES: readonly string[] = Object.keys(BLOCK_SET).filter
 
 // ---------------------------------------------------------------- places and orders
 
-/** A target that `places` and `graphical.order` may name: a group, a root or a child timeline. */
-type KeyedTarget = GroupTarget | TimelineTarget;
+/**
+ * A target that `places` and `graphical.order` may name: a group, a root or
+ * a child timeline, or a virtual timeline.
+ */
+type KeyedTarget = GroupTarget | TimelineTarget | VirtualTarget;
 
 /** The id a group or timeline target carries, the key it has in `graphical.order`. */
 function keyOf(target: KeyedTarget): string {
-  return target.kind === "group" ? target.group.id : target.at.timeline.id;
+  switch (target.kind) {
+    case "group":
+      return target.group.id;
+    case "virtual_timeline":
+      return target.virtual.id;
+    case "root":
+    case "child":
+      return target.at.timeline.id;
+    default:
+      return assertNever(target);
+  }
 }
 
 /** A value read by `read`, or null. */
@@ -489,7 +504,8 @@ function mergedPlace(
 /**
  * The container whose place a `set` of `place` on `target` states: a
  * group's frame, or the one card a timeline is drawn in (an ungrouped
- * root's, or a member's in its group's frame); a refusal for a timeline
+ * root's, or a member's in its group's frame; a virtual timeline's in no
+ * group, which its place makes drawn); a refusal for a timeline
  * drawn in no card or in the frames of several groups, whose cards are
  * placed through their groups' `cards`.
  */
@@ -500,7 +516,7 @@ function placedOf(target: KeyedTarget, path: readonly PathSegment[]): ContainerR
     if (frame === undefined) throw new Error(`group ${target.group.id} draws no frame`);
     return frame;
   }
-  const { id } = target.at.timeline;
+  const id = keyOf(target);
   const [card, ...others] = placedCards(target.block.manifest, id);
   if (card === undefined) {
     return problem(ErrorCode.notAnItem, `'${id}' is not drawn in a card of its own`, path);
@@ -707,15 +723,23 @@ function timelineChange(
   return withBlock(view, { ...block, manifest });
 }
 
+/** A timeline's or virtual timeline's band order; null deletes its entry, so it inherits again. */
+const setBandOrder: Setter<TimelineTarget | VirtualTarget> = (
+  view,
+  target,
+  value,
+  path,
+  changes,
+) => {
+  if (value === null) return withOrder(view, target, null, path, changes);
+  const refused = bandOrderProblem(target.block.manifest, keyOf(target), value);
+  return refused === null && isStrings(value)
+    ? withOrder(view, target, value, path, changes)
+    : problem(ErrorCode.invalidOrder, refused ?? "a band order is an array of strings", path);
+};
+
 const TIMELINE_SET: Setters<TimelineTarget> = {
-  /** The timeline's band order; null deletes its entry, so it inherits again. */
-  order: (view, target, value, path, changes) => {
-    if (value === null) return withOrder(view, target, null, path, changes);
-    const refused = bandOrderProblem(target.block.manifest, target.at.timeline.id, value);
-    return refused === null && isStrings(value)
-      ? withOrder(view, target, value, path, changes)
-      : problem(ErrorCode.invalidOrder, refused ?? "a band order is an array of strings", path);
-  },
+  order: setBandOrder,
   name: (view, target, value, path, changes) => {
     const name = readNullableString(value, path);
     if (isCommandError(name)) return name;
@@ -1225,6 +1249,22 @@ const ANCHOR_SET: Setters<AnchorTarget> = {
   },
 };
 
+// ---------------------------------------------------------------- virtual timelines
+
+const VIRTUAL_SET: Setters<VirtualTarget> = {
+  /** The virtual timeline's name; null for none. */
+  name: (view, target, value, path, changes) =>
+    setVirtualName(view, target.block, target.index, value, path, changes),
+  groups: setGroups,
+  order: setBandOrder,
+  /**
+   * The place of its one card: held by the block in no group, where the
+   * place shows it (removing every member of the place hides the card and
+   * keeps the virtual timeline), or a member's card in its group's frame.
+   */
+  place: setPlace,
+};
+
 // ---------------------------------------------------------------- the table
 
 /** What a `set` may give each kind of target, by property. */
@@ -1240,6 +1280,8 @@ export const SETTABLE: { readonly [kind in TargetKind]: Setters<TargetOfKind[kin
   elision: ELISION_SET,
   matchstamp: MATCHSTAMP_SET,
   anchor: ANCHOR_SET,
+  flow_map: FLOW_MAP_SET,
+  virtual_timeline: VIRTUAL_SET,
 };
 
 /** The setter of `property` for `target`, bound to it. */
@@ -1279,6 +1321,10 @@ function setterOf(
       return bind(SETTABLE.matchstamp[property], target);
     case "anchor":
       return bind(SETTABLE.anchor[property], target);
+    case "flow_map":
+      return bind(SETTABLE.flow_map[property], target);
+    case "virtual_timeline":
+      return bind(SETTABLE.virtual_timeline[property], target);
     case "map":
     case "region":
     case "flow_control":

@@ -22,12 +22,14 @@
 
 import type { CardAxis, Subject } from "@timetoalign/tilie-arranger";
 import {
+  axisValueAt,
   cardAxisAt,
   defaultsRemoval,
   defaultsStored,
   exposureAt,
   piecesOf,
   stretchText,
+  typedValue,
 } from "@timetoalign/tilie-arranger";
 import type {
   AddCommand,
@@ -58,7 +60,6 @@ import {
   idAddress,
   inBlock,
   indexOf,
-  parseAxisValue,
   prettyUnit,
   sameAddress,
   samePlaceKey,
@@ -70,7 +71,6 @@ import {
   exactCoordinate,
   Rational,
   realOf,
-  toAxisValue,
   toFloat,
   toRational,
 } from "@timetoalign/tilie-core/numbers";
@@ -335,12 +335,6 @@ function extentOf(timeline: TimelineManifest, manifest: Manifest): Real {
     : realOf(axisCoordinate(timeline.length, timeline));
 }
 
-/** A value of the axis of `timeline` as the manifest writes it; `undefined` where it does not fit. */
-function axisValueAt(value: Real, timeline: TimelineManifest): AxisValue | undefined {
-  const exact = exactCoordinate(value, timeline.unit, timeline.number_type);
-  return exact === undefined ? undefined : toAxisValue(exact);
-}
-
 /** A value of the axis of `timeline` as an exact coordinate value; `undefined` where it does not fit. */
 function valueAt(value: Real, timeline: TimelineManifest): CoordinateValue | undefined {
   return exactCoordinate(value, timeline.unit, timeline.number_type)?.value;
@@ -365,18 +359,6 @@ const nameOf = (timeline: TimelineManifest): string => timeline.name ?? timeline
 
 /** "1 elision", "2 elisions". */
 const counted = (n: number): string => (n === 1 ? "1 elision" : `${n} elisions`);
-
-/**
- * The value typed into a field of `timeline`'s axis, exact (`parseAxisValue`),
- * as the manifest writes it there: a decimal on a fraction axis is the value it
- * denotes, on a float axis the nearest double; a message where none fits.
- */
-function typedValue(text: string, timeline: TimelineManifest): AxisValue | string {
-  const parsed = parseAxisValue(text, timeline.number_type);
-  if (!(parsed instanceof Rational)) return parsed.message;
-  const value = axisValueAt(timeline.number_type === "float" ? toFloat(parsed) : parsed, timeline);
-  return value ?? `${text.trim()} is no ${timeline.number_type} value of '${timeline.id}'`;
-}
 
 /**
  * The middle third of the stretch `[from, to]` of `timeline`'s own axis, as

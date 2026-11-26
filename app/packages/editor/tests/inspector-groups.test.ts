@@ -322,6 +322,20 @@ describe("the mounted memberships", () => {
     expect(box("Members", "Score").checked).toBe(true);
   });
 
+  it("names in the New group button's refusal the ID the store would give the group", () => {
+    const store = storeOf();
+    show(store, [{ id: "recording" }, { id: "excerpt" }]);
+    const button = [...document.querySelectorAll("button")].find(
+      (item) => item.textContent === "New group",
+    );
+    if (button === undefined) throw new Error("no New group button");
+    const group = store.minter().mint("group");
+    expect(button.disabled).toBe(true);
+    expect(button.title).toBe(
+      `'excerpt' and 'recording', a member of group '${group}', would hold one another`,
+    );
+  });
+
   it("adds a new group to the selected block in one entry", () => {
     const store = storeOf();
     show(store, [{}]);

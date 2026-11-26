@@ -182,12 +182,14 @@ export function gapOf(manifest: Manifest, element: ElementAddress): ElementAddre
   const { id, facet, part = [] } = element;
   if (id === undefined || facet !== undefined) return null;
   if (part[0] === "elision") {
-    return part.length === 1 || (part.length === 2 && DEFAULT_PARTS.has(part[1] ?? ""))
+    return part.length === 1 ||
+      (part.length === 2 && typeof part[1] === "string" && DEFAULT_PARTS.has(part[1]))
       ? partAddress(idAddress(id), "elision")
       : null;
   }
   if (storedElision(manifest, id) === undefined) return null;
-  return part.length === 0 || (part.length === 1 && STORED_PARTS.has(part[0] ?? ""))
+  return part.length === 0 ||
+    (part.length === 1 && typeof part[0] === "string" && STORED_PARTS.has(part[0]))
     ? idAddress(id)
     : null;
 }

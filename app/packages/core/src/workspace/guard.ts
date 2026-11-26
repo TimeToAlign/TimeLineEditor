@@ -2,8 +2,9 @@
 
 import type { Rule } from "@timetoalign/timetoshare";
 import type { ChangeSet } from "../commands/mutations.ts";
+import type { Command } from "../commands/types.ts";
 import type { CommandError } from "../errors.ts";
-import { ErrorCode, isCommandError, problem } from "../errors.ts";
+import { assertNever, ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { canonicalText, compareCodePoints, jsonEqual } from "../json.ts";
 import type { ElementAddress } from "../manifest/address.ts";
@@ -33,6 +34,7 @@ import {
   WORKSPACE,
 } from "./address.ts";
 import type { Block, BlockId } from "./blocks.ts";
+import type { OpenEditor } from "./sessions.ts";
 import type { View } from "./view.ts";
 
 /**
@@ -75,7 +77,14 @@ const TOP_MEMBERS = ["id", "name", "meta"];
  * never as a top-level member, and `@context`, which follows from the
  * statements compared element by element.
  */
-const LISTED_MEMBERS = ["timelines", "groups", "measure_maps", "graphical", "@context"];
+const LISTED_MEMBERS = [
+  "timelines",
+  "groups",
+  "measure_maps",
+  "virtual_timelines",
+  "graphical",
+  "@context",
+];
 
 /** The `graphical` members compared first, in this order; the others follow by code point. */
 const GRAPHICAL_MEMBERS = ["rules", "styles", "order"];
@@ -176,7 +185,8 @@ export function ruleInside(
  * A manifest as seen from outside `element`, cut into comparable parts, each
  * the canonical text of its value (`canonicalText`): per timeline (its lists
  * reduced to their ids), per map, region and flow-control element, per group, per measure
- * map, per named timestamp, per elision, each without what it states; the statements
+ * map, per virtual timeline outside, per named timestamp, per elision, each without what
+ * it states; the statements
  * and provenance of each timeline and region; the other top-level members
  * but `@context`; the other `graphical`
  * members. The edited timeline's object, or the edited group's
@@ -250,6 +260,10 @@ function project(
     );
   }
   for (const map of byId(manifest.measure_maps)) elements.set(map.id, canonicalText(map));
+  // A virtual timeline lies inside the editor of a group having it as a member.
+  for (const virtual of byId(manifest.virtual_timelines ?? [])) {
+    if (!inside(virtual.id)) elements.set(virtual.id, canonicalText(virtual));
+  }
   const {
     rules: _,
     styles: named = {},
@@ -518,5 +532,113 @@ export function sideEffect(
     refuse,
     words,
     changes,
+  );
+}
+
+/** What a flow editor lets a `set` give a FlowMap of its root and a virtual timeline applying one. */
+const FLOW_EDITOR_SET: { readonly [kind in "flow_map" | "virtual_timeline"]: readonly string[] } = {
+  flow_map: ["chunks", "name", "computed"],
+  virtual_timeline: ["name", "place"],
+};
+
+/**
+ * The first address `command` aims at that the flow editor on the root
+ * timeline `target` does not admit, with the property a `set` gives it;
+ * `null` when it admits them all. It admits exactly: an `add` of a FlowMap
+ * into the root, of a region into a timeline of the root's tree and of a
+ * virtual timeline (into the block) applying a FlowMap of the root; a
+ * `set` of a FlowMap of the root's `chunks`, `name` and `computed` (a
+ * recomputation, with the lengths of the virtual timelines playing it) and of such a
+ * virtual timeline's `name` and `place` (its card dropped on the canvas);
+ * a `remove` of either. Never a `style`, and nothing in another block.
+ */
+function flowRefused(
+  view: View,
+  target: Address,
+  command: Command,
+): { readonly address: Address; readonly property: string | null } | null {
+  const { block, id: root } = target;
+  const manifest = block === undefined ? undefined : view.blocks[block]?.manifest;
+  if (manifest === undefined || root === undefined) return { address: target, property: null };
+  const ofRoot = (flowMap: string) =>
+    (manifest.flow_maps ?? []).some((item) => item.id === flowMap && item.timeline === root);
+  /** The kind of a FlowMap of the root or of a virtual timeline applying one that `address` names. */
+  const flowKind = (address: Address): "flow_map" | "virtual_timeline" | null => {
+    if (address.block !== block) return null;
+    const resolved = resolveAddress(view, address);
+    if (isCommandError(resolved)) return null;
+    if (resolved.kind === "flow_map") return ofRoot(resolved.flowMap.id) ? "flow_map" : null;
+    if (resolved.kind === "virtual_timeline") {
+      return ofRoot(resolved.virtual.map) ? "virtual_timeline" : null;
+    }
+    return null;
+  };
+  switch (command.type) {
+    case "add": {
+      const { into } = command;
+      const refused = { address: into, property: null };
+      if (into.block !== block) return refused;
+      if (command.flow_map !== undefined)
+        return into.id === root && !into.part && !into.facet ? null : refused;
+      if (command.region !== undefined) {
+        const resolved = resolveAddress(view, into);
+        const inTree =
+          !isCommandError(resolved) &&
+          resolved.kind === "timeline" &&
+          contains(manifest, root, idAddress(resolved.at.timeline.id));
+        return inTree ? null : refused;
+      }
+      if (command.virtual_timeline !== undefined) {
+        const value = command.virtual_timeline;
+        const map =
+          typeof value === "object" && value !== null && "map" in value ? value.map : null;
+        return isElementAddress(into) || typeof map !== "string" || !ofRoot(map) ? refused : null;
+      }
+      return refused;
+    }
+    case "set":
+      for (const { target: address, values } of command.changes) {
+        const kind = flowKind(address);
+        const property = Object.keys(values).find(
+          (item) => kind === null || !FLOW_EDITOR_SET[kind].includes(item),
+        );
+        if (property !== undefined) return { address, property };
+      }
+      return null;
+    case "remove": {
+      const address = command.targets.find((item) => flowKind(item) === null);
+      return address === undefined ? null : { address, property: null };
+    }
+    case "style":
+      return { address: target, property: null };
+    default:
+      return assertNever(command);
+  }
+}
+
+/**
+ * The refusal of `command`, which led from `before` to `after`, by the
+ * innermost open editor `editor`: for a flow editor, a `side_effect` for
+ * the first address it does not admit (`flowRefused`); for any other, the
+ * first change outside its target (`sideEffect`).
+ */
+export function editorSideEffect(
+  before: View,
+  after: View,
+  editor: OpenEditor,
+  command: Command,
+  changes?: ChangeSet,
+): CommandError | null {
+  if (editor.kind !== "flow") return sideEffect(before, after, editor.target, changes);
+  const refused = flowRefused(before, editor.target, command);
+  if (refused === null) return null;
+  const { address, property } = refused;
+  const words = (item: Address) =>
+    addressWords(isCommandError(resolveAddress(before, item)) ? after : before, item);
+  const what = property === null ? words(address) : `the ${property} of ${words(address)}`;
+  return problem(
+    ErrorCode.sideEffect,
+    `${what} lies outside the flow editor of ${words(editor.target)}: an editor changes only what it edits`,
+    property === null ? [addressKey(address)] : [addressKey(address), property],
   );
 }

@@ -25,6 +25,10 @@
  * ancestor line) are keyed separately: they match the same `addresses`, `within`
  * and `element`, but each inherits from its own `parent` and matches
  * `inside` by its own chain.
+ *
+ * A declaration's `flow` (section 2.4) is no style a drawing takes: which
+ * card is switched is read from the manifest's own layer by core
+ * (`cardFlow`, `switchOf`), and the cascade leaves it unset.
  */
 
 import { addressKey } from "@timetoalign/tilie-core";
@@ -255,19 +259,19 @@ export class Cascade {
     const ranked: Ranked[] = [];
     layers.forEach((layer, level) => {
       (layer?.rules ?? []).forEach((rule, position) => {
-        const set =
+        const found =
           typeof rule.set === "string"
             ? layer?.styles !== undefined && Object.hasOwn(layer.styles, rule.set)
               ? layer.styles[rule.set]
               : undefined
             : rule.set;
         // A style name the layer's `styles` does not hold sets nothing.
-        if (set === undefined) return;
-        const select = rule.select;
+        if (found === undefined) return;
+        const { select } = rule;
         const within = select.within === undefined ? 0 : (ancestry.get(select.within)?.length ?? 0);
         ranked.push({
           select,
-          set,
+          set: found,
           rank: [
             level,
             select.addresses === undefined ? 0 : 1,

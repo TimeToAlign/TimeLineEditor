@@ -652,11 +652,11 @@ Apply stores the renamed fixture as `loadManifest` reads it, and an
 unapplied text survives a visit to another tab. The tabs: each is paired
 with one panel of its own through `aria-controls` and `aria-labelledby`,
 and the arrow, Home and End keys move the selection and the focus over the
-eight tabs (the level tab, Properties, Metadata, Manifest, Journal,
+nine tabs (the level tab, Properties, Regions, Metadata, Manifest, Journal,
 Timestamp, Matchstamp, Elisions) with and without an editor open, each key
 followed by one polled reading of every tab and its panel (text,
 `aria-selected`, `tabindex`, focus, the panel displayed as `toBeVisible`
-reads it), so the sixteen keys stay well inside the time limit in every
+reads it), so the seventeen keys stay well inside the time limit in every
 engine; with the level tab chosen,
 entering the bundle editor keeps it shown, renamed from "Arranger" to
 "Bundle". The properties form: a value moves the block by
@@ -709,6 +709,31 @@ the Elisions tab, its form's block expanded; Properties chosen then
 stays, and stays once the selection is emptied. Selected again, the
 elision shows the Elisions tab again, which stays when the selection is
 emptied: nothing goes back to the tab shown before.
+
+**`regions.spec.ts`** (Chromium, Firefox, WebKit) proves the Regions tab
+and the band list in a browser, on TimeToShare's `styled_score_flow_inner`
+imported (root `score` with the region `intro`, 0 to 2 quarters; children
+`a` and `b`), its child `b` given the region `motif` (1 to 3) by one `add`
+with the test's own ID, the card of `score` selected through the hook. The
+tab list holds Regions right after Properties. On the Regions tab: the
+rows `intro` and, under the heading "b", `motif`, each with its Name,
+Start and End ("intro", "0", "2"; "motif", "1", "3"); a click on the head
+of `motif`'s row selects exactly `{block, id: "motif"}` on the canvas and
+marks the row (`aria-pressed` "true"), the list now `b`'s alone; with the
+card of `score` selected again, "Intro" typed into `intro`'s Name and
+Enter journals one `set` of `{name: "Intro"}` on `intro`'s address; "3"
+typed into its Start and Enter journals nothing, the field `aria-invalid`
+"true" and core's message "region 'intro' ends before it starts" below
+it; Escape shows "0" again; Remove on `intro` journals `{type: "remove",
+targets: [{block, id: "intro"}]}`, the row gone. On the Properties tab
+with the card of `score` selected: the table "Bands" lists Children,
+Markers, Conversion maps, Flow control and Regions (the band order the
+fixture states), every box checked; unchecking Regions journals `{type:
+"style", select: {element: "band", addresses: [{id: "score", facet:
+"regions"}]}, set: {display: "none"}, blocks: [block]}`, the box then
+unchecked, and the hook no longer records `score`'s regions band (a band
+not displayed is absent); checking it again journals the same selector
+with `{display: null}` and the band is recorded again.
 
 **`elision-tab.spec.ts`** (Chromium, Firefox, WebKit) proves that an
 elision selected by a real pointer click on the canvas brings the Elisions
@@ -879,7 +904,12 @@ disabled, and again once a URL is entered. On `group_elided_members`
 imported: the Elisions tab with `elision_1` (a group elision of
 `excerpt`) selected, the timeline's block of `piece` expanded by its
 button, the group's block of "Theme" open by the selection and the
-elision's form shown with its Delete elision button. The unnamed pin
+elision's form shown with its Delete elision button. On
+`styled_score_flow_inner` imported, the card of `score` selected: the
+Regions tab listing `intro` and, under the heading "b", the region
+`motif` the test adds (one `add` with its own ID), `intro`'s row marked
+once its head is pressed; then, the card selected again, the Properties tab with the table "Bands"
+and its five Visible checkboxes. The unnamed pin
 (the rotation's degree readout beside its disabled slider) and the
 Journal tab (an undone entry's text, time and author) are checked for
 contrast like every other state.
@@ -1687,7 +1717,7 @@ hook at `{block: "bmixed0000"}`, `{block: "bmixed0000", id: "group_1"}` and
 `{block: "bmixed0000", id: "score"}`. With the drawer open and Properties chosen, entering the bundle, the
 group and the timeline editor keeps Properties shown while the first tab
 reads "Bundle", "Group", "Timeline", the tab list reading the level's word,
-Properties, Metadata, Manifest, Journal, Timestamp, Matchstamp and
+Properties, Regions, Metadata, Manifest, Journal, Timestamp, Matchstamp and
 Elisions in that order at every level, and Done three times gives "Arranger"
 back, Properties still shown. With the drawer closed, an editor entered
 shows the level tab when the drawer next opens, whether the canvas opens
@@ -1743,9 +1773,10 @@ buttons and the menu's three are disabled; unlocked, enabled.
 inspector's tab row wraps instead of making the inspector scroll sideways,
 on `bundles` with `bmixed0000` selected and the drawer opened, at device
 scale 1. At a 1000 × 800 page the drawer takes its least width, `22rem`
-(computed `352px`: 32 % of the editor is less), and the eight tabs read
-Arranger, Properties, Metadata, Manifest, Journal, Timestamp, Matchstamp
-and Elisions on two rows (two distinct tops of the tab buttons); with each
+(computed `352px`: 32 % of the editor is less), and the nine tabs read
+Arranger, Properties, Regions, Metadata, Manifest, Journal, Timestamp,
+Matchstamp and Elisions on three rows (three distinct tops of the tab
+buttons); with each
 tab chosen by a click, in that order, every one of the drawer, the
 inspector's body, the tab list and the panels' scroll container has its
 `scrollWidth` equal to its `clientWidth`. The widest panel there is the
@@ -1757,26 +1788,26 @@ The manifest text area of the Manifest tab is not one of the four: it keeps
 its lines unwrapped and scrolls them inside itself, a text control, not the
 inspector. The strip stays one strip: the
 selected tab alone is underlined (its bottom border `rgb(26, 26, 26)`)
-whichever row it lies in, Elisions in the second row and Arranger in the
+whichever row it lies in, Elisions in the last row and Arranger in the
 first, and the tab list's border runs under the last row (the last tab's
 bottom, read in the page as `getBoundingClientRect().bottom`, equals the
 list's bottom less its 1 px bottom border, both read in one evaluation:
 Firefox lays out in sixtieths of a pixel, and the sum of a box's `y` and
 `height` as Playwright reports them differs there from the bottom by a
 rounding of the last float digit). From the focused Arranger tab,
-ArrowRight seven times selects and focuses each next tab in reading order
-across the rows and once more wraps to Arranger; ArrowLeft eight times
+ArrowRight eight times selects and focuses each next tab in reading order
+across the rows and once more wraps to Arranger; ArrowLeft nine times
 goes back the same way. At the same width, with the bundle's editor
 opened through the hook (`open({block: bmixed0000})`, the innermost editor
 then targeting that block), the level tab reads Bundle and holds the
 widest settings (the Arrangement area and the manifest file's switches);
-with each of the eight tabs, Bundle, Properties, Metadata, Manifest,
-Journal, Timestamp, Matchstamp and Elisions, chosen by a click in that
-order, the same four have `scrollWidth` equal to `clientWidth`. At a
-2400 × 900 page the drawer takes its largest
-width, `40rem` (`640px`), and the eight tabs fit one row, nothing
-scrolling sideways (measured in Chromium: the tabs 599.59375 wide in all,
-the row 616).
+with each of the nine tabs, Bundle, Properties, Regions, Metadata,
+Manifest, Journal, Timestamp, Matchstamp and Elisions, chosen by a click in
+that order, the same four have `scrollWidth` equal to `clientWidth`. At a
+2400 × 900 page the drawer takes its largest width, `40rem` (`640px`),
+and the nine tabs take two rows, nothing scrolling sideways: the eight
+tabs before the Regions tab measured 599.59375 in all in Chromium against
+the row's 616, so the ninth no longer fits beside them.
 
 **`bands.spec.ts`** (Chromium, Firefox, WebKit) proves a timeline's bands
 as boxes of its timeline editor on `bundles` at viewport (40, 40), reduced
@@ -1823,6 +1854,30 @@ ordinate (canvas x −180 at viewport (240, 40), since `bmixed0000`'s ancestor
 card of `recording` reaches 121.70361328125 left of its place origin at
 layout's default view, and less in a narrower pane), only
 the selection's mark stays.
+
+**`flow-editor.spec.ts`** (Chromium) proves the flow editor on
+TimeToShare's `flow/virtual_cards` imported as one block, viewport (40, 40),
+zoom 1: in `allegro`'s timeline editor (opened through the hook) a
+double-click on the repeat end's symbol `{id: "repeat_end", part:
+["symbol"]}`, which `allegro`'s flow control band draws, opens the flow editor, so the store's editing path is
+the timeline editor then the flow editor of `{block, id: "allegro"}`; the
+pane under the card lists four rows, `default`, `printed`, `single`,
+`by_hand` (computed first, in the manifest's order), and axe-core reports no
+violation inside it. Add + shows the new row; Enter on the first entry of
+`default` stores one entry in the editor's session, `{type: "add", into:
+{block, id: "allegro"}, flow_map: {chunks: ["section_a"]}}`. The row
+`printed` lifted by its name and released 80 px below the pane, past the
+editor's border, stores two entries: the `add` of its virtual timeline
+`{map: "printed", timeline: "allegro"}` and a `set` placing it. Done twice
+closes both editors and the journal gains exactly one entry, the timeline
+editor's session holding the flow editor's. On the arranger, with no
+editor open and the drawing settled at the same viewport, a double-click
+at an empty point of `allegro`'s flow control band (`bandPoint`, 2 px
+clear: a press there hits `allegro`'s card) opens the flow editor alone,
+the editing path `[{target: {block, id: "allegro"}, kind: "flow"}]`, its
+pane shown; Done closes it with the journal unchanged (an empty session
+journals nothing); a double-click on the repeat end's symbol then opens
+the same flow editor alone.
 
 **`embed.spec.ts`** (Chromium, Firefox, WebKit) proves the embed build in a
 host page it does not own. A route serves the host page at

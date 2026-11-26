@@ -11,8 +11,9 @@ import type { PreparedBand } from "./bands.ts";
 import { BRACE, LABEL_GAP } from "./constants.ts";
 import { type Extent, labelExtent, type Tiered, type TieredItem, tieredFit } from "./fit.ts";
 import { centredLabel } from "./names.ts";
-import { add, coordinateValue, midpoint } from "./numbers.ts";
+import { coordinateValue, midpoint } from "./numbers.ts";
 import { type Entry, maxSize, nth, type Scope, shown } from "./traversal.ts";
+import { chunkSpans } from "./virtual.ts";
 
 /**
  * A regions band before its tiered first fit (section 6.4, Regions): its
@@ -52,11 +53,39 @@ export const regionsAlone = (staged: StagedRegions): PreparedBand =>
  * are its regions' and their drawn labels'.
  */
 export function regionsBand(scope: Scope, sources: readonly Entry[]): StagedRegions {
-  const { owned, measured, relativeX, S, h } = scope;
-  const regions = sources.flatMap((source) =>
+  const { owned, measured, relativeX, S, h, flow, rootEntry } = scope;
+  // On the line of a virtual timeline or a switched card, the chunks of its FlowMap come first,
+  // each over its drawn span, a gap among them without a brace (section 8.10).
+  const chunks =
+    flow === null || sources[0] !== rootEntry || !shown(rootEntry.bands.regions.style)
+      ? []
+      : chunkSpans(scope)
+          .map(({ chunk, start, end }) => ({
+            ...owned(
+              "region",
+              { id: flow.timeline, facet: "regions", part: [chunk.index] },
+              rootEntry,
+              "regions",
+            ),
+            start,
+            end,
+            text: chunk.text,
+            brace: !chunk.gap,
+          }))
+          .filter((chunk) => shown(chunk.style));
+  // On a switched card each region is drawn whole over its played stretch in every piece it
+  // reaches into, with its label (section 8.10).
+  const own = sources.flatMap((source) =>
     shown(source.bands.regions.style)
-      ? source.manifest.regions
-          .map((region) => ({
+      ? source.manifest.regions.flatMap((region) => {
+          const type = source.manifest.number_type;
+          const span = scope.over(
+            source,
+            coordinateValue(region.start, type),
+            coordinateValue(region.end, type),
+          );
+          if (span === undefined) return [];
+          const item = {
             ...owned(
               "region",
               idAddress(region.id),
@@ -64,13 +93,16 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): StagedRegi
               "regions",
               regionClasses(scope.manifest, region),
             ),
-            start: add(source.start, coordinateValue(region.start, source.manifest.number_type)),
-            end: add(source.start, coordinateValue(region.end, source.manifest.number_type)),
+            start: span.start,
+            end: span.end,
             text: region.name,
-          }))
-          .filter((region) => shown(region.style))
+            brace: true,
+          };
+          return shown(item.style) ? [item] : [];
+        })
       : [],
   );
+  const regions = [...chunks, ...own];
   const placed = regions.map((region) => {
     const middle = midpoint(region.start, region.end);
     const label =
@@ -126,18 +158,24 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): StagedRegi
         const tierAt = (out: number, tier: number) =>
           out + BRACE + LABEL_GAP + (tier - 1) * h(size);
         return {
-          regions: drawn.map(({ region, middle, out }) => ({
-            type: "region",
-            address: region.address,
-            style: region.style,
-            x1: at.xAfter(region.start),
-            x2: at.x(region.end),
-            xm: at.x(middle),
-            yb: at.yAt(side, out),
-            ya: at.yAt(side, out + BRACE),
-            // The brace is cut at every gap it spans, as a row is (section 6.6, Elisions).
-            cuts: at.cuts(region.start, region.end),
-          })),
+          regions: drawn.flatMap(({ region, middle, out }) =>
+            !region.brace
+              ? []
+              : [
+                  {
+                    type: "region",
+                    address: region.address,
+                    style: region.style,
+                    x1: at.xAfter(region.start),
+                    x2: at.x(region.end),
+                    xm: at.x(middle),
+                    yb: at.yAt(side, out),
+                    ya: at.yAt(side, out + BRACE),
+                    // The brace is cut at every gap it spans, as a row is (section 6.6, Elisions).
+                    cuts: at.cuts(region.start, region.end),
+                  },
+                ],
+          ),
           regionLabels: drawn.flatMap(({ region, middle, label, out, tier }) =>
             label === undefined || tier === undefined
               ? []

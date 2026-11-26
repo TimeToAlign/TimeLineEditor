@@ -467,7 +467,7 @@ describe("the inspector's tabs", () => {
 
   const PROPERTIES = [["true", "0"], ["false", "-1"], false, true];
   const MANIFEST = [["false", "-1"], ["true", "0"], true, false];
-  /** Another tab shown (the level tab, Metadata, Journal). */
+  /** Another tab shown (the level tab, Regions, Metadata, Journal). */
   const NEITHER = [["false", "-1"], ["false", "-1"], true, true];
 
   it("shows the Properties tab at mount and swaps on a click", () => {
@@ -489,6 +489,7 @@ describe("the inspector's tabs", () => {
     ).toEqual([
       ["BUTTON", "Arranger", "tabpanel", true, null],
       ["BUTTON", "Properties", "tabpanel", true, null],
+      ["BUTTON", "Regions", "tabpanel", true, null],
       ["BUTTON", "Metadata", "tabpanel", true, null],
       ["BUTTON", "Manifest", "tabpanel", true, null],
       ["BUTTON", "Journal", "tabpanel", true, null],
@@ -526,9 +527,11 @@ describe("the inspector's tabs", () => {
   it("moves between the tabs with the arrows, Home and End", () => {
     show(storeOf(), [{ block: A }]);
     const steps: [string, unknown[], string][] = [
+      ["ArrowRight", NEITHER, "Regions"],
       ["ArrowRight", NEITHER, "Metadata"],
       ["ArrowRight", MANIFEST, "Manifest"],
       ["ArrowLeft", NEITHER, "Metadata"],
+      ["ArrowLeft", NEITHER, "Regions"],
       ["ArrowLeft", PROPERTIES, "Properties"],
       ["Home", NEITHER, "Arranger"],
       ["ArrowRight", PROPERTIES, "Properties"],
@@ -538,6 +541,7 @@ describe("the inspector's tabs", () => {
       ["ArrowLeft", NEITHER, "Journal"],
       ["ArrowLeft", MANIFEST, "Manifest"],
       ["ArrowLeft", NEITHER, "Metadata"],
+      ["ArrowLeft", NEITHER, "Regions"],
       ["ArrowLeft", PROPERTIES, "Properties"],
     ];
     tabNamed("Properties").focus();

@@ -7,13 +7,24 @@
 
 import { idAddress, partAddress } from "@timetoalign/tilie-core";
 import { elementKey } from "@timetoalign/tilie-core/drawing";
+import { compareReal } from "@timetoalign/tilie-core/numbers";
 import type { Centred, LineElements, LinePosition, Side } from "./bands.ts";
 import { BOUNDARY, LABEL_GAP } from "./constants.ts";
-import type { LineElement } from "./elements.ts";
+import type { Cut, LineElement } from "./elements.ts";
 import { type Extent, labelExtent, labelTiers, Rows } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { midpoint } from "./numbers.ts";
-import { type Entry, endOf, known, maxSize, nth, type Scope, shown } from "./traversal.ts";
+import {
+  type Entry,
+  endOf,
+  known,
+  maxSize,
+  nth,
+  rootPieces,
+  type Scope,
+  shown,
+} from "./traversal.ts";
+import { chunkSpans, chunkStarts } from "./virtual.ts";
 
 /** A timeline's line and its segments' boundaries and labels, before any distance is known. */
 export interface LevelZero {
@@ -94,6 +105,16 @@ export function ownTiers(staged: StagedZero): SegmentTiers {
 }
 
 /**
+ * The entries whose lines the line `line` draws, one element each: `line`
+ * itself; on a card of a switched frame whose root is not the switched one,
+ * the root's pieces, its line drawn once in each (section 8.10).
+ */
+export function drawnEntries(scope: Scope, line: Entry): readonly Entry[] {
+  if (line !== scope.rootEntry || !scope.carried) return [line];
+  return rootPieces(scope);
+}
+
+/**
  * Level 0 of the timeline drawn with the line `line` (sections 6.1, 6.4 and
  * 6.6): its segments are its children when it is a segment line, every one
  * of them, with a line of its own or not; their labels are placed by one
@@ -104,10 +125,7 @@ export function ownTiers(staged: StagedZero): SegmentTiers {
 export function levelZero(scope: Scope, line: Entry): StagedZero {
   const { index, rootEntry, member, styled, measured, relativeX, relativeEnd, h, d } = scope;
   const drawn = shown(line.style);
-  const segments =
-    drawn && line.manifest.is_segment_line
-      ? (index.childrenByParent.get(line.manifest.id) ?? [])
-      : [];
+  const segments = drawn ? (index.segmentsByLine.get(line) ?? []) : [];
   const part = (segment: Entry, word: "start" | "label") => {
     const key = elementKey(
       word === "start" ? "boundary" : "label",
@@ -118,10 +136,30 @@ export function levelZero(scope: Scope, line: Entry): StagedZero {
     return { ...styled(key, line.style), key };
   };
   const boundaries = segments
-    .filter((segment) => !segment.first)
-    .map((segment) => ({ segment, ...part(segment, "start") }))
+    // A segment cut at the start of a switched card's piece has no boundary there (section 8.10).
+    .filter((segment) => !segment.first && !segment.startCut)
+    .map((segment) => ({ segment, at: segment.start, ...part(segment, "start") }))
     .filter((boundary) => shown(boundary.style));
-  const bounded = boundaries.length > 0;
+  // The line of a virtual timeline or of a switched card holds the boundaries at the drawn starts
+  // of the chunks of its FlowMap (section 8.10), and draws a gap line over every gap's span.
+  const { flow } = scope;
+  const chunked = flow !== null && line === rootEntry && drawn ? flow : null;
+  const chunkBoundaries =
+    chunked === null
+      ? []
+      : chunkStarts(scope)
+          .map(({ chunk, at }) => {
+            const address = {
+              id: chunked.timeline,
+              facet: "regions",
+              part: [chunk.index, "start"],
+            } as const;
+            const key = elementKey("boundary", address, line.manifest, line.key);
+            return { segment: line, at, ...styled(key, line.style), key };
+          })
+          .filter((boundary) => shown(boundary.style));
+  const flowGaps = chunked === null ? [] : chunkSpans(scope).filter(({ chunk }) => chunk.gap);
+  const bounded = boundaries.length > 0 || chunkBoundaries.length > 0;
   const labels = segments.flatMap((segment) => {
     const text = segment.manifest.name;
     const label = part(segment, "label");
@@ -164,16 +202,16 @@ export function levelZero(scope: Scope, line: Entry): StagedZero {
         return m(against) + LABEL_GAP + count * h(size);
       },
       draw: (at, against) => ({
-        line: drawn ? drawnLine(at) : [],
-        boundaries: boundaries
-          .filter(({ segment }) => at.gap(segment.start) === undefined)
-          .map(({ segment, address, style }) => ({
+        line: drawn ? drawnLines(at) : [],
+        boundaries: [...boundaries, ...chunkBoundaries]
+          .filter((boundary) => at.gap(boundary.at) === undefined)
+          .map(({ segment, at: start, address, style }) => ({
             segment,
             element: {
               type: "boundary",
               address,
               style,
-              x: at.x(segment.start),
+              x: at.x(start),
               y1: at.y - BOUNDARY,
               y2: at.y + BOUNDARY,
             },
@@ -213,33 +251,49 @@ export function levelZero(scope: Scope, line: Entry): StagedZero {
   }
 
   /**
-   * The line at `at`: from `Xs`, or from the right edge of the gap its start lies in, without
-   * its circle; to its end mark past `Xe`, or to the left edge of the gap its end lies in,
-   * without a mark; none where those meet or cross; cut at every gap it crosses (section 6.6,
-   * Elisions).
+   * The line at `at` (`drawnLine`); on a card of a switched frame whose root is not the
+   * switched one, the root's line drawn once in each stretch piece it reaches into, each piece's
+   * marks kept only at the root's own start and end (section 8.10).
    */
-  function drawnLine(at: LinePosition): LineElement[] {
-    const first = at.gap(line.start);
-    const last = line.rootEnd ? undefined : at.gap(line.end);
-    const xs = first === undefined ? at.x(line.start) : first[1];
-    const xEnd = last === undefined ? at.xEnd(line) : last[0];
+  function drawnLines(at: LinePosition): LineElement[] {
+    return drawnEntries(scope, line).flatMap((entry) => drawnLine(at, entry));
+  }
+
+  /**
+   * The line of `entry` at `at`: from `Xs`, or from the right edge of the gap its start lies in,
+   * without its circle; to its end mark past `Xe`, or to the left edge of the gap its end lies
+   * in, without a mark; none where those meet or cross; cut at every gap it crosses (section
+   * 6.6, Elisions). On a switched card an end cut at its piece's draws no mark either (section
+   * 8.10).
+   */
+  function drawnLine(at: LinePosition, entry: Entry): LineElement[] {
+    const first = at.gap(entry.start);
+    const last = entry.rootEnd ? undefined : at.gap(entry.end);
+    const xs = first === undefined ? at.x(entry.start) : first[1];
+    const xEnd = last === undefined ? at.xEnd(entry) : last[0];
     if ((first !== undefined || last !== undefined) && xs >= xEnd) return [];
     const end =
-      last === undefined
-        ? endOf(line.manifest, line === rootEntry && member.ancestors.length === 0, line.open)
-        : "none";
-    return [
-      {
-        type: line === rootEntry ? "timeline" : "child",
-        address: line.key.address,
-        style: line.style,
-        xs,
-        xe: end === "unknown" ? xEnd + 4 * w : xEnd,
-        y: at.y,
-        start: first === undefined ? "circle" : "none",
-        end,
-        cuts: at.cuts(line.start, line.rootEnd ? null : line.end),
-      },
-    ];
+      last !== undefined || entry.endCut
+        ? "none"
+        : endOf(entry.manifest, line === rootEntry && member.ancestors.length === 0, entry.open);
+    const element: LineElement = {
+      type: line === rootEntry ? "timeline" : "child",
+      address: line.key.address,
+      style: line.style,
+      xs,
+      xe: end === "unknown" ? xEnd + 4 * w : xEnd,
+      y: at.y,
+      start: first === undefined && !entry.startCut ? "circle" : "none",
+      end,
+      cuts: at.cuts(entry.start, entry.rootEnd ? null : entry.end),
+    };
+    // Over the span of a gap of its FlowMap the line is not drawn: a gap line stands in for it,
+    // held by the drawing of the line in whose span it lies.
+    const gaps = flowGaps.filter(
+      (gap) => compareReal(entry.start, gap.start) <= 0 && compareReal(gap.end, entry.end) <= 0,
+    );
+    return gaps.length === 0
+      ? [element]
+      : [{ ...element, gapLines: gaps.map((gap): Cut => [at.x(gap.start), at.x(gap.end)]) }];
   }
 }
