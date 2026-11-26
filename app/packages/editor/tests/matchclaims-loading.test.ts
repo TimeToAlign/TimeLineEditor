@@ -244,12 +244,12 @@ describe("refusals", () => {
       path: [],
       message: "row 2 refused",
       problems: [
-        { code: "claim_events", row: 2, column: ["a"], message: "a sentinel side has no name" },
+        { code: "claim_events", row: 2, column: ["a"], message: "a NOMATCH side has no name" },
         { code: "schema", row: null, column: [], message: "a column is missing" },
       ],
     });
     expect(loadFailure("t.parquet", refused)).toBe(
-      "t.parquet could not be loaded: row 2: a sentinel side has no name; a column is missing",
+      "t.parquet could not be loaded: row 2: a NOMATCH side has no name; a column is missing",
     );
     expect(loadFailure("t.parquet", new ServerError("unreachable", null, "Failed to fetch"))).toBe(
       "t.parquet could not be loaded: the server did not answer (Failed to fetch).",

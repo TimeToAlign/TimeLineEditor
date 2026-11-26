@@ -83,7 +83,7 @@ CHUNK = "CHUNK_SENTINEL"
 NOMATCH = "NOMATCH_SENTINEL"
 """The table's reserved strings, written as the strings they are."""
 
-CLAIM_11 = claim("claim_11", ("dpt_1", CHUNK, None), ("cpt_1", CHUNK, None))
+CLAIM_11 = claim("claim_11", ("dpt_1", CHUNK, "downbeat 3"), ("cpt_1", CHUNK, None))
 CLAIM_12 = claim(
     "claim_12", ("clt_1", "note_10", "E5"), ("dpt_1", NOMATCH, None), synchronous=False
 )

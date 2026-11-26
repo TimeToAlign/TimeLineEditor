@@ -165,8 +165,10 @@ call or the exact result.
    nine members `id`, the two sides' `timeline_*_id`, `event_*_id`,
    `event_*_name`, `certainty`, `is_synchronous`: `claim_1` `clt_1`
    `note_1` "C4" against `dpt_1` `projection_1` without a name,
-   `claim_11` `dpt_1` `CHUNK_SENTINEL` against `cpt_1` `CHUNK_SENTINEL`
-   (the reserved string for the CHUNK sentinel on both sides), no names,
+   `claim_11` `dpt_1` `CHUNK_SENTINEL` named "downbeat 3" (a CHUNK side
+   may name the position it states) against `cpt_1` `CHUNK_SENTINEL`
+   without a name (the reserved string for the CHUNK sentinel on both
+   sides),
    `claim_12`'s side B `dpt_1` `NOMATCH_SENTINEL` (the MatchClaim table's
    reserved string for the NOMATCH sentinel), no name, and not
    synchronous. An event ID is always a string: a side naming no event

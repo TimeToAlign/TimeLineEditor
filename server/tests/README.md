@@ -836,7 +836,7 @@ written out by hand in the test, never read off an answer:
 | `claim_1` | `clt_1` `note_1` `C4` | `dpt_1` `projection_1` – | yes |
 | `claim_4` | `dpt_1` `projection_4` – | `clt_1` `note_4` `G4` | yes |
 | `claim_7` | `clt_1` `note_6` `A4` | `cpt_1` `onset_2` – | yes |
-| `claim_11` | `dpt_1` `CHUNK_SENTINEL` – | `cpt_1` `CHUNK_SENTINEL` – | yes |
+| `claim_11` | `dpt_1` `CHUNK_SENTINEL` `downbeat 3` | `cpt_1` `CHUNK_SENTINEL` – | yes |
 | `claim_12` | `clt_1` `note_10` `E5` | `dpt_1` `NOMATCH_SENTINEL` – | no |
 | `claim_15` | `clt_2` `note_13` `A5` | `dpt_1` `projection_9` – | yes |
 | `claim_16` | `cpt_1` `CHUNK_SENTINEL` – | `clt_1` `note_2` `D4` | yes |
@@ -849,7 +849,9 @@ Every certainty is 1.0. Each answered MatchClaim has exactly the members
 table's reserved string, answered as written, `NOMATCH_SENTINEL` on a
 MatchClaim that is not synchronous (`claim_12`, and `claim_18`, stated from
 `inserted_1`, a Projection of no event the package holds) and `CHUNK_SENTINEL` on a
-synchronous one, on both sides (`claim_11`) or on one (`claim_16`); the
+synchronous one, on both sides (`claim_11`) or on one (`claim_16`). A
+CHUNK side may carry a name, the position it states (`claim_11`'s side A
+`downbeat 3`), answered as written; a NOMATCH side has none. The
 table is posted as the fixture has it, never edited for a sentinel. The sentinels are written in the test as
 the strings they are, never read from a package. The route reads no table but the MatchClaim table: the request
 leaves no place for another, so a body that once carried a second table
@@ -859,7 +861,7 @@ manifest's length and refused by the table route's own split.
 | Request | Answer |
 | --- | --- |
 | `claims` `["claim_1", "claim_4", "claim_7", "claim_11", "claim_12", "claim_15"]` | 200, the six rows above in that order, each of exactly the nine members |
-| `claims` `["claim_16", "claim_11", "claim_12", "claim_18"]` | 200, those four rows above in that order: a CHUNK on side A beside an event, a CHUNK on both sides, a NOMATCH beside an event, a NOMATCH beside a Projection without a source |
+| `claims` `["claim_16", "claim_11", "claim_12", "claim_18"]` | 200, those four rows above in that order: a CHUNK on side A beside an event, a CHUNK on both sides (side A named), a NOMATCH beside an event, a NOMATCH beside a Projection without a source |
 | `claims` `[]` | 200 `{"claims": []}` |
 | `claims` `["claim_1", "claim_99"]` | 422 `{"detail": {"path": ["claims", 1], "message": "the MatchClaim table has no MatchClaim 'claim_99'"}}` |
 | `claims` `"claim_1"` | 422 at `["claims"]`, `the parameter 'claims' is no list of MatchClaim IDs` |
