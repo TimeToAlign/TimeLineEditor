@@ -816,6 +816,46 @@ not hidden; delete its virtual timeline in the Properties tab.`. A
 selected virtual card takes nothing away (below): `{allegro_default
 [card]}` affects nothing.
 
+**A deletion that also deletes virtual timelines asks first**
+(`commands.test.ts`, `deleteQuestion`). The rule: a `remove` whose
+targets take along virtual timelines they do not name (core's
+`removedBy`: made from a removed timeline or virtual timeline, or
+through a removed FlowMap, at any depth) gets a question naming what is
+deleted and each virtual timeline taken along by `addressWords`, in the
+manifest's order of its virtual timelines; "Delete all" is the `remove`
+with those virtual timelines appended to its targets, which core
+accepts (it refuses a virtual timeline another one left is made from, so
+naming them is what lets it pass); "Hide instead" is the `set` of
+`hideCommand` on the targets, offered only when every target is a
+virtual timeline its block places, since only such a card can be hidden
+(a root's card is drawn whether placed or not, a member's has no place
+of its own). What proves it: the exact question, the exact commands, and
+core's verdict on the view after each. On `virtualView` (above), with
+`again` added as one more virtual timeline made from `allegro_default`
+through the FlowMap `single` (one `add` of `{map: "single", timeline:
+"allegro_default"}` with the ID `again`):
+
+| `remove` targets | question | Delete all targets | Hide instead |
+|---|---|---|---|
+| [A: allegro] (without `again`) | `Deleting timeline 'Allegro' also deletes what is made from it: virtual timeline 'Allegro, practice', virtual timeline 'Allegro, default' and virtual timeline 'Allegro, single'. Delete all?` | [A: allegro, A: allegro_by_hand, A: allegro_default, A: allegro_single] | none |
+| [A: allegro_default] | `Deleting virtual timeline 'Allegro, default' also deletes what is made from it: virtual timeline 'again'. Delete all, or hide its card instead?` | [A: allegro_default, A: again] | `{x: null, y: null}` unstated on A: allegro_default |
+| [A: allegro_default, A: again] / [A: allegro_by_hand] / [A: section_b] / [A] / [A, A: allegro] | no question | | |
+
+Without `again` the first row's Delete all leaves `timelines`,
+`flow_maps` and `virtual_timelines` empty. With `again`, core refuses
+the bare [A: allegro_default] (`not_removable`, `virtual timeline
+'allegro_default' is still named: the virtual timelines 'again' come
+from it`), accepts Delete all, after which `virtual_timelines` holds
+`allegro_by_hand` and `allegro_single`, and accepts Hide instead, after
+which `places` no longer holds `allegro_default` and all four virtual
+timelines stay. In `groups/virtual_member` (where `allegro_default` is a
+member of `performance`, its card placed by the frame) with `again`
+added the same way but through the FlowMap `printed`, [A:
+allegro_default] asks `Deleting virtual timeline 'Allegro, default' also
+deletes what is made from it: virtual timeline 'again'. Delete all?`
+with no Hide instead. The question is asked by the canvas's host (`confirmDelete`,
+the editor's README); without a host the deletion is stored as asked.
+
 **What a deletion also takes away** is highlighted before it happens. The
 rule reads the manifest alone: the owners are the IDs the selected
 element addresses carry (the title carries none, a band is no owner, nor

@@ -6,6 +6,8 @@ import type {
   Manifest,
   OpenEditor,
   Pin,
+  RemoveCommand,
+  SetCommand,
   Store,
 } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
@@ -23,7 +25,7 @@ import { raisedRoot } from "./boxes.ts";
 import CanvasToolbar from "./CanvasToolbar.svelte";
 import CoordinateFlag from "./CoordinateFlag.svelte";
 import CoordinateMarks from "./CoordinateMarks.svelte";
-import type { Visible } from "./commands.ts";
+import type { DeleteQuestion, Visible } from "./commands.ts";
 import type { Level } from "./containers.ts";
 import { arrangedOf, levelOf, rulesOf } from "./containers.ts";
 import type { KnotsOf, MarkPlace, MeasureMapsAnswer, PlacedMarks } from "./coordinates.ts";
@@ -205,6 +207,13 @@ interface Props {
    * and says why, and no findings are shown.
    */
   flows?: FlowServer | undefined;
+  /**
+   * Asked before a deletion that also deletes virtual timelines made from
+   * what it names (`deleteQuestion`): resolves the command the user chose,
+   * "Delete all" (`remove`) or "Hide instead" (`hide`), or `null` to store
+   * nothing. Without it the deletion is stored as asked, "Delete all".
+   */
+  confirmDelete?: (question: DeleteQuestion) => Promise<RemoveCommand | SetCommand | null>;
 }
 
 let {
@@ -229,6 +238,7 @@ let {
   onrefuse,
   pane = new Pane(),
   flows,
+  confirmDelete,
 }: Props = $props();
 
 /**

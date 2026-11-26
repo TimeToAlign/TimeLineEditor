@@ -1,9 +1,10 @@
 import type { Address, Part, View } from "@timetoalign/tilie-core";
-import { isIndex, manifestIds, WORKSPACE } from "@timetoalign/tilie-core";
+import { addressKey, apply, isIndex, manifestIds, WORKSPACE } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import type { ZOrderAction } from "../src/commands.ts";
 import {
   addCommand,
+  deleteQuestion,
   moveCommand,
   nudgeCommand,
   removeCommand,
@@ -444,6 +445,89 @@ describe("Delete on a virtual card", () => {
     expect(removeCommand(member, selectionOf([card(DEFAULT)]), null)).toEqual({
       refused:
         "A virtual card in a frame is not hidden; delete its virtual timeline in the Properties tab.",
+    });
+  });
+});
+
+describe("deleteQuestion", () => {
+  const id = (element: string): Address => ({ block: A, id: element });
+  /** `view` with `again`, a virtual timeline made from `allegro_default` through `map`. */
+  const withAgain = (view: View, map: string) =>
+    changed(view, {
+      type: "add",
+      into: { block: A },
+      virtual_timeline: { map, timeline: DEFAULT },
+      ids: ["again"],
+    });
+  const asked = (view: View, ...targets: Address[]) =>
+    deleteQuestion(view, { type: "remove", targets });
+  const virtualIds = (view: View) =>
+    (blockIn(view, A).manifest.virtual_timelines ?? []).map((item) => item.id);
+
+  it("names the virtual timelines a root takes along, with nothing to hide", () => {
+    const view = virtualView();
+    const question = asked(view, id("allegro"));
+    expect(question).toEqual({
+      question:
+        "Deleting timeline 'Allegro' also deletes what is made from it: virtual timeline 'Allegro, practice', virtual timeline 'Allegro, default' and virtual timeline 'Allegro, single'. Delete all?",
+      remove: removing(id("allegro"), id(BY_HAND), id(DEFAULT), id("allegro_single")),
+      hide: null,
+    });
+    if (question === null) throw new Error("no question");
+    const manifest = blockIn(changed(view, question.remove), A).manifest;
+    expect([manifest.timelines, manifest.flow_maps, manifest.virtual_timelines]).toEqual([
+      [],
+      [],
+      [],
+    ]);
+  });
+
+  it("offers to hide a placed virtual card another virtual timeline is made from", () => {
+    const view = withAgain(virtualView(), "single");
+    const question = asked(view, id(DEFAULT));
+    expect(question).toEqual({
+      question:
+        "Deleting virtual timeline 'Allegro, default' also deletes what is made from it: virtual timeline 'again'. Delete all, or hide its card instead?",
+      remove: removing(id(DEFAULT), id("again")),
+      hide: {
+        type: "set",
+        changes: [{ target: id(DEFAULT), values: { place: { x: null, y: null } } }],
+      },
+    });
+    if (question === null || question.hide === null) throw new Error("no question");
+    expect(apply(view, removing(id(DEFAULT)))).toEqual({
+      code: "not_removable",
+      path: [addressKey(id(DEFAULT))],
+      message:
+        "virtual timeline 'allegro_default' is still named: the virtual timelines 'again' come from it",
+    });
+    expect(virtualIds(changed(view, question.remove))).toEqual([BY_HAND, "allegro_single"]);
+    const hidden = blockIn(changed(view, question.hide), A);
+    expect(Object.hasOwn(hidden.places, DEFAULT)).toBe(false);
+    expect(virtualIds(changed(view, question.hide))).toEqual([
+      "again",
+      BY_HAND,
+      DEFAULT,
+      "allegro_single",
+    ]);
+  });
+
+  it("asks nothing where nothing else goes", () => {
+    const view = withAgain(virtualView(), "single");
+    expect(asked(view, id(DEFAULT), id("again"))).toBeNull();
+    expect(asked(view, id(BY_HAND))).toBeNull();
+    expect(asked(view, id("section_b"))).toBeNull();
+    expect(asked(view, { block: A })).toBeNull();
+    expect(asked(view, { block: A }, id("allegro"))).toBeNull();
+  });
+
+  it("offers no hiding of a member's card in its frame", () => {
+    const view = withAgain(viewOf({ id: A, fixture: "groups/virtual_member" }), "printed");
+    expect(asked(view, id(DEFAULT))).toEqual({
+      question:
+        "Deleting virtual timeline 'Allegro, default' also deletes what is made from it: virtual timeline 'again'. Delete all?",
+      remove: removing(id(DEFAULT), id("again")),
+      hide: null,
     });
   });
 });

@@ -20,6 +20,7 @@ import {
   indicesBetween,
   isCommandError,
   preview,
+  removedBy,
   resolveAddress,
   sameAddress,
   TITLE_ADDRESS,
@@ -344,9 +345,11 @@ const DELETE_HINTS = {
 /**
  * The `set` hiding the cards of the virtual timelines `targets` (each
  * `{block, id: V}`, its card held by its block): every member of each one's
- * stated place unstated, the virtual timeline kept.
+ * stated place unstated, the virtual timeline kept. Only a virtual
+ * timeline's card is hidden so: a root's card is drawn whether its place is
+ * stated or not, and a member's card in its frame has no place of its own.
  */
-function hideCommand(view: View, targets: readonly Address[]): SetCommand {
+export function hideCommand(view: View, targets: readonly Address[]): SetCommand {
   const changes = targets.map((target) => {
     const { block, element } = addressParts(target);
     const place = element?.id === undefined ? undefined : view.blocks[block]?.places[element.id];
@@ -379,7 +382,9 @@ function hideCommand(view: View, targets: readonly Address[]): SetCommand {
  * refusal as it shows every refusal of the store. Inside an editor the
  * edited element is never removed, a part of it standing for it as well:
  * it is left out of the targets, and a selection that names nothing else
- * is refused with a hint to close the editor first.
+ * is refused with a hint to close the editor first. A `remove` that also
+ * takes along virtual timelines made from what it names is asked about
+ * before it is stored (`deleteQuestion`).
  */
 export function removeCommand(
   view: View,
@@ -439,4 +444,82 @@ export function removeCommand(
   if (targets.size === 0 && left !== null) return { refused: DELETE_HINTS[left] };
   if (removed.length === 0) return { refused: "Close its editor to delete the edited element." };
   return { type: "remove", targets: removed };
+}
+
+/**
+ * What a deletion asks first: it also deletes virtual timelines made from
+ * what it names, and the user chooses between deleting them all and
+ * hiding instead.
+ */
+export interface DeleteQuestion {
+  /**
+   * The question: what is deleted, and every virtual timeline it takes
+   * along, each by its kind and its name, else its ID (`addressWords`).
+   */
+  readonly question: string;
+  /** "Delete all": the `remove` naming those virtual timelines as well. */
+  readonly remove: RemoveCommand;
+  /**
+   * "Hide instead": the `set` hiding the cards of what is deleted
+   * (`hideCommand`), which removes nothing; `null` unless every target is a
+   * virtual timeline whose card its block holds, the only card that can be
+   * hidden.
+   */
+  readonly hide: SetCommand | null;
+}
+
+/** `items` as a sentence lists them: `a`, `a and b`, `a, b and c`. */
+function listed(items: readonly string[]): string {
+  const last = items.at(-1) ?? "";
+  return items.length < 2 ? last : `${items.slice(0, -1).join(", ")} and ${last}`;
+}
+
+/**
+ * The question `command` asks before it is stored, where removing its
+ * targets also removes virtual timelines it does not name (core's
+ * `removedBy`: those made from a removed timeline or virtual timeline, or
+ * through a removed FlowMap, at any depth); `null` where it removes none,
+ * and for the virtual timelines of a block removed whole. Core refuses to
+ * remove a virtual timeline another one left is made from, so "Delete all"
+ * names each of them, after the targets, in each block's order of its
+ * virtual timelines.
+ */
+export function deleteQuestion(view: View, command: RemoveCommand): DeleteQuestion | null {
+  const whole = new Set<BlockId>();
+  const named = new Map<BlockId, string[]>();
+  for (const target of command.targets) {
+    if (target.block === undefined) continue;
+    const { block, element } = addressParts(target);
+    if (element === null) whole.add(block);
+    else if (element.id !== undefined) named.set(block, [...(named.get(block) ?? []), element.id]);
+  }
+  const taken: Address[] = [];
+  for (const [id, ids] of named) {
+    const block = view.blocks[id];
+    if (block === undefined || whole.has(id)) continue;
+    const removed = removedBy(block.manifest, ids);
+    const asked = new Set(ids);
+    for (const item of block.manifest.virtual_timelines ?? []) {
+      if (removed.has(item.id) && !asked.has(item.id)) taken.push(inBlock(id, idAddress(item.id)));
+    }
+  }
+  if (taken.length === 0) return null;
+  const hideable = command.targets.every((target) => {
+    if (target.block === undefined) return false;
+    const { block, element } = addressParts(target);
+    const id = element?.id;
+    const held = view.blocks[block];
+    if (id === undefined || held === undefined || held.places[id] === undefined) return false;
+    return (held.manifest.virtual_timelines ?? []).some((item) => item.id === id);
+  });
+  const subjects = command.targets.map((target) => addressWords(view, target));
+  const pronoun = subjects.length === 1 ? "it" : "them";
+  const choice = hideable
+    ? ` Delete all, or hide ${subjects.length === 1 ? "its card" : "their cards"} instead?`
+    : " Delete all?";
+  return {
+    question: `Deleting ${listed(subjects)} also deletes what is made from ${pronoun}: ${listed(taken.map((target) => addressWords(view, target)))}.${choice}`,
+    remove: { type: "remove", targets: [...command.targets, ...taken] },
+    hide: hideable ? hideCommand(view, command.targets) : null,
+  };
 }
