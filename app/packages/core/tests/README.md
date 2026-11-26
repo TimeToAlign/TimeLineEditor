@@ -895,6 +895,43 @@ check of who holds what.
     "regions", part: [k, "leader"]}`. An owner's text and leader keep
     their forms (`{id: X, part: ["label"]}`, `{id: X, part: ["leader"]}`),
     and a band's key (a facet, no part) has no text: `textKey` throws.
+15. **Virtual cards** (drawing.md §2.2, §8.10). Every virtual timeline is
+    drawn as a root holding nothing: in the frame of each group having it
+    as a member, at its place in the display order, and, in no group, in
+    a block-held card after the ungrouped roots', by ID. Core lists that
+    card whether `places` states it or not (the block draws it where
+    `places` does, which no manifest holds): a placed card is one place
+    away. Its card, line and name are a root's; it has only its markers
+    and regions bands; its line holds, after its name, the boundary
+    `{id: V, facet: "regions", part: [k, "start"]}` of every drawn entry
+    `k ≥ 1`; its regions band holds first, for each drawn entry, the brace
+    `{id: V, facet: "regions", part: [k]}` (a `region`, the class of its
+    unit's timeline, no `types`) followed by its label `[k, "label"]`
+    (held by the brace), a gap entry its label alone, keyed as the label
+    of a brace that is not listed. A run (two or more consecutive entries
+    naming one ID, gaps forming none) is drawn once in a block-held card,
+    its later entries neither listed nor bounded, and entry by entry in a
+    frame. Written out from the specification:
+    - `flow/virtual_cards.yaml`, `allegro_by_hand` (Practice: A, A, A, A,
+      a gap of 4, C), block-held: its card at `["block"]`, its line at
+      `["block"]` holding its name, the boundaries `[4, "start"]` and
+      `[5, "start"]`, the markers band (empty: it has no timestamps) and
+      the regions band, which holds the brace `[0]` (A × 4, the run drawn
+      once) with its label, the gap's label `[4, "label"]` and the brace
+      `[5]` (C) with its label: twelve keys.
+    - `groups/virtual_member.yaml`, `allegro_default` (A, B, A, C) in the
+      frame of `performance`: every chain begins `["block", "frame"]`; the
+      boundaries `[1, "start"]` to `[3, "start"]`; the markers band holds
+      its named timestamps `timestamp_3` and `timestamp_4`, each a wedge
+      and its coordinate label (`display: [wedge, coordinate]`), of
+      `coordinates: "primary"`; the regions band the four braces each with
+      its label: twenty keys.
+    A virtual timeline that does not resolve to a FlowMap's entries (one
+    applying a conversion map, one stating `through`) lists its card,
+    line, name, bands and timestamps and no entry: on
+    `bundles/bundle_mixed.yaml`, the virtual timeline `mapped` a command
+    adds applying `cmap_2` (`score`'s map onto seconds) lists exactly its
+    card, its line, its name and its two bands, held by the block.
 
 The elements of manifests with several roots and groups are in "Several
 roots and groups".
@@ -1368,18 +1405,22 @@ string form is `addressKey`, and nothing splits or composes an ID.
    equal object for `{}`, `{block: A}`, `{block: A, id: "score"}`,
    `{block: A, id: "score", facet: "regions"}`, `{block: A, id: "score",
    part: ["end", "label"]}`, `{block: A, id: "score", part: ["card"]}`,
-   `{block: A, part: ["name"]}` and the free IDs
-   `https://example.org/piece/score#exposition` and `perf/take 2`. Each
+   `{block: A, part: ["name"]}`, the free IDs
+   `https://example.org/piece/score#exposition` and `perf/take 2`, and a
+   chunk's label `{block: A, id: "allegro_default", facet: "regions",
+   part: [2, "label"]}` (the schema's `Address`: a part holds part words
+   and chunk indices, integers from 0). Each
    invalid shape is `invalid_address` at the `path` given, with its
    message: a string, `null` or an array, "an address is an object";
    `{block: A, colour: "red"}`, "an address has no member colour"; a
    `block` of `"short"` or `3`, "an address's block is a block id"; an `id`
    of `""`, `"a\u0001b"` or `3`, "an address's id is a non-empty string
    without control characters"; a `facet` of `region`, "an address's facet
-   is a facet"; a `part` of `[]`, `["middle"]` or `"name"`, "an address's
-   part is a non-empty array of part words"; `{block: A, facet:
-   "regions"}`, "a facet stands with an id"; `{block: A, id: "score",
-   facet: "regions", part: ["label"]}`, "a facet never stands with a part";
+   is a facet"; a `part` of `[]`, `["middle"]`, `"name"`, `[-1]` or
+   `[1.5]`, "an address's part is a non-empty array of part words and
+   chunk indices"; `{block: A, facet: "regions"}`, "a facet stands with an
+   id"; `{block: A, id: "score", facet: "regions", part: ["label"]}`, "a
+   facet stands with a part only where the part holds a chunk index";
    `{id: "score"}` and `{part: ["name"]}`, "an element's address names its
    block".
 2. **The builders.** `BUNDLE_ADDRESS` is `{}`, `TITLE_ADDRESS` `{part:
@@ -1415,9 +1456,9 @@ string form is `addressKey`, and nothing splits or composes an ID.
    facet: "regions", part: [2, "label"]}` is
    `{"facet":"regions","id":"virtual_1","part":[2,"label"]}`, and it
    differs from the chunk `[2]`, from `[1, "label"]` and from the region
-   label `{id: "virtual_1", part: ["label"]}`. No container resolves a
-   chunk: `resolveElement` names nothing at `{id: "score", facet:
-   "regions", part: [0]}` of `map.yaml`.
+   label `{id: "virtual_1", part: ["label"]}`. A chunk resolves only on a
+   virtual timeline's card (item 18): `resolveElement` names nothing at
+   `{id: "score", facet: "regions", part: [0]}` of `map.yaml`.
 4. **Every kind resolves.** On a block of `bundles/bundle_mixed.yaml` (and
    one of `map.yaml`), one address per kind with its expected resolution
    written by hand: the workspace `{}`, a block `{block: A}`, the title
@@ -1480,6 +1521,9 @@ string form is `addressKey`, and nothing splits or composes an ID.
    an alignment anchor's line its anchor, a stored elision's gap its
    elision (in a card, across a frame and carried into an ancestor card
    alike), its ellipsis and labels a part, every other line a timeline;
+   a virtual timeline's card, bands and line their virtual kinds
+   (`virtual_card`, `virtual_band`, `virtual_timeline`) and the brace of
+   an entry of its FlowMap a `chunk`;
    `bundles/bundle_matchstamps.yaml` gives the anchors' lines and the
    label `{id: "anchor_1", part: ["name"]}`): the cross-check between the resolver and the
    elements. The bundle's address `{}` resolves to nothing there (the
@@ -1499,7 +1543,12 @@ string form is `addressKey`, and nothing splits or composes an ID.
    whatever elisions are stored, since a rule stating `proportional`
    derives them beside stored ones and core reads no cascade). The
    candidates are built without the resolver, so a part the resolver names
-   that nothing draws fails here.
+   that nothing draws fails here; for every virtual timeline the
+   candidates include `{id: V, facet: "regions", part: [k]}` and `[k, w]`
+   for every entry `k` of its map and one past them and every part word
+   `w`, so an entry is resolved exactly where it is drawn (a gap by its
+   label and boundary only, a run's later entries in a block-held card not
+   at all).
 8. **The registry** (`CONTAINERS`, `CONTAINER_KINDS` `block`, `frame`,
    `card`, `band`) states each container kind exactly: the block at the
    bundle level, styled as `block`, with no place; the frame at the group
@@ -1640,6 +1689,22 @@ string form is `addressKey`, and nothing splits or composes an ID.
     `["name"]`; the band `{id: "score", facet: "regions"}` is `score`'s
     `regions` list itself, the markers band `score` itself; the workspace
     and the block lie nowhere (`null`).
+18. **Chunks and the timestamps of a virtual timeline** (drawing.md
+    §2.2, §8.10). On a block of `flow/virtual_cards.yaml`:
+    `{id: "allegro_default", facet: "regions", part: [2]}` resolves to a
+    `chunk` of `allegro_default`, entry 2 of `default`, which lies at
+    `["flow_maps", 1, "chunks", 2]` (`resolvedPath`: the value there is
+    `section_a`) and is worded "chunk 3 of virtual timeline 'Allegro,
+    default'"; its label `[2, "label"]` and its boundary `[2, "start"]`
+    resolve to parts of it ("the label of chunk 3 of …"); entry 1 of
+    `allegro_by_hand`, the second of its run `A × 4`, resolves to nothing
+    (not drawn), its gap's label `[4, "label"]` to the part `label` of the
+    chunk 4, and the gap itself `[4]` to nothing; `{id:
+    "allegro_by_hand", part: ["name"]}` to the part `name` of the
+    virtual timeline. No command aims at a chunk: `set` on one is
+    `unknown_target`. On `groups/virtual_member.yaml` the named timestamp
+    `timestamp_3` resolves to `timestamp` with its owner `allegro_default`
+    (`indexOf(manifest).owners`).
 
 ## Commands (`commands.test.ts`)
 
@@ -6155,8 +6220,8 @@ never a spelled-out random literal.
    regions bands; `{id: virtual_1}` resolves to `virtual_timeline`,
    `{id: virtual_1, facet: "regions"}` to `virtual_band`, `{id: virtual_1,
    facet: "children"}` to nothing, and `{id: virtual_1, part: ["card"]}`
-   to nothing too, a part resolving only where the drawing's elements list
-   it (`manifestElements` lists no virtual card yet); `contains(manifest, both, {id: virtual_1, part:
+   to `virtual_card`, the drawing's elements listing it (a part resolves
+   only where they list it); `contains(manifest, both, {id: virtual_1, part:
    ["card"]})` holds; `placedElement` of the key `{item: both, member:
    virtual_1}` is `virtual_1`. `set {groups: []}` on it leaves the group
    with `score` alone; `set {order}` on the group lists the virtual member,
@@ -6186,6 +6251,35 @@ never a spelled-out random literal.
    timeline editor starts a new session; reopening it as a flow editor
    unfolds the flow session. A flow editor opens inside the timeline
    editor of its own root.
+7. **Named timestamps on a virtual timeline** (drawing.md §8.10: its
+   named timestamps lie on its own axis, from 0 to its length). On
+   `groups/virtual_member.yaml` (`allegro_default`, 4241/2 quarters, a
+   member of `performance` with `recording`; its timestamps
+   `timestamp_3` at 0 and `timestamp_4` at 4241/2): `{id: timestamp_3}`
+   resolves to `timestamp`, on the virtual timeline read as its axis (ID
+   `allegro_default`, unit `quarters`, number type `fraction`, length
+   `[4241, 2]`, at `["virtual_timelines", 1]`), its owner
+   `allegro_default`. `add {into: {id: allegro_default}, timestamp: {name:
+   "Seam", coordinate: [953, 2]}}` with `ids: [seam]` stores the timestamp
+   on `allegro_default` (its `display` the schema's default `[wedge, name,
+   cross_section]`), the manifest valid; a coordinate after its end
+   (`[2121, 1]`) is `invalid_value` at `[<into key>, "timestamp",
+   "coordinate"]`, "the coordinate lies after the end of timeline
+   'allegro_default'"; `groupstamp: true` is accepted (it is a member of
+   `performance`), and on `allegro_single`, in no group, `invalid_value`
+   at `groupstamp`. `set {coordinate: [500, 1]}` on `seam` moves it; `set
+   {groupstamp: true}` makes it a groupstamp; `remove` takes it out.
+   **Groupstamps across virtual members** are carried as every
+   groupstamp (drawing.md §6.6): with `seam` a groupstamp showing
+   `cross_section`, the drawing lists its line twice, both of type
+   `cross_section` belonging to `allegro_default`: in its own card, held by
+   its line (chain `[block, frame, timeline]`), and across the frame of
+   `performance`, held by the frame (`[block, frame]`); and its secondary
+   coordinate on `recording`'s card
+   (`cardStamps` in that frame): the position at the proportion 953/2 of
+   4241/2 of 702.5 seconds, 1338965/8482, the float 157.8595850035369, its
+   wedge and labels listed on `recording`'s markers band with
+   `coordinates: "secondary"`.
 
 Core's property suite (`generate.ts`) also draws FlowMap and virtual
 timeline commands (`add`, `set` of `chunks` and `name`, `remove`) over

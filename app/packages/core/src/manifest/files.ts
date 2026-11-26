@@ -14,6 +14,7 @@ import type {
   Manifest,
   Region,
   TimelineManifest,
+  VirtualTimeline,
 } from "./types.ts";
 
 /** Each kind of element a timeline holds in a list, and the type of its entries. */
@@ -158,4 +159,72 @@ export function memberDrawings(manifest: Manifest): MemberDrawings {
     });
   });
   return { frames, ungrouped, ancestorCards };
+}
+
+/** The member drawings of the virtual timelines of each manifest, by ID: one object each. */
+const virtualDrawings = new WeakMap<Manifest, Map<string, MemberDrawing>>();
+
+/**
+ * The member drawing of the virtual timeline `id` of `manifest` (section
+ * 8.10), which is drawn as a root holding nothing: a timeline of its ID,
+ * name, unit, number type and length, locked (its end is fixed by its map),
+ * without children, conversion maps, regions or flow control, and without
+ * ancestors; one object per manifest and ID, so every reader keyed by a
+ * member drawing reads the same. `undefined` for an ID no virtual timeline
+ * carries.
+ */
+export function virtualDrawing(manifest: Manifest, id: string): MemberDrawing | undefined {
+  let known = virtualDrawings.get(manifest);
+  if (known === undefined) {
+    known = new Map();
+    virtualDrawings.set(manifest, known);
+  }
+  const found = known.get(id);
+  if (found !== undefined) return found;
+  const virtual = (manifest.virtual_timelines ?? []).find((item) => item.id === id);
+  if (virtual === undefined) return undefined;
+  const drawing: MemberDrawing = { timeline: virtualAxis(virtual), ancestors: [] };
+  known.set(id, drawing);
+  return drawing;
+}
+
+/**
+ * A virtual timeline read as the timeline its axis is: its ID, name, unit,
+ * number type and length, locked, holding nothing (section 8.10).
+ */
+function virtualAxis(virtual: VirtualTimeline): TimelineManifest {
+  return {
+    id: virtual.id,
+    name: virtual.name ?? null,
+    unit: virtual.unit,
+    number_type: virtual.number_type,
+    length: virtual.length,
+    locked: true,
+    is_segment_line: false,
+    meta: {},
+    children: [],
+    conversion_maps: [],
+    regions: [],
+    flow_control: [],
+  };
+}
+
+/**
+ * The frame `frame` with its virtual members (section 8.10): every member
+ * of its group's display order that is a timeline or a virtual timeline,
+ * in that order, a virtual one by its member drawing (`virtualDrawing`);
+ * `frame` itself where its group has no virtual member.
+ */
+export function withVirtualMembers(manifest: Manifest, frame: GroupFrame): GroupFrame {
+  const { group, members } = frame;
+  const virtual = new Set((manifest.virtual_timelines ?? []).map((item) => item.id));
+  if (!group.members.some((id) => virtual.has(id))) return frame;
+  const real = new Map(members.map((member) => [member.timeline.id, member]));
+  return {
+    group,
+    members: displayOrder(manifest, group.id).flatMap((id) => {
+      const member = real.get(id) ?? virtualDrawing(manifest, id);
+      return member === undefined ? [] : [member];
+    }),
+  };
 }

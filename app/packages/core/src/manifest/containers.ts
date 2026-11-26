@@ -20,7 +20,14 @@
 import type { ElementType } from "@timetoalign/timetoshare";
 import { compareCodePoints } from "../json.ts";
 import type { ElementAddress, Facet } from "./address.ts";
-import { BUNDLE_ADDRESS, bandAddress, cardAddress, FACETS, idAddress } from "./address.ts";
+import {
+  BUNDLE_ADDRESS,
+  bandAddress,
+  cardAddress,
+  FACETS,
+  idAddress,
+  VIRTUAL_FACETS,
+} from "./address.ts";
 import { orderedChildren } from "./elements.ts";
 import type { AncestorCard } from "./files.ts";
 import { memberDrawings } from "./files.ts";
@@ -244,15 +251,6 @@ export interface AncestorCardRef {
   readonly ref: ContainerRef;
   readonly card: AncestorCard;
 }
-
-/**
- * The bands of a virtual timeline's card: it has no children, conversion
- * maps or flow control, so only its markers and its regions, which hold its
- * chunks (`docs/drawing.md` section 8.10).
- */
-export const VIRTUAL_FACETS: readonly Facet[] = FACETS.filter(
-  (facet) => facet === "markers" || facet === "regions",
-);
 
 /** Every container of a manifest, indexed by its place key and its timeline. */
 export interface Containers {

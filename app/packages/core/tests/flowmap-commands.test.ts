@@ -3,6 +3,8 @@ import { apply } from "../src/commands/apply.ts";
 import { isCommandError } from "../src/errors.ts";
 import { containersOf, placedElement } from "../src/manifest/containers.ts";
 import { contains } from "../src/manifest/contains.ts";
+import { cardStamps, manifestElements } from "../src/manifest/elements.ts";
+import { memberDrawings, withVirtualMembers } from "../src/manifest/files.ts";
 import { schemaProblems } from "../src/manifest/io.ts";
 import type { Manifest } from "../src/manifest/types.ts";
 import type { Address } from "../src/workspace/address.ts";
@@ -302,8 +304,8 @@ describe("Groups admit virtual timelines", () => {
       const resolved = resolveAddress(view, address);
       return isCommandError(resolved) ? resolved.code : resolved.kind;
     });
-    // A card's address resolves where the drawing's elements list it; they list no virtual card.
-    expect(kinds).toEqual(["virtual_timeline", "unknown_target", "virtual_band"]);
+    // A card's address resolves where the drawing's elements list it, as they list this one.
+    expect(kinds).toEqual(["virtual_timeline", "virtual_card", "virtual_band"]);
     const children = resolveAddress(view, { block: A, id: "virtual_1", facet: "children" });
     expect(refusal(children).code).toBe("unknown_target");
   });
@@ -430,5 +432,84 @@ describe("The flow editor", () => {
     expect(store.open(SCORE)).toBeNull();
     expect(store.open(SCORE, "flow")).toBeNull();
     expect(store.editing.map((editor) => editor.kind)).toEqual(["timeline", "flow"]);
+  });
+});
+
+describe("Named timestamps on a virtual timeline", () => {
+  const member = () => viewOf([A, "groups/virtual_member.yaml"]);
+  const into = at("allegro_default");
+  const addSeam = (timestamp: object) => ({ type: "add", into, timestamp, ids: ["seam"] });
+  const seamOf = (view: View) =>
+    (valid(view).graphical?.timestamps ?? []).find((timestamp) => timestamp.id === "seam");
+
+  it("adds, sets and removes a timestamp on the virtual timeline's own axis", () => {
+    const added = changed(member(), addSeam({ name: "Seam", coordinate: [953, 2] }));
+    expect(seamOf(added)).toEqual({
+      id: "seam",
+      timeline: "allegro_default",
+      coordinate: [953, 2],
+      name: "Seam",
+      display: ["wedge", "name", "cross_section"],
+      matchstamp: false,
+      groupstamp: false,
+    });
+    const moved = changed(added, set(at("seam"), { coordinate: [500, 1] }));
+    expect(seamOf(moved)?.coordinate).toEqual([500, 1]);
+    const grouped = changed(moved, set(at("seam"), { groupstamp: true }));
+    expect(seamOf(grouped)?.groupstamp).toBe(true);
+    const removed = changed(grouped, { type: "remove", targets: [at("seam")] });
+    expect(seamOf(removed)).toBeUndefined();
+  });
+
+  it("refuses a coordinate after its end and a groupstamp outside a group", () => {
+    expect(refused(apply(member(), addSeam({ name: "Late", coordinate: [2121, 1] })))).toEqual({
+      code: "invalid_value",
+      path: [key(into), "timestamp", "coordinate"],
+      message: "the coordinate lies after the end of timeline 'allegro_default'",
+    });
+    const single = {
+      type: "add",
+      into: at("allegro_single"),
+      timestamp: { name: "Seam", coordinate: [0, 1], groupstamp: true },
+      ids: ["seam"],
+    };
+    expect(refused(apply(member(), single))).toMatchObject({
+      code: "invalid_value",
+      path: [key(at("allegro_single")), "timestamp", "groupstamp"],
+    });
+  });
+
+  it("carries a groupstamp of a virtual member across its frame", () => {
+    const view = changed(
+      member(),
+      addSeam({
+        name: "Seam",
+        coordinate: [953, 2],
+        groupstamp: true,
+        display: ["wedge", "coordinate", "cross_section"],
+      }),
+    );
+    const manifest = valid(view);
+    const lines = manifestElements(manifest).filter(
+      (item) => item.type === "cross_section" && item.address.id === "seam",
+    );
+    expect(lines.map((item) => [item.timeline, item.inside])).toEqual([
+      ["allegro_default", ["block", "frame", "timeline"]],
+      ["allegro_default", ["block", "frame"]],
+    ]);
+    const frame = memberDrawings(manifest).frames.find((item) => item.group.id === "performance");
+    if (frame === undefined) throw new Error("performance draws a frame");
+    const recording = frame.members.find((item) => item.timeline.id === "recording");
+    if (recording === undefined) throw new Error("recording is a member");
+    const drawn = cardStamps(manifest, recording, withVirtualMembers(manifest, frame));
+    const seam = drawn.secondaries.get("recording")?.find((item) => item.timestamp.id === "seam");
+    expect([seam?.source, seam?.value]).toEqual(["frame", 157.8595850035369]);
+    const marks = manifestElements(manifest).filter(
+      (item) => item.address.id === "seam" && item.coordinates === "secondary",
+    );
+    expect(marks.map((item) => [item.type, item.timeline])).toEqual([
+      ["wedge", "recording"],
+      ["label", "recording"],
+    ]);
   });
 });

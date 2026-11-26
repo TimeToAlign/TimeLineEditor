@@ -3640,7 +3640,15 @@ defaults (and with every frame and card hidden) and left out under
 `HIDDEN_ANCESTOR_CARDS`, a hidden ancestor card having no record; each drawn band is recorded once per
 card that core lists as drawing it, with core's address and holder,
 except a timeline drawn twice (below), whose second set the card drawing it
-holds.
+holds. Core lists a block-held card for every virtual timeline in no group,
+which the block draws only where `places` holds its ID (section 8.10), so
+without places those cards have no record and the rest of the listing is
+recorded in order; on `groups/virtual_member` with `allegro_by_hand` and
+`allegro_single` placed (`{x: 0}` each) every card core lists is recorded,
+the block-held ones `allegro`, `allegro_by_hand`, `allegro_single` in that
+order (the ungrouped root, then the placed virtual timelines by ID). Every
+card record takes its container from core's listing (a virtual card's
+included), never one of its own.
 
 **A timeline drawn twice.** `with_region` with the map `tempo` on `clt_2`
 and the groups `g1 {clt_1}` and `g2 {clt_2}` (written onto the built

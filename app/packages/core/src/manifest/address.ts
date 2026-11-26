@@ -24,6 +24,15 @@ export function isFacet(value: unknown): value is Facet {
  */
 export const FACETS: readonly Facet[] = DEFAULT_BAND_ORDER.filter(isFacet);
 
+/**
+ * The facets of a virtual timeline's bands: it has no children, conversion
+ * maps or flow control, so only its markers and its regions, which hold its
+ * chunks (`docs/drawing.md` section 8.10).
+ */
+export const VIRTUAL_FACETS: readonly Facet[] = FACETS.filter(
+  (facet) => facet === "markers" || facet === "regions",
+);
+
 /** The part words, in the schema's order. */
 export const PART_WORDS = [
   "start",

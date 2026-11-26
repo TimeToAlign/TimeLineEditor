@@ -10,7 +10,6 @@ import {
   CARD_PLACE_MEMBERS,
   type CardPlace,
   type ContainerRef,
-  cardAddress,
   type ElementAddress,
   type ItemPlace,
   idAddress,
@@ -50,7 +49,7 @@ import {
   traverse,
   withAxis,
 } from "../traversal.ts";
-import { drawnRoots, isVirtualMember, virtualFlow, withRuns } from "../virtual.ts";
+import { drawnRoots, virtualFlow, withRuns } from "../virtual.ts";
 
 /** A title (section 8.1): its address, style and font size, and its text cut to its `max-width`. */
 export interface Title {
@@ -198,23 +197,6 @@ function containerOf(context: Context, key: PlaceKey): ContainerRef {
 }
 
 /**
- * The card of `member` under the place key `key`: core's, or, for a virtual
- * timeline's card, which core's registry may not list, the card of its ID
- * held by the frame of `key`'s item or by the block (section 8.10).
- */
-function cardRefOf(context: Context, member: MemberDrawing, key: PlaceKey): ContainerRef {
-  const { manifest } = context;
-  if (!isVirtualMember(manifest, member)) return containerOf(context, key);
-  const { containers } = indexOf(manifest);
-  const listed = containers.byKey.get(placeKeyText(key));
-  if (listed !== undefined) return listed;
-  const { id } = member.timeline;
-  const holder =
-    key.member === undefined ? containers.block : containerOf(context, { item: key.item });
-  return { kind: "card", key, address: cardAddress(id), holder, timeline: id, facet: null };
-}
-
-/**
  * The card of `member` whose place key is `key`, held by `holder` (the
  * frame of its group, or the block): its container, address and style, and
  * its member drawing traversed at `L`, spacing `S` and margin `V`, a member
@@ -231,7 +213,7 @@ function cardOf(
   frame: GroupFrame | null,
 ): Pick<Card, "member" | "ref" | "address" | "style"> & { readonly scope: Scope } {
   const timeline = member.timeline;
-  const ref = cardRefOf(context, member, key);
+  const ref = containerOf(context, key);
   const { address } = ref;
   const style = context.cascade.resolve(
     elementKey("card", address, timeline, holder.key),

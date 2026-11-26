@@ -23,7 +23,7 @@ import type { Json, JsonObject, PathSegment } from "../json.ts";
 import { compareCodePoints, isJsonObject, withValueAt } from "../json.ts";
 import { addressKey, idAddress, sameAddress } from "../manifest/address.ts";
 import type { EntryKind } from "../manifest/files.ts";
-import { ENTRY_KINDS, entriesOf } from "../manifest/files.ts";
+import { ENTRY_KINDS, entriesOf, virtualDrawing } from "../manifest/files.ts";
 import { readOnAxis } from "../manifest/invariants.ts";
 import {
   completed,
@@ -67,7 +67,7 @@ import {
 } from "./mutations.ts";
 import { BLOCK_PROPERTIES, readBlockManifest, setProperty } from "./set.ts";
 import { withSegmentLinesCovered } from "./settle.ts";
-import type { BlockTarget, TargetKind, TimelineTarget } from "./targets.ts";
+import type { BlockTarget, TargetKind, TimelineTarget, VirtualTarget } from "./targets.ts";
 import { targetOf } from "./targets.ts";
 import {
   readDisplay,
@@ -97,7 +97,7 @@ export const ADDABLE: { readonly [kind in TargetKind]: readonly AddKind[] } = {
   matchstamp: [],
   anchor: [],
   flow_map: [],
-  virtual_timeline: [],
+  virtual_timeline: ["timestamp"],
 };
 
 /** The prefix of the ID a map, region or flow-control element is given: a flow-control element's is its role. */
@@ -553,7 +553,9 @@ const TIMESTAMP_REQUIRED = ["name", "coordinate"];
 const TIMESTAMP_VALUE = [...TIMESTAMP_REQUIRED, "display", "groupstamp"];
 
 /**
- * Add a named timestamp into a timeline: `{name, coordinate, display?,
+ * Add a named timestamp into `timeline`, the timeline or the virtual
+ * timeline (read as its axis, `virtualDrawing`) that `target` names:
+ * `{name, coordinate, display?,
  * groupstamp?}`, name and coordinate required (`invalid_value`), nothing
  * else (`unknown_property`); the name non-empty, the coordinate on the
  * timeline's own axis within it (`readTimestampCoordinate`), the display
@@ -566,7 +568,8 @@ const TIMESTAMP_VALUE = [...TIMESTAMP_REQUIRED, "display", "groupstamp"];
  */
 function addTimestamp(
   view: View,
-  target: TimelineTarget,
+  target: TimelineTarget | VirtualTarget,
+  timeline: TimelineManifest,
   value: unknown,
   changes: ChangeSet,
 ): View | CommandError {
@@ -582,11 +585,8 @@ function addTimestamp(
   }
   const name = readName(object.name, [...path, "name"]);
   if (isCommandError(name)) return name;
-  const { block, at } = target;
-  const coordinate = readTimestampCoordinate(object.coordinate, at.timeline, [
-    ...path,
-    "coordinate",
-  ]);
+  const { block } = target;
+  const coordinate = readTimestampCoordinate(object.coordinate, timeline, [...path, "coordinate"]);
   if (isCommandError(coordinate)) return coordinate;
   const display =
     object.display === undefined
@@ -597,11 +597,18 @@ function addTimestamp(
   const groupstamp =
     object.groupstamp === undefined
       ? false
-      : readGroupstamp(object.groupstamp, manifest, at.timeline.id, [...path, "groupstamp"]);
+      : readGroupstamp(object.groupstamp, manifest, timeline.id, [...path, "groupstamp"]);
   if (isCommandError(groupstamp)) return groupstamp;
   const id = changes.ids.take(TIMESTAMP_PREFIX);
-  const timeline = at.timeline.id;
-  const timestamp = { id, timeline, coordinate, name, display, matchstamp: false, groupstamp };
+  const timestamp = {
+    id,
+    timeline: timeline.id,
+    coordinate,
+    name,
+    display,
+    matchstamp: false,
+    groupstamp,
+  };
   const timestamps = [...(manifest.graphical?.timestamps ?? []), timestamp];
   record(changes, path, block.id, true);
   return withBlock(view, { ...block, manifest: withTimestamps(manifest, timestamps) });
@@ -763,9 +770,15 @@ export function applyAdd(view: View, command: AddCommand, changes: ChangeSet): V
         if (kind === "elision") return addElisions(view, target, value, changes);
         if (kind === "virtual_timeline") return addVirtualTimeline(view, target, value, changes);
         return addTimeline(view, target, value, changes);
+      case "virtual_timeline": {
+        const drawing = virtualDrawing(target.block.manifest, target.virtual.id);
+        if (drawing === undefined) throw new Error("a virtual target names a virtual timeline");
+        return addTimestamp(view, target, drawing.timeline, value, changes);
+      }
       case "root":
       case "child":
-        if (kind === "timestamp") return addTimestamp(view, target, value, changes);
+        if (kind === "timestamp")
+          return addTimestamp(view, target, target.at.timeline, value, changes);
         if (kind === "elision") return addElision(view, target, value, changes);
         if (kind === "flow_map") return addFlowMap(view, target, value, changes);
         if (kind === "child" || isEntryKind(kind)) {

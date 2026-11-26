@@ -13,7 +13,7 @@ import type { CommandError, Problem } from "../errors.ts";
 import { assertNever, ErrorCode, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { compareCodePoints, isJsonObject } from "../json.ts";
-import type { ElementAddress, Facet, Part } from "../manifest/address.ts";
+import type { ElementAddress, Facet, Part, PartItem } from "../manifest/address.ts";
 import { addressKey, isFacet, isPart } from "../manifest/address.ts";
 import type { ContainerRef, Containers } from "../manifest/containers.ts";
 import { containersOf } from "../manifest/containers.ts";
@@ -21,9 +21,9 @@ import type { ElementKey } from "../manifest/elements.ts";
 import { manifestElements } from "../manifest/elements.ts";
 import { defaultElisionTimelines } from "../manifest/elisions.ts";
 import type { EntryKind, ListedElement } from "../manifest/files.ts";
-import { ENTRY_KINDS, ENTRY_LISTS, entriesOf } from "../manifest/files.ts";
+import { ENTRY_KINDS, ENTRY_LISTS, entriesOf, virtualDrawing } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
-import { timelineAncestry, timelinesInOrder } from "../manifest/tree.ts";
+import { memberAncestry, timelinesInOrder } from "../manifest/tree.ts";
 import type {
   AlignmentAnchor,
   ConversionMap,
@@ -67,9 +67,10 @@ export function isId(value: unknown): value is string {
 /**
  * `value` read as an address, or `invalid_address` at `path`: an object of
  * only `block`, `id`, `facet` and `part`; `block` a block id; `id` an ID;
- * `facet` one of the five facets, standing with an `id` and never with a
- * `part`; `part` a non-empty array of part words; and any of `id`, `facet`
- * and `part` only with a `block`.
+ * `facet` one of the five facets, standing with an `id`, and with a `part`
+ * only where the part holds a chunk index; `part` a non-empty array of part
+ * words and chunk indices (integers from 0), as the schema's `Address`
+ * reads it; and any of `id`, `facet` and `part` only with a `block`.
  */
 export function readAddress(value: unknown, path: readonly PathSegment[]): Address | Problem {
   const invalid = (message: string) => problem(ErrorCode.invalidAddress, message, path);
@@ -86,16 +87,17 @@ export function readAddress(value: unknown, path: readonly PathSegment[]): Addre
     return invalid("an address's id is a non-empty string without control characters");
   }
   if (facet !== undefined && !isFacet(facet)) return invalid("an address's facet is a facet");
-  let words: Part[] | undefined;
+  let words: PartItem[] | undefined;
   if (part !== undefined) {
-    if (!Array.isArray(part) || part.length === 0 || !part.every(isPart)) {
-      return invalid("an address's part is a non-empty array of part words");
+    if (!Array.isArray(part) || part.length === 0 || !part.every(isPartItem)) {
+      return invalid("an address's part is a non-empty array of part words and chunk indices");
     }
     words = part;
   }
   if (facet !== undefined && id === undefined) return invalid("a facet stands with an id");
-  if (facet !== undefined && words !== undefined)
-    return invalid("a facet never stands with a part");
+  if (facet !== undefined && words?.every(isPart)) {
+    return invalid("a facet stands with a part only where the part holds a chunk index");
+  }
   if (block === undefined && (id !== undefined || facet !== undefined || words !== undefined)) {
     return invalid("an element's address names its block");
   }
@@ -105,6 +107,11 @@ export function readAddress(value: unknown, path: readonly PathSegment[]): Addre
     ...(facet === undefined ? {} : { facet: facet as Facet }),
     ...(words === undefined ? {} : { part: words }),
   };
+}
+
+/** Whether `value` is a part word or a chunk index, an integer from 0. */
+function isPartItem(value: unknown): value is PartItem {
+  return isPart(value) || (typeof value === "number" && Number.isSafeInteger(value) && value >= 0);
 }
 
 /** The address, in the block `block`, of the element of its manifest addressed `element`. */
@@ -193,6 +200,7 @@ export type ResolvedAddress =
   | ({ readonly kind: "virtual_timeline"; readonly block: Block } & VirtualFound)
   | ({ readonly kind: "virtual_card"; readonly block: Block } & VirtualFound)
   | ({ readonly kind: "virtual_band"; readonly block: Block } & VirtualBandFound)
+  | ({ readonly kind: "chunk"; readonly block: Block } & ChunkFound)
   | {
       readonly kind: "part";
       readonly block: Block;
@@ -233,6 +241,7 @@ export type ResolvedElement =
   | ({ readonly kind: "virtual_timeline" } & VirtualFound)
   | ({ readonly kind: "virtual_card" } & VirtualFound)
   | ({ readonly kind: "virtual_band" } & VirtualBandFound)
+  | ({ readonly kind: "chunk" } & ChunkFound)
   | { readonly kind: "part"; readonly owner: ResolvedElement; readonly word: Part };
 
 /** A stored elision, found in a manifest's `graphical.elisions` with the timeline it lies on. */
@@ -277,6 +286,20 @@ export interface VirtualFound {
 export interface VirtualBandFound extends VirtualFound {
   readonly facet: Facet;
   readonly containers: readonly ContainerRef[];
+}
+
+/**
+ * An entry of the FlowMap a virtual timeline's card draws in its regions
+ * band (`docs/drawing.md` section 8.10): the brace of a chunk, or a gap,
+ * which draws no brace and is reached by its label; addressed `{id: V,
+ * facet: "regions", part: [k]}`, its label `[k, "label"]` and its boundary
+ * `[k, "start"]` its parts.
+ */
+export interface ChunkFound extends VirtualFound {
+  /** The entry's index in the FlowMap's `chunks`, from 0. */
+  readonly chunk: number;
+  /** The FlowMap the virtual timeline applies, and its index in the manifest's `flow_maps`. */
+  readonly flowMap: FlowMapFound;
 }
 
 /** An alignment anchor of a named MatchStamp, found with the MatchStamp holding it. */
@@ -338,8 +361,10 @@ function heldMaps(map: ConversionMap): readonly (readonly [PathSegment, Conversi
  * pre-order its own, its entries' and, after each conversion map, the maps
  * it holds at any depth; then the groups', the MeasureMaps', the
  * resources', the FlowMaps', the virtual timelines', the named timestamps', the elisions' and the named
- * MatchStamps', each followed by its alignment anchors'. An ID repeated in a manifest the
- * schema refuses keeps its first finding, and a timestamp or an elision on
+ * MatchStamps', each followed by its alignment anchors'. A named timestamp
+ * on a virtual timeline lies on it as on a root (`virtualLocated`). An ID
+ * repeated in a manifest the schema refuses keeps its first finding, and a
+ * timestamp on neither a timeline nor a virtual timeline, or an elision on
  * a timeline the manifest lacks, which the schema refuses too, is passed
  * over.
  */
@@ -381,8 +406,13 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
   });
   (manifest.graphical?.timestamps ?? []).forEach((timestamp, index) => {
     const on = found.get(timestamp.timeline);
-    if (on?.kind === "timeline")
-      note(timestamp.id, { kind: "timestamp", at: on.at, index, timestamp });
+    const at =
+      on?.kind === "timeline"
+        ? on.at
+        : on?.kind === "virtual_timeline"
+          ? virtualLocated(manifest, on.index, on.virtual)
+          : undefined;
+    if (at !== undefined) note(timestamp.id, { kind: "timestamp", at, index, timestamp });
   });
   (manifest.graphical?.elisions ?? []).forEach((elision, index) => {
     const on = found.get(elision.timeline);
@@ -396,6 +426,18 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
   });
   catalogues.set(manifest, found);
   return found;
+}
+
+/**
+ * The virtual timeline `virtual`, at `index` in the manifest's
+ * `virtual_timelines`, located as the timeline its axis is (`virtualDrawing`,
+ * section 8.10): a root holding nothing, at its own place in the manifest,
+ * which the named timestamps lying on it read their axis from.
+ */
+function virtualLocated(manifest: Manifest, index: number, virtual: VirtualTimeline): Located {
+  const drawing = virtualDrawing(manifest, virtual.id);
+  if (drawing === undefined) throw new Error(`'${virtual.id}' is a virtual timeline`);
+  return { timeline: drawing.timeline, path: ["virtual_timelines", index], parent: undefined };
 }
 
 /**
@@ -488,6 +530,8 @@ export function resolvedPath(resolved: ResolvedAddress): readonly PathSegment[] 
     case "virtual_card":
     case "virtual_band":
       return ["virtual_timelines", resolved.index];
+    case "chunk":
+      return ["flow_maps", resolved.flowMap.index, "chunks", resolved.chunk];
     case "part":
       return resolvedPath(resolved.owner);
     default:
@@ -587,7 +631,7 @@ export function resolveElement(
 ): ResolvedElement | undefined {
   const { id, facet, part = [] } = element;
   const virtual = id === undefined ? undefined : catalogueOf(manifest).get(id);
-  if (virtual?.kind === "virtual_timeline") return virtualOf(manifest, virtual, facet, part);
+  if (virtual?.kind === "virtual_timeline") return virtualOf(manifest, virtual, element);
   if (
     part.length > 0 &&
     !indexOf(manifest).drawn.has(addressKey(element)) &&
@@ -596,7 +640,7 @@ export function resolveElement(
     return undefined;
   }
   if (id === undefined) return part.length > 0 ? { kind: "title" } : undefined;
-  // A chunk, whose part begins with its chunk index, is drawn and resolved by no container.
+  // A chunk, whose part begins with its chunk index, is a virtual timeline's (`virtualOf`).
   if (!part.every(isPart)) return undefined;
   const base = baseOf(manifest, id, facet, part);
   if (base === undefined) return undefined;
@@ -607,32 +651,65 @@ export function resolveElement(
 
 /**
  * What an address of a virtual timeline names: the virtual timeline
- * itself (`{id: V}`), its cards (`{id: V, part: ["card"]}`, where the
- * manifest's drawing lists them, `ManifestIndex.drawn`, as every part) or
- * one of their bands (`{id: V, facet}`, markers or regions, where a card
- * holds it); `undefined` for any other part or facet, its chunks' parts
- * included.
+ * itself (`{id: V}`) and its parts (its name), its cards (`{id: V, part:
+ * ["card"]}`), one of their
+ * bands (`{id: V, facet}`, markers or regions, where a card holds it), an
+ * entry of its FlowMap (`{id: V, facet: "regions", part: [k]}`, a `chunk`)
+ * and the parts of one (`[k, "label"]`, `[k, "start"]`); a part only where
+ * the manifest's drawing lists it (`ManifestIndex.drawn`), as every part,
+ * and a gap, which draws no brace, as the owner of its label. `undefined`
+ * for any other part or facet.
  */
 function virtualOf(
   manifest: Manifest,
   found: { readonly index: number; readonly virtual: VirtualTimeline },
-  facet: Facet | undefined,
-  part: readonly Part[],
+  element: ElementAddress,
 ): ResolvedElement | undefined {
   const { index, virtual } = found;
+  const { facet, part = [] } = element;
   const containers = containersOf(manifest);
   const cards = containers.cards.get(virtual.id) ?? [];
+  if (part.length > 0 && !indexOf(manifest).drawn.has(addressKey(element))) return undefined;
   if (facet !== undefined) {
-    const drawn = part.length > 0 ? undefined : containers.bands.get(virtual.id)?.get(facet);
+    if (part.length > 0) return chunkOf(manifest, { index, virtual, cards }, facet, part);
+    const drawn = containers.bands.get(virtual.id)?.get(facet);
     if (drawn === undefined) return undefined;
     return { kind: "virtual_band", index, virtual, cards, facet, containers: drawn };
   }
-  if (part.length === 0) return { kind: "virtual_timeline", index, virtual, cards };
-  const card = part.length === 1 && part[0] === "card" && cards.length > 0;
-  if (card && indexOf(manifest).drawn.has(addressKey({ id: virtual.id, part }))) {
-    return { kind: "virtual_card", index, virtual, cards };
+  const own: VirtualFound = { index, virtual, cards };
+  const card = part[0] === "card";
+  let resolved: ResolvedElement = { kind: card ? "virtual_card" : "virtual_timeline", ...own };
+  for (const word of card ? part.slice(1) : part) {
+    if (!isPart(word)) return undefined;
+    resolved = { kind: "part", owner: resolved, word };
   }
-  return undefined;
+  return resolved;
+}
+
+/**
+ * The entry `part[0]` of the FlowMap `virtual` applies, drawn in its regions
+ * band, with the part word that follows it, if any, read as its part.
+ */
+function chunkOf(
+  manifest: Manifest,
+  virtual: VirtualFound,
+  facet: Facet,
+  part: readonly PartItem[],
+): ResolvedElement | undefined {
+  const [chunk, word, ...more] = part;
+  if (facet !== "regions" || typeof chunk !== "number" || more.length > 0) return undefined;
+  if (word !== undefined && !isPart(word)) return undefined;
+  const flowMaps = manifest.flow_maps ?? [];
+  const at = flowMaps.findIndex((item) => item.id === virtual.virtual.map);
+  const flowMap = flowMaps[at];
+  if (flowMap === undefined) return undefined;
+  const found: ResolvedElement = {
+    kind: "chunk",
+    ...virtual,
+    chunk,
+    flowMap: { index: at, flowMap },
+  };
+  return word === undefined ? found : { kind: "part", owner: found, word };
 }
 
 /**
@@ -814,6 +891,11 @@ function elementWords(resolved: ResolvedAddress): {
       const part = resolved.kind === "virtual_card" ? "card" : `${facetWord(resolved.facet)} band`;
       return { words: `the ${part} of ${virtual}`, bundled: false };
     }
+    case "chunk": {
+      const { name, id } = resolved.virtual;
+      const words = `chunk ${resolved.chunk + 1} of virtual timeline ${quoted(name ?? id)}`;
+      return { words, bundled: false };
+    }
     case "part": {
       const owner = elementWords(resolved.owner);
       const titled = resolved.owner.kind === "block" || resolved.owner.kind === "frame";
@@ -916,7 +998,7 @@ export function indexOf(manifest: Manifest): ManifestIndex {
       return containersOf(manifest);
     },
     get ancestry() {
-      ancestry ??= withVirtualAncestry(manifest, timelineAncestry(manifest));
+      ancestry ??= memberAncestry(manifest);
       return ancestry;
     },
     get owners() {
@@ -934,22 +1016,6 @@ export function indexOf(manifest: Manifest): ManifestIndex {
   };
   indexes.set(manifest, index);
   return index;
-}
-
-/**
- * `ancestry` with every virtual timeline of `manifest` added as its own
- * ancestry: it lies in no tree, so it contains what belongs to it and
- * nothing holds it.
- */
-function withVirtualAncestry(
-  manifest: Manifest,
-  ancestry: ReadonlyMap<string, readonly string[]>,
-): ReadonlyMap<string, readonly string[]> {
-  const virtual = manifest.virtual_timelines ?? [];
-  if (virtual.length === 0) return ancestry;
-  const all = new Map(ancestry);
-  for (const { id } of virtual) if (!all.has(id)) all.set(id, [id]);
-  return all;
 }
 
 /**

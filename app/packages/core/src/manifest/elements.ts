@@ -21,12 +21,14 @@ import {
   partAddress,
   sameAddress,
   TITLE_ADDRESS,
+  VIRTUAL_FACETS,
 } from "./address.ts";
 import { ELISION_LABELS, elisionsOn, elisionsUnder, groupElisions } from "./elisions.ts";
 import type { GroupFrame, MemberDrawing } from "./files.ts";
-import { isNamed, memberDrawings } from "./files.ts";
+import { isNamed, memberDrawings, virtualDrawing, withVirtualMembers } from "./files.ts";
 import { FLOW_LINE_ROLES, type FlowLineRole, flowSymbols } from "./flow.ts";
-import { findTimeline, groupsHolding, timelineAncestry } from "./tree.ts";
+import { FlowMapError, resolveFlowMap } from "./flowmaps.ts";
+import { findTimeline, groupsHolding, memberAncestry } from "./tree.ts";
 import type {
   ChildTimeline,
   ConversionMap,
@@ -447,6 +449,15 @@ function gapElements(
  * card's `elision-mode`, which the cascade decides as it decides `display`;
  * a member's card in a frame draws none, nor does any card draw a group
  * elision on a timeline of its own (`manifestElements` lists those).
+ *
+ * A virtual timeline's drawing (`virtualDrawing`, section 8.10), `chunks`
+ * the entries of its FlowMap as its card draws them (`chunkEntries`, null
+ * where it does not resolve), has its markers and regions bands only
+ * (`VIRTUAL_FACETS`); its regions band holds, before anything else, every
+ * drawn entry `k`: a chunk's brace `{id: V, facet: "regions", part: [k]}`
+ * of type `region` with its label `[k, "label"]`, and a gap's label alone,
+ * keyed as the label of a brace that is not drawn; its line holds, after
+ * its name, the boundary `[k, "start"]` of every entry that draws one.
  */
 function memberElements(
   manifest: Manifest,
@@ -456,8 +467,10 @@ function memberElements(
   card: "card" | "ancestor_card" = "card",
   frame: GroupFrame | null = null,
   elides = false,
+  chunks: readonly ChunkEntry[] | null = null,
 ): void {
   const root = member.timeline;
+  const virtual = isVirtualDrawing(manifest, member);
   keys.push(elementKey(card, cardAddress(root.id), root, holder));
   const line = elementKey("timeline", idAddress(root.id), root, holder);
   const drawn = cardStamps(manifest, member, frame);
@@ -592,6 +605,12 @@ function memberElements(
         secondary(timeline, band);
       },
       regions: (band) => {
+        for (const chunk of timeline === root ? (chunks ?? []) : []) {
+          if (!chunk.drawn) continue;
+          const brace = elementKey("region", chunkAddress(root.id, chunk.index), root, band);
+          if (!chunk.gap) keys.push(brace);
+          keys.push(textKey(brace, "label"));
+        }
         for (const region of timeline.regions) {
           labelled("region", idAddress(region.id), band, regionClasses(manifest, region));
         }
@@ -629,7 +648,7 @@ function memberElements(
         }
       },
     };
-    for (const facet of FACETS) {
+    for (const facet of virtual ? VIRTUAL_FACETS : FACETS) {
       const band = bandKey(timeline.id, facet, key);
       keys.push(band);
       held[facet](band);
@@ -640,7 +659,66 @@ function memberElements(
     }
   };
   keys.push(line, textKey(line, "name"));
+  for (const chunk of chunks ?? []) {
+    if (!chunk.boundary) continue;
+    const at = { ...chunkAddress(root.id, chunk.index), part: [chunk.index, "start"] as const };
+    keys.push(elementKey("boundary", at, root, line));
+  }
   visit(line, root);
+}
+
+/** The address of the entry `index` of the FlowMap drawn on the line of `timeline` (section 2.2). */
+function chunkAddress(timeline: string, index: number): ElementAddress {
+  return { id: timeline, facet: "regions", part: [index] };
+}
+
+/** Whether `member` is the drawing of a virtual timeline of `manifest` (`virtualDrawing`). */
+function isVirtualDrawing(manifest: Manifest, member: MemberDrawing): boolean {
+  return virtualDrawing(manifest, member.timeline.id) === member;
+}
+
+/**
+ * An entry of a FlowMap as a card draws it (section 8.10): its index in
+ * `chunks`, whether it is a gap, whether it is drawn (every entry but the
+ * second and later entries of a run drawn once) and whether its line draws
+ * a boundary at its start (every drawn entry but the first).
+ */
+export interface ChunkEntry {
+  readonly index: number;
+  readonly gap: boolean;
+  readonly drawn: boolean;
+  readonly boundary: boolean;
+}
+
+/**
+ * The entries of the FlowMap the virtual timeline `id` of `manifest`
+ * applies, as its card draws them (section 8.10), its runs drawn once where
+ * `once` (a card the block holds, never a frame): a run is a longest
+ * sequence of two or more consecutive entries naming one ID, gaps forming
+ * none. `null` where the virtual timeline does not resolve: its `map` is no
+ * FlowMap that resolves, its `timeline` is not that FlowMap's, or it states
+ * `through`.
+ */
+export function chunkEntries(
+  manifest: Manifest,
+  id: string,
+  once: boolean,
+): readonly ChunkEntry[] | null {
+  const virtual = (manifest.virtual_timelines ?? []).find((item) => item.id === id);
+  if (virtual === undefined || virtual.through !== undefined) return null;
+  const flowMap = (manifest.flow_maps ?? []).find((item) => item.id === virtual.map);
+  if (flowMap === undefined || flowMap.timeline !== virtual.timeline) return null;
+  try {
+    resolveFlowMap(manifest, flowMap.id);
+  } catch (error) {
+    if (error instanceof FlowMapError) return null;
+    throw error;
+  }
+  const sources = flowMap.chunks.map((chunk) => (typeof chunk === "string" ? chunk : null));
+  return sources.map((source, index): ChunkEntry => {
+    const later = once && source !== null && index > 0 && sources[index - 1] === source;
+    return { index, gap: source === null, drawn: !later, boundary: index >= 1 && !later };
+  });
 }
 
 /**
@@ -703,20 +781,37 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
     memberElements(ordered, root, BLOCK_KEY, keys, "ancestor_card", null, true);
     groupGaps(group.id, frameOf(group.id), false);
   }
-  const drawnFrames = frames.map((drawn) => {
+  const drawnFrames = frames.map((core) => {
+    const drawn = withVirtualMembers(ordered, core);
     const { group, members } = drawn;
     const frame = frameOf(group.id);
     keys.push(frame, unownedKey("name", partAddress(idAddress(group.id), "name"), frame));
-    for (const member of members) memberElements(ordered, member, frame, keys, "card", drawn);
+    for (const member of members) {
+      const chunks = chunkEntries(ordered, member.timeline.id, false);
+      memberElements(ordered, member, frame, keys, "card", drawn, false, chunks);
+    }
     return { group, frame };
   });
   for (const member of ungrouped)
     memberElements(ordered, member, BLOCK_KEY, keys, "card", null, true);
+  const grouped = new Set(ordered.groups.flatMap((group) => group.members));
+  const placeable = (ordered.virtual_timelines ?? [])
+    .map((virtual) => virtual.id)
+    .filter((id) => !grouped.has(id))
+    .sort(compareCodePoints);
+  for (const id of placeable) {
+    const member = virtualDrawing(ordered, id);
+    if (member === undefined) throw new Error(`'${id}' is a virtual timeline`);
+    const chunks = chunkEntries(ordered, id, true);
+    memberElements(ordered, member, BLOCK_KEY, keys, "card", null, false, chunks);
+  }
   for (const { group, frame } of drawnFrames) groupGaps(group.id, frame, true);
-  const ancestry = timelineAncestry(ordered);
+  const ancestry = memberAncestry(ordered);
   for (const timestamp of ordered.graphical?.timestamps ?? []) {
     if (!timestamp.groupstamp || !timestamp.display.includes("cross_section")) continue;
-    const timeline = findTimeline(ordered, timestamp.timeline);
+    const timeline =
+      findTimeline(ordered, timestamp.timeline) ??
+      virtualDrawing(ordered, timestamp.timeline)?.timeline;
     if (timeline === undefined) continue;
     const holding = groupsHolding(ordered, timeline.id, ancestry);
     const address = partAddress(idAddress(timestamp.id), "line");

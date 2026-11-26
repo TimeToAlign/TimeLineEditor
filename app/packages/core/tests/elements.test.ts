@@ -19,7 +19,17 @@ import { timelineAncestry } from "../src/manifest/tree.ts";
 import type { Manifest } from "../src/manifest/types.ts";
 import { Rational } from "../src/number/rational.ts";
 import type { Real } from "../src/number/real.ts";
-import { allFixtures, fileText, load, loadText, manifestValue } from "./support.ts";
+import {
+  A,
+  allFixtures,
+  block,
+  changed,
+  fileText,
+  load,
+  loadText,
+  manifestValue,
+  viewOf,
+} from "./support.ts";
 
 const CLT = "ContinuousLogicalTimeline";
 
@@ -1009,7 +1019,15 @@ describe("the selector member class on regions", () => {
     expect(matched({ class: "tts:AtomicSection" })).toEqual(REGIONS);
     expect(matched({ class: "tts:Other" })).toEqual([]);
     expect(matched({ class: "AtomicSection" })).toEqual([]);
-    expect(matched({ element: "region", class: CLT })).toEqual(REGIONS);
+    // The braces of virtual_1's chunks (A, B, A, C) are regions of its class too, and of no type.
+    const chunks = [0, 1, 2, 3].map(
+      (k): ElementAddress => ({
+        id: "virtual_1",
+        facet: "regions",
+        part: [k],
+      }),
+    );
+    expect(matched({ element: "region", class: CLT })).toEqual([...REGIONS, ...chunks]);
   });
 
   it("reads an absolute IRI and a prefix of the manifest's own", () => {
@@ -1083,5 +1101,81 @@ describe("the texts and leaders of chunks", () => {
     expect(() => textKey(bandKey("virtual_1", "regions", BLOCK_KEY), "label")).toThrow(
       "a band has no text",
     );
+  });
+});
+
+describe("virtual cards", () => {
+  type Row = readonly [string | null, ElementAddress, readonly string[], string | null];
+  /** The keys of the virtual timeline `virtual`: type, address, holder chain and `coordinates`. */
+  const rows = (manifest: Manifest, virtual: string): Row[] =>
+    manifestElements(manifest)
+      .filter((key) => key.timeline === virtual)
+      .map((key) => [key.type, key.address, key.inside, key.coordinates ?? null]);
+  const chunk = (timeline: string, k: number, word?: "label" | "start"): ElementAddress => ({
+    id: timeline,
+    facet: "regions",
+    part: word === undefined ? [k] : [k, word],
+  });
+
+  it("lists a block-held virtual card with its run drawn once and its gap", () => {
+    const V = "allegro_by_hand";
+    const line = ["block", "timeline"];
+    const regions = [...line, "band"];
+    expect(rows(load("flow/virtual_cards.yaml"), V)).toEqual([
+      ["card", id(V, "card"), ["block"], null],
+      ["timeline", id(V), ["block"], null],
+      ["name", id(V, "name"), line, null],
+      ["boundary", chunk(V, 4, "start"), line, null],
+      ["boundary", chunk(V, 5, "start"), line, null],
+      ["band", band(V, "markers"), line, null],
+      ["band", band(V, "regions"), line, null],
+      ["region", chunk(V, 0), regions, null],
+      ["label", chunk(V, 0, "label"), [...regions, "region"], null],
+      ["label", chunk(V, 4, "label"), [...regions, "region"], null],
+      ["region", chunk(V, 5), regions, null],
+      ["label", chunk(V, 5, "label"), [...regions, "region"], null],
+    ]);
+  });
+
+  it("lists a virtual member's card in its frame, every entry drawn, with its timestamps", () => {
+    const V = "allegro_default";
+    const line = ["block", "frame", "timeline"];
+    const markers = [...line, "band"];
+    const braces = [0, 1, 2, 3].flatMap((k): Row[] => [
+      ["region", chunk(V, k), markers, null],
+      ["label", chunk(V, k, "label"), [...markers, "region"], null],
+    ]);
+    expect(rows(load("groups/virtual_member.yaml"), V)).toEqual([
+      ["card", id(V, "card"), ["block", "frame"], null],
+      ["timeline", id(V), ["block", "frame"], null],
+      ["name", id(V, "name"), line, null],
+      ["boundary", chunk(V, 1, "start"), line, null],
+      ["boundary", chunk(V, 2, "start"), line, null],
+      ["boundary", chunk(V, 3, "start"), line, null],
+      ["band", band(V, "markers"), line, null],
+      ["wedge", id("timestamp_3"), markers, "primary"],
+      ["label", id("timestamp_3", "coordinate"), markers, "primary"],
+      ["wedge", id("timestamp_4"), markers, "primary"],
+      ["label", id("timestamp_4", "coordinate"), markers, "primary"],
+      ["band", band(V, "regions"), line, null],
+      ...braces,
+    ]);
+  });
+
+  it("lists no entry for a virtual timeline applying a conversion map", () => {
+    const view = changed(viewOf([A, "bundles/bundle_mixed.yaml"]), {
+      type: "add",
+      into: { block: A },
+      virtual_timeline: { map: "cmap_2", timeline: "score" },
+      ids: ["mapped"],
+    });
+    const line = ["block", "timeline"];
+    expect(rows(block(view).manifest, "mapped")).toEqual([
+      ["card", id("mapped", "card"), ["block"], null],
+      ["timeline", id("mapped"), ["block"], null],
+      ["name", id("mapped", "name"), line, null],
+      ["band", band("mapped", "markers"), line, null],
+      ["band", band("mapped", "regions"), line, null],
+    ]);
   });
 });
