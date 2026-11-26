@@ -152,7 +152,7 @@ export interface Store {
   redo(): void;
   /**
    * Open the editor of `target` inside the innermost open editor, of `kind`
-   * where given (the flow editor of a root timeline), else the one the
+   * where given (the flow-control editor of a root timeline), else the one the
    * target opens (`editorKindOf`); `null` when it opened.
    */
   open(target: Address, kind?: EditorKind): CommandError | null;

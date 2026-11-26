@@ -76,6 +76,27 @@ const set = (target: Address, values: object) => ({
   changes: [{ target, values }],
 });
 
+/** Core's refusal of a property a flow-control element does not take, inside an editor or not. */
+const COORDINATE_REFUSAL = {
+  code: "wrong_target_kind",
+  path: [key(at("jump_1")), "coordinate"],
+  message: "coordinate is a property of timestamp, not of flow_control",
+};
+/** Core's refusal to remove a flow-control element, which is rejected by a belief, never removed. */
+const REMOVE_REFUSAL = {
+  code: "not_removable",
+  path: [key(at("jump_1"))],
+  message: "Flow-control element 'jump_1' is rejected, never removed",
+};
+/** `score`'s flow-control elements with `section_break_9` added at 8, by coordinate. */
+const FLOW_CONTROL_IDS = ["section_break_9", "jump_1", "break_1", "jump_2", "jump_target_1"];
+/** The flow-control elements of `verse`, `fine` renamed and `jump_x` added, in their stored order. */
+const CHILD_FLOW_CONTROL = [
+  ["fine", "Fine"],
+  ["jump_x", null],
+  ["da_capo_al_fine", null],
+];
+
 const ENCORE = { chunks: ["first", { gap: [2, 1] }, "second"], name: "Encore" };
 
 describe("FlowMaps", () => {
@@ -485,7 +506,7 @@ describe("The flow property", () => {
   });
 });
 
-describe("The flow editor", () => {
+describe("The flow-control editor", () => {
   const SCORE = at("score");
 
   it("opens on a root timeline only", () => {
@@ -514,7 +535,7 @@ describe("The flow editor", () => {
       code: "side_effect",
       path: [key(SCORE), "name"],
       message:
-        "the name of timeline 'Score' lies outside the flow editor of timeline 'Score': an editor changes only what it edits",
+        "the name of timeline 'Score' lies outside the flow-control editor of timeline 'Score': an editor changes only what it edits",
     });
     const style = { type: "style", select: { element: "card" }, set: { stroke: "#000000" } };
     expect(refusal(store.dispatch(style))).toEqual({ code: "side_effect", path: [key(SCORE)] });
@@ -564,6 +585,65 @@ describe("The flow editor", () => {
     const child = storeOf(byHand());
     expect(child.open(at("first"))).toBeNull();
     expect(refusal(child.open(at("set"), "flow")).code).toBe("not_inside");
+  });
+
+  it("edits the flow-control elements of its root's tree", () => {
+    const store = storeOf(sonata());
+    expect(store.open(SCORE, "flow")).toBeNull();
+    const jump = at("jump_1");
+    const belief = {
+      actor: "https://example.org/people/editor",
+      belief: "false",
+      date: "2026-11-26",
+    };
+    expect(store.dispatch(set(jump, { name: "Volta" }))).toBeNull();
+    expect(store.dispatch(set(jump, { belief }))).toBeNull();
+    const sectionBreak = { id: "section_break_9", role: "section_break", coordinate: [8, 1] };
+    expect(store.dispatch({ type: "add", into: SCORE, flow_control: sectionBreak })).toBeNull();
+    expect(refused(store.dispatch(set(jump, { coordinate: [4, 1] })))).toEqual(COORDINATE_REFUSAL);
+    expect(refused(store.dispatch({ type: "remove", targets: [jump] }))).toEqual(REMOVE_REFUSAL);
+    const score = valid(store.view).timelines[0];
+    expect(score?.flow_control.map((item) => item.id)).toEqual(FLOW_CONTROL_IDS);
+    const stored = score?.flow_control.find((item) => item.id === "jump_1");
+    expect([stored?.name, stored?.provenance]).toEqual(["Volta", [{ beliefs: [belief] }]]);
+    store.done();
+    const [entry] = store.journal.slice(-1);
+    const session =
+      entry !== undefined && "session" in entry ? store.sessions[entry.session] : null;
+    expect([session?.kind, session?.entries.length]).toEqual(["flow", 3]);
+  });
+
+  it("keeps core's refusals of a flow-control element outside any editor", () => {
+    const store = storeOf(sonata());
+    const jump = at("jump_1");
+    expect(refused(store.dispatch(set(jump, { coordinate: [4, 1] })))).toEqual(COORDINATE_REFUSAL);
+    expect(refused(store.dispatch({ type: "remove", targets: [jump] }))).toEqual(REMOVE_REFUSAL);
+  });
+
+  it("edits the flow-control elements of a child of its root", () => {
+    const store = storeOf(viewOf([A, "child_flow_control.yaml"]));
+    expect(store.open(at("piece"), "flow")).toBeNull();
+    expect(store.dispatch(set(at("fine"), { name: "Fine" }))).toBeNull();
+    const jump = { id: "jump_x", role: "jump", coordinate: [6, 1], targets: [{}] };
+    expect(store.dispatch({ type: "add", into: at("verse"), flow_control: jump })).toBeNull();
+    const verse = valid(store.view).timelines[0]?.children[0];
+    expect(verse?.flow_control.map((item) => [item.id, item.name])).toEqual(CHILD_FLOW_CONTROL);
+  });
+
+  it("refuses the flow-control elements of another root's tree", () => {
+    const store = storeOf(viewOf([A, "groups/switched_frame.yaml"]));
+    expect(store.open(at("recording"), "flow")).toBeNull();
+    const jump = at("volta_jump");
+    expect(refused(store.dispatch(set(jump, { name: "Volta" })))).toEqual({
+      code: "side_effect",
+      path: [key(jump), "name"],
+      message:
+        "the name of jump 'volta_jump' lies outside the flow-control editor of timeline 'Recording': an editor changes only what it edits",
+    });
+    const sectionBreak = { id: "section_break_9", role: "section_break", coordinate: [8, 1] };
+    expect(
+      refusal(store.dispatch({ type: "add", into: at("allegro"), flow_control: sectionBreak })),
+    ).toEqual({ code: "side_effect", path: [key(at("allegro"))] });
   });
 });
 
