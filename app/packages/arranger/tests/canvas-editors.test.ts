@@ -29,6 +29,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { boxOf, itemOf } from "../src/boxes.ts";
 import { removeCommand } from "../src/commands.ts";
 import { drawingOf } from "../src/drawing.ts";
+import { LONG_PRESS_MS } from "../src/gestures/canvas.ts";
 import { PAN_SPEED } from "../src/gestures/wheel.ts";
 import { GRID_FREE, quantize } from "../src/numbers.ts";
 import { PANE_SETTLE } from "../src/pane.ts";
@@ -365,6 +366,49 @@ describe("the canvas opens editors", () => {
     await tap(drawn(idAddress("group_2")), 100, 100, 3100);
     await tap(drawn(idAddress("group_1")), 100, 100, 4000, "mouse");
     await tap(drawn(idAddress("group_1")), 100, 100, 4100, "mouse");
+    expect(path()).toEqual([]);
+  });
+
+  it("lists the editors under a long press and opens the one chosen", async () => {
+    /** A touch pressed 2 px inside `score`'s card, held past the long press, moved by `dx` first. */
+    const hold = async (dx = 0) => {
+      await show();
+      const svg = nodeOf(A).querySelector("svg");
+      if (svg === null) throw new Error("no svg");
+      withScreenMatrix(svg, () => IDENTITY);
+      const rect = drawn(cardAddress("score"));
+      const clientX = Number(rect.getAttribute("x")) + 2;
+      const clientY = Number(rect.getAttribute("y")) + 2;
+      pointer("pointerdown", rect, { clientX, clientY, pointerType: "touch" });
+      if (dx !== 0)
+        pointer("pointermove", rect, { clientX: clientX + dx, clientY, pointerType: "touch" });
+      await wait(LONG_PRESS_MS + 50);
+      pointer("pointerup", rect, { clientX: clientX + dx, clientY, pointerType: "touch" });
+      await settle();
+    };
+    const items = () => [
+      ...document.querySelectorAll<HTMLButtonElement>('[data-testid="editor-menu-item"]'),
+    ];
+    await hold();
+    expect(items().map((item) => item.textContent)).toEqual([
+      "Timeline 'Score' in bundle 'Mixed'",
+      "Group 'Performance' in bundle 'Mixed'",
+    ]);
+    expect(path()).toEqual([]);
+    items()[1]?.click();
+    await settle();
+    expect(path()).toEqual([{ target: id("group_1"), kind: "group" }]);
+    expect(items()).toEqual([]);
+
+    await hold(20);
+    expect(items()).toEqual([]);
+
+    await hold();
+    const menu = document.querySelector('[data-testid="editor-menu"]');
+    if (menu === null) throw new Error("no menu");
+    menu.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await settle();
+    expect(items()).toEqual([]);
     expect(path()).toEqual([]);
   });
 });

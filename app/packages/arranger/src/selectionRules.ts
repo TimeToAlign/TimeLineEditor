@@ -15,14 +15,23 @@ import {
   resolveElement,
   sameAddress,
 } from "@timetoalign/tilie-core";
-import type { DrawnBox } from "@timetoalign/tilie-layout";
+import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import type { CanvasSource, Hit } from "./boxes.ts";
-import { hitForAddress, hitOf, pressSelection, raisedRoot, workedBox } from "./boxes.ts";
+import {
+  boxOf,
+  hitForAddress,
+  hitOf,
+  isBand,
+  pressSelection,
+  raisedRoot,
+  workedBox,
+} from "./boxes.ts";
 import type { Level } from "./containers.ts";
 import { resizes } from "./containers.ts";
 import type { Editing } from "./editing.ts";
 import { addressParts } from "./editing.ts";
-import { editorTargetOf } from "./editors.ts";
+import type { EditorChoice } from "./editors.ts";
+import { editorsUnder, editorTargetOf } from "./editors.ts";
 import { gapOf } from "./gaps.ts";
 import type { Point } from "./gesture.ts";
 import type { BlockNode } from "./node.ts";
@@ -154,12 +163,12 @@ export function pressedIn(pressed: Pressed, editing: Editing | null): Address | 
 
 /**
  * The editor target a double-click or a double tap on `pressed` opens
- * (`editorTargetOf`): `null` off every block, outside the edited element, on
- * the edited element itself and on a band other than a root's flow control
- * band. A pointer gives its drawing point, so that text or a region opens
- * the last drawn card or frame under it, the innermost where none overlap,
- * and a press on a root's card on the arranger in that card's flow control
- * band opens the root's flow editor.
+ * (`editorTargetOf`): `null` off every block, outside the edited element
+ * and on the edited element itself. A pointer gives its drawing point, so
+ * that the band under it (`bandUnder`) opens its timeline's editor, a
+ * root's flow control band the root's flow-control editor, and text or a
+ * region the last drawn card or frame under it, the innermost where none
+ * overlap.
  */
 export function openableAt(view: View, pressed: Pressed, editing: Editing | null): Address | null {
   const hit = hitAt(pressed, editing);
@@ -170,23 +179,50 @@ export function openableAt(view: View, pressed: Pressed, editing: Editing | null
 }
 
 /**
- * The editor Enter opens: that of the single selected address, as a
- * double-click on it would, its hit read from its block's drawing
- * (`hitForAddress`), never from the DOM, so a block outside the view opens
- * as one in it; `null` when the selection is not one openable address.
+ * The editors a long press on `pressed` offers (`editorsUnder`): none off
+ * every block or without a drawing point.
+ */
+export function editorsAt(
+  view: View,
+  pressed: Pressed,
+  editing: Editing | null,
+): readonly EditorChoice[] {
+  const hit = hitAt(pressed, editing);
+  const { node, point } = pressed;
+  if (hit === null || node === undefined || point === null) return [];
+  return editorsUnder(view, hit, editing, { drawing: node.data.drawing, point });
+}
+
+/**
+ * The editor Enter and the inspector's Edit button open: that of the
+ * single selected address, as a double-click on it would, its hit read
+ * from its block's drawing (`drawingOf`, `hitForAddress`), never from the
+ * DOM, so a block outside the view opens as one in it; a selected band (in
+ * its timeline's editor) opens as a press on it would. `null` when the
+ * selection is not one openable address.
  */
 export function openable(
   view: View,
   selection: Selection,
-  nodes: ReadonlyMap<string, BlockNode>,
+  drawingOf: (block: string) => Drawing | undefined,
   editing: Editing | null,
 ): Address | null {
   if (selection.size !== 1) return null;
   const [address] = selection.values();
-  const node = address === undefined ? undefined : nodes.get(blockOf(address));
-  if (address === undefined || node === undefined) return null;
-  const hit = hitForAddress(node.id, node.data.drawing, address, editing);
+  if (address === undefined) return null;
+  const block = blockOf(address);
+  const drawing = drawingOf(block);
+  if (drawing === undefined) return null;
+  const hit = hitForAddress(block, drawing, address, editing) ?? bandHitOf(drawing, address);
   return hit === null ? null : editorTargetOf(view, hit, editing);
+}
+
+/** The hit of the selected band `address` in `drawing`: its first record; `null` for anything else. */
+function bandHitOf(drawing: Drawing, address: Address): Hit | null {
+  const { block, element } = addressParts(address);
+  const box = element === null ? undefined : boxOf(drawing, element);
+  if (box === undefined || !isBand(box)) return null;
+  return { block, kind: "band", address, box, boundary: false, within: null };
 }
 
 /**

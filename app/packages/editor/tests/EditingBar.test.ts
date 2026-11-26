@@ -156,14 +156,14 @@ describe("the editing bar", () => {
     expect(path()).toEqual(["mixed", "group_2"]);
   });
 
-  it("names a flow editor as the FlowMaps of its timeline", () => {
+  it("names a flow-control editor as the flow control of its timeline", () => {
     const store = mixedNested();
     show(store);
     open(store, address(A, "score"));
     const error = store.open(address(A, "score"), "flow");
     if (error !== null) throw new Error(error.message);
     flushSync();
-    expect(path()).toEqual(["Score", "FlowMaps of Score"]);
+    expect(path()).toEqual(["Score", "Flow control of Score"]);
   });
 
   it("closes the innermost editor with Done", () => {

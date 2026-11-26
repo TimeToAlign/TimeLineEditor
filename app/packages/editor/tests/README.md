@@ -78,11 +78,24 @@ and Cancel, in that order, then "Editing:" and an ordered list "Editing
 path" whose items are the open editors' names alone, outermost first, as
 "Words" defines them: `["Mixed", "Performance", "Score"]` for block `A`'s
 three editors, `["Anonymous bundle", "clt_1", "clt_3"]` for block `B`'s,
-`["mixed", "group_2"]` for block `C`'s. A renaming shows at once. A flow
-editor is named as the FlowMaps of its timeline: `score`'s timeline editor
-with its flow editor open inside it reads `["Score", "FlowMaps of Score"]`
-for block `A` (the editors opened directly on `score`, no group editor
-around them).
+`["mixed", "group_2"]` for block `C`'s. A renaming shows at once. A
+flow-control editor (kind `flow`) is named as the flow control of its
+timeline (`editorTitle`): `score`'s timeline editor with its flow-control
+editor open inside it reads `["Score", "Flow control of Score"]` for block
+`A` (the editors opened directly on `score`, no group editor around them).
+
+**The Edit button** (`EditButton.test.ts`) opens, for a single selected
+address, the editor a double-click on it would open (the arranger's
+`openable` over the block's drawing, then `editorOf`), so a touch, which
+selects with a tap, reaches every editor. On `bundle_mixed` in block `A`
+alone, mounted with the selection resolved (`resolveSelection`): with
+`score`'s card `{block: A, id: "score", part: ["card"]}` selected it shows
+one button "Edit" titled `Open the editor of Score`, and a press opens
+`{target: {block: A, id: "score"}, kind: "timeline"}`; with the frame
+`{block: A, id: "group_1"}` selected it opens the group editor of
+`group_1`; with two addresses selected, and with nothing selected, it
+shows no button. Inside `score`'s timeline editor, `score`'s card selected
+(the edited element) shows no button.
 
 **The flow editor's server** (`flow-server.test.ts`): `flowServerOf` sends
 the manifest as Save writes it (`saveManifest`) with the root's bare ID to
