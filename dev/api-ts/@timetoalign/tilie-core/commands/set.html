@@ -542,7 +542,7 @@
 <blockquote>
 <div><p><strong>Setter</strong>&lt;<code class="docutils literal notranslate"><span class="pre">T</span></code>&gt; = (<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">target</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>, <code class="docutils literal notranslate"><span class="pre">changes</span></code>) =&gt; <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#commanderror"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">CommandError</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/987a17565a8c4105bd06998a81e76866ed174099/app/packages/core/src/commands/set.ts#L122">commands/set.ts:122</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/commands/set.ts#L122">commands/set.ts:122</a></p>
 <p>Set one property of <code class="docutils literal notranslate"><span class="pre">target</span></code> to <code class="docutils literal notranslate"><span class="pre">value</span></code>: the new view, or the refusal at
 <code class="docutils literal notranslate"><span class="pre">path</span></code> (<code class="docutils literal notranslate"><span class="pre">[address,</span> <span class="pre">property]</span></code>). A setter that changes something records
 <code class="docutils literal notranslate"><span class="pre">path</span></code> in <code class="docutils literal notranslate"><span class="pre">changes</span></code>.</p>
@@ -589,7 +589,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>BLOCK_PROPERTIES</strong>: readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/987a17565a8c4105bd06998a81e76866ed174099/app/packages/core/src/commands/set.ts#L441">commands/set.ts:441</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/commands/set.ts#L441">commands/set.ts:441</a></p>
 <p>The names of a block’s own members a <code class="docutils literal notranslate"><span class="pre">set</span></code> may give, in the order a new
 block’s are applied; <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">statements</span></code> and <code class="docutils literal notranslate"><span class="pre">provenance</span></code> are its
 manifest’s.</p>
@@ -600,7 +600,7 @@ manifest’s.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>SETTABLE</strong>: <code class="docutils literal notranslate"><span class="pre">{</span> <span class="pre">readonly</span> <span class="pre">[kind</span> <span class="pre">in</span> <span class="pre">TargetKind]:</span> <span class="pre">Setters&lt;TargetOfKind[kind]&gt;</span> <span class="pre">}</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/987a17565a8c4105bd06998a81e76866ed174099/app/packages/core/src/commands/set.ts#L1271">commands/set.ts:1271</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/commands/set.ts#L1271">commands/set.ts:1271</a></p>
 <p>What a <code class="docutils literal notranslate"><span class="pre">set</span></code> may give each kind of target, by property.</p>
 </section>
 </section>
@@ -611,7 +611,7 @@ manifest’s.</p>
 <blockquote>
 <div><p><strong>changeProblem</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">change</span></code>): <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/987a17565a8c4105bd06998a81e76866ed174099/app/packages/core/src/commands/set.ts#L1155">commands/set.ts:1155</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/commands/set.ts#L1155">commands/set.ts:1155</a></p>
 <p>Why one change of a <code class="docutils literal notranslate"><span class="pre">set</span></code>, its values all set, leaves its target refused,
 if it does: an elision whose end does not lie after its start
 (<code class="docutils literal notranslate"><span class="pre">stretchProblem</span></code>), at the change’s <code class="docutils literal notranslate"><span class="pre">end</span></code> where it gives one, else at its
@@ -639,7 +639,7 @@ of an elision past the other’s old value.</p>
 <blockquote>
 <div><p><strong>readBlockManifest</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">mint</span></code>): <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a> | <a class="reference internal" href="../manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/987a17565a8c4105bd06998a81e76866ed174099/app/packages/core/src/commands/set.ts#L224">commands/set.ts:224</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/commands/set.ts#L224">commands/set.ts:224</a></p>
 <p>A whole manifest for block <code class="docutils literal notranslate"><span class="pre">id</span></code>, its segment lines covered
 (<code class="docutils literal notranslate"><span class="pre">withSegmentLinesCovered</span></code>, each new segment’s ID given by <code class="docutils literal notranslate"><span class="pre">mint</span></code>) and the tree of every line covered given the
 locks its places decide (<code class="docutils literal notranslate"><span class="pre">withPlaceLocks</span></code>), as <code class="docutils literal notranslate"><span class="pre">set</span> <span class="pre">is_segment_line</span></code>
@@ -670,7 +670,7 @@ gives them; its problems located below <code class="docutils literal notranslate
 <blockquote>
 <div><p><strong>setProperty</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">address</span></code>, <code class="docutils literal notranslate"><span class="pre">property</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">changes</span></code>): <a class="reference internal" href="../workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a> | <a class="reference internal" href="../errors.html#problem"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Problem</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/987a17565a8c4105bd06998a81e76866ed174099/app/packages/core/src/commands/set.ts#L1338">commands/set.ts:1338</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/commands/set.ts#L1338">commands/set.ts:1338</a></p>
 <p>Set <code class="docutils literal notranslate"><span class="pre">property</span></code> of the target at <code class="docutils literal notranslate"><span class="pre">address</span></code> to <code class="docutils literal notranslate"><span class="pre">value</span></code>, recording the change in <code class="docutils literal notranslate"><span class="pre">changes</span></code>.</p>
 <section id="id7">
 <h4>Parameters<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>

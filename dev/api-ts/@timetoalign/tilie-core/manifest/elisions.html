@@ -542,7 +542,7 @@
 <blockquote>
 <div><p><strong>ElisionLabel</strong> = <em>typeof</em> <a class="reference internal" href="#elision-labels"><code class="docutils literal notranslate"><span class="pre">ELISION_LABELS</span></code></a>[<code class="docutils literal notranslate"><span class="pre">number</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/987a17565a8c4105bd06998a81e76866ed174099/app/packages/core/src/manifest/elisions.ts#L26">manifest/elisions.ts:26</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/manifest/elisions.ts#L26">manifest/elisions.ts:26</a></p>
 <p>A word naming one of an elision’s labels.</p>
 </section>
 </section>
@@ -553,7 +553,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>ELISION_LABELS</strong>: readonly [<code class="docutils literal notranslate"><span class="pre">&quot;name&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;id&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;coordinate&quot;</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/987a17565a8c4105bd06998a81e76866ed174099/app/packages/core/src/manifest/elisions.ts#L23">manifest/elisions.ts:23</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/manifest/elisions.ts#L23">manifest/elisions.ts:23</a></p>
 <p>The words of an elision’s <code class="docutils literal notranslate"><span class="pre">display</span></code> that name its labels, in the order
 its stack holds them (drawing.md sections 2 and 6.4, Markers): its name,
 its ID, its elided coordinates. Each is a <code class="docutils literal notranslate"><span class="pre">label</span></code> element addressed
@@ -568,7 +568,7 @@ label, its others addressed <code class="docutils literal notranslate"><span cla
 <blockquote>
 <div><p><strong>defaultElisionTimelines</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>): <code class="docutils literal notranslate"><span class="pre">ReadonlySet</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/987a17565a8c4105bd06998a81e76866ed174099/app/packages/core/src/manifest/elisions.ts#L125">manifest/elisions.ts:125</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/manifest/elisions.ts#L125">manifest/elisions.ts:125</a></p>
 <p>The timelines on which an ancestor card may derive elisions (drawing.md
 section 8.9), memoised by the manifest’s identity: for every ancestor
 card of a root <code class="docutils literal notranslate"><span class="pre">R</span></code> aligned to a member <code class="docutils literal notranslate"><span class="pre">M</span></code> with the ancestors <code class="docutils literal notranslate"><span class="pre">A1</span> <span class="pre">=</span> <span class="pre">R,</span> <span class="pre">…,</span> <span class="pre">Ak</span></code>, <code class="docutils literal notranslate"><span class="pre">R</span></code> and every child of <code class="docutils literal notranslate"><span class="pre">A1</span></code> to <code class="docutils literal notranslate"><span class="pre">A(k</span> <span class="pre">−</span> <span class="pre">1)</span></code> (the depths 1 to <code class="docutils literal notranslate"><span class="pre">k</span></code>). A
@@ -597,7 +597,7 @@ lets the card derive one on. An ungrouped root’s card derives none.</p>
 <blockquote>
 <div><p><strong>elisionsOn</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>): readonly <code class="docutils literal notranslate"><span class="pre">object</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/987a17565a8c4105bd06998a81e76866ed174099/app/packages/core/src/manifest/elisions.ts#L37">manifest/elisions.ts:37</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/manifest/elisions.ts#L37">manifest/elisions.ts:37</a></p>
 <p>The stored elisions lying on the timeline <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, card and group
 elisions alike, in the order <code class="docutils literal notranslate"><span class="pre">graphical.elisions</span></code> lists them, which is
 canonical (by timeline, then start, then ID) in a manifest in canonical
@@ -624,7 +624,7 @@ order; none when it has none. Memoised by the manifest’s identity.</p>
 <blockquote>
 <div><p><strong>elisionsUnder</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">root</span></code>): readonly <code class="docutils literal notranslate"><span class="pre">object</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/987a17565a8c4105bd06998a81e76866ed174099/app/packages/core/src/manifest/elisions.ts#L83">manifest/elisions.ts:83</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/manifest/elisions.ts#L83">manifest/elisions.ts:83</a></p>
 <p>The stored card elisions lying on the timeline <code class="docutils literal notranslate"><span class="pre">root</span></code> or on a descendant
 of it, in the order of <code class="docutils literal notranslate"><span class="pre">graphical.elisions</span></code>: every stored elision of that
 tree whose timeline lies in no group (drawing.md section 8.9), which
@@ -653,7 +653,7 @@ for an ID naming no timeline.</p>
 <blockquote>
 <div><p><strong>groupElisions</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">group</span></code>): readonly <code class="docutils literal notranslate"><span class="pre">object</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/987a17565a8c4105bd06998a81e76866ed174099/app/packages/core/src/manifest/elisions.ts#L104">manifest/elisions.ts:104</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/9403d8d7f43bd2b7d0b0092612087d78b5554ac1/app/packages/core/src/manifest/elisions.ts#L104">manifest/elisions.ts:104</a></p>
 <p>The group elisions of the group <code class="docutils literal notranslate"><span class="pre">group</span></code>: every stored elision whose
 timeline lies in it, a member or a member’s descendant (<code class="docutils literal notranslate"><span class="pre">groupsHolding</span></code>,
 drawing.md section 8.9), in the order of <code class="docutils literal notranslate"><span class="pre">graphical.elisions</span></code>. An elision
