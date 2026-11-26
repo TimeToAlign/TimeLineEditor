@@ -559,18 +559,41 @@ timeline, and the answer, read by timetoshare's `loads`:
   read as the names of the Regions they name, are the file's `default`
   `sections`; one for `single` and one for `printed` exactly where the
   file's `sections` of that convention differ from `default`'s (`ossia` has
-  no `single`), with those sections; and no other FlowMap;
+  no `single`), with those sections; and no other FlowMap. The FlowMaps
+  are compared in the order `default`, `single`, `printed`: a manifest
+  lists them in canonical order, by ID, and minted IDs are random;
 - is otherwise the posted manifest: with the timeline's `regions`, the
   manifest's `flow_maps` and the `@context` taken out of both, the two are
   equal, and the answer's `@context` holds every entry of the posted one.
+
+**IDs written anew.** The Regions and FlowMaps the route writes anew get
+random IDs, minted at construction from one seed, the Regions first in the
+order of the axis, then the FlowMaps `default`, `single`, `printed`. The
+seed is timetoalign's `seed_from` of what decides the flows: the posted
+manifest as timetoalign writes it before the call (`AlignmentBundle.from_dict`,
+then `to_dict`, in timetoshare's JSON serialization), the timeline's ID,
+`believer` and `beliefs` (null where not given). A server answers many
+requests in one process, so without it two equal requests would mint
+different IDs. The minting test asserts the IDs of `child_jumps`, child
+`verse`, exactly as an `IdMinter` of that seed mints them: three `region`
+IDs, then three `flow` IDs, the FlowMap of `default` first. Two requests
+with one body answer the same bytes, the complete form of a manifest
+answers its minimal form's bytes, and asking with `actor` and `date` mints
+the IDs asking without them mints. Every other test names a minted ID
+through the answer (a Region by its interval, a FlowMap by its convention),
+never by its spelling.
 
 **Flows written before.** `flow/sonata_exposition` is the one fixture that
 holds its atomic sections and its computed FlowMaps already, and a virtual
 timeline applying one of them. Posted as it is, it answers itself: every
 member of the answer, the `@context` included, equals the fixture's.
 Posted with its Regions, its FlowMaps and its virtual timeline removed, it
-answers the fixture without its virtual timeline, member for member, IDs
-included: what the library writes from nothing is what the format states.
+answers the fixture without its virtual timeline, member for member, once
+each ID the answer mints is read as the fixture's ID of the same element (a
+Region by its interval, a FlowMap by its convention) and the FlowMaps stand
+in the order of those IDs: what the library writes from nothing is what the
+format states, the IDs aside, which are minted anew and are none the
+fixture holds.
 
 Its flow control changed, the flows are written again. A jump target added
 at 4 divides the first section; derived by hand from the fixture (24
@@ -580,13 +603,14 @@ at the second, a repeat end at 16 without a place): the boundaries are 0,
 D 16 to 24; the `default` flow plays 0 to 16, 0 to 12 and 16 to 24 as
 before, which is A B C A B D; `single` A B D; `printed` A B C D. The
 Regions of 12 to 16 and of 16 to 24 are still sections and keep their IDs
-under the new letters C and D; 0 to 4 and 4 to 12 are new and get the next
-IDs; the Region of 0 to 12 is no section any more and stays.
+under the new letters C and D; 0 to 4 and 4 to 12 are new and get IDs
+minted anew, held by nothing posted; the Region of 0 to 12 is no section
+any more and stays.
 
 | Request | Answer |
 | --- | --- |
 | that manifest, no `actor` | 422 at `["timeline"]`, timetoalign's words, of which `'score'`, `region_1` and `actor` are asserted |
-| with `actor` `https://example.org/people/editor` and `date` `2026-11-26` | 200, accepted by `validate`; the timeline's `regions`, whole and in order: `region_4` A 0 to 4, `region_1` A 0 to 12, `region_5` B 4 to 12, `region_2` C 12 to 16, `region_3` D 16 to 24, each as an atomic section is stated, and `region_1`'s one provenance entry holding besides the `beliefs` `[{actor, belief: "false", date}]` of the request; `flow_maps`, whole: `flow_map_1` (`default`) the Regions 4, 5, 2, 4, 5, 3, `flow_map_2` (`single`) 4, 5, 3, `flow_map_3` (`printed`) 4, 5, 2, 3, each with its `inferred` entry; `virtual_timelines` the fixture's (its length is still 36 = 4 + 8 + 4 + 4 + 8 + 8); every other member the posted one's |
+| with `actor` `https://example.org/people/editor` and `date` `2026-11-26` | 200, accepted by `validate`; the timeline's `regions`, whole and in order: a new Region A 0 to 4, `region_1` A 0 to 12, a new Region B 4 to 12, `region_2` C 12 to 16, `region_3` D 16 to 24, each as an atomic section is stated, the two new ones with distinct IDs none of the posted manifest's, and `region_1`'s one provenance entry holding besides the `beliefs` `[{actor, belief: "false", date}]` of the request; `flow_maps`, whole, in this order: `flow_map_1` (`default`) the Regions new A, new B, 2, new A, new B, 3, `flow_map_2` (`single`) new A, new B, 3, `flow_map_3` (`printed`) new A, new B, 2, 3, each with its `inferred` entry; `virtual_timelines` the fixture's (its length is still 36 = 4 + 8 + 4 + 4 + 8 + 8); every other member the posted one's |
 | with that `actor` and no `date` | 200; the belief's `date` is the server's day, read before and after the request |
 | the fixture as it is, with that `actor` and `date` | 200, the fixture: where no section is rejected nobody's belief is written |
 | `actor` `""`; `actor` `7` | 422 at `["actor"]`, `an actor is named by a non-empty string` |
@@ -597,7 +621,7 @@ IDs; the Region of 0 to 12 is no section any more and stays.
 | --- | --- |
 | `flow/da_capo_al_fine` in the complete form | 200, byte for byte the answer to its minimal form |
 | `flow/flow_map_by_hand`, timeline `set` (no flow control) | 200, the posted manifest: nothing is written |
-| `child_jumps`, the child `verse` (its sections and flows derived by hand in the computing route's table above) | 200, accepted by `validate`; the child's `regions`, whole and in order: `region_1` A 0 to 2, `region_2` B 2 to 4, `region_3` C 4 to 8, each as an atomic section is stated; the root `piece` no `regions`; `flow_maps`, whole, each naming the root `piece`, named after the child `Verse` and its convention, with its `inferred` entry: `flow_map_1` `Verse, default` the Regions 1, 2, 1, 2, 1, 2, 3, 2, 3, `flow_map_2` `Verse, single` 1, 2, 3, `flow_map_3` `Verse, printed` 1, 2, 3 (a FlowMap names a root timeline, so a child's flows are written on its root and list the child's Regions); with the child's `regions`, the `flow_maps` and the `@context` taken out of both, the answer is the posted manifest, and its `@context` holds every entry of the posted one |
+| `child_jumps`, the child `verse` (its sections and flows derived by hand in the computing route's table above) | 200, accepted by `validate`; the child's `regions`, whole and in order: A 0 to 2, B 2 to 4, C 4 to 8, each as an atomic section is stated, their IDs minted anew; the root `piece` no `regions`; `flow_maps`, whole and in the order of their conventions, each naming the root `piece`, named after the child `Verse` and its convention, with its `inferred` entry and an ID minted anew: `Verse, default` the Regions A, B, A, B, A, B, C, B, C, `Verse, single` A, B, C, `Verse, printed` A, B, C (a FlowMap names a root timeline, so a child's flows are written on its root and list the child's Regions); with the child's `regions`, the `flow_maps` and the `@context` taken out of both, the answer is the posted manifest, and its `@context` holds every entry of the posted one |
 | `flow/repairs` with `believer` `https://example.org/people/other` | 422 at `["timeline"]`, as the computing route |
 | a parameter `convention` | 422 at `["convention"]`, `'convention' is no parameter of this route` |
 | `timeline` `nothing` | 422 at `["timeline"]`, `the manifest has no timeline 'nothing'` |

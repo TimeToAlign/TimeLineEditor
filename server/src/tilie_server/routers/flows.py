@@ -316,6 +316,12 @@ def written_manifest(body: bytes) -> str:
         belief ``false`` of the request's ``actor`` on the request's
         ``date`` (the server's day without one) in its type statement; the
         computed FlowMaps keep their IDs and list the sections standing now.
+        The Regions and FlowMaps written anew get random IDs, minted in that
+        order from one seed: ``seed_from`` of the manifest as timetoalign
+        writes it before the call (its minimal JSON text), the timeline's
+        ID, ``believer`` and ``beliefs`` (``None`` where not given), so one
+        request is answered alike in either form of its manifest and on
+        every asking.
 
     Raises:
         Refusal: 501 as :func:`flow_engine`; 422 as :func:`read_request`,
@@ -327,14 +333,27 @@ def written_manifest(body: bytes) -> str:
             more and the request names no ``actor`` to reject it.
     """
     flow_engine()
+    from timetoalign.core.ids import seed_from
     from timetoshare import dumps
 
     parameters, manifest, bare = read_request(body, WRITING_PARAMETERS)
     reading = asked_reading(parameters)
     actor, date = asked_rejection(parameters)
     bundle, timeline = asked_timeline(parameters, manifest, bare)
+    # The IDs written anew are seeded by what decides the flows: the manifest as
+    # timetoalign reads it, the timeline and the reading. One request is answered
+    # alike in either form of its manifest and whatever the process answered
+    # before; another reading, which may cut other sections, mints other IDs.
+    seed = seed_from(
+        dumps(bundle.to_dict(), "json"),
+        timeline.id,
+        parameters.get("believer"),
+        parameters.get("beliefs"),
+    )
     try:
-        timeline.create_flow_maps_from_flow_control(actor=actor, date=date, **reading)
+        timeline.create_flow_maps_from_flow_control(
+            actor=actor, date=date, seed=seed, **reading
+        )
     except ValueError as error:
         raise Refusal(["timeline"], str(error)) from error
     return dumps(bundle.to_dict(), "json")

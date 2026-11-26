@@ -77,7 +77,7 @@ SAMPLES = {
             "length": 100,
             "flow_control": [
                 {
-                    "id": "#jump_1",
+                    "id": "#back_to_start",
                     "role": "jump",
                     "coordinate": 60,
                     "targets": [{"repeat_count": 1}],
@@ -520,15 +520,61 @@ def written(
     return loads(response.content.decode("utf-8"))
 
 
+def by_convention(flow_maps: list[Any]) -> list[Any]:
+    """FlowMaps in the order of their conventions: a manifest lists them by ID."""
+    return sorted(
+        flow_maps, key=lambda flow_map: CONVENTIONS.index(flow_map["convention"])
+    )
+
+
 def named_chunks(manifest: Any, timeline: str) -> list[tuple[str, list[str]]]:
-    """Each FlowMap's convention and its chunks as the names of their Regions."""
+    """Each FlowMap's convention and its chunks as the names of their Regions,
+    in the order of the conventions."""
     (root,) = [root for root in manifest["timelines"] if root["id"] == f"#{timeline}"]
     names = {region["id"]: region["name"] for region in root["regions"]}
     return [
         (flow_map["convention"], [names[chunk] for chunk in flow_map["chunks"]])
-        for flow_map in manifest["flow_maps"]
+        for flow_map in by_convention(manifest["flow_maps"])
         if flow_map["timeline"] == root["id"]
     ]
+
+
+def held_ids(manifest: Any) -> set[str]:
+    """Every ID a manifest holds, at any depth."""
+    if isinstance(manifest, list):
+        return set().union(*(held_ids(item) for item in manifest))
+    if not isinstance(manifest, dict):
+        return set()
+    own = {manifest["id"]} if isinstance(manifest.get("id"), str) else set()
+    return own.union(*(held_ids(value) for value in manifest.values()))
+
+
+def as_ids_of(answer: Any, model: Any, timeline: str) -> Any:
+    """The answer with each ID it holds and ``model`` does not read as the
+    model's ID of the same element: a Region of ``timeline`` by its interval,
+    a FlowMap by its convention; its FlowMaps then in the order of their IDs."""
+
+    def regions(manifest: Any) -> list[Any]:
+        (root,) = [r for r in manifest["timelines"] if r["id"] == f"#{timeline}"]
+        return root["regions"]
+
+    def interval(region: Any) -> str:
+        return spelled([region["start"], region["end"]])
+
+    model_regions = {interval(region): region["id"] for region in regions(model)}
+    model_maps = {m["convention"]: m["id"] for m in model["flow_maps"]}
+    renamed = copy.deepcopy(answer)
+    known = held_ids(model)
+    names: dict[str, str] = {}
+    for region in regions(renamed):
+        if region["id"] not in known:
+            names[region["id"]] = region["id"] = model_regions[interval(region)]
+    for flow_map in renamed["flow_maps"]:
+        if flow_map["id"] not in known:
+            names[flow_map["id"]] = flow_map["id"] = model_maps[flow_map["convention"]]
+        flow_map["chunks"] = [names.get(chunk, chunk) for chunk in flow_map["chunks"]]
+    renamed["flow_maps"].sort(key=lambda flow_map: flow_map["id"])
+    return renamed
 
 
 def intervals(manifest: Any, timeline: str) -> list[dict[str, Any]]:
@@ -583,7 +629,7 @@ def test_a_fixture_is_answered_with_its_expected_flows_written(
 
 def test_ossia_has_no_single_flow_map(server: TestClient) -> None:
     answer = written(server, fixture("flow/ossia"), "score")
-    assert [flow_map["convention"] for flow_map in answer["flow_maps"]] == [
+    assert [m["convention"] for m in by_convention(answer["flow_maps"])] == [
         "default",
         "printed",
     ]
@@ -605,7 +651,10 @@ def test_the_sonata_exposition_is_written_from_nothing_as_its_fixture_states_it(
     del emptied["virtual_timelines"]
     del whole["virtual_timelines"]
     answer = written(server, emptied, "score")
-    assert spelled(answer) == spelled(whole)
+    minted = [region["id"] for region in answer["timelines"][0]["regions"]]
+    minted += [flow_map["id"] for flow_map in answer["flow_maps"]]
+    assert len(set(minted)) == 6 and not set(minted) & held_ids(whole)
+    assert spelled(as_ids_of(answer, whole, "score")) == spelled(whole)
     assert named_chunks(whole, "score") == [
         ("default", ["A", "B", "A", "C"]),
         ("single", ["A", "C"]),
@@ -624,12 +673,12 @@ def divided() -> Any:
 
 
 def section(
-    region: int, name: str, start: int, end: int, beliefs: list[Any] | None = None
+    ID: str, name: str, start: int, end: int, beliefs: list[Any] | None = None
 ) -> dict[str, Any]:
     """A Region as an atomic section is stated, with the beliefs in its type."""
     (entry,) = ATOMIC["provenance"]
     return {
-        "id": f"#region_{region}",
+        "id": ID,
         "name": name,
         "start": [start, 1],
         "end": [end, 1],
@@ -638,13 +687,13 @@ def section(
     }
 
 
-def flow_map(number: int, convention: str, regions: list[int]) -> dict[str, Any]:
-    """A computed FlowMap of ``score`` listing Regions by their numbers."""
+def flow_map(ID: str, convention: str, regions: list[str]) -> dict[str, Any]:
+    """A computed FlowMap of ``score`` listing Regions by their IDs."""
     return {
-        "id": f"#flow_map_{number}",
+        "id": ID,
         "timeline": "#score",
         "convention": convention,
-        "chunks": [f"#region_{region}" for region in regions],
+        "chunks": regions,
         "provenance": [{"method": "inferred"}],
     }
 
@@ -661,21 +710,24 @@ def test_flows_written_before_are_written_again(server: TestClient) -> None:
     answer = written(server, posted, "score", actor=EDITOR, date="2026-11-26")
     validate(answer)
     (root,) = answer["timelines"]
+    a, b = (root["regions"][index]["id"] for index in (0, 2))
+    assert a != b and not {a, b} & held_ids(posted)
+    r1, r2, r3 = "#region_1", "#region_2", "#region_3"
     rejecting = [{"actor": EDITOR, "belief": "false", "date": "2026-11-26"}]
     assert spelled(root["regions"]) == spelled(
         [
-            section(4, "A", 0, 4),
-            section(1, "A", 0, 12, rejecting),
-            section(5, "B", 4, 12),
-            section(2, "C", 12, 16),
-            section(3, "D", 16, 24),
+            section(a, "A", 0, 4),
+            section(r1, "A", 0, 12, rejecting),
+            section(b, "B", 4, 12),
+            section(r2, "C", 12, 16),
+            section(r3, "D", 16, 24),
         ]
     )
     assert spelled(answer["flow_maps"]) == spelled(
         [
-            flow_map(1, "default", [4, 5, 2, 4, 5, 3]),
-            flow_map(2, "single", [4, 5, 3]),
-            flow_map(3, "printed", [4, 5, 2, 3]),
+            flow_map("#flow_map_1", "default", [a, b, r2, a, b, r3]),
+            flow_map("#flow_map_2", "single", [a, b, r3]),
+            flow_map("#flow_map_3", "printed", [a, b, r2, r3]),
         ]
     )
     assert answer["virtual_timelines"][0]["length"] == [36, 1]
@@ -753,22 +805,30 @@ def test_a_childs_flows_are_written_on_the_child_and_its_root(
     validate(answer)
     (root,) = answer["timelines"]
     (child,) = root["children"]
+    a, b, c = (region["id"] for region in child["regions"])
     assert spelled(child["regions"]) == spelled(
-        [section(1, "A", 0, 2), section(2, "B", 2, 4), section(3, "C", 4, 8)]
+        [section(a, "A", 0, 2), section(b, "B", 2, 4), section(c, "C", 4, 8)]
     )
     assert "regions" not in root
-    assert spelled(answer["flow_maps"]) == spelled(
+    maps = by_convention(answer["flow_maps"])
+    assert len({a, b, c, *(m["id"] for m in maps)}) == 6
+    assert not {a, b, c, *(m["id"] for m in maps)} & held_ids(posted)
+    assert spelled(maps) == spelled(
         [
             {
-                **flow_map(number, convention, regions),
+                **flow_map(minted["id"], convention, regions),
                 "timeline": "#piece",
                 "name": f"Verse, {convention}",
             }
-            for number, convention, regions in [
-                (1, "default", [1, 2, 1, 2, 1, 2, 3, 2, 3]),
-                (2, "single", [1, 2, 3]),
-                (3, "printed", [1, 2, 3]),
-            ]
+            for minted, (convention, regions) in zip(
+                maps,
+                [
+                    ("default", [a, b, a, b, a, b, c, b, c]),
+                    ("single", [a, b, c]),
+                    ("printed", [a, b, c]),
+                ],
+                strict=True,
+            )
         ]
     )
     posted_context = posted.pop("@context")
@@ -777,6 +837,36 @@ def test_a_childs_flows_are_written_on_the_child_and_its_root(
     del answer["flow_maps"]
     del child["regions"]
     assert spelled(answer) == spelled(posted)
+
+
+def test_the_ids_written_anew_are_minted_from_the_requests_seed(
+    server: TestClient,
+) -> None:
+    from timetoalign.alignment import AlignmentBundle
+    from timetoalign.core.ids import IdMinter, seed_from
+
+    read_back = AlignmentBundle.from_dict(read("child_jumps")).to_dict()
+    minter = IdMinter(seed_from(dumps(read_back, "json"), "verse", None, None))
+    regions = [f"#{minter.mint('region')}" for _ in range(3)]
+    flows = [f"#{minter.mint('flow')}" for _ in range(3)]
+    answer = written(server, fixture("child_jumps"), "verse")
+    (child,) = answer["timelines"][0]["children"]
+    assert [region["id"] for region in child["regions"]] == regions
+    assert [m["id"] for m in by_convention(answer["flow_maps"])] == flows
+
+
+def test_who_asks_and_when_mint_no_other_ids(server: TestClient) -> None:
+    plain = ask(server, fixture("flow/volta_passes"), "score", FLOW_MAPS)
+    asked = ask(
+        server,
+        fixture("flow/volta_passes"),
+        "score",
+        FLOW_MAPS,
+        actor=EDITOR,
+        date="2026-11-26",
+    )
+    assert asked.status_code == 200
+    assert asked.content == plain.content
 
 
 @pytest.mark.parametrize(

@@ -202,14 +202,14 @@ def test_rows_with_their_own_ids_read_by_a_measure_record_map(
             {
                 "conversion_maps": [
                     {
-                        "id": "#cmap_2",
+                        "id": "#bars",
                         "measure_map": "#measuremap_1",
                         "source_unit": "quarters",
                         "target_unit": None,
                         "type": "MeasureRecordMap",
                     }
                 ],
-                "id": "#clt_6",
+                "id": "#score",
                 "length": [27, 2],
                 "unit": "quarters",
             }
