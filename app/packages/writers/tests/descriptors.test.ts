@@ -9,6 +9,7 @@ import {
   DEFAULT_PLACEMENT,
   type Drawing,
   draw,
+  type LineElement,
   type LineEnd,
   type LineStart,
   manifestLayer,
@@ -716,8 +717,8 @@ describe("descriptors", () => {
     ]);
   });
 
-  it("writes a line its FlowMap's gaps interrupt in pieces, then its gap lines, then its marks", () => {
-    const element = synthetic({
+  it("writes a line its FlowMap's gaps interrupt in pieces, then its grey gap lines in its own stroke, then its marks", () => {
+    const line: LineElement = {
       type: "timeline",
       address: at("v"),
       style: style({
@@ -736,11 +737,12 @@ describe("descriptors", () => {
         [20, 24],
         [30, 31],
       ],
-    });
+    };
+    const element = synthetic(line);
     const piece = (from: number, to: number) =>
       `<line data-id="v" x1="${from}" y1="20" x2="${to}" y2="20" stroke="#00CC00" stroke-width="3" stroke-dasharray="3 3"/>`;
     const gapLine = (from: number, to: number) =>
-      `<line data-id="v" x1="${from}" y1="20" x2="${to}" y2="20" stroke="#00CC00" stroke-width="1.5" stroke-dasharray="1.5 3"/>`;
+      `<line data-id="v" x1="${from}" y1="20" x2="${to}" y2="20" stroke="#9CA3AF" stroke-width="3" stroke-dasharray="3 3"/>`;
     expect(svgBody(element)).toEqual([
       piece(10, 20),
       piece(24, 30),
@@ -750,9 +752,23 @@ describe("descriptors", () => {
       '<circle data-id="v" cx="10" cy="20" r="3" fill="#00CC00"/>',
       '<circle data-id="v" cx="50" cy="20" r="3" fill="#00CC00"/>',
     ]);
-    expect(tikzBody(element).filter((command) => command.includes("line width=1.5pt"))).toEqual([
-      expect.stringContaining("dash pattern=on 1.5pt off 3pt"),
-      expect.stringContaining("dash pattern=on 1.5pt off 3pt"),
+    expect(tikzBody(element).filter((command) => command.includes("draw=ts9CA3AF"))).toEqual([
+      expect.stringContaining("draw=ts9CA3AF,line width=3pt,dash pattern=on 3pt off 3pt"),
+      expect.stringContaining("draw=ts9CA3AF,line width=3pt,dash pattern=on 3pt off 3pt"),
+    ]);
+    const solid = synthetic({
+      ...line,
+      style: style({
+        stroke: "#00CC00",
+        fill: "#00CC00",
+        "stroke-width": 3,
+        "stroke-dasharray": "none",
+        opacity: 0.5,
+      }),
+    });
+    expect(svgBody(solid).filter((written) => written.includes("#9CA3AF"))).toEqual([
+      '<line data-id="v" x1="20" y1="20" x2="24" y2="20" stroke="#9CA3AF" stroke-width="3" opacity="0.5"/>',
+      '<line data-id="v" x1="30" y1="20" x2="31" y2="20" stroke="#9CA3AF" stroke-width="3" opacity="0.5"/>',
     ]);
   });
 

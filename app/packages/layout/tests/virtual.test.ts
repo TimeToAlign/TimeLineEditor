@@ -5,9 +5,14 @@
  * "Virtual cards".
  */
 
-import { type ElementAddress, sameAddress } from "@timetoalign/tilie-core";
+import {
+  type AxisValue,
+  type ElementAddress,
+  type Manifest,
+  sameAddress,
+} from "@timetoalign/tilie-core";
 import { toFloat, toRational } from "@timetoalign/tilie-core/numbers";
-import type { Graphical } from "@timetoalign/timetoshare";
+import type { Graphical, Rule } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   abscissaOf,
@@ -21,7 +26,16 @@ import {
   manifestLayer,
   type Placement,
 } from "../src/index.ts";
-import { boxesOf, drawFixture, element, loadFile, metrics } from "./support.ts";
+import {
+  boxesOf,
+  build,
+  drawFixture,
+  element,
+  loadFile,
+  metrics,
+  quarters,
+  target,
+} from "./support.ts";
 
 const L = 400;
 const PLACED: Placement = {
@@ -35,6 +49,12 @@ const WHOLE_NAMES: Graphical = {
 
 /** `L × u` of `t` on an axis of length `lambda`, both exact as numerator and denominator. */
 const lx = (t: number, lambda: number) => L * (t / lambda);
+
+/** The text of the name or label at `address`. */
+function textOf(drawing: Drawing, address: ElementAddress): string {
+  const item = element(drawing, address);
+  return item.type === "name" || item.type === "label" ? item.text : item.type;
+}
 
 /** The chunk address `{id, facet: "regions", part}`. */
 const chunk = (id: string, ...part: (number | "label" | "start")[]): ElementAddress => ({
@@ -280,5 +300,101 @@ describe("virtual members", () => {
         x(((starts[k] ?? 0) + (starts[k + 1] ?? 0)) / 2),
       ]),
     ]);
+  });
+});
+
+describe("elisions of a placed virtual card", () => {
+  /** The README's `score`, `flow_map_1` and `virtual_1`, an elision of `virtual_1` over `[start, end]`. */
+  function exposition(
+    elision: { readonly start: AxisValue; readonly end: AxisValue; readonly width?: object },
+    rules: readonly Rule[] = [],
+  ): Manifest {
+    const region = (id: string, name: string, start: number, end: number) => ({
+      type: "add",
+      into: target("score"),
+      region: { id, name, start: quarters(start), end: quarters(end) },
+    });
+    const built = build("score", 16, region("region_1", "A", 0, 8), region("region_2", "B", 8, 16));
+    return {
+      ...built,
+      flow_maps: [
+        {
+          id: "flow_map_1",
+          timeline: "score",
+          chunks: ["region_1", "region_1", "region_2"],
+          canonical: false,
+          name: null,
+          provenance: [{ method: "manual" }],
+        },
+      ],
+      virtual_timelines: [
+        {
+          id: "virtual_1",
+          timeline: "score",
+          map: "flow_map_1",
+          name: null,
+          unit: "quarters",
+          number_type: "fraction",
+          length: quarters(24),
+        },
+      ],
+      graphical: {
+        ...built.graphical,
+        elisions: [
+          { id: "elision_1", timeline: "virtual_1", display: ["ellipsis", "name"], ...elision },
+        ],
+        rules: [...rules],
+      },
+    } as Manifest;
+  }
+  const placed: Placement = { ...DEFAULT_PLACEMENT, places: { virtual_1: {} } };
+  const drawn = (manifest: Manifest, placement = placed) =>
+    draw(manifest, placement, [DEFAULT_LAYER, manifestLayer(manifest)], metrics);
+  const elisionsOf = (drawing: Drawing) =>
+    drawing.elements.flatMap((item) => (item.type === "elision" ? [item] : []));
+
+  it("draw no gap for an elision lying wholly in a run gap", () => {
+    const drawing = drawn(exposition({ start: quarters(10), end: quarters(14) }));
+    const { xs: x0, xe, end, cuts } = lineOf(drawing, "virtual_1");
+    expect(elisionsOf(drawing)).toEqual([]);
+    expect([xe, end, cuts]).toEqual([x0 + 266.6666666666667, "circle", []]);
+  });
+
+  it("draw a gap after a run gap by the run formula less its shrink", () => {
+    const drawing = drawn(
+      exposition({ start: quarters(17), end: quarters(19), width: { canvas: 8 } }),
+    );
+    const { xs: x0, xe, end, cuts } = lineOf(drawing, "virtual_1");
+    const [gap, ...others] = elisionsOf(drawing);
+    if (gap === undefined) throw new Error("elision_1's gap");
+    expect(others).toEqual([]);
+    expect([gap.address, gap.x1, gap.x2]).toEqual([
+      { id: "elision_1" },
+      x0 + 150.00000000000006,
+      x0 + 158.00000000000006,
+    ]);
+    expect([xe, end, cuts]).toEqual([
+      x0 + 241.33333333333343,
+      "circle",
+      [[x0 + 150.00000000000006, x0 + 158.00000000000006]],
+    ]);
+    const brace = element(drawing, chunk("virtual_1", 2));
+    expect(brace.type === "region" ? [brace.x1, brace.x2] : brace.type).toEqual([
+      x0 + 133.33333333333331,
+      x0 + 241.33333333333343,
+    ]);
+    expect(drawing.elements.filter((item) => item.type === "ellipsis")).toEqual([]);
+  });
+
+  it("are drawn neither by the card of its timeline nor by a card switched to it", () => {
+    const elision = { start: quarters(17), end: quarters(19), width: { canvas: 8 } };
+    expect(elisionsOf(drawn(exposition(elision), DEFAULT_PLACEMENT))).toEqual([]);
+    const switching: Rule = {
+      select: { addresses: [{ id: "score", part: ["card"] }] },
+      set: { flow: "virtual_1" },
+    };
+    const switched = drawn(exposition(elision, [switching]), DEFAULT_PLACEMENT);
+    expect(textOf(switched, { id: "score", part: ["name"] })).toBe("score · virtual_1");
+    expect(elisionsOf(switched)).toEqual([]);
   });
 });

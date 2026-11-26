@@ -177,9 +177,10 @@ text, with the text the layout's constants give it:
 - the label separation, 2, has no constant: it is the width of the extent
   section 6.3 gives a label of width 0 (`[L × u − wi / 2 − 1, L × u + wi /
   2 + 1]`);
-- the gap line of a FlowMap's gap has no constant either: its stroke
-  width, dash and space are `w / 2`, `w / 2` and `w` of its line's stroke
-  width `w`, which the writers apply; its row is compared as that text.
+- the gap line of a FlowMap's gap holds one constant, its fixed stroke
+  colour `GAP_LINE_STROKE` (`#9CA3AF`); its stroke width and dash pattern
+  are its line's own, which the writers apply; its row is compared as that
+  text.
 
 Three numbers the constants hold are stated outside the table, each read
 from its sentence: the card spacing `S`'s default, 4 ("With the default `S
@@ -2568,6 +2569,30 @@ less and plus `k` = 8.
    1906 at `x0 + 400 × u(1906)`, about 187.2 to the right of that end. The
    virtual cards placed beside it, without a run, keep one axis each, from
    `x0` to `x0 + 400`.
+10. **Elisions of a placed virtual card** (section 8.10, Elisions of a
+    virtual timeline, and Runs). The specification's worked example: a
+    root `score` (16 quarters) with the regions `region_1` "A" over `[0,
+    8]` and `region_2` "B" over `[8, 16]`, the FlowMap `flow_map_1`
+    playing `region_1`, `region_1`, `region_2`, and the virtual timeline
+    `virtual_1` (24 quarters) applying it, placed (`places` holding
+    `virtual_1`), at `L` = 400. Entries 0 and 1 are a run drawn once, its
+    run gap over `[8, 16]`. An elision `elision_1` on `virtual_1` over
+    `[10, 14]` lies wholly in the run gap: it has no piece, the card draws
+    no `elision` element, and its line is drawn as without it, from `x0`
+    to `x0 + 266.6666666666667`, uncut. An elision over `[17, 19]` with
+    the width `{canvas: 8}` lies in entry 2: its one piece has the natural
+    width 33.33333333333326, the drawn width 8 and the shrink
+    25.333333333333258, so its `elision` element runs from `x(17) = x0 +
+    150.00000000000006` to `x(19) = x0 + 158.00000000000006` (each `x0 +
+    (133.33333333333331 + (L × u − 266.66666666666663 − D))`, `D` 0 at 17
+    and the shrink at 19); the line is cut there (`cuts` that one pair)
+    and ends at `x(24) = x0 + 241.33333333333343` in its end circle; the
+    brace of chunk 2 (`B`, midpoint 20, in no gap) is drawn from `x(16) =
+    x0 + 133.33333333333331` to `x(24)`, cut at the gap; the gap draws no
+    ellipsis (it is narrower than 20). The card of `score` drawn as
+    written draws no elision of `virtual_1` (the elision lies on another
+    timeline), and switched to `virtual_1` by the manifest's rule it draws
+    none either (section 8.10, Switched cards).
 
 ## Switched cards (`switched.test.ts`)
 
@@ -2600,9 +2625,8 @@ the manifest's own layer or with another selector switches nothing.
    circles; braces `{id: "allegro", facet: "regions", part: [k]}`, k = 0 …
    3, from `x(0)`, `x(953/2)`, `x(500)`, `x(1953/2)` to `x(953/2)`,
    `x(500)`, `x(1953/2)`, `x(4241/2)`, labelled A, B, A, C; boundaries at
-   k = 1, 2, 3 at their starts; the row name `Allegro · default`; no
-   element of its flow control (`volta_jump`, `repeat_end`,
-   `second_ending`, `volta_break`) and no flow control band record.
+   k = 1, 2, 3 at their starts; the row name `Allegro · default`; its
+   flow control drawn unfolded (13).
 3. **Drawn as written.** The same rule in an application layer instead
    of the manifest's (the manifest's rule removed) draws the card as
    written: one line from `x0` to `x0 + 400`, no chunk element, the row
@@ -2686,6 +2710,49 @@ the manifest's own layer or with another selector switches nothing.
     members as written). Core lists the elements so drawn (`piece`'s
     ancestor line once per piece), which the cascade's enumeration test
     checks on this manifest too.
+13. **Flow control unfolded.** A switched card keeps the band
+    configuration of the card drawn as written (section 8.10), its flow
+    control band among them, and draws each flow-control element at every
+    played position of its position. In `flow/switched_card` the jump
+    `volta_jump` (953/2) ends piece 0, which a stretch starting at 953/2
+    follows, and piece 2, which one starting at 500 follows: its fork
+    `{id: volta_jump, part: [fork]}` has its branch point at `x(953/2)` and
+    `x(1953/2)`. `repeat_end`, `second_ending` and `volta_break` (500) end
+    piece 1 and start piece 3: the symbol `{id: repeat_end, part:
+    [symbol]}` is drawn at `x(500)` and `x(1953/2)`, the flow line
+    `{id: volta_break}` (a `break`) at `x(500)` and `x(1953/2)`; the jump
+    target `second_ending` draws nothing; these six drawings are all
+    those of the four IDs, and the card has a flow control band record. With
+    the arcs shown (`ARCS_ALONE`'s first rule) the card draws no `jump`
+    element: the arc of `repeat_end` runs from 500 back to 0 (the start of
+    its section, no section break lying before it), and no piece holds
+    both. A jump `dal_segno` added at 1000 with the destination `to:
+    section_c` (whose start is 500) lies in piece 3 alone, which also holds
+    500: it draws one arc, from `x(2953/2)` (played 1953/2 + (1000 − 500))
+    to `x(1953/2)`. Its flow control band hidden by the manifest's rule
+    `{addresses: [{id: allegro, facet: flow_control}]}` → `display: none`,
+    the card draws no element of the four IDs, as the card drawn as
+    written would not. In `groups/switched_frame` `allegro`'s card in the
+    frame draws its flow line `volta_break` at `x(500)` and `x(1953/2)`
+    alike.
+14. **Conversion maps unfolded.** `flow/switched_card` with a LinearMap
+    `tempo` on `allegro` (support's `linearMap`) draws it once in each
+    piece, clipped to it: four `map` elements `{id: tempo}`, from `x(0)`,
+    `x(953/2)`, `x(500)`, `x(1953/2)` to `x(953/2)`, `x(500)`,
+    `x(1953/2)`, `x(4241/2)`, each one item of the slots' first fit;
+    since an item starting where another ends shares its row (section
+    6.3), all four lie in slot 1, on one ordinate.
+15. **Segment boundaries at every played position.** `allegro` made a
+    segment line holding the segments `s1` "S1" (offset 0) and `s2` "S2"
+    (offset 500), neither with a length: `s2`'s start, 500, is held by
+    piece 1 (its closed end) and piece 3 (its start), so its boundary
+    `{id: s2, part: [start]}` is drawn at `x(500)` and `x(1953/2)`, and
+    `s1`, the first, has none. `s1` over `[0, 500]` reaches into pieces 0,
+    1 and 2 and `s2` over `[500, 1644]` into piece 3 alone, so the labels
+    are S1, S1, S1, S2, in the order of the pieces, each centred on its
+    drawing's played midpoint: `x(953/4)`, `x(1953/4)`, `x(2953/4)`
+    and `x(6194/4)` (the midpoints of `[0, 953/2]`, `[953/2, 500]`, `[500,
+    1953/2]` and `[1953/2, 4241/2]`).
 
 ## Named timestamps (`timestamps.test.ts`)
 

@@ -482,8 +482,8 @@ export function placeItems(
         own,
         unfolded,
       );
-      // Its stored card elisions where its mode draws them (section 8.9); a switched card draws
-      // none (section 8.10).
+      // Its stored card elisions where its mode draws them (section 8.9), a placed virtual
+      // card's left out of its run gaps; a switched card draws none (section 8.10).
       const mode = drawnMode(card.style, cardElisionsOf(scope).length > 0);
       const axis = unfolded === null ? ungroupedAxis(scope, mode) : undefined;
       const layout = layoutScope(

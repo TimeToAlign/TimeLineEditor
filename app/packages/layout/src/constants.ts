@@ -64,3 +64,5 @@ export const ELLIPSIS_RADIUS = 2;
 export const ELLIPSIS_SPACING = 6;
 /** The narrowest gap that draws an ellipsis. */
 export const ELLIPSIS_GAP = 20;
+/** The stroke of a FlowMap's gap line (section 6.6, Gap lines): fixed, never the line's own. */
+export const GAP_LINE_STROKE = "#9CA3AF";

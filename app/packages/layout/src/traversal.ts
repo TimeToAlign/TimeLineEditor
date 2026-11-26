@@ -402,10 +402,14 @@ export interface CardAxis {
 /**
  * The pieces of the root of `scope` (section 8.10), in their order: the
  * entries a switched card's or a carried card's root draws its tree in,
- * one per stretch piece; none on a card drawn as written.
+ * one per stretch piece, held by the root itself (a segment without a line
+ * joins the root's line too, held by a piece); none on a card drawn as
+ * written.
  */
 export const rootPieces = (scope: Scope): readonly Entry[] =>
-  (scope.index.sourcesByLine.get(scope.rootEntry) ?? []).filter((entry) => entry.piece !== null);
+  (scope.index.sourcesByLine.get(scope.rootEntry) ?? []).filter(
+    (entry) => entry.piece !== null && entry.parent === scope.rootEntry,
+  );
 
 /** Whether a style displays its element: its `display` is `inline`. */
 export const shown = (style: Style): boolean => style.display === "inline";
