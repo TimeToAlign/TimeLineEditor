@@ -2434,18 +2434,12 @@ flow editor nothing opens (the card, its line, the band). Every other
 address opens what it opened before (`editorOf` gives it back unchanged,
 no kind).
 
-**The card's choices** (`cardChoices`, what the card offers without a
-pointer): its Regions A, B and C are each named `A (atomic section)` and
-so on, an atomic section being core's (`isAtomicSection`: the class
-`tts:AtomicSection` in any spelling standing for its IRI); with every
-Region's `type` written as the full IRI
-`https://timetoalign.github.io/timetoshare/ns#AtomicSection` instead, the
-same three texts.
-
 **Rows** (`flowRows`): one per FlowMap of `allegro`, the computed ones
-first, each part in the manifest's order: `default`, `printed`, `single`,
-`by_hand`, named `default`, `printed`, `single`, `Practice` (a FlowMap's
-name, else its convention, else its ID); computed for the first three;
+first, each part ordered by the row's name, compared by Unicode code
+point, then by ID (never the manifest's order, which is the order of IDs,
+and IDs are minted at random): `default`, `printed`, `single`, `by_hand`,
+named `default`, `printed`, `single`, `Practice` (a FlowMap's name, else
+its convention, else its ID); computed for the first three;
 the virtual timeline giving each its axis `allegro_default`, none,
 `allegro_single`, `allegro_by_hand`; chips, compared whole: for a
 computed one its convention (`{kind: "convention", text: "default",
@@ -2454,7 +2448,29 @@ text: "inferred", title: "Provenance: inferred"}`), for `by_hand` only
 `{kind: "provenance", text: "manual", title: "Provenance: manual"}`. With
 findings `{default: ["one", "two"]}` the `default` row gains `{kind:
 "findings", text: "2 findings", title: "one\ntwo"}` and no other row
-changes; one finding reads `1 finding`.
+changes; one finding reads `1 finding`. The order is proved on `allegro`
+with three hand-made FlowMaps added beside `by_hand` (each playing
+`section_a`): `z_first` named `Zeta`, `a_last` named `\u{1D11E}` (U+1D11E,
+two UTF-16 units starting 0xD834) and `m_mid` named `\uFF5E` (U+FF5E): by
+code point `Practice` < `Zeta` < U+FF5E < U+1D11E, so the hand-made rows
+read `by_hand`, `z_first`, `m_mid`, `a_last` (UTF-16 order would put
+`a_last` before `m_mid`, ID order `a_last` first); a fourth, `b_tie`
+named `Practice`, lies before `by_hand` (one name, IDs `b_tie` <
+`by_hand`). A computed FlowMap stays above every hand-made one whatever
+its name.
+
+**Rows keep their place while the flow editor is open** (`keptOrder`,
+which the pane applies to the rows it shows for as long as it is open:
+another flow editor, or the same one opened again, starts from
+`flowRows`'s order). Given the order shown before and the rows now in
+`flowRows`'s order, every row already shown keeps its place, a row not
+shown before is appended at the end in the order given, and a row gone is
+dropped. So a FlowMap created in the open editor appears at the end and
+stays there, and one renamed keeps its place, until the editor closes.
+Cases: shown `[d, p, s, h]`, then given `[d, p, s, F, h]` (F new, sorting
+before `h`): `[d, p, s, h, F]`; then given `[d, p, h, s, F]` (`s` renamed
+after `h`): `[d, p, s, h, F]` unchanged; then given `[d, p, s, F]` (`h`
+removed): `[d, p, s, F]`.
 
 **The pane as drawn** (`flowPaneOf`, on the drawing of block A at the
 default placement, `length` 400). Its oracle is layout's drawing of a
@@ -2500,7 +2516,9 @@ acts on it, whichever it is:
    the root lands as `whole` and nothing more is written.
 5. Dropping the row `printed`, which no virtual timeline applies: `{type:
    "add", into: {block: A}, virtual_timeline: {map: "printed", timeline:
-   "allegro"}}`, then the `set` with the new virtual timeline appended;
+   "allegro", name: "printed"}}` (the row's name, so its card is named
+   as the row is, never by the minted ID), then the `set` with the new
+   virtual timeline appended;
    the row `default` lands as `allegro_default` with the `set` alone.
 6. Moving entry 0 before index 2 stores the entries with it moved
    (`[section_b, section_a, …]`), Alt copies it there
@@ -2509,7 +2527,19 @@ acts on it, whichever it is:
    is longer than 0: 0", `-4` "a gap is longer than 0: -4", `x` the
    parser's message, and nothing is stored. The text is read by the one
    reader of a typed axis value, `typedValue`, which the inspector's
-   fields import from this package.
+   fields import from this package. "+ Gap" proposes the length of the
+   row's last chunk (`proposedGap`, from `resolveFlowMap`'s chunks, the
+   played stretch's end less its start, exact, written as the text
+   `typedValue` reads back to the same value): `by_hand` ends with C
+   [500, 1644): `1144`; a FlowMap playing `section_a` alone: `953/2`; one
+   ending with the gap `[4, 1]`: `4`; on a float axis a gap `{gap: 2.0}`
+   (an integral float): `2`, read back as the float 2; the new row before
+   its first entry, or a FlowMap that does not resolve: the empty text.
+   **A gap's length changed** (`regap`): on the edited `by_hand`, entry
+   4 given `8` stores one `set` of its chunks with `{gap: [8, 1]}` at 4
+   and every other entry as written; `0` says "a gap is longer than 0:
+   0" and stores nothing; entry 0 (a Region, no gap) says "entry 1 is no
+   gap" and stores nothing.
 8. The new row's Cancel undoes every step since Add + (the store's
    entries back to their count at Add +, the Regions and virtual
    timelines written for it gone, `allegro`'s FlowMaps as before) and
@@ -2600,7 +2630,35 @@ timeline's place is the twin's top left `(900 − 100, 340 − 300)` less the
 block's (40, 80), each rounded to the grid's 8: exactly `{x: 760, y:
 -40}`. A hand-made row's Edit button makes it the edited row (class
 `draft`, its Done and Cancel shown, no Edit button left on any row);
-computed rows have none.
+computed rows have none. The pane offers no list of the card's elements
+(no `select`): every row has its Insert button, and the card itself is
+dragged.
+
+**Rows on the canvas keep their place.** Add + and Enter on entry 0 of
+`default` write the new FlowMap F: the rows read `default`, `printed`,
+`single`, `by_hand`, F, and no separate new row is shown. Renaming F
+`Aaa` and `by_hand` `Zzz` through the store (`set name`), and another
+entry landed, change nothing in that order. Done, the flow editor closed
+(`store.done()`) and opened again: `default`, `printed`, `single`, F
+(`Aaa`), `by_hand` (`Zzz`), the order by name.
+
+**The gap control at its row.** "+ Gap" on the new row before its first
+entry shows the input inside that row (`[data-testid="flow-draft"]`),
+empty; `4` and Enter store `{gap: [4, 1]}` as the new FlowMap's first
+entry and close the input; "+ Gap" on that row (now drawn with its gap)
+shows the input in its row with `4`. `by_hand` edited: "+ Gap" shows
+`1144`; a click on its gap entry (index 4) shows the input with `4`, `8`
+and Enter store one entry, `by_hand`'s entry 4 `{gap: [8, 1]}`, and close
+the input. Escape closes it without storing.
+
+**Ctrl+scroll over the rows.** With the viewport at `{x: 0, y: 0, zoom:
+1}`, a wheel with Ctrl (`deltaY` −100, pixels) over a row's drawing zooms
+the canvas as anywhere else on it: Svelte Flow's pinch zoom, `2 ^ (100 ×
+0.002) = 2 ^ 0.2 = 1.148698354997035` outside macOS, about the pointer;
+the zoom read back is exactly that. A plain wheel (`deltaY` 40) and a
+Shift wheel reported as horizontal travel (`deltaX` 40, the form the
+canvas pans itself outside macOS, `shiftWheel`) over the same row, sent
+first, neither pan nor zoom: the viewport stays `{x: 0, y: 0, zoom: 1}`.
 
 ## The editor's viewport (`focus.test.ts`)
 

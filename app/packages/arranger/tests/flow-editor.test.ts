@@ -6,14 +6,23 @@
 
 import type { Address, Command, Facet, Manifest, Store, View } from "@timetoalign/tilie-core";
 import { idAddress, inBlock, WORKSPACE } from "@timetoalign/tilie-core";
+import { JsonFloat } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
+import { typedValue } from "../src/axisValues.ts";
 import type { Hit } from "../src/boxes.ts";
 import { keyedBox } from "../src/boxes.ts";
 import { drawingOf } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
 import { editorOf, editorTargetOf } from "../src/editors.ts";
 import { FlowEditorSession, type FlowServer, type FlowTarget } from "../src/flowEditor.svelte.ts";
-import { cardChoices, flowRows, recomputeCommands, sameEntries } from "../src/flowEditor.ts";
+import type { FlowEntry } from "../src/flowEditor.ts";
+import {
+  flowRows,
+  keptOrder,
+  proposedGap,
+  recomputeCommands,
+  sameEntries,
+} from "../src/flowEditor.ts";
 import { flowPaneOf } from "../src/flowEditorRows.ts";
 import {
   dropAt,
@@ -144,7 +153,7 @@ describe("rows", () => {
   });
   const inferred = { kind: "provenance", text: "inferred", title: "Provenance: inferred" };
 
-  it("lists the computed FlowMaps first, each part in the manifest's order", () => {
+  it("lists the computed FlowMaps first, each part by name, then by ID", () => {
     const rows = flowRows(block.manifest, ROOT);
     expect(
       rows.map(({ id, name, computed, virtual, chips }) => ({
@@ -200,29 +209,48 @@ describe("rows", () => {
   });
 });
 
-describe("the card's choices", () => {
-  /** The texts of the card's choices of the Regions of `manifest`'s root. */
-  const regionTexts = (manifest: Manifest) =>
-    cardChoices(manifest, ROOT)
-      .filter((choice) => choice.dragged.kind === "element")
-      .map((choice) => choice.text);
+describe("the order of the rows", () => {
+  /** `block`'s manifest with hand-made FlowMaps `[id, name]` added, each playing `section_a`. */
+  const withHandMade = (added: readonly (readonly [string, string])[]): Manifest => ({
+    ...block.manifest,
+    flow_maps: [
+      ...(block.manifest.flow_maps ?? []),
+      ...added.map(([id, name]) => ({
+        id,
+        name,
+        timeline: ROOT,
+        canonical: false,
+        chunks: ["section_a"],
+      })),
+    ],
+  });
 
-  it("name an atomic section so, its class written in any spelling of its IRI", () => {
-    const named = ["A (atomic section)", "B (atomic section)", "C (atomic section)"];
-    expect(regionTexts(block.manifest)).toEqual(named);
-    const [root] = block.manifest.timelines;
-    if (root === undefined) throw new Error("no root");
-    const iri = "https://timetoalign.github.io/timetoshare/ns#AtomicSection";
-    const written: Manifest = {
-      ...block.manifest,
-      timelines: [
-        {
-          ...root,
-          regions: root.regions.map((region) => ({ ...region, statements: { type: [iri] } })),
-        },
-      ],
-    };
-    expect(regionTexts(written)).toEqual(named);
+  it("orders by code point, then by ID, the computed ones first", () => {
+    const manifest = withHandMade([
+      ["z_first", "Zeta"],
+      ["a_last", "\u{1D11E}"],
+      ["m_mid", "\uFF5E"],
+      ["b_tie", "Practice"],
+    ]);
+    expect(flowRows(manifest, ROOT).map((row) => row.id)).toEqual([
+      "default",
+      "printed",
+      "single",
+      "b_tie",
+      "by_hand",
+      "z_first",
+      "m_mid",
+      "a_last",
+    ]);
+  });
+
+  it("keeps the order shown: new rows last, renamed ones in place, removed ones gone", () => {
+    const shown = ["d", "p", "s", "h"];
+    const created = keptOrder(shown, ["d", "p", "s", "F", "h"]);
+    expect(created).toEqual(["d", "p", "s", "h", "F"]);
+    const renamed = keptOrder(created, ["d", "p", "h", "s", "F"]);
+    expect(renamed).toEqual(["d", "p", "s", "h", "F"]);
+    expect(keptOrder(renamed, ["d", "p", "s", "F"])).toEqual(["d", "p", "s", "F"]);
   });
 });
 
@@ -381,7 +409,7 @@ describe("what each action stores", () => {
     expect(sent.at(-2)).toEqual({
       type: "add",
       into: { block: A },
-      virtual_timeline: { map: "printed", timeline: ROOT },
+      virtual_timeline: { map: "printed", timeline: ROOT, name: "printed" },
     });
     const [V] = (manifestOf(store).virtual_timelines ?? [])
       .map((item) => item.id)
@@ -462,7 +490,7 @@ describe("what each action stores", () => {
     expect(sent[0]).toEqual({
       type: "add",
       into: { block: A },
-      virtual_timeline: { map: "printed", timeline: ROOT },
+      virtual_timeline: { map: "printed", timeline: ROOT, name: "printed" },
     });
     const [V] = (manifestOf(store).virtual_timelines ?? [])
       .map((item) => item.id)
@@ -495,6 +523,44 @@ describe("what each action stores", () => {
     expect(session.land(target, { kind: "root" })).toBe(true);
     expect(sent).toEqual([{ type: "add", into: allegro, flow_map: { chunks: [W] } }]);
     expect(regionsOf(store.view)).toEqual(regionsOf(whole));
+  });
+
+  it("proposes the last chunk's length for a gap, exact", () => {
+    const manifest = block.manifest;
+    const playing = (chunks: FlowEntry[]): Manifest => ({
+      ...manifest,
+      flow_maps: [
+        ...(manifest.flow_maps ?? []),
+        { id: "probe", name: null, timeline: ROOT, canonical: false, chunks },
+      ],
+    });
+    expect(proposedGap(manifest, "by_hand")).toBe("1144");
+    expect(proposedGap(playing(["section_a"]), "probe")).toBe("953/2");
+    expect(proposedGap(playing(["section_a", { gap: [4, 1] }]), "probe")).toBe("4");
+    expect(proposedGap(playing([]), "probe")).toBe("");
+    expect(proposedGap(playing(["nothing_here"]), "probe")).toBe("");
+    expect(proposedGap(manifest, null)).toBe("");
+    const [root] = manifest.timelines;
+    if (root === undefined) throw new Error("no root");
+    const float: Manifest = {
+      ...manifest,
+      timelines: [
+        { ...root, number_type: "float", length: new JsonFloat(1644), regions: [], children: [] },
+      ],
+      virtual_timelines: [],
+      flow_maps: [
+        {
+          id: "probe",
+          name: null,
+          timeline: ROOT,
+          canonical: false,
+          chunks: [{ gap: new JsonFloat(2) }],
+        },
+      ],
+    };
+    expect(proposedGap(float, "probe")).toBe("2");
+    const typed = typedValue("2", float.timelines[0] ?? root);
+    expect(typed).toEqual(new JsonFloat(2));
   });
 
   it("refuses a negative gap", () => {
@@ -561,6 +627,20 @@ describe("a hand-made row edited", () => {
       "section_a",
       "section_c",
     ]);
+  });
+
+  it("changes a gap's length in one set of its chunks", () => {
+    const { store, session, target, sent, said } = opened();
+    session.edit(target, "by_hand");
+    const A4 = ["section_a", "section_a", "section_a", "section_a"];
+    const mark = store.entries.length;
+    expect(session.regap(target, 4, "8")).toBeNull();
+    expect(sent).toEqual([set("by_hand", [...A4, { gap: [8, 1] }, "section_c"])]);
+    expect(store.entries.length).toBe(mark + 1);
+    expect(session.regap(target, 4, "0")).toBe("a gap is longer than 0: 0");
+    expect(session.regap(target, 0, "8")).toBe("entry 1 is no gap");
+    expect(sent.length).toBe(1);
+    expect(said).toEqual([]);
   });
 
   it("compares entries by value", () => {

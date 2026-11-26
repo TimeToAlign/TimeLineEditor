@@ -268,6 +268,29 @@ export class FlowEditorSession {
   }
 
   /**
+   * A gap's length changed: the edited FlowMap's entry `index`, a gap,
+   * given the length typed as `text` (exact, in the root's number type),
+   * in one `set` of its chunks; the message saying why where the entry is
+   * no gap or the text no such length, else `null`.
+   */
+  regap(target: FlowTarget, index: number, text: string): string | null {
+    const draft = this.draftOf(target);
+    const root = this.#manifest(target)?.timelines.find((item) => item.id === target.root);
+    if (draft === null || root === undefined) return "No FlowMap is edited";
+    const entries = this.entriesOf(draft);
+    const entry = entries[index];
+    if (entry === undefined || typeof entry === "string") return `entry ${index + 1} is no gap`;
+    const value = gapValue(text, root);
+    if (typeof value === "string") return value;
+    const next = entries.map((item, at) =>
+      at === index && typeof item !== "string" ? { ...item, gap: value } : item,
+    );
+    if (sameEntries(next, entries, root.number_type)) return null;
+    this.#write(draft, next);
+    return null;
+  }
+
+  /**
    * Place the row of the FlowMap `flowMap` as a card of its own: its
    * virtual timeline written where none gives its axis, then its card
    * placed at `(x, y)` of the block's places, held by the block. Whether

@@ -19,11 +19,13 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   assertNever,
+  FlowMapError,
   findTimeline,
   idAddress,
   inBlock,
   isAtomicSection,
   isComputedFlowMap,
+  resolveFlowMap,
   snapOnRow,
   timelineAxisOf,
 } from "@timetoalign/tilie-core";
@@ -31,6 +33,7 @@ import {
   exactCoordinate,
   Rational,
   readAxisValue,
+  subtractCoordinates,
   toAxisValue,
   toFloat,
   toRational,
@@ -38,6 +41,7 @@ import {
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { DescriptorSource } from "@timetoalign/tilie-writers";
 import type { NumberType } from "@timetoalign/timetoshare";
+import { JsonFloat } from "@timetoalign/timetoshare";
 import { typedValue } from "./axisValues.ts";
 import { cardAxisAt } from "./cardAxis.ts";
 import { placeChanges, placeCommand } from "./items.ts";
@@ -132,9 +136,27 @@ function chipsOf(flowMap: FlowMap, findings: FlowFindings): FlowChip[] {
   return chips;
 }
 
+/** The name a FlowMap's row shows: its name, else its convention, else its ID. */
+export function rowName(flowMap: FlowMap): string {
+  return flowMap.name ?? flowMap.convention ?? flowMap.id;
+}
+
+/** Compare two strings by Unicode code point, never by UTF-16 unit. */
+function byCodePoint(left: string, right: string): number {
+  const a = [...left];
+  const b = [...right];
+  for (let index = 0; index < Math.min(a.length, b.length); index += 1) {
+    const difference = (a[index]?.codePointAt(0) ?? 0) - (b[index]?.codePointAt(0) ?? 0);
+    if (difference !== 0) return difference;
+  }
+  return a.length - b.length;
+}
+
 /**
  * The rows of the pane of the flow editor of `root`: one per FlowMap of
- * `root`, the computed ones first, each part in the manifest's order.
+ * `root`, the computed ones first, each part by name (by code point), then
+ * by ID. While the editor is open, its pane keeps the order it first
+ * showed (`keptOrder`).
  */
 export function flowRows(
   manifest: Manifest,
@@ -144,23 +166,51 @@ export function flowRows(
   const rows = flowMapsOf(manifest, root).map(
     (flowMap): FlowRow => ({
       id: flowMap.id,
-      name: flowMap.name ?? flowMap.convention ?? flowMap.id,
+      name: rowName(flowMap),
       computed: isComputedFlowMap(flowMap),
       chips: chipsOf(flowMap, findings),
       virtual: virtualOf(manifest, root, flowMap.id),
       entries: flowMap.chunks,
     }),
   );
-  return [...rows.filter((row) => row.computed), ...rows.filter((row) => !row.computed)];
+  const ordered = (left: FlowRow, right: FlowRow) =>
+    byCodePoint(left.name, right.name) || byCodePoint(left.id, right.id);
+  return [
+    ...rows.filter((row) => row.computed).sort(ordered),
+    ...rows.filter((row) => !row.computed).sort(ordered),
+  ];
 }
 
-/** A value of a manifest's own axis as text: an integer or float as written, a fraction `n/d`. */
+/**
+ * The IDs `ids` in the order a pane keeps while its editor is open:
+ * those of `shown`, the order shown before, in that order, then the ones
+ * `shown` lacks in the order of `ids`; an ID `ids` lacks is dropped. So a
+ * row created or renamed while the editor is open keeps its place.
+ */
+export function keptOrder(shown: readonly string[], ids: readonly string[]): readonly string[] {
+  const present = new Set(ids);
+  const kept = shown.filter((id) => present.has(id));
+  const known = new Set(kept);
+  return [...kept, ...ids.filter((id) => !known.has(id))];
+}
+
+/**
+ * A value of a manifest's own axis as text, which `typedValue` reads back
+ * as the same value: an integer or float as written, a fraction `n/d` (an
+ * integer where its denominator is 1).
+ */
 function valueText(value: AxisValue): string {
+  if (value instanceof JsonFloat) return String(value.value);
   if (Array.isArray(value)) {
     const [numerator, denominator] = value as readonly unknown[];
     return String(denominator) === "1" ? String(numerator) : `${numerator}/${denominator}`;
   }
   return String(value);
+}
+
+/** A gap entry's length as text, as `typedValue` reads it back; empty for any other entry. */
+export function gapText(entry: FlowEntry): string {
+  return typeof entry === "string" ? "" : valueText(entry.gap);
 }
 
 /** Every timeline of `root`'s tree, `root` first, then its descendants in pre-order. */
@@ -181,39 +231,6 @@ export function entryText(manifest: Manifest, entry: FlowEntry): string {
   }
   const virtual = (manifest.virtual_timelines ?? []).find((item) => item.id === entry);
   return virtual?.name ?? entry;
-}
-
-/** What the card offers to the new FlowMap without a pointer: one choice of the keyboard's list. */
-export interface CardChoice {
-  readonly dragged: Dragged;
-  readonly text: string;
-}
-
-/**
- * What the edited card offers to the new FlowMap, in the order a keyboard
- * walks it: the whole root (as a Region over it), then each timeline of the
- * root's tree in pre-order with its Regions in the manifest's order (an
- * atomic section so named), each child after its parent's Regions.
- */
-export function cardChoices(manifest: Manifest, root: string): readonly CardChoice[] {
-  const timeline = manifest.timelines.find((item) => item.id === root);
-  if (timeline === undefined) return [];
-  const choices: CardChoice[] = [
-    { dragged: { kind: "root" }, text: `${timeline.name ?? root} (the whole timeline)` },
-  ];
-  for (const member of treeOf(timeline)) {
-    if (member !== timeline) {
-      choices.push({ dragged: { kind: "element", id: member.id }, text: member.name ?? member.id });
-    }
-    for (const region of member.regions) {
-      const name = region.name ?? region.id;
-      choices.push({
-        dragged: { kind: "element", id: region.id },
-        text: isAtomicSection(manifest, region) ? `${name} (atomic section)` : name,
-      });
-    }
-  }
-  return choices;
 }
 
 /**
@@ -315,13 +332,16 @@ export function writeFor(block: Block, root: string, dragged: Dragged): Command 
         into: inBlock(block.id, idAddress(dragged.timeline)),
         region: { start: dragged.start, end: dragged.end },
       };
-    case "row":
+    case "row": {
       if (virtualOf(manifest, root, dragged.flowMap) !== null) return null;
+      const flowMap = (manifest.flow_maps ?? []).find((item) => item.id === dragged.flowMap);
+      const name = flowMap === undefined ? dragged.flowMap : rowName(flowMap);
       return {
         type: "add",
         into: { block: block.id },
-        virtual_timeline: { map: dragged.flowMap, timeline: root },
+        virtual_timeline: { map: dragged.flowMap, timeline: root, name },
       };
+    }
     default:
       return assertNever(dragged);
   }
@@ -457,6 +477,24 @@ export function gapValue(text: string, root: TimelineManifest): AxisValue | stri
   return exactValue(value, root.number_type).numerator > 0n
     ? value
     : `a gap is longer than 0: ${text.trim()}`;
+}
+
+/**
+ * The text "+ Gap" proposes on the row of the FlowMap `flowMap`: the
+ * length its last chunk plays, exact in its root's number type, as
+ * `typedValue` reads it back; empty for a FlowMap not yet written
+ * (`null`), one without chunks, or one that does not resolve.
+ */
+export function proposedGap(manifest: Manifest, flowMap: string | null): string {
+  if (flowMap === null) return "";
+  try {
+    const last = resolveFlowMap(manifest, flowMap).chunks.at(-1);
+    if (last === undefined) return "";
+    return valueText(toAxisValue(subtractCoordinates(last.played.end, last.played.start)));
+  } catch (error) {
+    if (error instanceof FlowMapError) return "";
+    throw error;
+  }
 }
 
 /** The timeline `id` of `manifest` at any depth; `undefined` where none is. */

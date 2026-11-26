@@ -55,6 +55,7 @@ const manifest = (): Manifest => blockIn(store.view, A).manifest;
 
 /** The harness's exports, which `tsc` reads through Svelte's generic module declaration, untyped. */
 interface Mounted {
+  current(): { viewport: Viewport };
   showAt(next: Viewport): void;
   select(next: Selection): void;
 }
@@ -106,6 +107,38 @@ function rootLine(): Element {
   const svg = line.closest("svg");
   if (svg !== null) withScreenMatrix(svg, () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }));
   return line;
+}
+
+/** The FlowMaps of the rows shown, in the pane's order. */
+function rowOrder(): (string | null)[] {
+  return [...document.querySelectorAll('[data-testid="flow-row"]')].map((row) =>
+    row.getAttribute("data-flow-map"),
+  );
+}
+
+/** The row of the FlowMap `id`. */
+const rowOf = (id: string): HTMLElement => one(`[data-testid="flow-row"][data-flow-map="${id}"]`);
+
+/** Press `key` on `element`. */
+function press(element: Element, key: string): void {
+  element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+}
+
+/** Type `text` into the gap's input inside `within` and press Enter. */
+function typeGap(within: ParentNode, text: string): void {
+  const input = one('[data-testid="flow-gap"]', within) as HTMLInputElement;
+  input.value = text;
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  press(input, "Enter");
+}
+
+/** The new FlowMap's ID: the one `allegro` gained over `before`. */
+function addedFlowMap(before: readonly string[]): string {
+  const [added] = (manifest().flow_maps ?? [])
+    .map((item) => item.id)
+    .filter((id) => !before.includes(id));
+  if (added === undefined) throw new Error("no FlowMap added");
+  return added;
 }
 
 /** The pane and the new row given screen rectangles: the pane from y 200 to 600, the new row from 500. */
@@ -261,6 +294,111 @@ describe("the flow editor's pane", () => {
     await settle();
     expect(store.entries.length).toBe(mark);
     expect(refused).toEqual([]);
+  });
+
+  it("keeps its rows' order while open: a new row last, renamed rows in place", async () => {
+    await show();
+    expect(document.querySelector('[data-testid="flow-pane"] select')).toBeNull();
+    const before = (manifest().flow_maps ?? []).map((item) => item.id);
+    button("Add +").click();
+    await settle();
+    press(one('[data-flow-map="default"] [data-testid="flow-entry"][data-index="0"]'), "Enter");
+    await settle();
+    const F = addedFlowMap(before);
+    expect(rowOrder()).toEqual(["default", "printed", "single", "by_hand", F]);
+    expect(document.querySelector('[data-testid="flow-draft"]')).toBeNull();
+    const refusal = store.dispatch({
+      type: "set",
+      changes: [
+        { target: inBlock(A, idAddress(F)), values: { name: "Aaa" } },
+        { target: inBlock(A, idAddress("by_hand")), values: { name: "Zzz" } },
+      ],
+    });
+    expect(refusal).toBeNull();
+    await settle();
+    press(one('[data-flow-map="printed"] [data-testid="flow-entry"][data-index="0"]'), "Enter");
+    await settle();
+    expect(rowOrder()).toEqual(["default", "printed", "single", "by_hand", F]);
+    button("Done", rowOf(F)).click();
+    await settle();
+    store.done();
+    await settle();
+    expect(store.open(allegro, "flow")).toBeNull();
+    flushSync();
+    await settle();
+    expect(rowOrder()).toEqual(["default", "printed", "single", F, "by_hand"]);
+  });
+
+  it("types a gap's length in its row: + Gap proposes the last chunk's, a gap its own", async () => {
+    await show();
+    const before = (manifest().flow_maps ?? []).map((item) => item.id);
+    button("Add +").click();
+    await settle();
+    button("+ Gap", one('[data-testid="flow-draft"]')).click();
+    await settle();
+    const first = one('[data-testid="flow-gap"]', one('[data-testid="flow-draft"]'));
+    expect((first as HTMLInputElement).value).toBe("");
+    typeGap(one('[data-testid="flow-draft"]'), "4");
+    await settle();
+    const F = addedFlowMap(before);
+    expect(manifest().flow_maps?.find((item) => item.id === F)?.chunks).toEqual([{ gap: [4, 1] }]);
+    expect(document.querySelector('[data-testid="flow-gap"]')).toBeNull();
+    button("+ Gap", rowOf(F)).click();
+    await settle();
+    expect((one('[data-testid="flow-gap"]', rowOf(F)) as HTMLInputElement).value).toBe("4");
+    const count = store.entries.length;
+    press(one('[data-testid="flow-gap"]'), "Escape");
+    await settle();
+    expect(document.querySelector('[data-testid="flow-gap"]')).toBeNull();
+    expect(store.entries.length).toBe(count);
+    button("Done", rowOf(F)).click();
+    await settle();
+
+    button("Edit", rowOf("by_hand")).click();
+    await settle();
+    button("+ Gap", rowOf("by_hand")).click();
+    await settle();
+    expect((one('[data-testid="flow-gap"]', rowOf("by_hand")) as HTMLInputElement).value).toBe(
+      "1144",
+    );
+    button("+ Gap", rowOf("by_hand")).click();
+    await settle();
+    expect(document.querySelector('[data-testid="flow-gap"]')).toBeNull();
+    // A drag swallows the browser's click after it until the next task: let any go first.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    one('[data-testid="flow-entry"][data-index="4"]', rowOf("by_hand")).dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 }),
+    );
+    await settle();
+    expect((one('[data-testid="flow-gap"]', rowOf("by_hand")) as HTMLInputElement).value).toBe("4");
+    const mark = store.entries.length;
+    typeGap(rowOf("by_hand"), "8");
+    await settle();
+    expect(store.entries.length).toBe(mark + 1);
+    expect(manifest().flow_maps?.find((item) => item.id === "by_hand")?.chunks[4]).toEqual({
+      gap: [8, 1],
+    });
+    expect(document.querySelector('[data-testid="flow-gap"]')).toBeNull();
+  });
+
+  it("zooms the canvas on Ctrl+wheel over the rows, a plain wheel left to the pane", async () => {
+    await show();
+    harness().showAt({ x: 0, y: 0, zoom: 1 });
+    await settle();
+    const drawing = one(".drawing", rowOf("default"));
+    drawing.dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: 40 }));
+    await settle();
+    expect(harness().current().viewport).toEqual({ x: 0, y: 0, zoom: 1 });
+    drawing.dispatchEvent(
+      new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaX: 40, shiftKey: true }),
+    );
+    await settle();
+    expect(harness().current().viewport).toEqual({ x: 0, y: 0, zoom: 1 });
+    drawing.dispatchEvent(
+      new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: -100, ctrlKey: true }),
+    );
+    await settle();
+    expect(harness().current().viewport.zoom).toBe(2 ** 0.2);
   });
 
   it("asks the findings once, when the flow editor opens, and reads them after", async () => {

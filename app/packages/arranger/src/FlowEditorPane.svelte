@@ -5,12 +5,16 @@
  * scale (`flowPaneOf`), its name where a card has its name and its chips
  * above its line; Add + and Recompute in its head; the edited row (a new
  * FlowMap's, or a hand-made one's, chosen by a press or Enter on one of its
- * entries or by its Edit button) with its own Done and Cancel, "+ Gap" and
- * the card's elements to insert without a pointer; computed rows stay read
- * only. The pane scrolls on its own when it is wider than the canvas right
- * of the card; the card does not move. Drags carry the card's elements, a
- * row's entries and whole rows into the edited row, within it, or (a row)
- * onto the canvas as a card of its own (`gestures/flowDrag.ts`).
+ * entries or by its Edit button) with its own Done and Cancel and "+ Gap",
+ * whose length is typed in the row itself, as a gap entry's is changed
+ * there, every other row offering its Insert meanwhile; computed rows stay
+ * read only. The rows keep the order first shown while the editor is open
+ * (`keptOrder`). A plain wheel stays with the pane, a zooming one zooms the
+ * canvas (`ownWheel`). The pane scrolls on its own when it is wider than
+ * the canvas right of the card; the card does not move. Drags carry the
+ * card's elements, a row's entries and whole rows into the edited row,
+ * within it, or (a row) onto the canvas as a card of its own
+ * (`gestures/flowDrag.ts`).
  * An overlay of the canvas: nothing in it is part of the drawing.
  */
 import type { Block, Granularity } from "@timetoalign/tilie-core";
@@ -21,7 +25,15 @@ import { ViewportPortal } from "@xyflow/svelte";
 import { isAffordance } from "./boxes.ts";
 import type { Draft, FlowEditorSession, FlowTarget } from "./flowEditor.svelte.ts";
 import type { Dragged, FlowEntry } from "./flowEditor.ts";
-import { cardChoices, cardPress, entryText, exactValue, sweptValue } from "./flowEditor.ts";
+import {
+  cardPress,
+  entryText,
+  exactValue,
+  gapText,
+  keptOrder,
+  proposedGap,
+  sweptValue,
+} from "./flowEditor.ts";
 import type { FlowPane, PaneRow } from "./flowEditorRows.ts";
 import { EMPTY_DRAFT, PANE_GAP, PANE_HEAD, paneHeight, ROW_HEAD } from "./flowEditorRows.ts";
 import type { GestureSlot, Point } from "./gesture.ts";
@@ -36,6 +48,7 @@ import {
   twinOpacity,
   unionRect,
 } from "./gestures/flowDrag.ts";
+import { OWN_WHEEL, ownWheel } from "./gestures/wheel.ts";
 import { quantize } from "./numbers.ts";
 
 interface Props {
@@ -87,7 +100,30 @@ const manifest = $derived(block.manifest);
 const rootName = $derived(
   manifest.timelines.find((item) => item.id === target.root)?.name ?? target.root,
 );
-const choices = $derived(cardChoices(manifest, target.root));
+
+/**
+ * The order the rows were last shown in, and the editor they were shown
+ * for: a record of what was drawn, which no reaction follows. It lasts as
+ * long as the pane, which goes when the editor closes.
+ */
+let shown: { readonly target: FlowTarget; readonly ids: readonly string[] } | null = null;
+
+/**
+ * The rows in the order first shown while the editor is open: a row shown
+ * keeps its place, a new one comes last (`keptOrder`); another editor's
+ * rows start in `flowRows`'s order.
+ */
+const rows = $derived.by(() => {
+  const ids = pane.rows.map((row) => row.row.id);
+  const same =
+    shown !== null &&
+    shown.target.session === target.session &&
+    shown.target.block === target.block &&
+    shown.target.root === target.root;
+  const order = same && shown !== null ? keptOrder(shown.ids, ids) : ids;
+  shown = { target, ids: order };
+  return order.flatMap((id) => pane.rows.find((row) => row.row.id === id) ?? []);
+});
 
 /** The edited row as drawn, once its FlowMap is written; `null` otherwise. */
 const draftRow = $derived(
@@ -133,10 +169,12 @@ let twin: Twin | null = $state.raw(null);
 let sweep: { readonly x1: number; readonly x2: number; readonly y: number } | null =
   $state.raw(null);
 
-let gapOpen = $state(false);
-let gapText = $state("");
-let gapError: string | null = $state(null);
-let choice = $state(0);
+/**
+ * The gap length typed in the edited row: a new gap's at its end ("+ Gap",
+ * `index` null) or the length of its gap entry `index`; `null` while none
+ * is typed.
+ */
+let gap: { index: number | null; text: string; error: string | null } | null = $state(null);
 
 /** The editor's area on screen: the card and the pane. */
 function editorRect(): ScreenRect | null {
@@ -384,6 +422,9 @@ function entryKey(event: KeyboardEvent, row: PaneRow, index: number): void {
     acted = session.move(target, index, event.key === "ArrowLeft" ? index - 1 : index + 2, false);
   } else if (own && (event.key === "d" || event.key === "D")) {
     acted = session.move(target, index, index + 1, true);
+  } else if (own && event.key === "Enter" && typeof entry !== "string") {
+    gap = { index, text: gapText(entry), error: null };
+    acted = true;
   } else if (own && (event.key === "Delete" || event.key === "Backspace")) {
     acted = session.remove(target, index);
   } else if (!own && draft !== null && (event.key === "Enter" || event.key === " ")) {
@@ -394,7 +435,42 @@ function entryKey(event: KeyboardEvent, row: PaneRow, index: number): void {
 
 /** A press (a click, no drag) on a row's entry, or its Edit button: a hand-made row becomes the edited one. */
 function edit(row: PaneRow): void {
-  if (draft === null && !row.row.computed) session.edit(target, row.row.id);
+  if (draft === null && !row.row.computed && session.edit(target, row.row.id)) gap = null;
+}
+
+/** Add +: a new row, no gap typed yet. */
+function addRow(): void {
+  gap = null;
+  session.add(target);
+}
+
+/**
+ * A click on a row's entry: a hand-made row becomes the edited one, and a
+ * gap entry of the edited row has its length typed in the row.
+ */
+function clickEntry(row: PaneRow, index: number): void {
+  const entry = row.row.entries[index];
+  const own = row === draftRow;
+  if (!own) edit(row);
+  if (entry === undefined || typeof entry === "string") return;
+  if (own || session.draftOf(target)?.flowMap === row.row.id) {
+    gap = { index, text: gapText(entry), error: null };
+  }
+}
+
+/** "+ Gap": the length of the edited row's last chunk proposed; pressed again, closed. */
+function toggleGap(): void {
+  gap =
+    gap !== null && gap.index === null
+      ? null
+      : { index: null, text: proposedGap(manifest, draft?.flowMap ?? null), error: null };
+}
+
+/** The edited row's Done or Cancel; the gap typed there goes with it. */
+function finish(kept: boolean): void {
+  gap = null;
+  if (kept) session.done(target);
+  else session.cancel(target);
 }
 
 /** The label an entry is announced by. */
@@ -403,29 +479,53 @@ function entryLabel(row: PaneRow, entry: FlowEntry, index: number): string {
   return `${entryText(manifest, entry)}, entry ${index + 1} of ${count}`;
 }
 
-/** "+ Gap": the length typed, exact, at the new row's end. */
-function addGap(): void {
-  gapError = session.gap(target, gapText);
-  if (gapError === null) {
-    gapText = "";
-    gapOpen = false;
-  }
+/** The length typed, exact: a new gap at the edited row's end, or its gap entry's new length. */
+function writeGap(): void {
+  if (gap === null) return;
+  const { index, text } = gap;
+  const error = index === null ? session.gap(target, text) : session.regap(target, index, text);
+  gap = error === null ? null : { index, text, error };
 }
 
-/** Insert the card's element chosen in the list at the new row's end. */
-function insertChoice(): void {
-  const chosen = choices[choice];
-  if (chosen !== undefined) session.land(target, chosen.dragged);
+/** Keys of the gap's input: Enter writes it, Escape closes it. */
+function gapKey(event: KeyboardEvent): void {
+  if (event.key === "Enter") writeGap();
+  else if (event.key === "Escape") gap = null;
+  else return;
+  event.preventDefault();
 }
 
-/** A wheel over a pane that scrolls sideways scrolls it, never the canvas. */
-function onwheel(event: WheelEvent): void {
-  const element = event.currentTarget as HTMLElement;
-  if (element.scrollWidth > element.clientWidth && (event.deltaX !== 0 || event.shiftKey)) {
-    event.stopPropagation();
-  }
+/** Focus the gap's input as it appears. */
+function focusInput(element: HTMLInputElement): void {
+  element.focus();
 }
 </script>
+
+{#snippet gapControl()}
+  <button
+    type="button"
+    onclick={toggleGap}
+    aria-expanded={gap !== null && gap.index === null}>+ Gap</button
+  >
+  {#if gap !== null}
+    <label class="gap">
+      {gap.index === null ? "Gap length" : `Length of gap ${gap.index + 1}`}
+      <input
+        type="text"
+        inputmode="decimal"
+        data-testid="flow-gap"
+        bind:value={() => gap?.text ?? "", (text) => {
+          if (gap !== null) gap.text = text;
+        }}
+        aria-invalid={gap.error !== null}
+        onkeydown={gapKey}
+        {@attach focusInput}
+      />
+    </label>
+    <button type="button" onclick={writeGap}>{gap.index === null ? "Add gap" : "Set gap"}</button>
+    {#if gap.error !== null}<span class="problem" role="alert">{gap.error}</span>{/if}
+  {/if}
+{/snippet}
 
 {#snippet rowDrawing(row: PaneRow)}
   <svg
@@ -456,11 +556,9 @@ function onwheel(event: WheelEvent): void {
     <div class="head" style:height="{ROW_HEAD * s}px" style:padding-left="{pane.lineStart * s}px">
       {@render chips(row)}
       {#if own}
-        <button type="button" class="done" onclick={() => session.done(target)}>Done</button>
-        <button type="button" class="cancel" onclick={() => session.cancel(target)}>Cancel</button>
-        <button type="button" onclick={() => (gapOpen = !gapOpen)} aria-expanded={gapOpen}
-          >+ Gap</button
-        >
+        <button type="button" class="done" onclick={() => finish(true)}>Done</button>
+        <button type="button" class="cancel" onclick={() => finish(false)}>Cancel</button>
+        {@render gapControl()}
       {:else}
         {#if draft !== null}
           <button
@@ -493,14 +591,16 @@ function onwheel(event: WheelEvent): void {
             data-testid="flow-entry"
             data-index={span.index}
             aria-label={entryLabel(row, entry, span.index)}
-            aria-keyshortcuts={own ? "Alt+ArrowLeft Alt+ArrowRight D Delete" : "Enter"}
+            aria-keyshortcuts={own
+              ? `Alt+ArrowLeft Alt+ArrowRight D Delete${span.gap ? " Enter" : ""}`
+              : "Enter"}
             style:left="{span.x1 * s}px"
             style:width="{Math.max(span.x2 - span.x1, 2) * s}px"
             style:height="{row.viewBox.height * s}px"
             onpointerdown={(event) => pressEntry(event, row, span.index)}
             onclick={(event) => {
               // Enter on a focused button also clicks it; the key has acted already.
-              if (event.detail > 0) edit(row);
+              if (event.detail > 0) clickEntry(row, span.index);
             }}
             onkeydown={(event) => entryKey(event, row, span.index)}
           ></button>
@@ -512,7 +612,7 @@ function onwheel(event: WheelEvent): void {
 
 <ViewportPortal target="front" class="tilie-overlay">
   <section
-    class="tilie-flow-pane nodrag nopan nowheel"
+    class={["tilie-flow-pane", "nodrag", "nopan", OWN_WHEEL]}
     aria-label="FlowMaps of {rootName}"
     data-testid="flow-pane"
     {@attach holdPane}
@@ -520,10 +620,10 @@ function onwheel(event: WheelEvent): void {
     style:top="{origin.y + pane.y * s}px"
     style:width="{Math.min(pane.width * s, maxWidth)}px"
     style:font-size="{9 * s}px"
-    {onwheel}
+    onwheel={ownWheel}
   >
     <div class="pane-head" style:height="{PANE_HEAD * s}px">
-      <button type="button" onclick={() => session.add(target)} disabled={draft !== null}
+      <button type="button" onclick={addRow} disabled={draft !== null}
         >Add +</button
       >
       <button
@@ -538,7 +638,7 @@ function onwheel(event: WheelEvent): void {
       {/if}
     </div>
     <ul style:width="{pane.width * s}px">
-      {#each pane.rows as row (row.row.id)}
+      {#each rows as row (row.row.id)}
         {@render drawnRow(row, row === draftRow)}
       {/each}
       {#if draft !== null && draft.flowMap === null}
@@ -548,11 +648,9 @@ function onwheel(event: WheelEvent): void {
           data-testid="flow-draft"
         >
           <div class="head" style:height="{ROW_HEAD * s}px" style:padding-left="{pane.lineStart * s}px">
-            <button type="button" class="done" onclick={() => session.done(target)}>Done</button>
-            <button type="button" class="cancel" onclick={() => session.cancel(target)}>Cancel</button>
-            <button type="button" onclick={() => (gapOpen = !gapOpen)} aria-expanded={gapOpen}
-              >+ Gap</button
-            >
+            <button type="button" class="done" onclick={() => finish(true)}>Done</button>
+            <button type="button" class="cancel" onclick={() => finish(false)}>Cancel</button>
+            {@render gapControl()}
           </div>
           <p class="hint" style:height="{EMPTY_DRAFT * s}px" style:padding-left="{pane.lineStart * s}px">
             Drag a Region, a child, the line or a row here
@@ -560,35 +658,6 @@ function onwheel(event: WheelEvent): void {
         </li>
       {/if}
     </ul>
-    {#if draft !== null}
-      <div class="tools" style:padding-left="{pane.lineStart * s}px">
-        {#if gapOpen}
-          <label>
-            Gap length
-            <input
-              type="text"
-              inputmode="decimal"
-              bind:value={gapText}
-              aria-invalid={gapError !== null}
-              onkeydown={(event) => {
-                if (event.key === "Enter") addGap();
-              }}
-            />
-          </label>
-          <button type="button" onclick={addGap}>Add gap</button>
-          {#if gapError !== null}<span class="problem" role="alert">{gapError}</span>{/if}
-        {/if}
-        <label>
-          From the card
-          <select bind:value={choice}>
-            {#each choices as item, index (index)}
-              <option value={index}>{item.text}</option>
-            {/each}
-          </select>
-        </label>
-        <button type="button" onclick={insertChoice}>Insert</button>
-      </div>
-    {/if}
   </section>
   {#if sweep !== null}
     <div
@@ -651,8 +720,7 @@ function onwheel(event: WheelEvent): void {
   }
 
   .pane-head,
-  .head,
-  .tools {
+  .head {
     display: flex;
     align-items: center;
     gap: 0.4em;
@@ -731,7 +799,6 @@ function onwheel(event: WheelEvent): void {
   }
 
   button:focus-visible,
-  select:focus-visible,
   input:focus-visible {
     outline: 2px solid #0a84ff;
     outline-offset: 1px;
@@ -777,9 +844,15 @@ function onwheel(event: WheelEvent): void {
     color: #c62828;
   }
 
-  input,
-  select {
+  input {
+    width: 6em;
     font: inherit;
+  }
+
+  .gap {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
   }
 
   .tilie-flow-sweep {

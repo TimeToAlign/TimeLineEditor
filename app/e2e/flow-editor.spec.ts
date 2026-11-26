@@ -3,8 +3,10 @@
  * in a root card's flow control band, and in the root's timeline editor by
  * a double-click on what that band draws; its pane
  * under the card with one row per FlowMap and no axe-core violation, a new
- * FlowMap landed by a key, a row dragged out onto the canvas as a card,
- * and Done folding it all into one journal entry. The expected values are
+ * FlowMap landed by a key and kept last, a row dragged out onto the canvas
+ * as a card named as its row, Ctrl+wheel over the rows zooming the canvas
+ * (a plain wheel there leaving it), and Done folding it all into one
+ * journal entry. The expected values are
  * derived in `README.md` ("flow-editor.spec.ts"). A hand-made row is
  * edited in place: on the arranger's flow editor, the Edit button of
  * `by_hand` (A A A A, a gap of 4, C) makes its row the edited one (Done and
@@ -28,6 +30,7 @@ import {
   partCentre,
   settledDrawing,
   setViewport,
+  viewportOf,
 } from "./support.ts";
 
 const VIEW = { x: 40, y: 40, zoom: 1 };
@@ -116,6 +119,11 @@ test("the flow editor opens from the flow control band, lands, places and folds"
     flow_map: { chunks: ["section_a"] },
   });
   await pane.getByRole("button", { name: "Done" }).click();
+  // The new FlowMap's row stays last, after the rows ordered by name.
+  await expect(rows).toHaveCount(5);
+  expect(
+    (await rows.evaluateAll((items) => items.map((item) => item.dataset.flowMap))).slice(0, 4),
+  ).toEqual(["default", "printed", "single", "by_hand"]);
 
   // The row `printed` dragged by its name below the pane: written and placed as a card.
   const name = rows.nth(1).locator(".name");
@@ -132,9 +140,22 @@ test("the flow editor opens from the flow control band, lands, places and folds"
   expect(virtual).toMatchObject({
     type: "add",
     into: { block },
-    virtual_timeline: { map: "printed", timeline: "allegro" },
+    virtual_timeline: { map: "printed", timeline: "allegro", name: "printed" },
   });
   expect(placed).toMatchObject({ type: "set" });
+
+  // Over the rows a plain wheel leaves the canvas as it is; Ctrl+wheel zooms it.
+  await setViewport(page, view);
+  const over = await rows.nth(0).locator(".drawing").boundingBox();
+  if (over === null) throw new Error("the row is not laid out");
+  await page.mouse.move(over.x + over.width / 2, over.y + over.height / 2);
+  await page.mouse.wheel(0, 40);
+  expect(await viewportOf(page)).toEqual(view);
+  await page.keyboard.down("Control");
+  await page.mouse.wheel(0, -100);
+  await page.keyboard.up("Control");
+  await expect.poll(async () => (await viewportOf(page)).zoom).toBe(2 ** 0.2);
+  await setViewport(page, view);
 
   // Done closes the flow editor, then the timeline editor: one journal entry each level.
   const journal = await journalLength(page);
