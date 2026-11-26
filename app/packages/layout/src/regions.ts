@@ -52,8 +52,28 @@ export const regionsAlone = (staged: StagedRegions): PreparedBand =>
  * are its regions' and their drawn labels'.
  */
 export function regionsBand(scope: Scope, sources: readonly Entry[]): StagedRegions {
-  const { owned, measured, relativeX, S, h } = scope;
-  const regions = sources.flatMap((source) =>
+  const { owned, measured, relativeX, S, h, flow, rootEntry } = scope;
+  // On the line of a virtual timeline or a switched card, the chunks of its FlowMap come first,
+  // each over its drawn span, a gap among them without a brace (section 8.10).
+  const chunks =
+    flow === null || sources[0] !== rootEntry || !shown(rootEntry.bands.regions.style)
+      ? []
+      : flow.chunks
+          .filter((chunk) => chunk.drawn)
+          .map((chunk) => ({
+            ...owned(
+              "region",
+              { id: flow.timeline, facet: "regions", part: [chunk.index] },
+              rootEntry,
+              "regions",
+            ),
+            start: chunk.start,
+            end: chunk.end,
+            text: chunk.text,
+            brace: !chunk.gap,
+          }))
+          .filter((chunk) => shown(chunk.style));
+  const own = sources.flatMap((source) =>
     shown(source.bands.regions.style)
       ? source.manifest.regions
           .map((region) => ({
@@ -67,10 +87,12 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): StagedRegi
             start: add(source.start, coordinateValue(region.start, source.manifest.number_type)),
             end: add(source.start, coordinateValue(region.end, source.manifest.number_type)),
             text: region.name,
+            brace: true,
           }))
           .filter((region) => shown(region.style))
       : [],
   );
+  const regions = [...chunks, ...own];
   const placed = regions.map((region) => {
     const middle = midpoint(region.start, region.end);
     const label =
@@ -126,18 +148,24 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): StagedRegi
         const tierAt = (out: number, tier: number) =>
           out + BRACE + LABEL_GAP + (tier - 1) * h(size);
         return {
-          regions: drawn.map(({ region, middle, out }) => ({
-            type: "region",
-            address: region.address,
-            style: region.style,
-            x1: at.xAfter(region.start),
-            x2: at.x(region.end),
-            xm: at.x(middle),
-            yb: at.yAt(side, out),
-            ya: at.yAt(side, out + BRACE),
-            // The brace is cut at every gap it spans, as a row is (section 6.6, Elisions).
-            cuts: at.cuts(region.start, region.end),
-          })),
+          regions: drawn.flatMap(({ region, middle, out }) =>
+            !region.brace
+              ? []
+              : [
+                  {
+                    type: "region",
+                    address: region.address,
+                    style: region.style,
+                    x1: at.xAfter(region.start),
+                    x2: at.x(region.end),
+                    xm: at.x(middle),
+                    yb: at.yAt(side, out),
+                    ya: at.yAt(side, out + BRACE),
+                    // The brace is cut at every gap it spans, as a row is (section 6.6, Elisions).
+                    cuts: at.cuts(region.start, region.end),
+                  },
+                ],
+          ),
           regionLabels: drawn.flatMap(({ region, middle, label, out, tier }) =>
             label === undefined || tier === undefined
               ? []

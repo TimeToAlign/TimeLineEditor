@@ -169,16 +169,20 @@ text, with the text the layout's constants give it:
   gap between bands is `S` itself;
 - the label separation, 2, has no constant: it is the width of the extent
   section 6.3 gives a label of width 0 (`[L × u − wi / 2 − 1, L × u + wi /
-  2 + 1]`).
+  2 + 1]`);
+- the gap line of a FlowMap's gap has no constant either: its stroke
+  width, dash and space are `w / 2`, `w / 2` and `w` of its line's stroke
+  width `w`, which the writers apply; its row is compared as that text.
 
 Three numbers the constants hold are stated outside the table, each read
 from its sentence: the card spacing `S`'s default, 4 ("With the default `S
 = 4`", section 6.2), and the frame's, 8 ("`spacing`: 8 for a frame, 4 for a
 card", section 8.6, which states the card's 4 again); and the initial
-`rotation`, 0, the four elision properties' initial values and
-`label-display`'s, the last of section 2.5's ("`rotation` 0, `elision-mode`
-`auto`, `elision-proportion` `auto`, `elision-depths` `auto`,
-`elision-display` `ellipsis name`, `label-display` `name label`."): no wedge
+`rotation`, 0, the four elision properties' initial values,
+`label-display`'s and `flow`'s, the last of section 2.5's ("`rotation` 0,
+`elision-mode` `auto`, `elision-proportion` `auto`, `elision-depths`
+`auto`, `elision-display` `ellipsis name`, `label-display` `name label`,
+and `flow` none"): no wedge
 has another initial rotation, a secondary coordinate's −45 being a default
 rule's (section 4). The table's last two rows are the standard gap of an
 elision, 32, and an ellipsis's dot radius 2, dot spacing 6 and narrowest
@@ -2456,6 +2460,77 @@ Yb`: no tick at a cut, arms and tip whole. A brace spanning no gap (the
 same region without elisions) keeps its one `L` per part, as before, at
 `Ym − h(9) = 56.37890625`: without the elisions no stack takes a second
 line.
+
+## Virtual cards (`virtual.test.ts`)
+
+Section 8.10 (Resolution, Runs, The virtual card), with sections 2.2 (the
+chunk addresses), 6.4 (Level 0, Regions), 6.6 (Boundaries, Gap lines,
+Regions) and 8.1 (placed virtual timelines), is the oracle. The fixtures
+are `flow/virtual_cards` and `groups/virtual_member`: the root `allegro`
+(quarters, fraction, 1644) with the regions `section_a` "A" [0, 953/2),
+`section_b` "B" [953/2, 500) and `section_c` "C" [500, 1644), its
+FlowMaps `default` (A B A C), `single` (A C), `printed` (A B C) and
+`by_hand` "Practice" (A A A A, a gap of 4, C), and the virtual timelines
+`allegro_default` "Allegro, default" (4241/2), `allegro_single` "Allegro,
+single" (3241/2) and `allegro_by_hand` "Allegro, practice" (3054). Every
+x below is `x0 + (L × u − D)`, `x0` the start of the card's line as drawn
+(its `xs`), `L` 400, `u` the exact quotient of the position and the
+virtual length rounded once to a double, `D` the shrinks of the run gaps
+before it (section 3.2); every ordinate of a boundary is the line's `y`
+less and plus `k` = 8.
+
+1. **Places decide.** `flow/virtual_cards` at the default placement
+   (`places` empty) draws one card, `allegro`'s: no element of any
+   virtual timeline. With `places` stating `{}` for the three virtual
+   timelines, the block holds four cards, `allegro`'s first (the
+   ungrouped root), then the placed virtual timelines by ID:
+   `allegro_by_hand`, `allegro_default`, `allegro_single`; each card is
+   `{id: V, part: ["card"]}`.
+2. **The line.** Each virtual card's line is a `timeline` element at
+   `{id: V}`, starting in a circle and ending in the end circle of a
+   locked root at `x(λ)`: `x0 + 400` for `allegro_default` and
+   `allegro_single`, `x0 + (400 − n)` for `allegro_by_hand`, `n` below. A
+   virtual timeline's line is green as `allegro`'s, its unit's.
+3. **The chunks of `default`.** Pieces `[0, 953/2]` at 0, `[953/2, 500]`
+   at 953/2, `[0, 953/2]` at 500, `[500, 1644]` at 1953/2; λ = 4241/2.
+   Four `region` elements at `{id: "allegro_default", facet: "regions",
+   part: [k]}`, k = 0 … 3, from `x(0)`, `x(953/2)`, `x(500)`, `x(1953/2)`
+   to `x(953/2)`, `x(500)`, `x(1953/2)`, `x(4241/2)`, each with its label
+   at `part: [k, "label"]` reading A, B, A, C, and three `boundary`
+   elements at `part: [k, "start"]`, k = 1, 2, 3, at the drawn starts of
+   entries 1 to 3, from `y − 8` to `y + 8`. No run (no two consecutive
+   entries name one ID), so no gap line: the line has no `gapLines`.
+4. **`single`.** Pieces `[0, 953/2]` at 0 and `[500, 1644]` at 953/2;
+   braces 0 and 1 labelled A and C, one boundary at `x(953/2)`.
+5. **A run drawn once, and a gap: `by_hand`.** Pieces of A at 0, 953/2,
+   953, 2859/2, the gap `[1906, 1910]`, C at 1910 to 3054. Entries 0 to 3
+   are a run of four in a card the block holds: its run gap spans `[953/2,
+   1906]`, its shrink `n = 400 × u(1906) − 400 × u(953/2)`, so every
+   position from 1906 on lies `n` further left. Brace 0 runs from `x0` to
+   `x0 + 400 × u(953/2)` and is labelled `A × 4` (U+00D7); entries 1 to 3
+   draw no brace, label or boundary. Entry 4, the gap, draws no brace and
+   its label `4 ♩` (the pretty text of its length on `allegro`'s axis)
+   centred on `x(1908)`. Brace 5 runs from `x(1910)` to `x(3054)`,
+   labelled C. Boundaries at entries 4 and 5, at `x(1906)` and `x(1910)`.
+   The line's `gapLines` are `[[x(1906), x(1910)]]`.
+6. **The name.** With names drawn whole (`max-width: none`), the cards'
+   names read `Allegro, practice · unfolded from Allegro`, `Allegro,
+   default · unfolded from Allegro` and `Allegro, single · unfolded from
+   Allegro` (U+00B7).
+7. **A virtual member.** `groups/virtual_member` draws the frame
+   `performance` with two cards in its display order, `allegro_default`
+   then `recording`, and `allegro`'s card below it (an ungrouped root).
+   The virtual card draws the four braces and three boundaries of 3, at
+   its own `x0`, and its named timestamps `timestamp_3` (0) and
+   `timestamp_4` (4241/2) as wedges at `x(0)` and `x(4241/2)`, labelled
+   `0 ♩` and `2120 1/2 ♩`. No ancestor line, no ancestor card.
+8. **No run in a frame.** The same manifest with `allegro_by_hand` as the
+   frame's member in `allegro_default`'s place (its members and its
+   display order so changed, nothing else): the frame's virtual card draws
+   every entry, braces 0 to 3 labelled A, the gap's label `4 ♩`, brace 5
+   C, boundaries at entries 1 to 5, at `x(953/2)`, `x(953)`, `x(2859/2)`,
+   `x(1906)`, `x(1910)` with `D` = 0, and the gap line `[[x(1906),
+   x(1910)]]`.
 
 ## Named timestamps (`timestamps.test.ts`)
 

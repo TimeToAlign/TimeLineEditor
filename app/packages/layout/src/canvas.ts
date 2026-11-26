@@ -70,8 +70,8 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
       };
     case "timeline":
     case "child":
-    case "ancestor":
-      return {
+    case "ancestor": {
+      const placed = {
         ...element,
         style,
         xs: x(element.xs),
@@ -79,6 +79,11 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
         y: y(element.y),
         cuts: element.cuts.map(([left, right]) => [x(left), x(right)] as const),
       };
+      const { gapLines } = element;
+      return gapLines === undefined
+        ? placed
+        : { ...placed, gapLines: gapLines.map(([left, right]) => [x(left), x(right)] as const) };
+    }
     case "map":
       return {
         ...element,

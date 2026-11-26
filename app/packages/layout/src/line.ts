@@ -9,7 +9,7 @@ import { idAddress, partAddress } from "@timetoalign/tilie-core";
 import { elementKey } from "@timetoalign/tilie-core/drawing";
 import type { Centred, LineElements, LinePosition, Side } from "./bands.ts";
 import { BOUNDARY, LABEL_GAP } from "./constants.ts";
-import type { LineElement } from "./elements.ts";
+import type { Cut, LineElement } from "./elements.ts";
 import { type Extent, labelExtent, labelTiers, Rows } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { midpoint } from "./numbers.ts";
@@ -119,9 +119,29 @@ export function levelZero(scope: Scope, line: Entry): StagedZero {
   };
   const boundaries = segments
     .filter((segment) => !segment.first)
-    .map((segment) => ({ segment, ...part(segment, "start") }))
+    .map((segment) => ({ segment, at: segment.start, ...part(segment, "start") }))
     .filter((boundary) => shown(boundary.style));
-  const bounded = boundaries.length > 0;
+  // The line of a virtual timeline or of a switched card holds the boundaries at the drawn starts
+  // of the chunks of its FlowMap (section 8.10), and draws a gap line over every gap's span.
+  const { flow } = scope;
+  const chunked = flow !== null && line === rootEntry && drawn ? flow : null;
+  const chunkBoundaries =
+    chunked === null
+      ? []
+      : chunked.chunks
+          .filter((chunk) => chunk.boundary)
+          .map((chunk) => {
+            const address = {
+              id: chunked.timeline,
+              facet: "regions",
+              part: [chunk.index, "start"],
+            } as const;
+            const key = elementKey("boundary", address, line.manifest, line.key);
+            return { segment: line, at: chunk.start, ...styled(key, line.style), key };
+          })
+          .filter((boundary) => shown(boundary.style));
+  const flowGaps = (chunked?.chunks ?? []).filter((chunk) => chunk.gap && chunk.drawn);
+  const bounded = boundaries.length > 0 || chunkBoundaries.length > 0;
   const labels = segments.flatMap((segment) => {
     const text = segment.manifest.name;
     const label = part(segment, "label");
@@ -165,15 +185,15 @@ export function levelZero(scope: Scope, line: Entry): StagedZero {
       },
       draw: (at, against) => ({
         line: drawn ? drawnLine(at) : [],
-        boundaries: boundaries
-          .filter(({ segment }) => at.gap(segment.start) === undefined)
-          .map(({ segment, address, style }) => ({
+        boundaries: [...boundaries, ...chunkBoundaries]
+          .filter((boundary) => at.gap(boundary.at) === undefined)
+          .map(({ segment, at: start, address, style }) => ({
             segment,
             element: {
               type: "boundary",
               address,
               style,
-              x: at.x(segment.start),
+              x: at.x(start),
               y1: at.y - BOUNDARY,
               y2: at.y + BOUNDARY,
             },
@@ -228,18 +248,20 @@ export function levelZero(scope: Scope, line: Entry): StagedZero {
       last === undefined
         ? endOf(line.manifest, line === rootEntry && member.ancestors.length === 0, line.open)
         : "none";
-    return [
-      {
-        type: line === rootEntry ? "timeline" : "child",
-        address: line.key.address,
-        style: line.style,
-        xs,
-        xe: end === "unknown" ? xEnd + 4 * w : xEnd,
-        y: at.y,
-        start: first === undefined ? "circle" : "none",
-        end,
-        cuts: at.cuts(line.start, line.rootEnd ? null : line.end),
-      },
-    ];
+    const element: LineElement = {
+      type: line === rootEntry ? "timeline" : "child",
+      address: line.key.address,
+      style: line.style,
+      xs,
+      xe: end === "unknown" ? xEnd + 4 * w : xEnd,
+      y: at.y,
+      start: first === undefined ? "circle" : "none",
+      end,
+      cuts: at.cuts(line.start, line.rootEnd ? null : line.end),
+    };
+    // Over the span of a gap of its FlowMap the line is not drawn: a gap line stands in for it.
+    return flowGaps.length === 0
+      ? [element]
+      : [{ ...element, gapLines: flowGaps.map((gap): Cut => [at.x(gap.start), at.x(gap.end)]) }];
   }
 }
