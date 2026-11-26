@@ -416,6 +416,7 @@
 <li class="toctree-l2"><a class="reference internal" href="containers.html">containers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coordinates.html">coordinates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="edgeValues.html">edgeValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
@@ -436,7 +437,9 @@
 <li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/region.html">gestures/region</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/travel.html">gestures/travel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/wheel.html">gestures/wheel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index-1.html">index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="items.html">items</a></li>
@@ -535,7 +538,7 @@
 <blockquote>
 <div><p><strong>axisValueAt</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>): <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code> | readonly [<code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>, <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>] | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/axisValues.ts#L15">arranger/src/axisValues.ts:15</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/axisValues.ts#L15">arranger/src/axisValues.ts:15</a></p>
 <p>A value of the axis of <code class="docutils literal notranslate"><span class="pre">timeline</span></code> as the manifest writes it; <code class="docutils literal notranslate"><span class="pre">undefined</span></code> where it does not fit.</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
@@ -559,7 +562,7 @@
 <blockquote>
 <div><p><strong>typedValue</strong>(<code class="docutils literal notranslate"><span class="pre">text</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code> | readonly [<code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>, <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/axisValues.ts#L25">arranger/src/axisValues.ts:25</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/axisValues.ts#L25">arranger/src/axisValues.ts:25</a></p>
 <p>The value typed as <code class="docutils literal notranslate"><span class="pre">text</span></code> on <code class="docutils literal notranslate"><span class="pre">timeline</span></code>’s axis, exact (<code class="docutils literal notranslate"><span class="pre">parseAxisValue</span></code>),
 as the manifest writes it there: a decimal on a fraction axis is the value
 it denotes, on a float axis the nearest double; a message where none fits.</p>

@@ -442,6 +442,7 @@
 <li class="toctree-l2"><a class="reference internal" href="stamps/settlements.svelte.html">inspector/stamps/settlements.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tabs.html">inspector/tabs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="textPlace.html">inspector/textPlace</a></li>
+<li class="toctree-l2"><a class="reference internal" href="timelineList.html">inspector/timelineList</a></li>
 <li class="toctree-l2"><a class="reference internal" href="timestamp.html">inspector/timestamp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="toml.html">inspector/toml</a></li>
 <li class="toctree-l2"><a class="reference internal" href="words.html">inspector/words</a></li>
@@ -540,7 +541,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="textoptions">
 <h3>TextOptions<a class="headerlink" href="#textoptions" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/editor/src/inspector/manifestText.ts#L78">editor/src/inspector/manifestText.ts:78</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/editor/src/inspector/manifestText.ts#L78">editor/src/inspector/manifestText.ts:78</a></p>
 <p>How a text shows a manifest: with or without its styling (<code class="docutils literal notranslate"><span class="pre">graphical</span></code>),
 and in the complete form (every default written out) or the minimal one.</p>
 <section id="properties">
@@ -550,14 +551,14 @@ and in the complete form (every default written out) or the minimal one.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>includeStyling</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/editor/src/inspector/manifestText.ts#L79">editor/src/inspector/manifestText.ts:79</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/editor/src/inspector/manifestText.ts#L79">editor/src/inspector/manifestText.ts:79</a></p>
 </section>
 <section id="minimal">
 <h5>minimal<a class="headerlink" href="#minimal" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>minimal</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/editor/src/inspector/manifestText.ts#L80">editor/src/inspector/manifestText.ts:80</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/editor/src/inspector/manifestText.ts#L80">editor/src/inspector/manifestText.ts:80</a></p>
 </section>
 </section>
 </section>
@@ -569,7 +570,7 @@ and in the complete form (every default written out) or the minimal one.</p>
 <blockquote>
 <div><p><strong>applyText</strong>(<code class="docutils literal notranslate"><span class="pre">store</span></code>, <code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">format</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code>, <code class="docutils literal notranslate"><span class="pre">options</span></code>): <code class="docutils literal notranslate"><span class="pre">Applied</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/editor/src/inspector/manifestText.ts#L150">editor/src/inspector/manifestText.ts:150</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/editor/src/inspector/manifestText.ts#L150">editor/src/inspector/manifestText.ts:150</a></p>
 <p>Read <code class="docutils literal notranslate"><span class="pre">text</span></code> in <code class="docutils literal notranslate"><span class="pre">format</span></code> and dispatch ONE <code class="docutils literal notranslate"><span class="pre">set</span></code> replacing the block’s
 manifest with the value read, its IDs made bare (<code class="docutils literal notranslate"><span class="pre">withHeldIds</span></code>; the store
 completes it). On acceptance the
@@ -613,7 +614,7 @@ refuses a <code class="docutils literal notranslate"><span class="pre">set</span
 <blockquote>
 <div><p><strong>follow</strong>(<code class="docutils literal notranslate"><span class="pre">source</span></code>, <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">options</span></code>): <code class="docutils literal notranslate"><span class="pre">Applied</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/editor/src/inspector/manifestText.ts#L192">editor/src/inspector/manifestText.ts:192</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/editor/src/inspector/manifestText.ts#L192">editor/src/inspector/manifestText.ts:192</a></p>
 <p>The text after the manifest changed: the document patched in place with
 the manifest as <code class="docutils literal notranslate"><span class="pre">options</span></code> show it, so its comments survive.</p>
 <section id="id1">
@@ -642,7 +643,7 @@ the manifest as <code class="docutils literal notranslate"><span class="pre">opt
 <blockquote>
 <div><p><strong>manifestOf</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>): <a class="reference internal" href="../../tilie-core/json.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Json</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/editor/src/inspector/manifestText.ts#L63">editor/src/inspector/manifestText.ts:63</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/editor/src/inspector/manifestText.ts#L63">editor/src/inspector/manifestText.ts:63</a></p>
 <p>A block’s manifest as the JSON value its text shows, the value a manifest
 file writes (core’s <code class="docutils literal notranslate"><span class="pre">manifestFileValue</span></code>): every ID written <code class="docutils literal notranslate"><span class="pre">#id</span></code> and the
 full <code class="docutils literal notranslate"><span class="pre">&#64;context</span></code>, the format’s terms and every prefix the statements use,
@@ -667,7 +668,7 @@ a manifest holding anything else throws a <code class="docutils literal notransl
 <blockquote>
 <div><p><strong>manifestText</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">format</span></code>, <code class="docutils literal notranslate"><span class="pre">options</span></code>): <a class="reference internal" href="problems.html#result"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Result</span></code></span></a>&lt;<a class="reference internal" href="codec.html#id14"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Text</span></code></span></a>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/editor/src/inspector/manifestText.ts#L97">editor/src/inspector/manifestText.ts:97</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/editor/src/inspector/manifestText.ts#L97">editor/src/inspector/manifestText.ts:97</a></p>
 <p>The text of a block’s manifest in <code class="docutils literal notranslate"><span class="pre">format</span></code>.</p>
 <section id="id7">
 <h4>Parameters<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>

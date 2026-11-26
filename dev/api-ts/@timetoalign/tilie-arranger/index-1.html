@@ -416,6 +416,7 @@
 <li class="toctree-l2"><a class="reference internal" href="containers.html">containers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coordinates.html">coordinates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="edgeValues.html">edgeValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
@@ -436,7 +437,9 @@
 <li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/region.html">gestures/region</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/travel.html">gestures/travel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/wheel.html">gestures/wheel</a></li>
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="items.html">items</a></li>
@@ -535,7 +538,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>name</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;&#64;timetoalign/tilie-arranger&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/index.ts#L7">arranger/src/index.ts:7</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/index.ts#L7">arranger/src/index.ts:7</a></p>
 <p>&#64;timetoalign/tilie-arranger: the canvas. A workspace view becomes one
 Svelte Flow node per block; every completed gesture on those nodes
 becomes one workspace command.</p>
@@ -628,6 +631,16 @@ becomes one workspace command.</p>
 <p>Re-exports <a class="reference internal" href="gaps.html#defaultsstored"><span class="std std-ref">defaultsStored</span></a></p>
 </section>
 <hr class="docutils" />
+<section id="deletequestion">
+<h3>deleteQuestion<a class="headerlink" href="#deletequestion" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands.html#id7"><span class="std std-ref">deleteQuestion</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="id1">
+<h3>DeleteQuestion<a class="headerlink" href="#id1" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands.html#deletequestion"><span class="std std-ref">DeleteQuestion</span></a></p>
+</section>
+<hr class="docutils" />
 <section id="drawingof">
 <h3>drawingOf<a class="headerlink" href="#drawingof" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="drawing.html#drawingof"><span class="std std-ref">drawingOf</span></a></p>
@@ -641,6 +654,16 @@ becomes one workspace command.</p>
 <section id="editing">
 <h3>Editing<a class="headerlink" href="#editing" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="editing.html#id1"><span class="std std-ref">Editing</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="editorof">
+<h3>editorOf<a class="headerlink" href="#editorof" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="editors.html#editorof"><span class="std std-ref">editorOf</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="editortoopen">
+<h3>EditorToOpen<a class="headerlink" href="#editortoopen" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="editors.html#editortoopen"><span class="std std-ref">EditorToOpen</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="existing">
@@ -696,6 +719,11 @@ becomes one workspace command.</p>
 <section id="gapsubject">
 <h3>GapSubject<a class="headerlink" href="#gapsubject" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="gaps.html#gapsubject"><span class="std std-ref">GapSubject</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="hidecommand">
+<h3>hideCommand<a class="headerlink" href="#hidecommand" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands.html#hidecommand"><span class="std std-ref">hideCommand</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="inscreenorder">
@@ -768,8 +796,8 @@ becomes one workspace command.</p>
 <p>Re-exports <a class="reference internal" href="liveStore.svelte.html#id1"><span class="std std-ref">liveStore</span></a></p>
 </section>
 <hr class="docutils" />
-<section id="id1">
-<h3>LiveStore<a class="headerlink" href="#id1" title="Link to this heading">#</a></h3>
+<section id="id2">
+<h3>LiveStore<a class="headerlink" href="#id2" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="liveStore.svelte.html#livestore"><span class="std std-ref">LiveStore</span></a></p>
 </section>
 <hr class="docutils" />
@@ -801,6 +829,11 @@ becomes one workspace command.</p>
 <section id="nothing-selected">
 <h3>NOTHING_SELECTED<a class="headerlink" href="#nothing-selected" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="selection.html#nothing-selected"><span class="std std-ref">NOTHING_SELECTED</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="openable">
+<h3>openable<a class="headerlink" href="#openable" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="selectionRules.html#openable"><span class="std std-ref">openable</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="pane">
@@ -863,6 +896,16 @@ becomes one workspace command.</p>
 <p>Re-exports <a class="reference internal" href="containers.html#resolveselection"><span class="std std-ref">resolveSelection</span></a></p>
 </section>
 <hr class="docutils" />
+<section id="rootdisplaycommand">
+<h3>rootDisplayCommand<a class="headerlink" href="#rootdisplaycommand" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands.html#rootdisplaycommand"><span class="std std-ref">rootDisplayCommand</span></a></p>
+</section>
+<hr class="docutils" />
+<section id="roothidden">
+<h3>rootHidden<a class="headerlink" href="#roothidden" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="commands.html#roothidden"><span class="std std-ref">rootHidden</span></a></p>
+</section>
+<hr class="docutils" />
 <section id="screencoordinate">
 <h3>ScreenCoordinate<a class="headerlink" href="#screencoordinate" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="matches.html#screencoordinate"><span class="std std-ref">ScreenCoordinate</span></a></p>
@@ -893,8 +936,8 @@ becomes one workspace command.</p>
 <p>Re-exports <a class="reference internal" href="items.html#id54"><span class="std std-ref">shownValues</span></a></p>
 </section>
 <hr class="docutils" />
-<section id="id2">
-<h3>ShownValues<a class="headerlink" href="#id2" title="Link to this heading">#</a></h3>
+<section id="id3">
+<h3>ShownValues<a class="headerlink" href="#id3" title="Link to this heading">#</a></h3>
 <p>Re-exports <a class="reference internal" href="items.html#shownvalues"><span class="std std-ref">ShownValues</span></a></p>
 </section>
 <hr class="docutils" />
@@ -1029,9 +1072,13 @@ becomes one workspace command.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#changedplace">changedPlace</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#defaultsremoval">defaultsRemoval</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#defaultsstored">defaultsStored</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#deletequestion">deleteQuestion</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">DeleteQuestion</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#drawingof">drawingOf</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editedselection">editedSelection</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editing">Editing</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editorof">editorOf</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editortoopen">EditorToOpen</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#existing">existing</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#exposureat">exposureAt</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fieldsof">fieldsOf</a></li>
@@ -1043,6 +1090,7 @@ becomes one workspace command.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gapof">gapOf</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gappiece">GapPiece</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gapsubject">GapSubject</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hidecommand">hideCommand</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#inscreenorder">inScreenOrder</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isdefaultgap">isDefaultGap</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#isgap">isGap</a></li>
@@ -1057,13 +1105,14 @@ becomes one workspace command.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#levelof">levelOf</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#liveplacement">LivePlacement</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#livestore">liveStore</a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">LiveStore</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">LiveStore</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchoverlayinput">MatchOverlayInput</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#matchstamppin">MatchStampPin</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#measuremapsanswer">MeasureMapsAnswer</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#namedcomparison">NamedComparison</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#namedpin">namedPin</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nothing-selected">NOTHING_SELECTED</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#openable">openable</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pane">Pane</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pane-settle">PANE_SETTLE</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#piecesof">piecesOf</a></li>
@@ -1076,13 +1125,15 @@ becomes one workspace command.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#rereadpin">rereadPin</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#resizemode">ResizeMode</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#resolveselection">resolveSelection</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#rootdisplaycommand">rootDisplayCommand</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#roothidden">rootHidden</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#screencoordinate">ScreenCoordinate</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#screenorder">screenOrder</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#screenplace">screenPlace</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#selection">Selection</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#selectionof">selectionOf</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#shownvalues">shownValues</a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">ShownValues</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">ShownValues</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#storedas">storedAs</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#storedelision">storedElision</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#storedentry">StoredEntry</a></li>

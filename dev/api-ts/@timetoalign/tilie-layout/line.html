@@ -514,7 +514,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="levelzero">
 <h3>LevelZero<a class="headerlink" href="#levelzero" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L30">layout/src/line.ts:30</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L31">layout/src/line.ts:31</a></p>
 <p>A timeline’s line and its segments’ boundaries and labels, before any distance is known.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -523,7 +523,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>centred</strong>: readonly <a class="reference internal" href="bands.html#centred"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Centred</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L39">layout/src/line.ts:39</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L40">layout/src/line.ts:40</a></p>
 <p>Its drawn segment labels, each centred on its segment’s midpoint (section 6.7).</p>
 </section>
 <section id="extents">
@@ -531,7 +531,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>extents</strong>: readonly <a class="reference internal" href="fit.html#id8"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L37">layout/src/line.ts:37</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L38">layout/src/line.ts:38</a></p>
 <p>What level 0 adds to its timeline’s extent (section 6.4, Children), measured from the root’s
 start: the line’s own extent, from <code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">×</span> <span class="pre">u</span></code> of its start to <code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">×</span> <span class="pre">u</span></code> of its end, or for an open
 end to <code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">×</span> <span class="pre">u</span> <span class="pre">+</span> <span class="pre">9.5w</span></code> (summed as written, <code class="docutils literal notranslate"><span class="pre">w</span></code> its stroke width); and the extent of each drawn
@@ -545,7 +545,7 @@ segment label (section 6.3).</p>
 <blockquote>
 <div><p><strong>draw</strong>(<code class="docutils literal notranslate"><span class="pre">at</span></code>, <code class="docutils literal notranslate"><span class="pre">against</span></code>): <code class="docutils literal notranslate"><span class="pre">Partial</span></code>&lt;<a class="reference internal" href="bands.html#lineelements"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineElements</span></code></span></a>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L59">layout/src/line.ts:59</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L60">layout/src/line.ts:60</a></p>
 <p>Its elements at <code class="docutils literal notranslate"><span class="pre">at</span></code> (section 6.6), <code class="docutils literal notranslate"><span class="pre">against</span></code> as for <code class="docutils literal notranslate"><span class="pre">reach</span></code> above: its line, when displayed
 (a <code class="docutils literal notranslate"><span class="pre">timeline</span></code> element for the root of the member drawing, ending as section 6.6 says for a
 top-level timeline or a child, else a <code class="docutils literal notranslate"><span class="pre">child</span></code> ending in its diamond, either running on into
@@ -574,7 +574,7 @@ baseline at <code class="docutils literal notranslate"><span class="pre">y</span
 <blockquote>
 <div><p><strong>reach</strong>(<code class="docutils literal notranslate"><span class="pre">side</span></code>, <code class="docutils literal notranslate"><span class="pre">against</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L49">layout/src/line.ts:49</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L50">layout/src/line.ts:50</a></p>
 <p>How far the line reaches on <code class="docutils literal notranslate"><span class="pre">side</span></code> (section 6.4, Level 0 and Segment lines), <code class="docutils literal notranslate"><span class="pre">against</span></code> the
 width of the band lying against the line on that side and sharing its room: the conversion
 maps band at level 1 or −1 (the line’s map stack, reaching <code class="docutils literal notranslate"><span class="pre">e</span></code>), or above the markers band at
@@ -603,7 +603,7 @@ level 1, else 0. Above, <code class="docutils literal notranslate"><span class="
 <hr class="docutils" />
 <section id="segmenttiers">
 <h3>SegmentTiers<a class="headerlink" href="#segmenttiers" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L69">layout/src/line.ts:69</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L70">layout/src/line.ts:70</a></p>
 <p>The segment-label tiers of a line (section 6.4, Segment lines): the tier of
 each of its segment labels, from 1, the number of tiers, whether the
 distance <code class="docutils literal notranslate"><span class="pre">m</span></code> counts <code class="docutils literal notranslate"><span class="pre">k</span></code>, and the largest font size of the labels. Its own
@@ -616,35 +616,35 @@ first fit over all of them, with one <code class="docutils literal notranslate">
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>bounded</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L72">layout/src/line.ts:72</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L73">layout/src/line.ts:73</a></p>
 </section>
 <section id="count">
 <h5>count<a class="headerlink" href="#count" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>count</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L71">layout/src/line.ts:71</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L72">layout/src/line.ts:72</a></p>
 </section>
 <section id="size">
 <h5>size<a class="headerlink" href="#size" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>size</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L73">layout/src/line.ts:73</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L74">layout/src/line.ts:74</a></p>
 </section>
 <section id="tier">
 <h5>tier<a class="headerlink" href="#tier" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>tier</strong>: readonly <code class="docutils literal notranslate"><span class="pre">number</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L70">layout/src/line.ts:70</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L71">layout/src/line.ts:71</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="stagedzero">
 <h3>StagedZero<a class="headerlink" href="#stagedzero" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L82">layout/src/line.ts:82</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L83">layout/src/line.ts:83</a></p>
 <p>Level 0 of a timeline before its segment labels are tiered: its line’s
 extent, each label’s centre and width, in canonical order; whether its line draws a boundary;
 the largest font size of its labels; whether it is a displayed segment
@@ -656,21 +656,21 @@ line; and level 0 once its labels lie in <code class="docutils literal notransla
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>bounded</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L89">layout/src/line.ts:89</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L90">layout/src/line.ts:90</a></p>
 </section>
 <section id="labels">
 <h5>labels<a class="headerlink" href="#labels" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>labels</strong>: readonly <code class="docutils literal notranslate"><span class="pre">object</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L88">layout/src/line.ts:88</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L89">layout/src/line.ts:89</a></p>
 </section>
 <section id="lineextent">
 <h5>lineExtent<a class="headerlink" href="#lineextent" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>lineExtent</strong>: <a class="reference internal" href="fit.html#id8"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Extent</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L87">layout/src/line.ts:87</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L88">layout/src/line.ts:88</a></p>
 <p>The line’s own extent (section 6.4, Children), from <code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">×</span> <span class="pre">u</span></code> of its start to <code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">×</span> <span class="pre">u</span></code> of its
 end, or for an open end to <code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">×</span> <span class="pre">u</span> <span class="pre">+</span> <span class="pre">9.5w</span></code>, summed as written, <code class="docutils literal notranslate"><span class="pre">w</span></code> its stroke width.</p>
 </section>
@@ -679,14 +679,14 @@ end, or for an open end to <code class="docutils literal notranslate"><span clas
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>segmentLine</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L91">layout/src/line.ts:91</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L92">layout/src/line.ts:92</a></p>
 </section>
 <section id="id7">
 <h5>size<a class="headerlink" href="#id7" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>size</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L90">layout/src/line.ts:90</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L91">layout/src/line.ts:91</a></p>
 </section>
 </section>
 <section id="id8">
@@ -696,7 +696,7 @@ end, or for an open end to <code class="docutils literal notranslate"><span clas
 <blockquote>
 <div><p><strong>zero</strong>(<code class="docutils literal notranslate"><span class="pre">tiers</span></code>): <a class="reference internal" href="#levelzero"><code class="docutils literal notranslate"><span class="pre">LevelZero</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L92">layout/src/line.ts:92</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L93">layout/src/line.ts:93</a></p>
 <section id="id9">
 <h6>Parameters<a class="headerlink" href="#id9" title="Link to this heading">#</a></h6>
 </section>
@@ -719,7 +719,7 @@ end, or for an open end to <code class="docutils literal notranslate"><span clas
 <blockquote>
 <div><p><strong>drawnEntries</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">line</span></code>): readonly <a class="reference internal" href="traversal.html#entry"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Entry</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L112">layout/src/line.ts:112</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L156">layout/src/line.ts:156</a></p>
 <p>The entries whose lines the line <code class="docutils literal notranslate"><span class="pre">line</span></code> draws, one element each: <code class="docutils literal notranslate"><span class="pre">line</span></code>
 itself; on a card of a switched frame whose root is not the switched one,
 the root’s pieces, its line drawn once in each (section 8.10).</p>
@@ -745,7 +745,7 @@ the root’s pieces, its line drawn once in each (section 8.10).</p>
 <blockquote>
 <div><p><strong>levelZero</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">line</span></code>): <a class="reference internal" href="#stagedzero"><code class="docutils literal notranslate"><span class="pre">StagedZero</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L125">layout/src/line.ts:125</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L169">layout/src/line.ts:169</a></p>
 <p>Level 0 of the timeline drawn with the line <code class="docutils literal notranslate"><span class="pre">line</span></code> (sections 6.1, 6.4 and
 6.6): its segments are its children when it is a segment line, every one
 of them, with a line of its own or not; their labels are placed by one
@@ -774,7 +774,7 @@ directly and in no band (section 2.1), and drawn only with that line.</p>
 <blockquote>
 <div><p><strong>ownTiers</strong>(<code class="docutils literal notranslate"><span class="pre">staged</span></code>): <a class="reference internal" href="#segmenttiers"><code class="docutils literal notranslate"><span class="pre">SegmentTiers</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/line.ts#L96">layout/src/line.ts:96</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/line.ts#L140">layout/src/line.ts:140</a></p>
 <p>The segment-label tiers of <code class="docutils literal notranslate"><span class="pre">staged</span></code> by its own first fit alone (<code class="docutils literal notranslate"><span class="pre">labelTiers</span></code>).</p>
 <section id="id19">
 <h4>Parameters<a class="headerlink" href="#id19" title="Link to this heading">#</a></h4>

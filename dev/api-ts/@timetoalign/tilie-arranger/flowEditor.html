@@ -416,6 +416,7 @@
 <li class="toctree-l2"><a class="reference internal" href="containers.html">containers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coordinates.html">coordinates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="edgeValues.html">edgeValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
@@ -436,7 +437,9 @@
 <li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/region.html">gestures/region</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/travel.html">gestures/travel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/wheel.html">gestures/wheel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index-1.html">index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="items.html">items</a></li>
@@ -530,78 +533,55 @@
 <h1>flowEditor<a class="headerlink" href="#floweditor" title="Link to this heading">#</a></h1>
 <section id="interfaces">
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
-<section id="cardchoice">
-<h3>CardChoice<a class="headerlink" href="#cardchoice" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L187">arranger/src/flowEditor.ts:187</a></p>
-<p>What the card offers to the new FlowMap without a pointer: one choice of the keyboard’s list.</p>
+<section id="flowchip">
+<h3>FlowChip<a class="headerlink" href="#flowchip" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L56">arranger/src/flowEditor.ts:56</a></p>
+<p>A chip on a row’s head: its kind, its text and the sentence it stands for.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
-<section id="dragged">
-<h5>dragged<a class="headerlink" href="#dragged" title="Link to this heading">#</a></h5>
+<section id="kind">
+<h5>kind<a class="headerlink" href="#kind" title="Link to this heading">#</a></h5>
 <blockquote>
-<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>dragged</strong>: <a class="reference internal" href="#id4"><code class="docutils literal notranslate"><span class="pre">Dragged</span></code></a></p>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>kind</strong>: <a class="reference internal" href="#chipkind"><code class="docutils literal notranslate"><span class="pre">ChipKind</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L188">arranger/src/flowEditor.ts:188</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L57">arranger/src/flowEditor.ts:57</a></p>
 </section>
 <section id="text">
 <h5>text<a class="headerlink" href="#text" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>text</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L189">arranger/src/flowEditor.ts:189</a></p>
-</section>
-</section>
-</section>
-<hr class="docutils" />
-<section id="flowchip">
-<h3>FlowChip<a class="headerlink" href="#flowchip" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L52">arranger/src/flowEditor.ts:52</a></p>
-<p>A chip on a row’s head: its kind, its text and the sentence it stands for.</p>
-<section id="id1">
-<h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
-<section id="kind">
-<h5>kind<a class="headerlink" href="#kind" title="Link to this heading">#</a></h5>
-<blockquote>
-<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>kind</strong>: <a class="reference internal" href="#chipkind"><code class="docutils literal notranslate"><span class="pre">ChipKind</span></code></a></p>
-</div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L53">arranger/src/flowEditor.ts:53</a></p>
-</section>
-<section id="id2">
-<h5>text<a class="headerlink" href="#id2" title="Link to this heading">#</a></h5>
-<blockquote>
-<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>text</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
-</div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L54">arranger/src/flowEditor.ts:54</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L58">arranger/src/flowEditor.ts:58</a></p>
 </section>
 <section id="title">
 <h5>title<a class="headerlink" href="#title" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>title</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L55">arranger/src/flowEditor.ts:55</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L59">arranger/src/flowEditor.ts:59</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="flowrow">
 <h3>FlowRow<a class="headerlink" href="#flowrow" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L68">arranger/src/flowEditor.ts:68</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L72">arranger/src/flowEditor.ts:72</a></p>
 <p>One row of the pane: a FlowMap of the edited root.</p>
-<section id="id3">
-<h4>Properties<a class="headerlink" href="#id3" title="Link to this heading">#</a></h4>
+<section id="id1">
+<h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
 <section id="chips">
 <h5>chips<a class="headerlink" href="#chips" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>chips</strong>: readonly <a class="reference internal" href="#flowchip"><code class="docutils literal notranslate"><span class="pre">FlowChip</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L75">arranger/src/flowEditor.ts:75</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L79">arranger/src/flowEditor.ts:79</a></p>
 </section>
 <section id="computed">
 <h5>computed<a class="headerlink" href="#computed" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>computed</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L74">arranger/src/flowEditor.ts:74</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L78">arranger/src/flowEditor.ts:78</a></p>
 <p>Computed from flow control (a convention and an inferred provenance): read only, recomputed on request.</p>
 </section>
 <section id="entries">
@@ -609,14 +589,14 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>entries</strong>: readonly (<code class="docutils literal notranslate"><span class="pre">string</span></code> | { })[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L82">arranger/src/flowEditor.ts:82</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L86">arranger/src/flowEditor.ts:86</a></p>
 </section>
 <section id="id">
 <h5>id<a class="headerlink" href="#id" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>id</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L70">arranger/src/flowEditor.ts:70</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L74">arranger/src/flowEditor.ts:74</a></p>
 <p>The FlowMap’s ID.</p>
 </section>
 <section id="name">
@@ -624,7 +604,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>name</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L72">arranger/src/flowEditor.ts:72</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L76">arranger/src/flowEditor.ts:76</a></p>
 <p>Its name; else its convention; else its ID.</p>
 </section>
 <section id="virtual">
@@ -632,7 +612,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>virtual</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L81">arranger/src/flowEditor.ts:81</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L85">arranger/src/flowEditor.ts:85</a></p>
 <p>The virtual timeline giving its axis to the root, the first in the
 manifest’s order that applies it to the root without <code class="docutils literal notranslate"><span class="pre">through</span></code>; <code class="docutils literal notranslate"><span class="pre">null</span></code>
 where none does.</p>
@@ -647,16 +627,16 @@ where none does.</p>
 <blockquote>
 <div><p><strong>ChipKind</strong> = <code class="docutils literal notranslate"><span class="pre">&quot;convention&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;canonical&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;provenance&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;findings&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L49">arranger/src/flowEditor.ts:49</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L53">arranger/src/flowEditor.ts:53</a></p>
 <p>What a chip on a row’s head says: its convention, that it is canonical, how it was made, its findings.</p>
 </section>
 <hr class="docutils" />
-<section id="id4">
-<h3>Dragged<a class="headerlink" href="#id4" title="Link to this heading">#</a></h3>
+<section id="dragged">
+<h3>Dragged<a class="headerlink" href="#dragged" title="Link to this heading">#</a></h3>
 <blockquote>
 <div><p><strong>Dragged</strong> = { <code class="docutils literal notranslate"><span class="pre">entry</span></code>: <a class="reference internal" href="#flowentry"><code class="docutils literal notranslate"><span class="pre">FlowEntry</span></code></a>; <code class="docutils literal notranslate"><span class="pre">from</span></code>: { <code class="docutils literal notranslate"><span class="pre">flowMap</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; <code class="docutils literal notranslate"><span class="pre">index</span></code>: <code class="docutils literal notranslate"><span class="pre">number</span></code>; } | <code class="docutils literal notranslate"><span class="pre">null</span></code>; <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;entry&quot;</span></code>; } | { <code class="docutils literal notranslate"><span class="pre">id</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;element&quot;</span></code>; } | { <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;root&quot;</span></code>; } | { <code class="docutils literal notranslate"><span class="pre">flowMap</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;row&quot;</span></code>; } | { <code class="docutils literal notranslate"><span class="pre">end</span></code>: <a class="reference internal" href="../tilie-core/manifest/types.html#axisvalue"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AxisValue</span></code></span></a>; <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;sweep&quot;</span></code>; <code class="docutils literal notranslate"><span class="pre">start</span></code>: <a class="reference internal" href="../tilie-core/manifest/types.html#axisvalue"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AxisValue</span></code></span></a>; <code class="docutils literal notranslate"><span class="pre">timeline</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; }</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L226">arranger/src/flowEditor.ts:226</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L243">arranger/src/flowEditor.ts:243</a></p>
 <p>What is dragged into the new FlowMap: an entry of a row (it lands as
 itself, its source), a Region or child timeline of the root’s tree from
 the card, the card’s own line (the whole root), a whole row (the virtual
@@ -669,7 +649,7 @@ new Region of that line’s timeline).</p>
 <blockquote>
 <div><p><strong>FlowEntry</strong> = <a class="reference internal" href="../tilie-core/manifest/types.html#flowmap"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">FlowMap</span></code></span></a>[<code class="docutils literal notranslate"><span class="pre">&quot;chunks&quot;</span></code>][<code class="docutils literal notranslate"><span class="pre">number</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L46">arranger/src/flowEditor.ts:46</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L50">arranger/src/flowEditor.ts:50</a></p>
 <p>One entry of a FlowMap’s <code class="docutils literal notranslate"><span class="pre">chunks</span></code>: the ID of a Region, a child or a virtual timeline, or a gap.</p>
 </section>
 <hr class="docutils" />
@@ -678,7 +658,7 @@ new Region of that line’s timeline).</p>
 <blockquote>
 <div><p><strong>FlowFindings</strong> = <code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L62">arranger/src/flowEditor.ts:62</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L66">arranger/src/flowEditor.ts:66</a></p>
 <p>What playing flow control found for each convention, by convention: the
 server’s sentences (<code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/flows</span></code>). Without a server none is known.</p>
 </section>
@@ -690,7 +670,7 @@ server’s sentences (<code class="docutils literal notranslate"><span class="pr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>NO_FINDINGS</strong>: <a class="reference internal" href="#flowfindings"><code class="docutils literal notranslate"><span class="pre">FlowFindings</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L65">arranger/src/flowEditor.ts:65</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L69">arranger/src/flowEditor.ts:69</a></p>
 <p>No findings known.</p>
 </section>
 </section>
@@ -701,7 +681,7 @@ server’s sentences (<code class="docutils literal notranslate"><span class="pr
 <blockquote>
 <div><p><strong>addedId</strong>(<code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">after</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L334">arranger/src/flowEditor.ts:334</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L354">arranger/src/flowEditor.ts:354</a></p>
 <p>The one ID <code class="docutils literal notranslate"><span class="pre">after</span></code> lists that <code class="docutils literal notranslate"><span class="pre">before</span></code> does not: the element a command
 added, read through its result; <code class="docutils literal notranslate"><span class="pre">null</span></code> where there is not exactly one.</p>
 <section id="parameters">
@@ -726,10 +706,10 @@ added, read through its result; <code class="docutils literal notranslate"><span
 <blockquote>
 <div><p><strong>blockOfView</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">block</span></code>): <a class="reference internal" href="../tilie-core/workspace/blocks.html#block"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Block</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L528">arranger/src/flowEditor.ts:528</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L566">arranger/src/flowEditor.ts:566</a></p>
 <p>The view’s block <code class="docutils literal notranslate"><span class="pre">block</span></code>; throws where the view holds none.</p>
-<section id="id5">
-<h4>Parameters<a class="headerlink" href="#id5" title="Link to this heading">#</a></h4>
+<section id="id2">
+<h4>Parameters<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
 <section id="view">
 <h5>view<a class="headerlink" href="#view" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
@@ -739,59 +719,32 @@ added, read through its result; <code class="docutils literal notranslate"><span
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 </section>
-<section id="id6">
-<h4>Returns<a class="headerlink" href="#id6" title="Link to this heading">#</a></h4>
+<section id="id3">
+<h4>Returns<a class="headerlink" href="#id3" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="../tilie-core/workspace/blocks.html#block"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Block</span></code></span></a></p>
-</section>
-</section>
-<hr class="docutils" />
-<section id="cardchoices">
-<h3>cardChoices()<a class="headerlink" href="#cardchoices" title="Link to this heading">#</a></h3>
-<blockquote>
-<div><p><strong>cardChoices</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">root</span></code>): readonly <a class="reference internal" href="#cardchoice"><code class="docutils literal notranslate"><span class="pre">CardChoice</span></code></a>[]</p>
-</div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L198">arranger/src/flowEditor.ts:198</a></p>
-<p>What the edited card offers to the new FlowMap, in the order a keyboard
-walks it: the whole root (as a Region over it), then each timeline of the
-root’s tree in pre-order with its Regions in the manifest’s order (an
-atomic section so named), each child after its parent’s Regions.</p>
-<section id="id7">
-<h4>Parameters<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>
-<section id="manifest">
-<h5>manifest<a class="headerlink" href="#manifest" title="Link to this heading">#</a></h5>
-<p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
-</section>
-<section id="root">
-<h5>root<a class="headerlink" href="#root" title="Link to this heading">#</a></h5>
-<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
-</section>
-</section>
-<section id="id8">
-<h4>Returns<a class="headerlink" href="#id8" title="Link to this heading">#</a></h4>
-<p>readonly <a class="reference internal" href="#cardchoice"><code class="docutils literal notranslate"><span class="pre">CardChoice</span></code></a>[]</p>
 </section>
 </section>
 <hr class="docutils" />
 <section id="cardpress">
 <h3>cardPress()<a class="headerlink" href="#cardpress" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>cardPress</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">root</span></code>, <code class="docutils literal notranslate"><span class="pre">source</span></code>, <code class="docutils literal notranslate"><span class="pre">sweep</span></code>): <a class="reference internal" href="#id4"><code class="docutils literal notranslate"><span class="pre">Dragged</span></code></a> | { <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;line&quot;</span></code>; <code class="docutils literal notranslate"><span class="pre">timeline</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; } | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+<div><p><strong>cardPress</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">root</span></code>, <code class="docutils literal notranslate"><span class="pre">source</span></code>, <code class="docutils literal notranslate"><span class="pre">sweep</span></code>): <a class="reference internal" href="#dragged"><code class="docutils literal notranslate"><span class="pre">Dragged</span></code></a> | { <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;line&quot;</span></code>; <code class="docutils literal notranslate"><span class="pre">timeline</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; } | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L557">arranger/src/flowEditor.ts:557</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L595">arranger/src/flowEditor.ts:595</a></p>
 <p>What a press on the drawn element <code class="docutils literal notranslate"><span class="pre">source</span></code> of the edited card carries
 into the new FlowMap, <code class="docutils literal notranslate"><span class="pre">root</span></code> the edited root: a Region of its tree (its
 brace or its label) that Region; a child’s line that child; the root’s
 own line the whole root; with <code class="docutils literal notranslate"><span class="pre">sweep</span></code> (Shift) the root’s or a child’s
 line a stretch swept on it, read by <code class="docutils literal notranslate"><span class="pre">sweptValue</span></code> as the pointer moves
 (<code class="docutils literal notranslate"><span class="pre">{kind:</span> <span class="pre">&quot;line&quot;}</span></code>); <code class="docutils literal notranslate"><span class="pre">null</span></code> for anything else, which the canvas keeps.</p>
-<section id="id9">
-<h4>Parameters<a class="headerlink" href="#id9" title="Link to this heading">#</a></h4>
-<section id="id10">
-<h5>manifest<a class="headerlink" href="#id10" title="Link to this heading">#</a></h5>
+<section id="id4">
+<h4>Parameters<a class="headerlink" href="#id4" title="Link to this heading">#</a></h4>
+<section id="manifest">
+<h5>manifest<a class="headerlink" href="#manifest" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </section>
-<section id="id11">
-<h5>root<a class="headerlink" href="#id11" title="Link to this heading">#</a></h5>
+<section id="root">
+<h5>root<a class="headerlink" href="#root" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 <section id="source">
@@ -803,9 +756,9 @@ line a stretch swept on it, read by <code class="docutils literal notranslate"><
 <p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </section>
 </section>
-<section id="id12">
-<h4>Returns<a class="headerlink" href="#id12" title="Link to this heading">#</a></h4>
-<p><a class="reference internal" href="#id4"><code class="docutils literal notranslate"><span class="pre">Dragged</span></code></a> | { <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;line&quot;</span></code>; <code class="docutils literal notranslate"><span class="pre">timeline</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; } | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+<section id="id5">
+<h4>Returns<a class="headerlink" href="#id5" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#dragged"><code class="docutils literal notranslate"><span class="pre">Dragged</span></code></a> | { <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;line&quot;</span></code>; <code class="docutils literal notranslate"><span class="pre">timeline</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; } | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
 </section>
 <hr class="docutils" />
@@ -814,31 +767,31 @@ line a stretch swept on it, read by <code class="docutils literal notranslate"><
 <blockquote>
 <div><p><strong>draftCommand</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">root</span></code>, <code class="docutils literal notranslate"><span class="pre">flowMap</span></code>, <code class="docutils literal notranslate"><span class="pre">entries</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L417">arranger/src/flowEditor.ts:417</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L437">arranger/src/flowEditor.ts:437</a></p>
 <p>The command that stores the new FlowMap’s <code class="docutils literal notranslate"><span class="pre">entries</span></code>: its <code class="docutils literal notranslate"><span class="pre">add</span></code> into the
 root, for a FlowMap not yet written (<code class="docutils literal notranslate"><span class="pre">flowMap</span></code> null), its ID given by the
 store; a <code class="docutils literal notranslate"><span class="pre">set</span></code> of its <code class="docutils literal notranslate"><span class="pre">chunks</span></code> once it is.</p>
-<section id="id13">
-<h4>Parameters<a class="headerlink" href="#id13" title="Link to this heading">#</a></h4>
-<section id="id14">
-<h5>block<a class="headerlink" href="#id14" title="Link to this heading">#</a></h5>
+<section id="id6">
+<h4>Parameters<a class="headerlink" href="#id6" title="Link to this heading">#</a></h4>
+<section id="id7">
+<h5>block<a class="headerlink" href="#id7" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
-<section id="id15">
-<h5>root<a class="headerlink" href="#id15" title="Link to this heading">#</a></h5>
+<section id="id8">
+<h5>root<a class="headerlink" href="#id8" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 <section id="flowmap">
 <h5>flowMap<a class="headerlink" href="#flowmap" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
-<section id="id16">
-<h5>entries<a class="headerlink" href="#id16" title="Link to this heading">#</a></h5>
+<section id="id9">
+<h5>entries<a class="headerlink" href="#id9" title="Link to this heading">#</a></h5>
 <p>readonly (<code class="docutils literal notranslate"><span class="pre">string</span></code> | { })[]</p>
 </section>
 </section>
-<section id="id17">
-<h4>Returns<a class="headerlink" href="#id17" title="Link to this heading">#</a></h4>
+<section id="id10">
+<h4>Returns<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
 </section>
 </section>
@@ -848,13 +801,13 @@ store; a <code class="docutils literal notranslate"><span class="pre">set</span>
 <blockquote>
 <div><p><strong>entryText</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">entry</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L175">arranger/src/flowEditor.ts:175</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L225">arranger/src/flowEditor.ts:225</a></p>
 <p>The text naming an entry: a Region’s name, else its ID; a timeline’s or
 a virtual timeline’s name, else its ID; a gap <code class="docutils literal notranslate"><span class="pre">gap</span> <span class="pre">&lt;length&gt;</span></code>.</p>
-<section id="id18">
-<h4>Parameters<a class="headerlink" href="#id18" title="Link to this heading">#</a></h4>
-<section id="id19">
-<h5>manifest<a class="headerlink" href="#id19" title="Link to this heading">#</a></h5>
+<section id="id11">
+<h4>Parameters<a class="headerlink" href="#id11" title="Link to this heading">#</a></h4>
+<section id="id12">
+<h5>manifest<a class="headerlink" href="#id12" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </section>
 <section id="entry">
@@ -862,8 +815,8 @@ a virtual timeline’s name, else its ID; a gap <code class="docutils literal no
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code> | { }</p>
 </section>
 </section>
-<section id="id20">
-<h4>Returns<a class="headerlink" href="#id20" title="Link to this heading">#</a></h4>
+<section id="id13">
+<h4>Returns<a class="headerlink" href="#id13" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 </section>
@@ -873,12 +826,12 @@ a virtual timeline’s name, else its ID; a gap <code class="docutils literal no
 <blockquote>
 <div><p><strong>exactValue</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">numberType</span></code>): <a class="reference internal" href="../tilie-core/number/rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L247">arranger/src/flowEditor.ts:247</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L264">arranger/src/flowEditor.ts:264</a></p>
 <p>The exact value of <code class="docutils literal notranslate"><span class="pre">value</span></code>, a value of an axis of number type
 <code class="docutils literal notranslate"><span class="pre">numberType</span></code> as a manifest writes it there, in any of its spellings
 (<code class="docutils literal notranslate"><span class="pre">[2,</span> <span class="pre">4]</span></code> and <code class="docutils literal notranslate"><span class="pre">[1,</span> <span class="pre">2]</span></code> alike): compared by value, never by spelling.</p>
-<section id="id21">
-<h4>Parameters<a class="headerlink" href="#id21" title="Link to this heading">#</a></h4>
+<section id="id14">
+<h4>Parameters<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
 <section id="value">
 <h5>value<a class="headerlink" href="#value" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code> | readonly [<code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>, <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>]</p>
@@ -888,8 +841,8 @@ a virtual timeline’s name, else its ID; a gap <code class="docutils literal no
 <p><code class="docutils literal notranslate"><span class="pre">NumberType</span></code></p>
 </section>
 </section>
-<section id="id22">
-<h4>Returns<a class="headerlink" href="#id22" title="Link to this heading">#</a></h4>
+<section id="id15">
+<h4>Returns<a class="headerlink" href="#id15" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="../tilie-core/number/rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a></p>
 </section>
 </section>
@@ -899,21 +852,21 @@ a virtual timeline’s name, else its ID; a gap <code class="docutils literal no
 <blockquote>
 <div><p><strong>flowMapsOf</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">root</span></code>): readonly <code class="docutils literal notranslate"><span class="pre">object</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L86">arranger/src/flowEditor.ts:86</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L90">arranger/src/flowEditor.ts:90</a></p>
 <p>The FlowMaps of <code class="docutils literal notranslate"><span class="pre">manifest</span></code> whose timeline is <code class="docutils literal notranslate"><span class="pre">root</span></code>, in the manifest’s order.</p>
-<section id="id23">
-<h4>Parameters<a class="headerlink" href="#id23" title="Link to this heading">#</a></h4>
-<section id="id24">
-<h5>manifest<a class="headerlink" href="#id24" title="Link to this heading">#</a></h5>
+<section id="id16">
+<h4>Parameters<a class="headerlink" href="#id16" title="Link to this heading">#</a></h4>
+<section id="id17">
+<h5>manifest<a class="headerlink" href="#id17" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </section>
-<section id="id25">
-<h5>root<a class="headerlink" href="#id25" title="Link to this heading">#</a></h5>
+<section id="id18">
+<h5>root<a class="headerlink" href="#id18" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 </section>
-<section id="id26">
-<h4>Returns<a class="headerlink" href="#id26" title="Link to this heading">#</a></h4>
+<section id="id19">
+<h4>Returns<a class="headerlink" href="#id19" title="Link to this heading">#</a></h4>
 <p>readonly <code class="docutils literal notranslate"><span class="pre">object</span></code>[]</p>
 </section>
 </section>
@@ -923,17 +876,19 @@ a virtual timeline’s name, else its ID; a gap <code class="docutils literal no
 <blockquote>
 <div><p><strong>flowRows</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">root</span></code>, <code class="docutils literal notranslate"><span class="pre">findings?</span></code>): readonly <a class="reference internal" href="#flowrow"><code class="docutils literal notranslate"><span class="pre">FlowRow</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L139">arranger/src/flowEditor.ts:139</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L161">arranger/src/flowEditor.ts:161</a></p>
 <p>The rows of the pane of the flow editor of <code class="docutils literal notranslate"><span class="pre">root</span></code>: one per FlowMap of
-<code class="docutils literal notranslate"><span class="pre">root</span></code>, the computed ones first, each part in the manifest’s order.</p>
-<section id="id27">
-<h4>Parameters<a class="headerlink" href="#id27" title="Link to this heading">#</a></h4>
-<section id="id28">
-<h5>manifest<a class="headerlink" href="#id28" title="Link to this heading">#</a></h5>
+<code class="docutils literal notranslate"><span class="pre">root</span></code>, the computed ones first, each part by name (by code point), then
+by ID. While the editor is open, its pane keeps the order it first
+showed (<code class="docutils literal notranslate"><span class="pre">keptOrder</span></code>).</p>
+<section id="id20">
+<h4>Parameters<a class="headerlink" href="#id20" title="Link to this heading">#</a></h4>
+<section id="id21">
+<h5>manifest<a class="headerlink" href="#id21" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </section>
-<section id="id29">
-<h5>root<a class="headerlink" href="#id29" title="Link to this heading">#</a></h5>
+<section id="id22">
+<h5>root<a class="headerlink" href="#id22" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 <section id="findings">
@@ -941,9 +896,29 @@ a virtual timeline’s name, else its ID; a gap <code class="docutils literal no
 <p><a class="reference internal" href="#flowfindings"><code class="docutils literal notranslate"><span class="pre">FlowFindings</span></code></a> = <code class="docutils literal notranslate"><span class="pre">NO_FINDINGS</span></code></p>
 </section>
 </section>
-<section id="id30">
-<h4>Returns<a class="headerlink" href="#id30" title="Link to this heading">#</a></h4>
+<section id="id23">
+<h4>Returns<a class="headerlink" href="#id23" title="Link to this heading">#</a></h4>
 <p>readonly <a class="reference internal" href="#flowrow"><code class="docutils literal notranslate"><span class="pre">FlowRow</span></code></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="gaptext">
+<h3>gapText()<a class="headerlink" href="#gaptext" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>gapText</strong>(<code class="docutils literal notranslate"><span class="pre">entry</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L212">arranger/src/flowEditor.ts:212</a></p>
+<p>A gap entry’s length as text, as <code class="docutils literal notranslate"><span class="pre">typedValue</span></code> reads it back; empty for any other entry.</p>
+<section id="id24">
+<h4>Parameters<a class="headerlink" href="#id24" title="Link to this heading">#</a></h4>
+<section id="id25">
+<h5>entry<a class="headerlink" href="#id25" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | { }</p>
+</section>
+</section>
+<section id="id26">
+<h4>Returns<a class="headerlink" href="#id26" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 </section>
 <hr class="docutils" />
@@ -952,23 +927,23 @@ a virtual timeline’s name, else its ID; a gap <code class="docutils literal no
 <blockquote>
 <div><p><strong>gapValue</strong>(<code class="docutils literal notranslate"><span class="pre">text</span></code>, <code class="docutils literal notranslate"><span class="pre">root</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code> | readonly [<code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>, <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L454">arranger/src/flowEditor.ts:454</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L474">arranger/src/flowEditor.ts:474</a></p>
 <p>The gap length typed as <code class="docutils literal notranslate"><span class="pre">text</span></code> on the axis of <code class="docutils literal notranslate"><span class="pre">root</span></code>, exact, as the
 manifest writes it there (<code class="docutils literal notranslate"><span class="pre">typedValue</span></code>); a message where none fits or
 the length is not positive.</p>
-<section id="id31">
-<h4>Parameters<a class="headerlink" href="#id31" title="Link to this heading">#</a></h4>
-<section id="id32">
-<h5>text<a class="headerlink" href="#id32" title="Link to this heading">#</a></h5>
+<section id="id27">
+<h4>Parameters<a class="headerlink" href="#id27" title="Link to this heading">#</a></h4>
+<section id="id28">
+<h5>text<a class="headerlink" href="#id28" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
-<section id="id33">
-<h5>root<a class="headerlink" href="#id33" title="Link to this heading">#</a></h5>
+<section id="id29">
+<h5>root<a class="headerlink" href="#id29" title="Link to this heading">#</a></h5>
 <p>{ }</p>
 </section>
 </section>
-<section id="id34">
-<h4>Returns<a class="headerlink" href="#id34" title="Link to this heading">#</a></h4>
+<section id="id30">
+<h4>Returns<a class="headerlink" href="#id30" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code> | readonly [<code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>, <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>]</p>
 </section>
 </section>
@@ -978,26 +953,53 @@ the length is not positive.</p>
 <blockquote>
 <div><p><strong>inserted</strong>(<code class="docutils literal notranslate"><span class="pre">entries</span></code>, <code class="docutils literal notranslate"><span class="pre">index</span></code>, <code class="docutils literal notranslate"><span class="pre">entry</span></code>): readonly (<code class="docutils literal notranslate"><span class="pre">string</span></code> | { })[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L380">arranger/src/flowEditor.ts:380</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L400">arranger/src/flowEditor.ts:400</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">entries</span></code> with <code class="docutils literal notranslate"><span class="pre">entry</span></code> inserted before index <code class="docutils literal notranslate"><span class="pre">index</span></code> (at the end beyond it).</p>
-<section id="id35">
-<h4>Parameters<a class="headerlink" href="#id35" title="Link to this heading">#</a></h4>
-<section id="id36">
-<h5>entries<a class="headerlink" href="#id36" title="Link to this heading">#</a></h5>
+<section id="id31">
+<h4>Parameters<a class="headerlink" href="#id31" title="Link to this heading">#</a></h4>
+<section id="id32">
+<h5>entries<a class="headerlink" href="#id32" title="Link to this heading">#</a></h5>
 <p>readonly (<code class="docutils literal notranslate"><span class="pre">string</span></code> | { })[]</p>
 </section>
 <section id="index">
 <h5>index<a class="headerlink" href="#index" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </section>
-<section id="id37">
-<h5>entry<a class="headerlink" href="#id37" title="Link to this heading">#</a></h5>
+<section id="id33">
+<h5>entry<a class="headerlink" href="#id33" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code> | { }</p>
 </section>
 </section>
-<section id="id38">
-<h4>Returns<a class="headerlink" href="#id38" title="Link to this heading">#</a></h4>
+<section id="id34">
+<h4>Returns<a class="headerlink" href="#id34" title="Link to this heading">#</a></h4>
 <p>readonly (<code class="docutils literal notranslate"><span class="pre">string</span></code> | { })[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="keptorder">
+<h3>keptOrder()<a class="headerlink" href="#keptorder" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>keptOrder</strong>(<code class="docutils literal notranslate"><span class="pre">shown</span></code>, <code class="docutils literal notranslate"><span class="pre">ids</span></code>): readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L190">arranger/src/flowEditor.ts:190</a></p>
+<p>The IDs <code class="docutils literal notranslate"><span class="pre">ids</span></code> in the order a pane keeps while its editor is open:
+those of <code class="docutils literal notranslate"><span class="pre">shown</span></code>, the order shown before, in that order, then the ones
+<code class="docutils literal notranslate"><span class="pre">shown</span></code> lacks in the order of <code class="docutils literal notranslate"><span class="pre">ids</span></code>; an ID <code class="docutils literal notranslate"><span class="pre">ids</span></code> lacks is dropped. So a
+row created or renamed while the editor is open keeps its place.</p>
+<section id="id35">
+<h4>Parameters<a class="headerlink" href="#id35" title="Link to this heading">#</a></h4>
+<section id="shown">
+<h5>shown<a class="headerlink" href="#shown" title="Link to this heading">#</a></h5>
+<p>readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</section>
+<section id="ids">
+<h5>ids<a class="headerlink" href="#ids" title="Link to this heading">#</a></h5>
+<p>readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
+</section>
+</section>
+<section id="id36">
+<h4>Returns<a class="headerlink" href="#id36" title="Link to this heading">#</a></h4>
+<p>readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
 </section>
 </section>
 <hr class="docutils" />
@@ -1006,33 +1008,33 @@ the length is not positive.</p>
 <blockquote>
 <div><p><strong>landedEntry</strong>(<code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">after</span></code>, <code class="docutils literal notranslate"><span class="pre">root</span></code>, <code class="docutils literal notranslate"><span class="pre">dragged</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | { } | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L355">arranger/src/flowEditor.ts:355</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L375">arranger/src/flowEditor.ts:375</a></p>
 <p>The entry <code class="docutils literal notranslate"><span class="pre">dragged</span></code> lands as, read in <code class="docutils literal notranslate"><span class="pre">after</span></code>, the manifest once
 <code class="docutils literal notranslate"><span class="pre">writeFor</span></code>’s command (if any) has been stored on <code class="docutils literal notranslate"><span class="pre">before</span></code>: an entry as
 itself, a Region or child by its ID, the root as the Region spanning it,
 a swept stretch as the Region written for it, a row as the virtual
 timeline giving its axis. <code class="docutils literal notranslate"><span class="pre">null</span></code> where nothing was written for it.</p>
+<section id="id37">
+<h4>Parameters<a class="headerlink" href="#id37" title="Link to this heading">#</a></h4>
+<section id="id38">
+<h5>before<a class="headerlink" href="#id38" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
 <section id="id39">
-<h4>Parameters<a class="headerlink" href="#id39" title="Link to this heading">#</a></h4>
+<h5>after<a class="headerlink" href="#id39" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
 <section id="id40">
-<h5>before<a class="headerlink" href="#id40" title="Link to this heading">#</a></h5>
-<p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
-</section>
-<section id="id41">
-<h5>after<a class="headerlink" href="#id41" title="Link to this heading">#</a></h5>
-<p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
-</section>
-<section id="id42">
-<h5>root<a class="headerlink" href="#id42" title="Link to this heading">#</a></h5>
+<h5>root<a class="headerlink" href="#id40" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
-<section id="id43">
-<h5>dragged<a class="headerlink" href="#id43" title="Link to this heading">#</a></h5>
-<p><a class="reference internal" href="#id4"><code class="docutils literal notranslate"><span class="pre">Dragged</span></code></a></p>
+<section id="id41">
+<h5>dragged<a class="headerlink" href="#id41" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#dragged"><code class="docutils literal notranslate"><span class="pre">Dragged</span></code></a></p>
 </section>
 </section>
-<section id="id44">
-<h4>Returns<a class="headerlink" href="#id44" title="Link to this heading">#</a></h4>
+<section id="id42">
+<h4>Returns<a class="headerlink" href="#id42" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code> | { } | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
 </section>
@@ -1042,14 +1044,14 @@ timeline giving its axis. <code class="docutils literal notranslate"><span class
 <blockquote>
 <div><p><strong>moved</strong>(<code class="docutils literal notranslate"><span class="pre">entries</span></code>, <code class="docutils literal notranslate"><span class="pre">from</span></code>, <code class="docutils literal notranslate"><span class="pre">to</span></code>, <code class="docutils literal notranslate"><span class="pre">duplicate</span></code>): readonly (<code class="docutils literal notranslate"><span class="pre">string</span></code> | { })[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L394">arranger/src/flowEditor.ts:394</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L414">arranger/src/flowEditor.ts:414</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">entries</span></code> with the entry at <code class="docutils literal notranslate"><span class="pre">from</span></code> moved to land before index <code class="docutils literal notranslate"><span class="pre">to</span></code>
 (counted in <code class="docutils literal notranslate"><span class="pre">entries</span></code> as they are, so <code class="docutils literal notranslate"><span class="pre">to</span></code> = <code class="docutils literal notranslate"><span class="pre">from</span></code> or <code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">+</span> <span class="pre">1</span></code> leaves
 them as they are), or copied there where <code class="docutils literal notranslate"><span class="pre">duplicate</span></code> (Alt).</p>
-<section id="id45">
-<h4>Parameters<a class="headerlink" href="#id45" title="Link to this heading">#</a></h4>
-<section id="id46">
-<h5>entries<a class="headerlink" href="#id46" title="Link to this heading">#</a></h5>
+<section id="id43">
+<h4>Parameters<a class="headerlink" href="#id43" title="Link to this heading">#</a></h4>
+<section id="id44">
+<h5>entries<a class="headerlink" href="#id44" title="Link to this heading">#</a></h5>
 <p>readonly (<code class="docutils literal notranslate"><span class="pre">string</span></code> | { })[]</p>
 </section>
 <section id="from">
@@ -1065,8 +1067,8 @@ them as they are), or copied there where <code class="docutils literal notransla
 <p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </section>
 </section>
-<section id="id47">
-<h4>Returns<a class="headerlink" href="#id47" title="Link to this heading">#</a></h4>
+<section id="id45">
+<h4>Returns<a class="headerlink" href="#id45" title="Link to this heading">#</a></h4>
 <p>readonly (<code class="docutils literal notranslate"><span class="pre">string</span></code> | { })[]</p>
 </section>
 </section>
@@ -1076,24 +1078,24 @@ them as they are), or copied there where <code class="docutils literal notransla
 <blockquote>
 <div><p><strong>placeVirtualCommand</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">virtual</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L439">arranger/src/flowEditor.ts:439</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L459">arranger/src/flowEditor.ts:459</a></p>
 <p>The <code class="docutils literal notranslate"><span class="pre">set</span></code> placing the card of the virtual timeline <code class="docutils literal notranslate"><span class="pre">virtual</span></code> of <code class="docutils literal notranslate"><span class="pre">block</span></code>
 at <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code>, place coordinates of the block, drawn as <code class="docutils literal notranslate"><span class="pre">drawing</span></code>: its
 place alone (<code class="docutils literal notranslate"><span class="pre">placeCommand</span></code>). The flow editor changes no other item’s
 place; the card is drawn after the ungrouped roots, so none of them
 moves.</p>
-<section id="id48">
-<h4>Parameters<a class="headerlink" href="#id48" title="Link to this heading">#</a></h4>
-<section id="id49">
-<h5>block<a class="headerlink" href="#id49" title="Link to this heading">#</a></h5>
+<section id="id46">
+<h4>Parameters<a class="headerlink" href="#id46" title="Link to this heading">#</a></h4>
+<section id="id47">
+<h5>block<a class="headerlink" href="#id47" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/workspace/blocks.html#block"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Block</span></code></span></a></p>
 </section>
 <section id="drawing">
 <h5>drawing<a class="headerlink" href="#drawing" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
 </section>
-<section id="id50">
-<h5>virtual<a class="headerlink" href="#id50" title="Link to this heading">#</a></h5>
+<section id="id48">
+<h5>virtual<a class="headerlink" href="#id48" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 <section id="x">
@@ -1105,9 +1107,36 @@ moves.</p>
 <p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </section>
 </section>
-<section id="id51">
-<h4>Returns<a class="headerlink" href="#id51" title="Link to this heading">#</a></h4>
+<section id="id49">
+<h4>Returns<a class="headerlink" href="#id49" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="proposedgap">
+<h3>proposedGap()<a class="headerlink" href="#proposedgap" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>proposedGap</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">flowMap</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L488">arranger/src/flowEditor.ts:488</a></p>
+<p>The text “+ Gap” proposes on the row of the FlowMap <code class="docutils literal notranslate"><span class="pre">flowMap</span></code>: the
+length its last chunk plays, exact in its root’s number type, as
+<code class="docutils literal notranslate"><span class="pre">typedValue</span></code> reads it back; empty for a FlowMap not yet written
+(<code class="docutils literal notranslate"><span class="pre">null</span></code>), one without chunks, or one that does not resolve.</p>
+<section id="id50">
+<h4>Parameters<a class="headerlink" href="#id50" title="Link to this heading">#</a></h4>
+<section id="id51">
+<h5>manifest<a class="headerlink" href="#id51" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="id52">
+<h5>flowMap<a class="headerlink" href="#id52" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<section id="id53">
+<h4>Returns<a class="headerlink" href="#id53" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 </section>
 <hr class="docutils" />
@@ -1116,7 +1145,7 @@ moves.</p>
 <blockquote>
 <div><p><strong>recomputeCommands</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">root</span></code>, <code class="docutils literal notranslate"><span class="pre">answer</span></code>): readonly <a class="reference internal" href="../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L478">arranger/src/flowEditor.ts:478</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L516">arranger/src/flowEditor.ts:516</a></p>
 <p>The commands writing the flows the server computed for <code class="docutils literal notranslate"><span class="pre">root</span></code> (the
 manifest <code class="docutils literal notranslate"><span class="pre">answer</span></code> of <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/flows/flow-maps</span></code>) into <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, block
 <code class="docutils literal notranslate"><span class="pre">block</span></code>’s: each atomic section of <code class="docutils literal notranslate"><span class="pre">answer</span></code>’s root that <code class="docutils literal notranslate"><span class="pre">manifest</span></code> lacks
@@ -1126,18 +1155,18 @@ the same chunks, else that one given <code class="docutils literal notranslate">
 (<code class="docutils literal notranslate"><span class="pre">set</span> <span class="pre">{computed}</span></code>, which writes the length of every virtual timeline
 playing it), and where it holds none, <code class="docutils literal notranslate"><span class="pre">answer</span></code>’s added with its own ID,
 name, convention, canonical and provenance.</p>
-<section id="id52">
-<h4>Parameters<a class="headerlink" href="#id52" title="Link to this heading">#</a></h4>
-<section id="id53">
-<h5>manifest<a class="headerlink" href="#id53" title="Link to this heading">#</a></h5>
+<section id="id54">
+<h4>Parameters<a class="headerlink" href="#id54" title="Link to this heading">#</a></h4>
+<section id="id55">
+<h5>manifest<a class="headerlink" href="#id55" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </section>
-<section id="id54">
-<h5>block<a class="headerlink" href="#id54" title="Link to this heading">#</a></h5>
+<section id="id56">
+<h5>block<a class="headerlink" href="#id56" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
-<section id="id55">
-<h5>root<a class="headerlink" href="#id55" title="Link to this heading">#</a></h5>
+<section id="id57">
+<h5>root<a class="headerlink" href="#id57" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 <section id="answer">
@@ -1145,8 +1174,8 @@ name, convention, canonical and provenance.</p>
 <p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </section>
 </section>
-<section id="id56">
-<h4>Returns<a class="headerlink" href="#id56" title="Link to this heading">#</a></h4>
+<section id="id58">
+<h4>Returns<a class="headerlink" href="#id58" title="Link to this heading">#</a></h4>
 <p>readonly <a class="reference internal" href="../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a>[]</p>
 </section>
 </section>
@@ -1156,22 +1185,42 @@ name, convention, canonical and provenance.</p>
 <blockquote>
 <div><p><strong>removedAt</strong>(<code class="docutils literal notranslate"><span class="pre">entries</span></code>, <code class="docutils literal notranslate"><span class="pre">index</span></code>): readonly (<code class="docutils literal notranslate"><span class="pre">string</span></code> | { })[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L408">arranger/src/flowEditor.ts:408</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L428">arranger/src/flowEditor.ts:428</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">entries</span></code> without the entry at <code class="docutils literal notranslate"><span class="pre">index</span></code>.</p>
-<section id="id57">
-<h4>Parameters<a class="headerlink" href="#id57" title="Link to this heading">#</a></h4>
-<section id="id58">
-<h5>entries<a class="headerlink" href="#id58" title="Link to this heading">#</a></h5>
+<section id="id59">
+<h4>Parameters<a class="headerlink" href="#id59" title="Link to this heading">#</a></h4>
+<section id="id60">
+<h5>entries<a class="headerlink" href="#id60" title="Link to this heading">#</a></h5>
 <p>readonly (<code class="docutils literal notranslate"><span class="pre">string</span></code> | { })[]</p>
 </section>
-<section id="id59">
-<h5>index<a class="headerlink" href="#id59" title="Link to this heading">#</a></h5>
+<section id="id61">
+<h5>index<a class="headerlink" href="#id61" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </section>
 </section>
-<section id="id60">
-<h4>Returns<a class="headerlink" href="#id60" title="Link to this heading">#</a></h4>
+<section id="id62">
+<h4>Returns<a class="headerlink" href="#id62" title="Link to this heading">#</a></h4>
 <p>readonly (<code class="docutils literal notranslate"><span class="pre">string</span></code> | { })[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="rowname">
+<h3>rowName()<a class="headerlink" href="#rowname" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>rowName</strong>(<code class="docutils literal notranslate"><span class="pre">flowMap</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L140">arranger/src/flowEditor.ts:140</a></p>
+<p>The name a FlowMap’s row shows: its name, else its convention, else its ID.</p>
+<section id="id63">
+<h4>Parameters<a class="headerlink" href="#id63" title="Link to this heading">#</a></h4>
+<section id="id64">
+<h5>flowMap<a class="headerlink" href="#id64" title="Link to this heading">#</a></h5>
+<p>{ }</p>
+</section>
+</section>
+<section id="id65">
+<h4>Returns<a class="headerlink" href="#id65" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 </section>
 <hr class="docutils" />
@@ -1180,12 +1229,12 @@ name, convention, canonical and provenance.</p>
 <blockquote>
 <div><p><strong>sameEntries</strong>(<code class="docutils literal notranslate"><span class="pre">left</span></code>, <code class="docutils literal notranslate"><span class="pre">right</span></code>, <code class="docutils literal notranslate"><span class="pre">numberType</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L256">arranger/src/flowEditor.ts:256</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L273">arranger/src/flowEditor.ts:273</a></p>
 <p>Whether two lists of FlowMap entries are the same: the same IDs and gaps
 of the same length by value, in the same order, on an axis of number type
 <code class="docutils literal notranslate"><span class="pre">numberType</span></code>.</p>
-<section id="id61">
-<h4>Parameters<a class="headerlink" href="#id61" title="Link to this heading">#</a></h4>
+<section id="id66">
+<h4>Parameters<a class="headerlink" href="#id66" title="Link to this heading">#</a></h4>
 <section id="left">
 <h5>left<a class="headerlink" href="#left" title="Link to this heading">#</a></h5>
 <p>readonly (<code class="docutils literal notranslate"><span class="pre">string</span></code> | { })[]</p>
@@ -1194,13 +1243,13 @@ of the same length by value, in the same order, on an axis of number type
 <h5>right<a class="headerlink" href="#right" title="Link to this heading">#</a></h5>
 <p>readonly (<code class="docutils literal notranslate"><span class="pre">string</span></code> | { })[]</p>
 </section>
-<section id="id62">
-<h5>numberType<a class="headerlink" href="#id62" title="Link to this heading">#</a></h5>
+<section id="id67">
+<h5>numberType<a class="headerlink" href="#id67" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">NumberType</span></code></p>
 </section>
 </section>
-<section id="id63">
-<h4>Returns<a class="headerlink" href="#id63" title="Link to this heading">#</a></h4>
+<section id="id68">
+<h4>Returns<a class="headerlink" href="#id68" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </section>
 </section>
@@ -1210,20 +1259,20 @@ of the same length by value, in the same order, on an axis of number type
 <blockquote>
 <div><p><strong>sweptValue</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">card</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">pixel</span></code>, <code class="docutils literal notranslate"><span class="pre">granularity</span></code>): <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code> | readonly [<code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>, <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>] | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L586">arranger/src/flowEditor.ts:586</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L624">arranger/src/flowEditor.ts:624</a></p>
 <p>The value of <code class="docutils literal notranslate"><span class="pre">timeline</span></code>’s own axis at the abscissa <code class="docutils literal notranslate"><span class="pre">x</span></code> of the card <code class="docutils literal notranslate"><span class="pre">card</span></code>
 of <code class="docutils literal notranslate"><span class="pre">block</span></code>, drawn as <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, exact in the timeline’s number type: the
 simplest value within half a screen pixel (<code class="docutils literal notranslate"><span class="pre">pixel</span></code>, block units per
 screen pixel) at <code class="docutils literal notranslate"><span class="pre">granularity</span></code> (core’s <code class="docutils literal notranslate"><span class="pre">snapOnRow</span></code>), as the manifest
 writes it; <code class="docutils literal notranslate"><span class="pre">null</span></code> off the axis or inside a gap.</p>
-<section id="id64">
-<h4>Parameters<a class="headerlink" href="#id64" title="Link to this heading">#</a></h4>
-<section id="id65">
-<h5>block<a class="headerlink" href="#id65" title="Link to this heading">#</a></h5>
+<section id="id69">
+<h4>Parameters<a class="headerlink" href="#id69" title="Link to this heading">#</a></h4>
+<section id="id70">
+<h5>block<a class="headerlink" href="#id70" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/workspace/blocks.html#block"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Block</span></code></span></a></p>
 </section>
-<section id="id66">
-<h5>drawing<a class="headerlink" href="#id66" title="Link to this heading">#</a></h5>
+<section id="id71">
+<h5>drawing<a class="headerlink" href="#id71" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
 </section>
 <section id="card">
@@ -1234,8 +1283,8 @@ writes it; <code class="docutils literal notranslate"><span class="pre">null</sp
 <h5>timeline<a class="headerlink" href="#timeline" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
-<section id="id67">
-<h5>x<a class="headerlink" href="#id67" title="Link to this heading">#</a></h5>
+<section id="id72">
+<h5>x<a class="headerlink" href="#id72" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </section>
 <section id="pixel">
@@ -1247,8 +1296,8 @@ writes it; <code class="docutils literal notranslate"><span class="pre">null</sp
 <p><a class="reference internal" href="../tilie-core/workspace/view.html#granularity"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Granularity</span></code></span></a></p>
 </section>
 </section>
-<section id="id68">
-<h4>Returns<a class="headerlink" href="#id68" title="Link to this heading">#</a></h4>
+<section id="id73">
+<h4>Returns<a class="headerlink" href="#id73" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code> | readonly [<code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>, <code class="docutils literal notranslate"><span class="pre">JsonNumber</span></code>] | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
 </section>
@@ -1258,21 +1307,21 @@ writes it; <code class="docutils literal notranslate"><span class="pre">null</sp
 <blockquote>
 <div><p><strong>timelineIn</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>): { } | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L463">arranger/src/flowEditor.ts:463</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L501">arranger/src/flowEditor.ts:501</a></p>
 <p>The timeline <code class="docutils literal notranslate"><span class="pre">id</span></code> of <code class="docutils literal notranslate"><span class="pre">manifest</span></code> at any depth; <code class="docutils literal notranslate"><span class="pre">undefined</span></code> where none is.</p>
-<section id="id69">
-<h4>Parameters<a class="headerlink" href="#id69" title="Link to this heading">#</a></h4>
-<section id="id70">
-<h5>manifest<a class="headerlink" href="#id70" title="Link to this heading">#</a></h5>
+<section id="id74">
+<h4>Parameters<a class="headerlink" href="#id74" title="Link to this heading">#</a></h4>
+<section id="id75">
+<h5>manifest<a class="headerlink" href="#id75" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </section>
-<section id="id71">
-<h5>id<a class="headerlink" href="#id71" title="Link to this heading">#</a></h5>
+<section id="id76">
+<h5>id<a class="headerlink" href="#id76" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 </section>
-<section id="id72">
-<h4>Returns<a class="headerlink" href="#id72" title="Link to this heading">#</a></h4>
+<section id="id77">
+<h4>Returns<a class="headerlink" href="#id77" title="Link to this heading">#</a></h4>
 <p>{ } | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </section>
 </section>
@@ -1282,27 +1331,27 @@ writes it; <code class="docutils literal notranslate"><span class="pre">null</sp
 <blockquote>
 <div><p><strong>virtualOf</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">root</span></code>, <code class="docutils literal notranslate"><span class="pre">flowMap</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L95">arranger/src/flowEditor.ts:95</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L99">arranger/src/flowEditor.ts:99</a></p>
 <p>The virtual timeline of <code class="docutils literal notranslate"><span class="pre">manifest</span></code> that gives the FlowMap <code class="docutils literal notranslate"><span class="pre">flowMap</span></code> its
 axis on its root <code class="docutils literal notranslate"><span class="pre">root</span></code>: the first applying it to <code class="docutils literal notranslate"><span class="pre">root</span></code> without
 <code class="docutils literal notranslate"><span class="pre">through</span></code>; <code class="docutils literal notranslate"><span class="pre">null</span></code> where none does.</p>
-<section id="id73">
-<h4>Parameters<a class="headerlink" href="#id73" title="Link to this heading">#</a></h4>
-<section id="id74">
-<h5>manifest<a class="headerlink" href="#id74" title="Link to this heading">#</a></h5>
+<section id="id78">
+<h4>Parameters<a class="headerlink" href="#id78" title="Link to this heading">#</a></h4>
+<section id="id79">
+<h5>manifest<a class="headerlink" href="#id79" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </section>
-<section id="id75">
-<h5>root<a class="headerlink" href="#id75" title="Link to this heading">#</a></h5>
+<section id="id80">
+<h5>root<a class="headerlink" href="#id80" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
-<section id="id76">
-<h5>flowMap<a class="headerlink" href="#id76" title="Link to this heading">#</a></h5>
+<section id="id81">
+<h5>flowMap<a class="headerlink" href="#id81" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 </section>
-<section id="id77">
-<h4>Returns<a class="headerlink" href="#id77" title="Link to this heading">#</a></h4>
+<section id="id82">
+<h4>Returns<a class="headerlink" href="#id82" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
 </section>
@@ -1312,30 +1361,30 @@ axis on its root <code class="docutils literal notranslate"><span class="pre">ro
 <blockquote>
 <div><p><strong>writeFor</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">root</span></code>, <code class="docutils literal notranslate"><span class="pre">dragged</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowEditor.ts#L297">arranger/src/flowEditor.ts:297</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowEditor.ts#L314">arranger/src/flowEditor.ts:314</a></p>
 <p>What a drop of <code class="docutils literal notranslate"><span class="pre">dragged</span></code> writes before it lands, in block <code class="docutils literal notranslate"><span class="pre">block</span></code>’s
 manifest, <code class="docutils literal notranslate"><span class="pre">root</span></code> the edited root: a Region over the whole root for the
 root’s line (none where one spans it already: it lands as that one), the
 swept Region, the virtual timeline of a row (none where one gives its
 axis); <code class="docutils literal notranslate"><span class="pre">null</span></code> where it lands as it is. A root of unknown length has no
 Region over it, and nothing lands.</p>
-<section id="id78">
-<h4>Parameters<a class="headerlink" href="#id78" title="Link to this heading">#</a></h4>
-<section id="id79">
-<h5>block<a class="headerlink" href="#id79" title="Link to this heading">#</a></h5>
+<section id="id83">
+<h4>Parameters<a class="headerlink" href="#id83" title="Link to this heading">#</a></h4>
+<section id="id84">
+<h5>block<a class="headerlink" href="#id84" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/workspace/blocks.html#block"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Block</span></code></span></a></p>
 </section>
-<section id="id80">
-<h5>root<a class="headerlink" href="#id80" title="Link to this heading">#</a></h5>
+<section id="id85">
+<h5>root<a class="headerlink" href="#id85" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
-<section id="id81">
-<h5>dragged<a class="headerlink" href="#id81" title="Link to this heading">#</a></h5>
-<p><a class="reference internal" href="#id4"><code class="docutils literal notranslate"><span class="pre">Dragged</span></code></a></p>
+<section id="id86">
+<h5>dragged<a class="headerlink" href="#id86" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#dragged"><code class="docutils literal notranslate"><span class="pre">Dragged</span></code></a></p>
 </section>
 </section>
-<section id="id82">
-<h4>Returns<a class="headerlink" href="#id82" title="Link to this heading">#</a></h4>
+<section id="id87">
+<h4>Returns<a class="headerlink" href="#id87" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="../tilie-core/commands/types.html#command"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Command</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
 </section>
@@ -1390,25 +1439,17 @@ Region over it, and nothing lands.</p>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cardchoice">CardChoice</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#dragged">dragged</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#text">text</a></li>
-</ul>
-</li>
-</ul>
-</li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowchip">FlowChip</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#kind">kind</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">text</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#text">text</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#title">title</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowrow">FlowRow</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Properties</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#chips">chips</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#computed">computed</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#entries">entries</a></li>
@@ -1423,7 +1464,7 @@ Region over it, and nothing lands.</p>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#type-aliases">Type Aliases</a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#chipkind">ChipKind</a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Dragged</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dragged">Dragged</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowentry">FlowEntry</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowfindings">FlowFindings</a></li>
 </ul>
@@ -1443,206 +1484,231 @@ Region over it, and nothing lands.</p>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#blockofview">blockOfView()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#view">view</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#block">block</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Returns</a></li>
-</ul>
-</li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cardchoices">cardChoices()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#manifest">manifest</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#root">root</a></li>
-</ul>
-</li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cardpress">cardPress()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">manifest</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">root</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#manifest">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#root">root</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#source">source</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#sweep">sweep</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#draftcommand">draftCommand()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">block</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">root</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">root</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#flowmap">flowMap</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">entries</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">entries</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#entrytext">entryText()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">manifest</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">manifest</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#entry">entry</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#exactvalue">exactValue()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#value">value</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#numbertype">numberType</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowmapsof">flowMapsOf()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">manifest</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">root</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">root</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowrows">flowRows()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">root</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#findings">findings?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gaptext">gapText()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">entry</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id26">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flowrows">flowRows()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gapvalue">gapValue()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id27">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">text</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id29">root</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#findings">findings?</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id30">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gapvalue">gapValue()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#inserted">inserted()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id31">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">text</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id33">root</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">entries</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#index">index</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id33">entry</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id34">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#inserted">inserted()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#keptorder">keptOrder()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id35">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id36">entries</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#index">index</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id37">entry</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#shown">shown</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#ids">ids</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id38">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id36">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#landedentry">landedEntry()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id39">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id40">before</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id41">after</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id42">root</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id43">dragged</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id37">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id38">before</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id39">after</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id40">root</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id41">dragged</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id44">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id42">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#moved">moved()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id45">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id46">entries</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id43">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id44">entries</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#from">from</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#to">to</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#duplicate">duplicate</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id47">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id45">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#placevirtualcommand">placeVirtualCommand()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id48">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id49">block</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id46">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id47">block</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#drawing">drawing</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id50">virtual</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id48">virtual</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#x">x</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#y">y</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id51">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id49">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#proposedgap">proposedGap()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id50">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id51">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id52">flowMap</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id53">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#recomputecommands">recomputeCommands()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id52">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id53">manifest</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id54">block</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id55">root</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id54">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id55">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id56">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id57">root</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#answer">answer</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id56">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id58">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#removedat">removedAt()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id57">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id58">entries</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id59">index</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id59">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id60">entries</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id61">index</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id60">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id62">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#rowname">rowName()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id63">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id64">flowMap</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id65">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sameentries">sameEntries()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id61">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id66">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#left">left</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#right">right</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id62">numberType</a></li>
-</ul>
-</li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id63">Returns</a></li>
-</ul>
-</li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sweptvalue">sweptValue()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id64">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id65">block</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id66">drawing</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#card">card</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#timeline">timeline</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id67">x</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pixel">pixel</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#granularity">granularity</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id67">numberType</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id68">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timelinein">timelineIn()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sweptvalue">sweptValue()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id69">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id70">manifest</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id71">id</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id70">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id71">drawing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#card">card</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#timeline">timeline</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id72">x</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pixel">pixel</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#granularity">granularity</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id72">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id73">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#virtualof">virtualOf()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id73">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id74">manifest</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id75">root</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id76">flowMap</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timelinein">timelineIn()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id74">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id75">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id76">id</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id77">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#writefor">writeFor()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#virtualof">virtualOf()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id78">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id79">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id79">manifest</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id80">root</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id81">dragged</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id81">flowMap</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id82">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#writefor">writeFor()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id83">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id84">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id85">root</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id86">dragged</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id87">Returns</a></li>
 </ul>
 </li>
 </ul>

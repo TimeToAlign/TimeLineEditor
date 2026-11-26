@@ -416,6 +416,7 @@
 <li class="toctree-l2"><a class="reference internal" href="containers.html">containers</a></li>
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">coordinates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="edgeValues.html">edgeValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
@@ -436,7 +437,9 @@
 <li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/region.html">gestures/region</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/travel.html">gestures/travel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/wheel.html">gestures/wheel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index-1.html">index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="items.html">items</a></li>
@@ -532,7 +535,7 @@
 <h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
 <section id="framecoalescer">
 <h3>FrameCoalescer<a class="headerlink" href="#framecoalescer" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1504">arranger/src/coordinates.ts:1504</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1504">arranger/src/coordinates.ts:1504</a></p>
 <p>Pointer moves coalesced into one call of <code class="docutils literal notranslate"><span class="pre">run</span></code> per animation frame, with
 the last point given; <code class="docutils literal notranslate"><span class="pre">cancel</span></code> drops a pending one.</p>
 <section id="type-parameters">
@@ -549,7 +552,7 @@ the last point given; <code class="docutils literal notranslate"><span class="pr
 <blockquote>
 <div><p><strong>new FrameCoalescer</strong>&lt;<code class="docutils literal notranslate"><span class="pre">T</span></code>&gt;(<code class="docutils literal notranslate"><span class="pre">run</span></code>): <a class="reference internal" href="#framecoalescer"><code class="docutils literal notranslate"><span class="pre">FrameCoalescer</span></code></a>&lt;<code class="docutils literal notranslate"><span class="pre">T</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1509">arranger/src/coordinates.ts:1509</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1509">arranger/src/coordinates.ts:1509</a></p>
 <section id="parameters">
 <h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
 </section>
@@ -570,7 +573,7 @@ the last point given; <code class="docutils literal notranslate"><span class="pr
 <blockquote>
 <div><p><strong>cancel</strong>(): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1525">arranger/src/coordinates.ts:1525</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1525">arranger/src/coordinates.ts:1525</a></p>
 <section id="id1">
 <h6>Returns<a class="headerlink" href="#id1" title="Link to this heading">#</a></h6>
 <p><code class="docutils literal notranslate"><span class="pre">void</span></code></p>
@@ -581,7 +584,7 @@ the last point given; <code class="docutils literal notranslate"><span class="pr
 <blockquote>
 <div><p><strong>push</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1514">arranger/src/coordinates.ts:1514</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1514">arranger/src/coordinates.ts:1514</a></p>
 <p>Run with <code class="docutils literal notranslate"><span class="pre">value</span></code> at the next animation frame, replacing any value still waiting.</p>
 <section id="id2">
 <h6>Parameters<a class="headerlink" href="#id2" title="Link to this heading">#</a></h6>
@@ -600,7 +603,7 @@ the last point given; <code class="docutils literal notranslate"><span class="pr
 <hr class="docutils" />
 <section id="measureknotssource">
 <h3>MeasureKnotsSource<a class="headerlink" href="#measureknotssource" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1473">arranger/src/coordinates.ts:1473</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1473">arranger/src/coordinates.ts:1473</a></p>
 <p>The expanded MeasureMaps of each manifest, asked of <code class="docutils literal notranslate"><span class="pre">fetch</span></code> with the
 manifest’s text once per manifest object (one version of a manifest)
 that has MeasureMaps, and kept as the answer arrives; <code class="docutils literal notranslate"><span class="pre">changed</span></code> is
@@ -615,7 +618,7 @@ for them.</p>
 <blockquote>
 <div><p><strong>new MeasureKnotsSource</strong>(<code class="docutils literal notranslate"><span class="pre">fetch</span></code>, <code class="docutils literal notranslate"><span class="pre">changed</span></code>): <a class="reference internal" href="#measureknotssource"><code class="docutils literal notranslate"><span class="pre">MeasureKnotsSource</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1478">arranger/src/coordinates.ts:1478</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1478">arranger/src/coordinates.ts:1478</a></p>
 <section id="id6">
 <h6>Parameters<a class="headerlink" href="#id6" title="Link to this heading">#</a></h6>
 </section>
@@ -640,7 +643,7 @@ for them.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>knotsOf</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>): readonly <a class="reference internal" href="../tilie-core/maps/values.html#measureknots"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MeasureKnots</span></code></span></a>[] | <a class="reference internal" href="../tilie-core/maps/timestamp.html#knotsabsence"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">KnotsAbsence</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1484">arranger/src/coordinates.ts:1484</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1484">arranger/src/coordinates.ts:1484</a></p>
 <p>The expanded MeasureMaps of <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, or why they are not at hand; asks for them the first time.</p>
 <section id="id9">
 <h6>Parameters<a class="headerlink" href="#id9" title="Link to this heading">#</a></h6>
@@ -661,7 +664,7 @@ for them.</p>
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="affordance">
 <h3>Affordance<a class="headerlink" href="#affordance" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1115">arranger/src/coordinates.ts:1115</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1115">arranger/src/coordinates.ts:1115</a></p>
 <p>A named timestamp whose <code class="docutils literal notranslate"><span class="pre">display</span></code> is empty (not a match timestamp),
 which the drawing therefore draws nothing of, as the canvas alone shows
 it so it stays selectable: a
@@ -680,7 +683,7 @@ wedge where its own would lie on one line. It is its own canvas source
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>address</strong>: <a class="reference internal" href="../tilie-core/manifest/address.html#elementaddress"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ElementAddress</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/boxes.ts#L51">arranger/src/boxes.ts:51</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/boxes.ts#L52">arranger/src/boxes.ts:52</a></p>
 <p>The named timestamp’s address <code class="docutils literal notranslate"><span class="pre">{id}</span></code>.</p>
 <section id="inherited-from">
 <h6>Inherited from<a class="headerlink" href="#inherited-from" title="Link to this heading">#</a></h6>
@@ -692,7 +695,7 @@ wedge where its own would lie on one line. It is its own canvas source
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>kind</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;affordance&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/boxes.ts#L49">arranger/src/boxes.ts:49</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/boxes.ts#L50">arranger/src/boxes.ts:50</a></p>
 <section id="id11">
 <h6>Inherited from<a class="headerlink" href="#id11" title="Link to this heading">#</a></h6>
 <p><a class="reference internal" href="boxes.html#affordancesource"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AffordanceSource</span></code></span></a>.<a class="reference internal" href="boxes.html#kind"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">kind</span></code></span></a></p>
@@ -703,7 +706,7 @@ wedge where its own would lie on one line. It is its own canvas source
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>line</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1117">arranger/src/coordinates.ts:1117</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1117">arranger/src/coordinates.ts:1117</a></p>
 <p>The key of the line in <code class="docutils literal notranslate"><span class="pre">lineAxes</span></code>.</p>
 </section>
 <section id="points">
@@ -711,7 +714,7 @@ wedge where its own would lie on one line. It is its own canvas source
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>points</strong>: readonly [<a class="reference internal" href="../tilie-layout/elements.html#id153"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a>, <a class="reference internal" href="../tilie-layout/elements.html#id153"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a>, <a class="reference internal" href="../tilie-layout/elements.html#id153"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1119">arranger/src/coordinates.ts:1119</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1119">arranger/src/coordinates.ts:1119</a></p>
 <p>The wedge’s corners in block-local canvas units (layout’s <code class="docutils literal notranslate"><span class="pre">wedgeAt</span></code>).</p>
 </section>
 </section>
@@ -719,7 +722,7 @@ wedge where its own would lie on one line. It is its own canvas source
 <hr class="docutils" />
 <section id="flagpart">
 <h3>FlagPart<a class="headerlink" href="#flagpart" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1394">arranger/src/coordinates.ts:1394</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1394">arranger/src/coordinates.ts:1394</a></p>
 <p>One part of a timestamp as the flag shows it: its timeline’s name, then its rows.</p>
 <section id="id12">
 <h4>Properties<a class="headerlink" href="#id12" title="Link to this heading">#</a></h4>
@@ -728,14 +731,14 @@ wedge where its own would lie on one line. It is its own canvas source
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>name</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1396">arranger/src/coordinates.ts:1396</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1396">arranger/src/coordinates.ts:1396</a></p>
 </section>
 <section id="rows">
 <h5>rows<a class="headerlink" href="#rows" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>rows</strong>: readonly <a class="reference internal" href="../tilie-core/maps/timestamp.html#timestamprow"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">TimestampRow</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1398">arranger/src/coordinates.ts:1398</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1398">arranger/src/coordinates.ts:1398</a></p>
 <p>Its coordinate’s row and one row per map drawn for it, top to bottom as they are drawn.</p>
 </section>
 <section id="timeline">
@@ -743,14 +746,14 @@ wedge where its own would lie on one line. It is its own canvas source
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>timeline</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1395">arranger/src/coordinates.ts:1395</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1395">arranger/src/coordinates.ts:1395</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="flagplace">
 <h3>FlagPlace<a class="headerlink" href="#flagplace" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1427">arranger/src/coordinates.ts:1427</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1427">arranger/src/coordinates.ts:1427</a></p>
 <p>Where the flag and its pole lie, in pixels from the canvas’s top-left corner.</p>
 <section id="id13">
 <h4>Properties<a class="headerlink" href="#id13" title="Link to this heading">#</a></h4>
@@ -759,7 +762,7 @@ wedge where its own would lie on one line. It is its own canvas source
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>left</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1431">arranger/src/coordinates.ts:1431</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1431">arranger/src/coordinates.ts:1431</a></p>
 <p>The flag’s left and top edges.</p>
 </section>
 <section id="pole">
@@ -767,7 +770,7 @@ wedge where its own would lie on one line. It is its own canvas source
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>pole</strong>: <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1429">arranger/src/coordinates.ts:1429</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1429">arranger/src/coordinates.ts:1429</a></p>
 <p>The pole: its abscissa (its centre), its top and its bottom, the line’s ordinate.</p>
 <section id="bottom">
 <h6>bottom<a class="headerlink" href="#bottom" title="Link to this heading">#</a></h6>
@@ -793,14 +796,14 @@ wedge where its own would lie on one line. It is its own canvas source
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>top</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1432">arranger/src/coordinates.ts:1432</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1432">arranger/src/coordinates.ts:1432</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="flowflagpart">
 <h3>FlowFlagPart<a class="headerlink" href="#flowflagpart" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1546">arranger/src/coordinates.ts:1546</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1546">arranger/src/coordinates.ts:1546</a></p>
 <p>A part the flag adds below the timestamp’s for a flow (plan of the canvas’s
 virtual cards; TimeToShare’s <code class="docutils literal notranslate"><span class="pre">docs/drawing.md</span></code>, section 8.10): the written
 position of a virtual timeline’s played one, or the played positions of a
@@ -812,7 +815,7 @@ root’s written one on its virtual cards.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1548">arranger/src/coordinates.ts:1548</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1548">arranger/src/coordinates.ts:1548</a></p>
 <p>Unique within the flag: <code class="docutils literal notranslate"><span class="pre">written</span> <span class="pre">&lt;V&gt;</span></code> or <code class="docutils literal notranslate"><span class="pre">played</span> <span class="pre">&lt;R&gt;</span></code>.</p>
 </section>
 <section id="id16">
@@ -820,21 +823,21 @@ root’s written one on its virtual cards.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>name</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1549">arranger/src/coordinates.ts:1549</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1549">arranger/src/coordinates.ts:1549</a></p>
 </section>
 <section id="id17">
 <h5>rows<a class="headerlink" href="#id17" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>rows</strong>: readonly <a class="reference internal" href="#flowflagrow"><code class="docutils literal notranslate"><span class="pre">FlowFlagRow</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1550">arranger/src/coordinates.ts:1550</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1550">arranger/src/coordinates.ts:1550</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="flowflagrow">
 <h3>FlowFlagRow<a class="headerlink" href="#flowflagrow" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1533">arranger/src/coordinates.ts:1533</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1533">arranger/src/coordinates.ts:1533</a></p>
 <p>One row the flag adds for a flow: what it names and its value as the flag writes it.</p>
 <section id="id18">
 <h4>Properties<a class="headerlink" href="#id18" title="Link to this heading">#</a></h4>
@@ -843,7 +846,7 @@ root’s written one on its virtual cards.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1535">arranger/src/coordinates.ts:1535</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1535">arranger/src/coordinates.ts:1535</a></p>
 <p>Unique within its part.</p>
 </section>
 <section id="id20">
@@ -851,21 +854,21 @@ root’s written one on its virtual cards.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>name</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1536">arranger/src/coordinates.ts:1536</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1536">arranger/src/coordinates.ts:1536</a></p>
 </section>
 <section id="id21">
 <h5>value<a class="headerlink" href="#id21" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>value</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1537">arranger/src/coordinates.ts:1537</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1537">arranger/src/coordinates.ts:1537</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="holding">
 <h3>Holding<a class="headerlink" href="#holding" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L574">arranger/src/coordinates.ts:574</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L574">arranger/src/coordinates.ts:574</a></p>
 <p>A line a timeline is drawn on (<code class="docutils literal notranslate"><span class="pre">linesOf</span></code>): its key, its axis, where the
 timeline’s zero lies on it, the timeline’s length there when it is a
 segment of the line (<code class="docutils literal notranslate"><span class="pre">null</span></code> on a line of its own), and the key of the
@@ -885,42 +888,42 @@ draws none, the line of the member in whose card it is drawn.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>axis</strong>: <a class="reference internal" href="../tilie-layout/axes.html#lineaxis"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineAxis</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L576">arranger/src/coordinates.ts:576</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L576">arranger/src/coordinates.ts:576</a></p>
 </section>
 <section id="id23">
 <h5>key<a class="headerlink" href="#id23" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L575">arranger/src/coordinates.ts:575</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L575">arranger/src/coordinates.ts:575</a></p>
 </section>
 <section id="length">
 <h5>length<a class="headerlink" href="#length" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>length</strong>: <a class="reference internal" href="../tilie-core/number/rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L578">arranger/src/coordinates.ts:578</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L578">arranger/src/coordinates.ts:578</a></p>
 </section>
 <section id="offset">
 <h5>offset<a class="headerlink" href="#offset" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>offset</strong>: <a class="reference internal" href="../tilie-core/number/rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L577">arranger/src/coordinates.ts:577</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L577">arranger/src/coordinates.ts:577</a></p>
 </section>
 <section id="section">
 <h5>section<a class="headerlink" href="#section" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>section</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L579">arranger/src/coordinates.ts:579</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L579">arranger/src/coordinates.ts:579</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="linehit">
 <h3>LineHit<a class="headerlink" href="#linehit" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L102">arranger/src/coordinates.ts:102</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L102">arranger/src/coordinates.ts:102</a></p>
 <p>A hovered line: its key in <code class="docutils literal notranslate"><span class="pre">lineAxes</span></code>, the map hovered at it, and the abscissa on it.</p>
 <section id="id24">
 <h4>Properties<a class="headerlink" href="#id24" title="Link to this heading">#</a></h4>
@@ -929,14 +932,14 @@ draws none, the line of the member in whose card it is drawn.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>axis</strong>: <a class="reference internal" href="../tilie-layout/axes.html#lineaxis"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineAxis</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L105">arranger/src/coordinates.ts:105</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L105">arranger/src/coordinates.ts:105</a></p>
 </section>
 <section id="distance">
 <h5>distance<a class="headerlink" href="#distance" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>distance</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L111">arranger/src/coordinates.ts:111</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L111">arranger/src/coordinates.ts:111</a></p>
 <p>The vertical distance from the pointer to what is hovered, the line or its nearest map.</p>
 </section>
 <section id="id26">
@@ -944,7 +947,7 @@ draws none, the line of the member in whose card it is drawn.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L104">arranger/src/coordinates.ts:104</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L104">arranger/src/coordinates.ts:104</a></p>
 <p>The key of the line in <code class="docutils literal notranslate"><span class="pre">lineAxes</span></code>.</p>
 </section>
 <section id="map">
@@ -952,7 +955,7 @@ draws none, the line of the member in whose card it is drawn.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>map</strong>: <a class="reference internal" href="../tilie-layout/boxes.html#axismap"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AxisMap</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L107">arranger/src/coordinates.ts:107</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L107">arranger/src/coordinates.ts:107</a></p>
 <p>The map whose drawing is hovered; <code class="docutils literal notranslate"><span class="pre">null</span></code> when the line itself is.</p>
 </section>
 <section id="id27">
@@ -960,7 +963,7 @@ draws none, the line of the member in whose card it is drawn.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>x</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L109">arranger/src/coordinates.ts:109</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L109">arranger/src/coordinates.ts:109</a></p>
 <p>The pointer’s abscissa held to the span of what is hovered, in block-local canvas units.</p>
 </section>
 </section>
@@ -968,7 +971,7 @@ draws none, the line of the member in whose card it is drawn.</p>
 <hr class="docutils" />
 <section id="markplace">
 <h3>MarkPlace<a class="headerlink" href="#markplace" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L496">arranger/src/coordinates.ts:496</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L496">arranger/src/coordinates.ts:496</a></p>
 <p>Where a timestamp’s wedge and cross-section line are drawn: on a line, at an abscissa.</p>
 <section id="id28">
 <h4>Extended by<a class="headerlink" href="#id28" title="Link to this heading">#</a></h4>
@@ -983,7 +986,7 @@ draws none, the line of the member in whose card it is drawn.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>group?</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L506">arranger/src/coordinates.ts:506</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L506">arranger/src/coordinates.ts:506</a></p>
 <p>Whether the timestamp is read across the members of the group whose frame holds the line
 (<code class="docutils literal notranslate"><span class="pre">readsGroup</span></code> of its pin), so that its line extends across that frame as a groupstamp’s
 does (layout’s <code class="docutils literal notranslate"><span class="pre">groupCrossSections</span></code>); not where absent.</p>
@@ -993,7 +996,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L498">arranger/src/coordinates.ts:498</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L498">arranger/src/coordinates.ts:498</a></p>
 <p>The key of the line in <code class="docutils literal notranslate"><span class="pre">lineAxes</span></code>.</p>
 </section>
 <section id="id31">
@@ -1001,7 +1004,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>x</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L500">arranger/src/coordinates.ts:500</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L500">arranger/src/coordinates.ts:500</a></p>
 <p>The abscissa of the timestamp’s position on the line, in block-local canvas units.</p>
 </section>
 </section>
@@ -1009,7 +1012,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <hr class="docutils" />
 <section id="place">
 <h3>Place<a class="headerlink" href="#place" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L767">arranger/src/coordinates.ts:767</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L767">arranger/src/coordinates.ts:767</a></p>
 <p>A place of a coordinate: a part of a line where its timeline is seen, and its abscissa there.</p>
 <section id="id32">
 <h4>Extends<a class="headerlink" href="#id32" title="Link to this heading">#</a></h4>
@@ -1024,7 +1027,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>axis</strong>: <a class="reference internal" href="../tilie-layout/axes.html#lineaxis"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineAxis</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L576">arranger/src/coordinates.ts:576</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L576">arranger/src/coordinates.ts:576</a></p>
 <section id="id35">
 <h6>Inherited from<a class="headerlink" href="#id35" title="Link to this heading">#</a></h6>
 <p><a class="reference internal" href="#seenholding"><code class="docutils literal notranslate"><span class="pre">SeenHolding</span></code></a>.<a class="reference internal" href="#id61"><code class="docutils literal notranslate"><span class="pre">axis</span></code></a></p>
@@ -1035,7 +1038,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L575">arranger/src/coordinates.ts:575</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L575">arranger/src/coordinates.ts:575</a></p>
 <section id="id37">
 <h6>Inherited from<a class="headerlink" href="#id37" title="Link to this heading">#</a></h6>
 <p><a class="reference internal" href="#seenholding"><code class="docutils literal notranslate"><span class="pre">SeenHolding</span></code></a>.<a class="reference internal" href="#id63"><code class="docutils literal notranslate"><span class="pre">key</span></code></a></p>
@@ -1046,7 +1049,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>length</strong>: <a class="reference internal" href="../tilie-core/number/rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L578">arranger/src/coordinates.ts:578</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L578">arranger/src/coordinates.ts:578</a></p>
 <section id="id39">
 <h6>Inherited from<a class="headerlink" href="#id39" title="Link to this heading">#</a></h6>
 <p><a class="reference internal" href="#seenholding"><code class="docutils literal notranslate"><span class="pre">SeenHolding</span></code></a>.<a class="reference internal" href="#id65"><code class="docutils literal notranslate"><span class="pre">length</span></code></a></p>
@@ -1057,7 +1060,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>offset</strong>: <a class="reference internal" href="../tilie-core/number/rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L577">arranger/src/coordinates.ts:577</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L577">arranger/src/coordinates.ts:577</a></p>
 <section id="id41">
 <h6>Inherited from<a class="headerlink" href="#id41" title="Link to this heading">#</a></h6>
 <p><a class="reference internal" href="#seenholding"><code class="docutils literal notranslate"><span class="pre">SeenHolding</span></code></a>.<a class="reference internal" href="#id67"><code class="docutils literal notranslate"><span class="pre">offset</span></code></a></p>
@@ -1068,7 +1071,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>section</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L579">arranger/src/coordinates.ts:579</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L579">arranger/src/coordinates.ts:579</a></p>
 <section id="id43">
 <h6>Inherited from<a class="headerlink" href="#id43" title="Link to this heading">#</a></h6>
 <p><a class="reference internal" href="#seenholding"><code class="docutils literal notranslate"><span class="pre">SeenHolding</span></code></a>.<a class="reference internal" href="#id69"><code class="docutils literal notranslate"><span class="pre">section</span></code></a></p>
@@ -1079,7 +1082,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>x</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L769">arranger/src/coordinates.ts:769</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L769">arranger/src/coordinates.ts:769</a></p>
 <p>The abscissa of the coordinate on the line, in block-local canvas units (layout’s <code class="docutils literal notranslate"><span class="pre">abscissaOf</span></code>).</p>
 </section>
 <section id="xfrom">
@@ -1087,7 +1090,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>xFrom</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L620">arranger/src/coordinates.ts:620</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L620">arranger/src/coordinates.ts:620</a></p>
 <p>The ends of the part seen, in block-local canvas units, both included.</p>
 <section id="id45">
 <h6>Inherited from<a class="headerlink" href="#id45" title="Link to this heading">#</a></h6>
@@ -1099,7 +1102,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>xTo</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L621">arranger/src/coordinates.ts:621</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L621">arranger/src/coordinates.ts:621</a></p>
 <section id="id46">
 <h6>Inherited from<a class="headerlink" href="#id46" title="Link to this heading">#</a></h6>
 <p><a class="reference internal" href="#seenholding"><code class="docutils literal notranslate"><span class="pre">SeenHolding</span></code></a>.<a class="reference internal" href="#id72"><code class="docutils literal notranslate"><span class="pre">xTo</span></code></a></p>
@@ -1110,7 +1113,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <hr class="docutils" />
 <section id="placedmarks">
 <h3>PlacedMarks<a class="headerlink" href="#placedmarks" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L523">arranger/src/coordinates.ts:523</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L523">arranger/src/coordinates.ts:523</a></p>
 <p>The marks of a timestamp as the canvas draws them: the hovered position’s
 or the pinned one’s, its block’s drawing, its place there, and the
 block’s node: its top-left corner on the canvas and its scale.</p>
@@ -1127,14 +1130,14 @@ block’s node: its top-left corner on the canvas and its scale.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>drawing</strong>: <a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L525">arranger/src/coordinates.ts:525</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L525">arranger/src/coordinates.ts:525</a></p>
 </section>
 <section id="id49">
 <h5>group?<a class="headerlink" href="#id49" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>group?</strong>: <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L506">arranger/src/coordinates.ts:506</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L506">arranger/src/coordinates.ts:506</a></p>
 <p>Whether the timestamp is read across the members of the group whose frame holds the line
 (<code class="docutils literal notranslate"><span class="pre">readsGroup</span></code> of its pin), so that its line extends across that frame as a groupstamp’s
 does (layout’s <code class="docutils literal notranslate"><span class="pre">groupCrossSections</span></code>); not where absent.</p>
@@ -1148,7 +1151,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L498">arranger/src/coordinates.ts:498</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L498">arranger/src/coordinates.ts:498</a></p>
 <p>The key of the line in <code class="docutils literal notranslate"><span class="pre">lineAxes</span></code>.</p>
 <section id="id52">
 <h6>Inherited from<a class="headerlink" href="#id52" title="Link to this heading">#</a></h6>
@@ -1160,28 +1163,28 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>kind</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;hover&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;pin&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L524">arranger/src/coordinates.ts:524</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L524">arranger/src/coordinates.ts:524</a></p>
 </section>
 <section id="origin">
 <h5>origin<a class="headerlink" href="#origin" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>origin</strong>: <a class="reference internal" href="gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L526">arranger/src/coordinates.ts:526</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L526">arranger/src/coordinates.ts:526</a></p>
 </section>
 <section id="scale">
 <h5>scale<a class="headerlink" href="#scale" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>scale</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L527">arranger/src/coordinates.ts:527</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L527">arranger/src/coordinates.ts:527</a></p>
 </section>
 <section id="id54">
 <h5>x<a class="headerlink" href="#id54" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>x</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L500">arranger/src/coordinates.ts:500</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L500">arranger/src/coordinates.ts:500</a></p>
 <p>The abscissa of the timestamp’s position on the line, in block-local canvas units.</p>
 <section id="id55">
 <h6>Inherited from<a class="headerlink" href="#id55" title="Link to this heading">#</a></h6>
@@ -1193,7 +1196,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <hr class="docutils" />
 <section id="reading">
 <h3>Reading<a class="headerlink" href="#reading" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L115">arranger/src/coordinates.ts:115</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L115">arranger/src/coordinates.ts:115</a></p>
 <p>What the pointer reads on a block: the hovered line and row, the position and the pin a click there makes.</p>
 <section id="id56">
 <h4>Properties<a class="headerlink" href="#id56" title="Link to this heading">#</a></h4>
@@ -1202,7 +1205,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>at</strong>: <a class="reference internal" href="gesture.html#point"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Point</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L125">arranger/src/coordinates.ts:125</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L125">arranger/src/coordinates.ts:125</a></p>
 <p>Where the position lies on the line, in block-local canvas units.</p>
 </section>
 <section id="block">
@@ -1210,21 +1213,21 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>block</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L116">arranger/src/coordinates.ts:116</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L116">arranger/src/coordinates.ts:116</a></p>
 </section>
 <section id="hit">
 <h5>hit<a class="headerlink" href="#hit" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>hit</strong>: <a class="reference internal" href="#linehit"><code class="docutils literal notranslate"><span class="pre">LineHit</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L117">arranger/src/coordinates.ts:117</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L117">arranger/src/coordinates.ts:117</a></p>
 </section>
 <section id="pin">
 <h5>pin<a class="headerlink" href="#pin" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>pin</strong>: <a class="reference internal" href="../tilie-core/maps/timestamp.html#pin"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Pin</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L123">arranger/src/coordinates.ts:123</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L123">arranger/src/coordinates.ts:123</a></p>
 <p>The pin of the position: its spec, the MeasureMaps read, its timestamp; unnamed.</p>
 </section>
 <section id="position">
@@ -1232,7 +1235,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>position</strong>: <a class="reference internal" href="../tilie-core/number/rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L121">arranger/src/coordinates.ts:121</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L121">arranger/src/coordinates.ts:121</a></p>
 <p>The position picked, exact, on the hovered line’s own axis.</p>
 </section>
 <section id="row">
@@ -1240,7 +1243,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>row</strong>: <a class="reference internal" href="../tilie-core/maps/timestamp.html#row"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Row</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L119">arranger/src/coordinates.ts:119</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L119">arranger/src/coordinates.ts:119</a></p>
 <p>The row hovered (<code class="docutils literal notranslate"><span class="pre">rowOf</span></code>): the position is picked on its axis.</p>
 </section>
 <section id="id57">
@@ -1248,7 +1251,7 @@ does (layout’s <code class="docutils literal notranslate"><span class="pre">gr
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>top</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L131">arranger/src/coordinates.ts:131</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L131">arranger/src/coordinates.ts:131</a></p>
 <p>The topmost ordinate of the line, the maps drawn at it and its
 cross-section line, in block-local canvas units: the flag’s pole rises
 above it.</p>
@@ -1258,7 +1261,7 @@ above it.</p>
 <hr class="docutils" />
 <section id="seenholding">
 <h3>SeenHolding<a class="headerlink" href="#seenholding" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L618">arranger/src/coordinates.ts:618</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L618">arranger/src/coordinates.ts:618</a></p>
 <p>The part of a line where a timeline drawn on it is seen (<code class="docutils literal notranslate"><span class="pre">seenOn</span></code>).</p>
 <section id="id58">
 <h4>Extends<a class="headerlink" href="#id58" title="Link to this heading">#</a></h4>
@@ -1279,7 +1282,7 @@ above it.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>axis</strong>: <a class="reference internal" href="../tilie-layout/axes.html#lineaxis"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineAxis</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L576">arranger/src/coordinates.ts:576</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L576">arranger/src/coordinates.ts:576</a></p>
 <section id="id62">
 <h6>Inherited from<a class="headerlink" href="#id62" title="Link to this heading">#</a></h6>
 <p><a class="reference internal" href="#holding"><code class="docutils literal notranslate"><span class="pre">Holding</span></code></a>.<a class="reference internal" href="#axis"><code class="docutils literal notranslate"><span class="pre">axis</span></code></a></p>
@@ -1290,7 +1293,7 @@ above it.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>key</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L575">arranger/src/coordinates.ts:575</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L575">arranger/src/coordinates.ts:575</a></p>
 <section id="id64">
 <h6>Inherited from<a class="headerlink" href="#id64" title="Link to this heading">#</a></h6>
 <p><a class="reference internal" href="#holding"><code class="docutils literal notranslate"><span class="pre">Holding</span></code></a>.<a class="reference internal" href="#id23"><code class="docutils literal notranslate"><span class="pre">key</span></code></a></p>
@@ -1301,7 +1304,7 @@ above it.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>length</strong>: <a class="reference internal" href="../tilie-core/number/rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L578">arranger/src/coordinates.ts:578</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L578">arranger/src/coordinates.ts:578</a></p>
 <section id="id66">
 <h6>Inherited from<a class="headerlink" href="#id66" title="Link to this heading">#</a></h6>
 <p><a class="reference internal" href="#holding"><code class="docutils literal notranslate"><span class="pre">Holding</span></code></a>.<a class="reference internal" href="#length"><code class="docutils literal notranslate"><span class="pre">length</span></code></a></p>
@@ -1312,7 +1315,7 @@ above it.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>offset</strong>: <a class="reference internal" href="../tilie-core/number/rational.html#rational"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Rational</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L577">arranger/src/coordinates.ts:577</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L577">arranger/src/coordinates.ts:577</a></p>
 <section id="id68">
 <h6>Inherited from<a class="headerlink" href="#id68" title="Link to this heading">#</a></h6>
 <p><a class="reference internal" href="#holding"><code class="docutils literal notranslate"><span class="pre">Holding</span></code></a>.<a class="reference internal" href="#offset"><code class="docutils literal notranslate"><span class="pre">offset</span></code></a></p>
@@ -1323,7 +1326,7 @@ above it.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>section</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L579">arranger/src/coordinates.ts:579</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L579">arranger/src/coordinates.ts:579</a></p>
 <section id="id70">
 <h6>Inherited from<a class="headerlink" href="#id70" title="Link to this heading">#</a></h6>
 <p><a class="reference internal" href="#holding"><code class="docutils literal notranslate"><span class="pre">Holding</span></code></a>.<a class="reference internal" href="#section"><code class="docutils literal notranslate"><span class="pre">section</span></code></a></p>
@@ -1334,7 +1337,7 @@ above it.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>xFrom</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L620">arranger/src/coordinates.ts:620</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L620">arranger/src/coordinates.ts:620</a></p>
 <p>The ends of the part seen, in block-local canvas units, both included.</p>
 </section>
 <section id="id72">
@@ -1342,14 +1345,14 @@ above it.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>xTo</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L621">arranger/src/coordinates.ts:621</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L621">arranger/src/coordinates.ts:621</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="virtualcard">
 <h3>VirtualCard<a class="headerlink" href="#virtualcard" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1554">arranger/src/coordinates.ts:1554</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1554">arranger/src/coordinates.ts:1554</a></p>
 <p>A card of a virtual timeline the block draws: its timeline and the group whose frame holds it, <code class="docutils literal notranslate"><span class="pre">null</span></code> for one of its own.</p>
 <section id="id73">
 <h4>Properties<a class="headerlink" href="#id73" title="Link to this heading">#</a></h4>
@@ -1358,14 +1361,14 @@ above it.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>group</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1556">arranger/src/coordinates.ts:1556</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1556">arranger/src/coordinates.ts:1556</a></p>
 </section>
 <section id="id75">
 <h5>timeline<a class="headerlink" href="#id75" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>timeline</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1555">arranger/src/coordinates.ts:1555</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1555">arranger/src/coordinates.ts:1555</a></p>
 </section>
 </section>
 </section>
@@ -1377,7 +1380,7 @@ above it.</p>
 <blockquote>
 <div><p><strong>KnotsOf</strong> = (<code class="docutils literal notranslate"><span class="pre">manifest</span></code>) =&gt; readonly <a class="reference internal" href="../tilie-core/maps/values.html#measureknots"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MeasureKnots</span></code></span></a>[] | <a class="reference internal" href="../tilie-core/maps/timestamp.html#knotsabsence"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">KnotsAbsence</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1175">arranger/src/coordinates.ts:1175</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1175">arranger/src/coordinates.ts:1175</a></p>
 <p>The expanded MeasureMaps of a manifest, or why they are not at hand;
 <code class="docutils literal notranslate"><span class="pre">undefined</span></code> for a manifest without MeasureMaps.</p>
 <section id="id77">
@@ -1398,7 +1401,7 @@ above it.</p>
 <blockquote>
 <div><p><strong>MeasureMapsAnswer</strong> = readonly <a class="reference internal" href="../tilie-core/maps/values.html#measureknots"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MeasureKnots</span></code></span></a>[] | <code class="docutils literal notranslate"><span class="pre">&quot;unsupported&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;unreachable&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1462">arranger/src/coordinates.ts:1462</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1462">arranger/src/coordinates.ts:1462</a></p>
 <p>What a server answers for a manifest’s text: its expanded MeasureMaps,
 <code class="docutils literal notranslate"><span class="pre">unsupported</span></code> where the server cannot expand MeasureMaps, or
 <code class="docutils literal notranslate"><span class="pre">unreachable</span></code> where no server answered the request.</p>
@@ -1411,7 +1414,7 @@ above it.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>HIT_TOLERANCE</strong>: <code class="docutils literal notranslate"><span class="pre">8</span></code> = <code class="docutils literal notranslate"><span class="pre">8</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L97">arranger/src/coordinates.ts:97</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L97">arranger/src/coordinates.ts:97</a></p>
 <p>How near, in device pixels, the pointer must come to a line or a map to hover it.</p>
 </section>
 <hr class="docutils" />
@@ -1420,7 +1423,7 @@ above it.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>POLE_RISE</strong>: <code class="docutils literal notranslate"><span class="pre">22</span></code> = <code class="docutils literal notranslate"><span class="pre">22</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1424">arranger/src/coordinates.ts:1424</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1424">arranger/src/coordinates.ts:1424</a></p>
 <p>How far, in pixels, the flag’s pole rises above what it marks.</p>
 </section>
 <hr class="docutils" />
@@ -1429,7 +1432,7 @@ above it.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>POLE_WIDTH</strong>: <code class="docutils literal notranslate"><span class="pre">1</span></code> = <code class="docutils literal notranslate"><span class="pre">1</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1422">arranger/src/coordinates.ts:1422</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1422">arranger/src/coordinates.ts:1422</a></p>
 <p>The width of the flag’s pole in pixels.</p>
 </section>
 </section>
@@ -1440,7 +1443,7 @@ above it.</p>
 <blockquote>
 <div><p><strong>affordancesOf</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">raised?</span></code>): readonly <a class="reference internal" href="#affordance"><code class="docutils literal notranslate"><span class="pre">Affordance</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1140">arranger/src/coordinates.ts:1140</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1140">arranger/src/coordinates.ts:1140</a></p>
 <p>The affordances of the named timestamps of <code class="docutils literal notranslate"><span class="pre">manifest</span></code> whose <code class="docutils literal notranslate"><span class="pre">display</span></code> is
 empty, <code class="docutils literal notranslate"><span class="pre">drawing</span></code> being its drawing, but for a match timestamp, which
 leaves no placeholder (its MatchStamp is reached through its lines and
@@ -1478,7 +1481,7 @@ drawn.</p>
 <blockquote>
 <div><p><strong>axesOf</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>): <code class="docutils literal notranslate"><span class="pre">ReadonlyMap</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">string</span></code>, <a class="reference internal" href="../tilie-layout/axes.html#lineaxis"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LineAxis</span></code></span></a>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L203">arranger/src/coordinates.ts:203</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L203">arranger/src/coordinates.ts:203</a></p>
 <p>The lines of <code class="docutils literal notranslate"><span class="pre">drawing</span></code> a pointer reads a timestamp on, once per drawing,
 in <code class="docutils literal notranslate"><span class="pre">lineAxes</span></code>’ order: the marked lines (<code class="docutils literal notranslate"><span class="pre">markedOf</span></code>) and the ancestor
 lines (<code class="docutils literal notranslate"><span class="pre">ancestorLinesOf</span></code>) that are measurable, a line of unknown length
@@ -1501,7 +1504,7 @@ over its drawn span, never a zero-length line.</p>
 <blockquote>
 <div><p><strong>crossSectionSpec</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">lineKey</span></code>, <code class="docutils literal notranslate"><span class="pre">granularity</span></code>, <code class="docutils literal notranslate"><span class="pre">anchor?</span></code>): <a class="reference internal" href="../tilie-core/maps/timestamp.html#crosssectionspec"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">CrossSectionSpec</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L467">arranger/src/coordinates.ts:467</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L467">arranger/src/coordinates.ts:467</a></p>
 <p>The cross-section read on the line keyed <code class="docutils literal notranslate"><span class="pre">lineKey</span></code> (a key of <code class="docutils literal notranslate"><span class="pre">axesOf</span></code>)
 of <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, block <code class="docutils literal notranslate"><span class="pre">block</span></code>’s drawing of <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, anchored on the
 timeline <code class="docutils literal notranslate"><span class="pre">anchor</span></code> (the line’s own by default, else a segment the line
@@ -1556,7 +1559,7 @@ without maps.</p>
 <blockquote>
 <div><p><strong>flagParts</strong>(<code class="docutils literal notranslate"><span class="pre">pin</span></code>): <a class="reference internal" href="#flagpart"><code class="docutils literal notranslate"><span class="pre">FlagPart</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1407">arranger/src/coordinates.ts:1407</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1407">arranger/src/coordinates.ts:1407</a></p>
 <p>The rows of <code class="docutils literal notranslate"><span class="pre">pin</span></code> (core’s <code class="docutils literal notranslate"><span class="pre">timestampRows</span></code>) grouped by part in their order,
 top to bottom where the reading crosses each part’s timeline: each part’s
 consecutive rows of one timeline, in their order (its maps drawn above its
@@ -1579,7 +1582,7 @@ line before its coordinate), named by its coordinate row’s label.</p>
 <blockquote>
 <div><p><strong>flagPlace</strong>(<code class="docutils literal notranslate"><span class="pre">at</span></code>): <a class="reference internal" href="#flagplace"><code class="docutils literal notranslate"><span class="pre">FlagPlace</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1444">arranger/src/coordinates.ts:1444</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1444">arranger/src/coordinates.ts:1444</a></p>
 <p>Where the flag of a reading starts: its pole stands at <code class="docutils literal notranslate"><span class="pre">x</span></code> from
 <code class="docutils literal notranslate"><span class="pre">POLE_RISE</span></code> above <code class="docutils literal notranslate"><span class="pre">top</span></code> (the topmost of the line, its maps and its
 cross-section line), held below the canvas’s top edge, down to <code class="docutils literal notranslate"><span class="pre">y</span></code>, the
@@ -1616,7 +1619,7 @@ shifted by exactly what keeps it on screen (<code class="docutils literal notran
 <blockquote>
 <div><p><strong>flowFlagParts</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">places</span></code>, <code class="docutils literal notranslate"><span class="pre">pin</span></code>, <code class="docutils literal notranslate"><span class="pre">decimals</span></code>): <a class="reference internal" href="#flowflagpart"><code class="docutils literal notranslate"><span class="pre">FlowFlagPart</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1625">arranger/src/coordinates.ts:1625</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1625">arranger/src/coordinates.ts:1625</a></p>
 <p>The parts the flag adds to <code class="docutils literal notranslate"><span class="pre">pin</span></code>’s for flows, the block’s manifest
 <code class="docutils literal notranslate"><span class="pre">manifest</span></code> drawn at <code class="docutils literal notranslate"><span class="pre">places</span></code>, its values rounded to <code class="docutils literal notranslate"><span class="pre">decimals</span></code> places:</p>
 <ul class="simple">
@@ -1664,7 +1667,7 @@ coordinate in the order played, joined by <code class="docutils literal notransl
 <blockquote>
 <div><p><strong>groupScoped</strong>(<code class="docutils literal notranslate"><span class="pre">editing</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1356">arranger/src/coordinates.ts:1356</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1356">arranger/src/coordinates.ts:1356</a></p>
 <p>Whether a position read in the editor <code class="docutils literal notranslate"><span class="pre">editing</span></code> (the innermost open
 editor, <code class="docutils literal notranslate"><span class="pre">null</span></code> on the arranger) reads a group’s members with its timeline
 as a groupstamp would: above a timeline editor, never inside one, where it
@@ -1687,7 +1690,7 @@ stays on its timeline.</p>
 <blockquote>
 <div><p><strong>holdsAt</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">axis</span></code>, <code class="docutils literal notranslate"><span class="pre">at</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L752">arranger/src/coordinates.ts:752</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L752">arranger/src/coordinates.ts:752</a></p>
 <p>Whether the run <code class="docutils literal notranslate"><span class="pre">axis</span></code> of a line of <code class="docutils literal notranslate"><span class="pre">drawing</span></code> holds the position <code class="docutils literal notranslate"><span class="pre">at</span></code> of
 its timeline’s own axis (<code class="docutils literal notranslate"><span class="pre">docs/drawing.md</span></code> in TimeToShare, section 3.2,
 Seams): where another run of the line starts where <code class="docutils literal notranslate"><span class="pre">axis</span></code> ends, or ends
@@ -1724,7 +1727,7 @@ held.</p>
 <blockquote>
 <div><p><strong>lineAt</strong>(<code class="docutils literal notranslate"><span class="pre">axes</span></code>, <code class="docutils literal notranslate"><span class="pre">point</span></code>, <code class="docutils literal notranslate"><span class="pre">tolerance</span></code>, <code class="docutils literal notranslate"><span class="pre">covered?</span></code>): <a class="reference internal" href="#linehit"><code class="docutils literal notranslate"><span class="pre">LineHit</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L262">arranger/src/coordinates.ts:262</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L262">arranger/src/coordinates.ts:262</a></p>
 <p>The line <code class="docutils literal notranslate"><span class="pre">point</span></code> hovers among <code class="docutils literal notranslate"><span class="pre">axes</span></code> (<code class="docutils literal notranslate"><span class="pre">axesOf</span></code>), <code class="docutils literal notranslate"><span class="pre">tolerance</span></code> canvas units
 around: of every line whose zone holds the point (<code class="docutils literal notranslate"><span class="pre">zoneHit</span></code>) and that is
 not covered where the reading lands on it (<code class="docutils literal notranslate"><span class="pre">covered</span></code> at the abscissa
@@ -1761,7 +1764,7 @@ it, an earlier line on a tie; <code class="docutils literal notranslate"><span c
 <blockquote>
 <div><p><strong>linesOf</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">stacking</span></code>): <a class="reference internal" href="#holding"><code class="docutils literal notranslate"><span class="pre">Holding</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L591">arranger/src/coordinates.ts:591</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L591">arranger/src/coordinates.ts:591</a></p>
 <p>The lines of <code class="docutils literal notranslate"><span class="pre">drawing</span></code> the timeline <code class="docutils literal notranslate"><span class="pre">timeline</span></code> is drawn on, covered or
 not, without exception: every marked line of its own (<code class="docutils literal notranslate"><span class="pre">markedOf</span></code>, in any
 card, an ancestor card’s included), else every marked line whose segment
@@ -1795,7 +1798,7 @@ then an ancestor card’s below the frames), else in <code class="docutils liter
 <blockquote>
 <div><p><strong>namedPin</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">granularity</span></code>, <code class="docutils literal notranslate"><span class="pre">knots</span></code>, <code class="docutils literal notranslate"><span class="pre">raised</span></code>, <code class="docutils literal notranslate"><span class="pre">preferred</span></code>): <a class="reference internal" href="../tilie-core/maps/timestamp.html#pin"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Pin</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1078">arranger/src/coordinates.ts:1078</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1078">arranger/src/coordinates.ts:1078</a></p>
 <p>The pin of the named timestamp <code class="docutils literal notranslate"><span class="pre">id</span></code> of <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, block <code class="docutils literal notranslate"><span class="pre">block</span></code>’s,
 drawn as <code class="docutils literal notranslate"><span class="pre">drawing</span></code>: its timeline the anchor, at its coordinate, read with
 the cross-section of its timeline at its place there (<code class="docutils literal notranslate"><span class="pre">timelineSpec</span></code>,
@@ -1852,7 +1855,7 @@ where the manifest holds no timestamp <code class="docutils literal notranslate"
 <blockquote>
 <div><p><strong>pinnedPlace</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">pin</span></code>, <code class="docutils literal notranslate"><span class="pre">preferred</span></code>, <code class="docutils literal notranslate"><span class="pre">raised</span></code>): <a class="reference internal" href="#markplace"><code class="docutils literal notranslate"><span class="pre">MarkPlace</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L548">arranger/src/coordinates.ts:548</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L548">arranger/src/coordinates.ts:548</a></p>
 <p>Where the pinned timestamp <code class="docutils literal notranslate"><span class="pre">pin</span></code> is marked in <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, its block’s,
 <code class="docutils literal notranslate"><span class="pre">raised</span></code> naming the root whose ancestor cards are raised (<code class="docutils literal notranslate"><span class="pre">raisedRoot</span></code>),
 else <code class="docutils literal notranslate"><span class="pre">null</span></code>, across the group’s frame where the pin reads the group
@@ -1889,7 +1892,7 @@ else <code class="docutils literal notranslate"><span class="pre">null</span></c
 <blockquote>
 <div><p><strong>placeOf</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">raised</span></code>, <code class="docutils literal notranslate"><span class="pre">preferred</span></code>): <a class="reference internal" href="#place"><code class="docutils literal notranslate"><span class="pre">Place</span></code></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L810">arranger/src/coordinates.ts:810</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L810">arranger/src/coordinates.ts:810</a></p>
 <p>The place of the value <code class="docutils literal notranslate"><span class="pre">value</span></code> of the timeline <code class="docutils literal notranslate"><span class="pre">timeline</span></code> (<code class="docutils literal notranslate"><span class="pre">placesAt</span></code>)
 a reader takes: the one on the line keyed <code class="docutils literal notranslate"><span class="pre">preferred</span></code> (the line it was
 read on) while that line is one of its places, else the first;
@@ -1928,7 +1931,7 @@ read on) while that line is one of its places, else the first;
 <blockquote>
 <div><p><strong>placesAt</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">raised</span></code>): <a class="reference internal" href="#place"><code class="docutils literal notranslate"><span class="pre">Place</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L787">arranger/src/coordinates.ts:787</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L787">arranger/src/coordinates.ts:787</a></p>
 <p>The places of the value <code class="docutils literal notranslate"><span class="pre">value</span></code> (exact, on the timeline’s own axis) of
 the timeline <code class="docutils literal notranslate"><span class="pre">timeline</span></code> in <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">raised</span></code> naming the root whose
 ancestor cards are raised (<code class="docutils literal notranslate"><span class="pre">raisedRoot</span></code>), else <code class="docutils literal notranslate"><span class="pre">null</span></code>: of the parts of
@@ -1972,7 +1975,7 @@ value. The one place rule of a coordinate: screen order
 <blockquote>
 <div><p><strong>placeText</strong>(<code class="docutils literal notranslate"><span class="pre">timestamp</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1361">arranger/src/coordinates.ts:1361</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1361">arranger/src/coordinates.ts:1361</a></p>
 <p>Where a timestamp lies: its anchor’s name and pretty coordinate, as <code class="docutils literal notranslate"><span class="pre">Form</span> <span class="pre">at</span> <span class="pre">13</span> <span class="pre">1/2</span> <span class="pre">♩</span></code>.</p>
 <section id="id144">
 <h4>Parameters<a class="headerlink" href="#id144" title="Link to this heading">#</a></h4>
@@ -1992,7 +1995,7 @@ value. The one place rule of a coordinate: screen order
 <blockquote>
 <div><p><strong>readingAt</strong>(<code class="docutils literal notranslate"><span class="pre">nodes</span></code>, <code class="docutils literal notranslate"><span class="pre">point</span></code>, <code class="docutils literal notranslate"><span class="pre">options</span></code>): <a class="reference internal" href="#reading"><code class="docutils literal notranslate"><span class="pre">Reading</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1254">arranger/src/coordinates.ts:1254</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1254">arranger/src/coordinates.ts:1254</a></p>
 <p>The reading of the canvas point <code class="docutils literal notranslate"><span class="pre">point</span></code> over <code class="docutils literal notranslate"><span class="pre">nodes</span></code> at <code class="docutils literal notranslate"><span class="pre">zoom</span></code>, with
 <code class="docutils literal notranslate"><span class="pre">ratio</span></code> device pixels per CSS pixel: of every node whose drawing holds a
 line <code class="docutils literal notranslate"><span class="pre">point</span></code> hovers (<code class="docutils literal notranslate"><span class="pre">lineAt</span></code>, <code class="docutils literal notranslate"><span class="pre">HIT_TOLERANCE</span></code> device pixels around,
@@ -2056,7 +2059,7 @@ finite reads nothing.</p>
 <blockquote>
 <div><p><strong>readsGroup</strong>(<code class="docutils literal notranslate"><span class="pre">pin</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L514">arranger/src/coordinates.ts:514</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L514">arranger/src/coordinates.ts:514</a></p>
 <p>Whether the timestamp of <code class="docutils literal notranslate"><span class="pre">pin</span></code> is read across a group’s members, as a
 groupstamp’s is (<code class="docutils literal notranslate"><span class="pre">withGroupMembers</span></code>): some member is read by the group,
 scaled.</p>
@@ -2078,7 +2081,7 @@ scaled.</p>
 <blockquote>
 <div><p><strong>rereadPin</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">pin</span></code>, <code class="docutils literal notranslate"><span class="pre">groupstamp</span></code>, <code class="docutils literal notranslate"><span class="pre">raised</span></code>, <code class="docutils literal notranslate"><span class="pre">preferred</span></code>): <a class="reference internal" href="../tilie-core/maps/timestamp.html#pin"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Pin</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1042">arranger/src/coordinates.ts:1042</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1042">arranger/src/coordinates.ts:1042</a></p>
 <p>The unnamed pin <code class="docutils literal notranslate"><span class="pre">pin</span></code> of block <code class="docutils literal notranslate"><span class="pre">manifest</span></code>’s drawing <code class="docutils literal notranslate"><span class="pre">drawing</span></code> read again
 at its anchor’s timeline and position (<code class="docutils literal notranslate"><span class="pre">timelinePin</span></code>), as a fresh reading
 there reads it once the open editor changes: under the root raised now
@@ -2125,7 +2128,7 @@ place; <code class="docutils literal notranslate"><span class="pre">null</span><
 <blockquote>
 <div><p><strong>rowOf</strong>(<code class="docutils literal notranslate"><span class="pre">hit</span></code>): <a class="reference internal" href="../tilie-core/maps/timestamp.html#row"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Row</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L278">arranger/src/coordinates.ts:278</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L278">arranger/src/coordinates.ts:278</a></p>
 <p>The row a hit hovers: the line’s timeline’s coordinate, or the hovered map of the timeline owning it.</p>
 <section id="id161">
 <h4>Parameters<a class="headerlink" href="#id161" title="Link to this heading">#</a></h4>
@@ -2145,7 +2148,7 @@ place; <code class="docutils literal notranslate"><span class="pre">null</span><
 <blockquote>
 <div><p><strong>rowValueText</strong>(<code class="docutils literal notranslate"><span class="pre">row</span></code>, <code class="docutils literal notranslate"><span class="pre">decimals</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1388">arranger/src/coordinates.ts:1388</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1388">arranger/src/coordinates.ts:1388</a></p>
 <p>The value of one row of a timestamp as the flag writes it, rounded to
 <code class="docutils literal notranslate"><span class="pre">decimals</span></code> places; a row that gives none says why, in core’s words.</p>
 <section id="id164">
@@ -2170,7 +2173,7 @@ place; <code class="docutils literal notranslate"><span class="pre">null</span><
 <blockquote>
 <div><p><strong>seenOn</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">raised</span></code>): readonly <a class="reference internal" href="#seenholding"><code class="docutils literal notranslate"><span class="pre">SeenHolding</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L642">arranger/src/coordinates.ts:642</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L642">arranger/src/coordinates.ts:642</a></p>
 <p>Where the timeline <code class="docutils literal notranslate"><span class="pre">timeline</span></code> is seen on the lines of <code class="docutils literal notranslate"><span class="pre">drawing</span></code> it is
 drawn on (<code class="docutils literal notranslate"><span class="pre">linesOf</span></code>), <code class="docutils literal notranslate"><span class="pre">raised</span></code> naming the root whose ancestor cards are
 raised (<code class="docutils literal notranslate"><span class="pre">raisedRoot</span></code>), else <code class="docutils literal notranslate"><span class="pre">null</span></code>: each line cut at the left and right
@@ -2208,7 +2211,7 @@ of a coordinate’s place takes it from them (<code class="docutils literal notr
 <blockquote>
 <div><p><strong>timelinePin</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">position</span></code>, <code class="docutils literal notranslate"><span class="pre">granularity</span></code>, <code class="docutils literal notranslate"><span class="pre">knots</span></code>, <code class="docutils literal notranslate"><span class="pre">groupstamp</span></code>, <code class="docutils literal notranslate"><span class="pre">raised</span></code>, <code class="docutils literal notranslate"><span class="pre">preferred</span></code>): <a class="reference internal" href="../tilie-core/maps/timestamp.html#pin"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Pin</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1003">arranger/src/coordinates.ts:1003</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1003">arranger/src/coordinates.ts:1003</a></p>
 <p>The pin of the position <code class="docutils literal notranslate"><span class="pre">position</span></code> (exact, on the timeline’s own axis)
 of the timeline <code class="docutils literal notranslate"><span class="pre">timeline</span></code> of <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, block <code class="docutils literal notranslate"><span class="pre">block</span></code>’s, drawn as
 <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, read with the spec <code class="docutils literal notranslate"><span class="pre">namedPin</span></code> reads a named timestamp there
@@ -2277,7 +2280,7 @@ place’s line preferred, it lists the rows a reading there lists.</p>
 <blockquote>
 <div><p><strong>virtualCards</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">places</span></code>): <a class="reference internal" href="#virtualcard"><code class="docutils literal notranslate"><span class="pre">VirtualCard</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/coordinates.ts#L1565">arranger/src/coordinates.ts:1565</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/coordinates.ts#L1565">arranger/src/coordinates.ts:1565</a></p>
 <p>The cards of virtual timelines <code class="docutils literal notranslate"><span class="pre">manifest</span></code> draws at <code class="docutils literal notranslate"><span class="pre">places</span></code>, in the order
 the block draws them (section 8.1): the virtual members of each frame in
 its display order, frame by frame in the canonical order of their groups,

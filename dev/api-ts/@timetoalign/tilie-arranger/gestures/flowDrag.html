@@ -416,6 +416,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../containers.html">containers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../coordinates.html">coordinates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../edgeValues.html">edgeValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editors.html">editors</a></li>
@@ -436,7 +437,9 @@
 <li class="toctree-l2"><a class="reference internal" href="held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="host.html">gestures/host</a></li>
 <li class="toctree-l2"><a class="reference internal" href="item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="region.html">gestures/region</a></li>
 <li class="toctree-l2"><a class="reference internal" href="resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="travel.html">gestures/travel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="wheel.html">gestures/wheel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../index-1.html">index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../items.html">items</a></li>
@@ -532,7 +535,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="flowdraghandlers">
 <h3>FlowDragHandlers<a class="headerlink" href="#flowdraghandlers" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L106">arranger/src/gestures/flowDrag.ts:106</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L106">arranger/src/gestures/flowDrag.ts:106</a></p>
 <p>What a drag does from the press it was started with.</p>
 <section id="methods">
 <h4>Methods<a class="headerlink" href="#methods" title="Link to this heading">#</a></h4>
@@ -541,7 +544,7 @@
 <blockquote>
 <div><p><strong>abort</strong>(): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L114">arranger/src/gestures/flowDrag.ts:114</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L114">arranger/src/gestures/flowDrag.ts:114</a></p>
 <p>Ended without a drop: Escape or a cancelled pointer.</p>
 <section id="returns">
 <h6>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h6>
@@ -553,7 +556,7 @@
 <blockquote>
 <div><p><strong>drop</strong>(<code class="docutils literal notranslate"><span class="pre">at</span></code>, <code class="docutils literal notranslate"><span class="pre">alt</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L112">arranger/src/gestures/flowDrag.ts:112</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L112">arranger/src/gestures/flowDrag.ts:112</a></p>
 <p>Released at <code class="docutils literal notranslate"><span class="pre">at</span></code>, with Alt held (<code class="docutils literal notranslate"><span class="pre">alt</span></code>: a copy) or not.</p>
 <section id="parameters">
 <h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
@@ -576,7 +579,7 @@
 <blockquote>
 <div><p><strong>move</strong>(<code class="docutils literal notranslate"><span class="pre">at</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L110">arranger/src/gestures/flowDrag.ts:110</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L110">arranger/src/gestures/flowDrag.ts:110</a></p>
 <p>The pointer is at <code class="docutils literal notranslate"><span class="pre">at</span></code> (client pixels).</p>
 <section id="id2">
 <h6>Parameters<a class="headerlink" href="#id2" title="Link to this heading">#</a></h6>
@@ -595,7 +598,7 @@
 <blockquote>
 <div><p><strong>start</strong>(<code class="docutils literal notranslate"><span class="pre">at</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L108">arranger/src/gestures/flowDrag.ts:108</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L108">arranger/src/gestures/flowDrag.ts:108</a></p>
 <p>The press has become a drag: past the click distance, once.</p>
 <section id="id5">
 <h6>Parameters<a class="headerlink" href="#id5" title="Link to this heading">#</a></h6>
@@ -614,7 +617,7 @@
 <hr class="docutils" />
 <section id="screenrect">
 <h3>ScreenRect<a class="headerlink" href="#screenrect" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L25">arranger/src/gestures/flowDrag.ts:25</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L25">arranger/src/gestures/flowDrag.ts:25</a></p>
 <p>A rectangle in screen pixels.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -623,28 +626,28 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>bottom</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L29">arranger/src/gestures/flowDrag.ts:29</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L29">arranger/src/gestures/flowDrag.ts:29</a></p>
 </section>
 <section id="left">
 <h5>left<a class="headerlink" href="#left" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>left</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L26">arranger/src/gestures/flowDrag.ts:26</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L26">arranger/src/gestures/flowDrag.ts:26</a></p>
 </section>
 <section id="right">
 <h5>right<a class="headerlink" href="#right" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>right</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L28">arranger/src/gestures/flowDrag.ts:28</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L28">arranger/src/gestures/flowDrag.ts:28</a></p>
 </section>
 <section id="top">
 <h5>top<a class="headerlink" href="#top" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>top</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L27">arranger/src/gestures/flowDrag.ts:27</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L27">arranger/src/gestures/flowDrag.ts:27</a></p>
 </section>
 </section>
 </section>
@@ -656,7 +659,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>FADE_DISTANCE</strong>: <code class="docutils literal notranslate"><span class="pre">96</span></code> = <code class="docutils literal notranslate"><span class="pre">96</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L16">arranger/src/gestures/flowDrag.ts:16</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L16">arranger/src/gestures/flowDrag.ts:16</a></p>
 <p>How far inside the editor’s border, in screen pixels, the twin fades to its faintest.</p>
 </section>
 <hr class="docutils" />
@@ -665,7 +668,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>FLY_DURATION</strong>: <code class="docutils literal notranslate"><span class="pre">200</span></code> = <code class="docutils literal notranslate"><span class="pre">200</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L22">arranger/src/gestures/flowDrag.ts:22</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L22">arranger/src/gestures/flowDrag.ts:22</a></p>
 <p>How long, in milliseconds, a twin released inside the editor flies back to where it was lifted.</p>
 </section>
 <hr class="docutils" />
@@ -674,7 +677,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>MIN_TWIN_OPACITY</strong>: <code class="docutils literal notranslate"><span class="pre">0.2</span></code> = <code class="docutils literal notranslate"><span class="pre">0.2</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L19">arranger/src/gestures/flowDrag.ts:19</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L19">arranger/src/gestures/flowDrag.ts:19</a></p>
 <p>The twin’s opacity deep inside the editor.</p>
 </section>
 </section>
@@ -685,7 +688,7 @@
 <blockquote>
 <div><p><strong>dropAt</strong>(<code class="docutils literal notranslate"><span class="pre">point</span></code>, <code class="docutils literal notranslate"><span class="pre">editor</span></code>, <code class="docutils literal notranslate"><span class="pre">draft</span></code>, <code class="docutils literal notranslate"><span class="pre">row</span></code>): <code class="docutils literal notranslate"><span class="pre">&quot;back&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;canvas&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;draft&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L94">arranger/src/gestures/flowDrag.ts:94</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L94">arranger/src/gestures/flowDrag.ts:94</a></p>
 <p>Where a drag released at <code class="docutils literal notranslate"><span class="pre">point</span></code> lands: on the new FlowMap’s row
 (<code class="docutils literal notranslate"><span class="pre">draft</span></code>, when one is open) it inserts; inside the editor (<code class="docutils literal notranslate"><span class="pre">editor</span></code>, the
 card and the pane) the twin flies back and nothing is stored; beyond the
@@ -720,7 +723,7 @@ editor’s border a row becomes a card, anything else flies back.</p>
 <blockquote>
 <div><p><strong>dropIndex</strong>(<code class="docutils literal notranslate"><span class="pre">spans</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">count</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L74">arranger/src/gestures/flowDrag.ts:74</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L74">arranger/src/gestures/flowDrag.ts:74</a></p>
 <p>Where on a row the pointer at abscissa <code class="docutils literal notranslate"><span class="pre">x</span></code> inserts, <code class="docutils literal notranslate"><span class="pre">spans</span></code> its drawn
 entries in order (each <code class="docutils literal notranslate"><span class="pre">index</span></code> to <code class="docutils literal notranslate"><span class="pre">last</span></code> drawn once) and <code class="docutils literal notranslate"><span class="pre">count</span></code> its
 entries: before the first drawn entry whose middle lies right of <code class="docutils literal notranslate"><span class="pre">x</span></code>,
@@ -751,7 +754,7 @@ else at the end.</p>
 <blockquote>
 <div><p><strong>followDrag</strong>(<code class="docutils literal notranslate"><span class="pre">event</span></code>, <code class="docutils literal notranslate"><span class="pre">handlers</span></code>, <code class="docutils literal notranslate"><span class="pre">slot?</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L124">arranger/src/gestures/flowDrag.ts:124</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L124">arranger/src/gestures/flowDrag.ts:124</a></p>
 <p>Follow the press <code class="docutils literal notranslate"><span class="pre">event</span></code> on its window until its release: the handlers
 hear the start past the click distance, every move, and the drop or the
 abort. The drag is held in <code class="docutils literal notranslate"><span class="pre">slot</span></code> while under way, so Escape ends it.</p>
@@ -781,7 +784,7 @@ abort. The drag is held in <code class="docutils literal notranslate"><span clas
 <blockquote>
 <div><p><strong>holds</strong>(<code class="docutils literal notranslate"><span class="pre">rect</span></code>, <code class="docutils literal notranslate"><span class="pre">point</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L84">arranger/src/gestures/flowDrag.ts:84</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L84">arranger/src/gestures/flowDrag.ts:84</a></p>
 <p>Whether <code class="docutils literal notranslate"><span class="pre">point</span></code> lies in <code class="docutils literal notranslate"><span class="pre">rect</span></code>, its edges included.</p>
 <section id="id14">
 <h4>Parameters<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
@@ -805,7 +808,7 @@ abort. The drag is held in <code class="docutils literal notranslate"><span clas
 <blockquote>
 <div><p><strong>insideDistance</strong>(<code class="docutils literal notranslate"><span class="pre">rect</span></code>, <code class="docutils literal notranslate"><span class="pre">point</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L47">arranger/src/gestures/flowDrag.ts:47</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L47">arranger/src/gestures/flowDrag.ts:47</a></p>
 <p>How far <code class="docutils literal notranslate"><span class="pre">point</span></code> lies inside <code class="docutils literal notranslate"><span class="pre">rect</span></code>, from its nearest edge: positive
 inside, 0 on the border, negative outside (the distance to the nearest
 edge it lies beyond, taken as the largest of the overshoots).</p>
@@ -831,7 +834,7 @@ edge it lies beyond, taken as the largest of the overshoots).</p>
 <blockquote>
 <div><p><strong>twinOpacity</strong>(<code class="docutils literal notranslate"><span class="pre">distance</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L63">arranger/src/gestures/flowDrag.ts:63</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L63">arranger/src/gestures/flowDrag.ts:63</a></p>
 <p>The twin’s opacity with the pointer <code class="docutils literal notranslate"><span class="pre">distance</span></code> screen pixels inside the
 editor’s border (<code class="docutils literal notranslate"><span class="pre">insideDistance</span></code>): 1 on and beyond the border, so a row
 carried out is shown as the card it will become; inside, it fades
@@ -855,7 +858,7 @@ stays there deeper in: <code class="docutils literal notranslate"><span class="p
 <blockquote>
 <div><p><strong>unionRect</strong>(<code class="docutils literal notranslate"><span class="pre">left</span></code>, <code class="docutils literal notranslate"><span class="pre">right</span></code>): <a class="reference internal" href="#screenrect"><code class="docutils literal notranslate"><span class="pre">ScreenRect</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/flowDrag.ts#L33">arranger/src/gestures/flowDrag.ts:33</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/flowDrag.ts#L33">arranger/src/gestures/flowDrag.ts:33</a></p>
 <p>The smallest rectangle holding both.</p>
 <section id="id23">
 <h4>Parameters<a class="headerlink" href="#id23" title="Link to this heading">#</a></h4>

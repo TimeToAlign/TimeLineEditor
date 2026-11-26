@@ -416,6 +416,7 @@
 <li class="toctree-l2"><a class="reference internal" href="containers.html">containers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coordinates.html">coordinates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="edgeValues.html">edgeValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
@@ -436,7 +437,9 @@
 <li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/region.html">gestures/region</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/travel.html">gestures/travel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/wheel.html">gestures/wheel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index-1.html">index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="items.html">items</a></li>
@@ -532,7 +535,7 @@
 <h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
 <section id="switchmotion">
 <h3>SwitchMotion<a class="headerlink" href="#switchmotion" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowSwitchMotion.svelte.ts#L31">arranger/src/flowSwitchMotion.svelte.ts:31</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowSwitchMotion.svelte.ts#L31">arranger/src/flowSwitchMotion.svelte.ts:31</a></p>
 <p>Follows a block’s drawing (<code class="docutils literal notranslate"><span class="pre">drawn</span></code>) as <code class="docutils literal notranslate"><span class="pre">CardMotions</span></code> does: each new drawing
 whose cards became switched moves their chunks over the canvas’s motion
 duration. Made while a component is initialised; its motion stops when the
@@ -544,7 +547,7 @@ component is destroyed.</p>
 <blockquote>
 <div><p><strong>new SwitchMotion</strong>(<code class="docutils literal notranslate"><span class="pre">drawn</span></code>, <code class="docutils literal notranslate"><span class="pre">reduced</span></code>, <code class="docutils literal notranslate"><span class="pre">still</span></code>): <a class="reference internal" href="#switchmotion"><code class="docutils literal notranslate"><span class="pre">SwitchMotion</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowSwitchMotion.svelte.ts#L37">arranger/src/flowSwitchMotion.svelte.ts:37</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowSwitchMotion.svelte.ts#L37">arranger/src/flowSwitchMotion.svelte.ts:37</a></p>
 <section id="parameters">
 <h6>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h6>
 </section>
@@ -573,7 +576,7 @@ component is destroyed.</p>
 <blockquote>
 <div><p><strong>transformOf</strong>(<code class="docutils literal notranslate"><span class="pre">element</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowSwitchMotion.svelte.ts#L59">arranger/src/flowSwitchMotion.svelte.ts:59</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowSwitchMotion.svelte.ts#L59">arranger/src/flowSwitchMotion.svelte.ts:59</a></p>
 <p>The <code class="docutils literal notranslate"><span class="pre">transform</span></code> of the element at <code class="docutils literal notranslate"><span class="pre">element</span></code> of the drawing shown, a text or not; <code class="docutils literal notranslate"><span class="pre">null</span></code> at rest.</p>
 <section id="id1">
 <h6>Parameters<a class="headerlink" href="#id1" title="Link to this heading">#</a></h6>
@@ -598,7 +601,7 @@ component is destroyed.</p>
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="switched">
 <h3>Switched<a class="headerlink" href="#switched" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowSwitchMotion.svelte.ts#L20">arranger/src/flowSwitchMotion.svelte.ts:20</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowSwitchMotion.svelte.ts#L20">arranger/src/flowSwitchMotion.svelte.ts:20</a></p>
 <p>What a block’s motion follows: its manifest and its drawing.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -607,14 +610,14 @@ component is destroyed.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>drawing</strong>: <a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowSwitchMotion.svelte.ts#L22">arranger/src/flowSwitchMotion.svelte.ts:22</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowSwitchMotion.svelte.ts#L22">arranger/src/flowSwitchMotion.svelte.ts:22</a></p>
 </section>
 <section id="manifest">
 <h5>manifest<a class="headerlink" href="#manifest" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>manifest</strong>: <a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/flowSwitchMotion.svelte.ts#L21">arranger/src/flowSwitchMotion.svelte.ts:21</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/flowSwitchMotion.svelte.ts#L21">arranger/src/flowSwitchMotion.svelte.ts:21</a></p>
 </section>
 </section>
 </section>

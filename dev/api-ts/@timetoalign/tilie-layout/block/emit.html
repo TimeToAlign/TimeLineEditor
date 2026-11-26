@@ -514,7 +514,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="blockcontent">
 <h3>BlockContent<a class="headerlink" href="#blockcontent" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/block/emit.ts#L26">layout/src/block/emit.ts:26</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/block/emit.ts#L26">layout/src/block/emit.ts:26</a></p>
 <p>What the block holds besides its items: its style, its drawn title and the title’s slot <code class="docutils literal notranslate"><span class="pre">Pt</span></code>.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
@@ -523,7 +523,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>after</strong>: (<code class="docutils literal notranslate"><span class="pre">axes</span></code>, <code class="docutils literal notranslate"><span class="pre">boxes</span></code>) =&gt; readonly <a class="reference internal" href="../elements.html#drawnelement"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnElement</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/block/emit.ts#L43">layout/src/block/emit.ts:43</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/block/emit.ts#L43">layout/src/block/emit.ts:43</a></p>
 <p>The elements drawn after every item (section 8.7), from the drawn lines and boxes in the
 block’s coordinates: the groupstamps’ lines across their groups’ frames, then the alignment
 anchors and their labels, none of which take room.</p>
@@ -548,7 +548,7 @@ anchors and their labels, none of which take room.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>ancestors</strong>: readonly <a class="reference internal" href="ancestors.html#laidancestorcard"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">LaidAncestorCard</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/block/emit.ts#L37">layout/src/block/emit.ts:37</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/block/emit.ts#L37">layout/src/block/emit.ts:37</a></p>
 <p>The displayed ancestor cards (section 8.8), drawn before every item.</p>
 </section>
 <section id="margin">
@@ -556,7 +556,7 @@ anchors and their labels, none of which take room.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>margin</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/block/emit.ts#L35">layout/src/block/emit.ts:35</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/block/emit.ts#L35">layout/src/block/emit.ts:35</a></p>
 <p>The block’s margin <code class="docutils literal notranslate"><span class="pre">Vb</span></code>, again below its lowest item.</p>
 </section>
 <section id="pt">
@@ -564,7 +564,7 @@ anchors and their labels, none of which take room.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>Pt</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/block/emit.ts#L33">layout/src/block/emit.ts:33</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/block/emit.ts#L33">layout/src/block/emit.ts:33</a></p>
 <p>No item rises above <code class="docutils literal notranslate"><span class="pre">Pt</span></code> below the block’s top edge: the title’s slot and <code class="docutils literal notranslate"><span class="pre">F</span></code>, else <code class="docutils literal notranslate"><span class="pre">P</span></code>, and
 the block’s margin.</p>
 </section>
@@ -573,14 +573,14 @@ the block’s margin.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>style</strong>: <a class="reference internal" href="../cascade.html#style"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Style</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/block/emit.ts#L27">layout/src/block/emit.ts:27</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/block/emit.ts#L27">layout/src/block/emit.ts:27</a></p>
 </section>
 <section id="title">
 <h5>title<a class="headerlink" href="#title" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>title</strong>: <a class="reference internal" href="places.html#id13"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Title</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/block/emit.ts#L28">layout/src/block/emit.ts:28</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/block/emit.ts#L28">layout/src/block/emit.ts:28</a></p>
 </section>
 </section>
 </section>
@@ -592,7 +592,7 @@ the block’s margin.</p>
 <blockquote>
 <div><p><strong>emitDrawing</strong>(<code class="docutils literal notranslate"><span class="pre">laid</span></code>, <code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">placement</span></code>, <code class="docutils literal notranslate"><span class="pre">measure</span></code>): <a class="reference internal" href="../elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/block/emit.ts#L63">layout/src/block/emit.ts:63</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/block/emit.ts#L63">layout/src/block/emit.ts:63</a></p>
 <p>The drawing of the items <code class="docutils literal notranslate"><span class="pre">laid</span></code> in a block (section 8.4). The block grows left
 and up to hold every item with the padding <code class="docutils literal notranslate"><span class="pre">P</span></code> and the title’s slot above
 them, so the place origin lies at <code class="docutils literal notranslate"><span class="pre">(Ox,</span> <span class="pre">Oy)</span></code> in the block; its content runs

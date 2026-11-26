@@ -442,6 +442,7 @@
 <li class="toctree-l2"><a class="reference internal" href="stamps/settlements.svelte.html">inspector/stamps/settlements.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tabs.html">inspector/tabs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="textPlace.html">inspector/textPlace</a></li>
+<li class="toctree-l2"><a class="reference internal" href="timelineList.html">inspector/timelineList</a></li>
 <li class="toctree-l2"><a class="reference internal" href="timestamp.html">inspector/timestamp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="toml.html">inspector/toml</a></li>
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">inspector/words</a></li>
@@ -543,7 +544,7 @@
 <blockquote>
 <div><p><strong>bandWord</strong>(<code class="docutils literal notranslate"><span class="pre">facet</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/editor/src/inspector/words.ts#L42">editor/src/inspector/words.ts:42</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/editor/src/inspector/words.ts#L43">editor/src/inspector/words.ts:43</a></p>
 <p>The word of a band’s facet, capitalised: <code class="docutils literal notranslate"><span class="pre">Markers</span></code>, <code class="docutils literal notranslate"><span class="pre">Conversion</span> <span class="pre">maps</span></code>, …</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
@@ -563,7 +564,7 @@
 <blockquote>
 <div><p><strong>editorName</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">target</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/editor/src/inspector/words.ts#L56">editor/src/inspector/words.ts:56</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/editor/src/inspector/words.ts#L57">editor/src/inspector/words.ts:57</a></p>
 <p>The name an editor’s target goes by: a bundle’s manifest <code class="docutils literal notranslate"><span class="pre">name</span></code>, else its
 <code class="docutils literal notranslate"><span class="pre">id</span></code>, else “Anonymous bundle”; a group’s or timeline’s <code class="docutils literal notranslate"><span class="pre">name</span></code>, else its
 id. A target the view does not hold goes by its address’s words
@@ -585,12 +586,45 @@ id. A target the view does not hold goes by its address’s words
 </section>
 </section>
 <hr class="docutils" />
+<section id="editortitle">
+<h3>editorTitle()<a class="headerlink" href="#editortitle" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>editorTitle</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">editor</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/editor/src/inspector/words.ts#L96">editor/src/inspector/words.ts:96</a></p>
+<p>The name of the open editor <code class="docutils literal notranslate"><span class="pre">editor</span></code> in the editing path and on the Edit
+button: a flow-control editor’s <code class="docutils literal notranslate"><span class="pre">Flow</span> <span class="pre">control</span> <span class="pre">of</span></code> the name its root goes
+by, any other the name its target goes by (<code class="docutils literal notranslate"><span class="pre">editorName</span></code>).</p>
+<section id="id3">
+<h4>Parameters<a class="headerlink" href="#id3" title="Link to this heading">#</a></h4>
+<section id="id4">
+<h5>view<a class="headerlink" href="#id4" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</section>
+<section id="editor">
+<h5>editor<a class="headerlink" href="#editor" title="Link to this heading">#</a></h5>
+<section id="kind">
+<h6>kind?<a class="headerlink" href="#kind" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="../../tilie-core/workspace/sessions.html#editorkind"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">EditorKind</span></code></span></a></p>
+</section>
+<section id="id5">
+<h6>target<a class="headerlink" href="#id5" title="Link to this heading">#</a></h6>
+<p><a class="reference internal" href="../../tilie-core/workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a></p>
+</section>
+</section>
+</section>
+<section id="id6">
+<h4>Returns<a class="headerlink" href="#id6" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
 <section id="inspectedsubject">
 <h3>inspectedSubject()<a class="headerlink" href="#inspectedsubject" title="Link to this heading">#</a></h3>
 <blockquote>
 <div><p><strong>inspectedSubject</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">selection</span></code>): <code class="docutils literal notranslate"><span class="pre">InspectedSubject</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/editor/src/inspector/words.ts#L237">editor/src/inspector/words.ts:237</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/editor/src/inspector/words.ts#L251">editor/src/inspector/words.ts:251</a></p>
 <p>The subject the selection names: for one address, what core resolves it
 to (the bundle, a group, a measure map, a timeline, a conversion map, a
 region, a jump, a jump target, a break, a section break, a barline, a timestamp, a
@@ -598,10 +632,10 @@ MatchStamp, an alignment anchor, a FlowMap or a virtual timeline), each part the
 address appends prefixed (<code class="docutils literal notranslate"><span class="pre">Card</span> <span class="pre">of</span> <span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">Coordinate</span> <span class="pre">of</span> <span class="pre">timestamp</span></code>, <code class="docutils literal notranslate"><span class="pre">Regions</span> <span class="pre">band</span> <span class="pre">of</span> <span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">Chunk</span> <span class="pre">3</span> <span class="pre">of</span> <span class="pre">virtual</span> <span class="pre">timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">Label</span> <span class="pre">of</span> <span class="pre">chunk</span> <span class="pre">3</span> <span class="pre">of</span> <span class="pre">virtual</span> <span class="pre">timeline</span></code>); for
 several addresses their count; <code class="docutils literal notranslate"><span class="pre">null</span></code> for no selection or an address
 naming nothing.</p>
-<section id="id3">
-<h4>Parameters<a class="headerlink" href="#id3" title="Link to this heading">#</a></h4>
-<section id="id4">
-<h5>view<a class="headerlink" href="#id4" title="Link to this heading">#</a></h5>
+<section id="id7">
+<h4>Parameters<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>
+<section id="id8">
+<h5>view<a class="headerlink" href="#id8" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </section>
 <section id="selection">
@@ -609,8 +643,8 @@ naming nothing.</p>
 <p><a class="reference internal" href="../../tilie-arranger/selection.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Selection</span></code></span></a></p>
 </section>
 </section>
-<section id="id5">
-<h4>Returns<a class="headerlink" href="#id5" title="Link to this heading">#</a></h4>
+<section id="id9">
+<h4>Returns<a class="headerlink" href="#id9" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">InspectedSubject</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
 </section>
@@ -620,14 +654,14 @@ naming nothing.</p>
 <blockquote>
 <div><p><strong>levelTitle</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">innermost</span></code>): <code class="docutils literal notranslate"><span class="pre">LevelTitle</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/editor/src/inspector/words.ts#L102">editor/src/inspector/words.ts:102</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/editor/src/inspector/words.ts#L116">editor/src/inspector/words.ts:116</a></p>
 <p>The title of the level whose innermost open editor is <code class="docutils literal notranslate"><span class="pre">innermost</span></code>: at
 the top level (<code class="docutils literal notranslate"><span class="pre">undefined</span></code>) “Arranger” and the workspace’s name, in an
 editor its kind’s word and the name its target goes by (<code class="docutils literal notranslate"><span class="pre">editorName</span></code>).</p>
-<section id="id6">
-<h4>Parameters<a class="headerlink" href="#id6" title="Link to this heading">#</a></h4>
-<section id="id7">
-<h5>view<a class="headerlink" href="#id7" title="Link to this heading">#</a></h5>
+<section id="id10">
+<h4>Parameters<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
+<section id="id11">
+<h5>view<a class="headerlink" href="#id11" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </section>
 <section id="innermost">
@@ -635,8 +669,8 @@ editor its kind’s word and the name its target goes by (<code class="docutils 
 <p><a class="reference internal" href="../../tilie-core/workspace/sessions.html#openeditor"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">OpenEditor</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </section>
 </section>
-<section id="id8">
-<h4>Returns<a class="headerlink" href="#id8" title="Link to this heading">#</a></h4>
+<section id="id12">
+<h4>Returns<a class="headerlink" href="#id12" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">LevelTitle</span></code></p>
 </section>
 </section>
@@ -646,17 +680,17 @@ editor its kind’s word and the name its target goes by (<code class="docutils 
 <blockquote>
 <div><p><strong>levelWord</strong>(<code class="docutils literal notranslate"><span class="pre">level</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/editor/src/inspector/words.ts#L37">editor/src/inspector/words.ts:37</a></p>
-<p>The word of a level, capitalised: <code class="docutils literal notranslate"><span class="pre">Arranger</span></code>, <code class="docutils literal notranslate"><span class="pre">Bundle</span></code>, <code class="docutils literal notranslate"><span class="pre">Group</span></code>, <code class="docutils literal notranslate"><span class="pre">Timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">Flow</span></code>.</p>
-<section id="id9">
-<h4>Parameters<a class="headerlink" href="#id9" title="Link to this heading">#</a></h4>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/editor/src/inspector/words.ts#L38">editor/src/inspector/words.ts:38</a></p>
+<p>The word of a level, capitalised: <code class="docutils literal notranslate"><span class="pre">Arranger</span></code>, <code class="docutils literal notranslate"><span class="pre">Bundle</span></code>, <code class="docutils literal notranslate"><span class="pre">Group</span></code>, <code class="docutils literal notranslate"><span class="pre">Timeline</span></code>, <code class="docutils literal notranslate"><span class="pre">Flow</span> <span class="pre">control</span></code>.</p>
+<section id="id13">
+<h4>Parameters<a class="headerlink" href="#id13" title="Link to this heading">#</a></h4>
 <section id="level">
 <h5>level<a class="headerlink" href="#level" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../../tilie-arranger/containers.html#level"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Level</span></code></span></a></p>
 </section>
 </section>
-<section id="id10">
-<h4>Returns<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
+<section id="id14">
+<h4>Returns<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 </section>
@@ -728,30 +762,43 @@ editor its kind’s word and the name its target goes by (<code class="docutils 
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#inspectedsubject">inspectedSubject()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editortitle">editorTitle()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">view</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#editor">editor</a><ul class="nav section-nav flex-column">
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#kind">kind?</a></li>
+<li class="toc-h6 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">target</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#inspectedsubject">inspectedSubject()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">view</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#selection">selection</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#leveltitle">levelTitle()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">view</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">view</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#innermost">innermost</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Returns</a></li>
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#levelword">levelWord()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#level">level</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">Returns</a></li>
 </ul>
 </li>
 </ul>

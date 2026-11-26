@@ -605,7 +605,7 @@ rectangle and the range of elements it drew; the arranger and the editor
 read that list and derive nothing from element order;</p></li>
 <li><p>the arranger’s level table (<code class="docutils literal notranslate"><span class="pre">containers.ts</span></code>) says, per level of the
 canvas (the arranger, the bundle editor, the group editor, the timeline
-editor, the flow editor), what may be moved, reordered, resized, removed and opened, and
+editor, the flow-control editor), what may be moved, reordered, resized, removed and opened, and
 how each kind of box resizes.</p></li>
 </ul>
 <p>“Item” is a role (a frame or a block-held card is placed freely in the
@@ -662,7 +662,9 @@ through the element holding it, by one <code class="docutils literal notranslate
 <ol class="arabic simple">
 <li><p><strong>A gesture or a form edit</strong> in the arranger or the inspector builds one
 command: <code class="docutils literal notranslate"><span class="pre">add</span></code>, <code class="docutils literal notranslate"><span class="pre">set</span></code>, <code class="docutils literal notranslate"><span class="pre">remove</span></code> or <code class="docutils literal notranslate"><span class="pre">style</span></code>, aimed at addresses. One
-completed gesture is one command; a preview shows
+completed gesture is one command; a choice that needs several (a
+frame’s flow switch) goes through <code class="docutils literal notranslate"><span class="pre">Store.edit</span></code>, which makes them in the
+editor of their target as one closed session, so one undo step. A preview shows
 <code class="docutils literal notranslate"><span class="pre">drawingOf(preview(view,</span> <span class="pre">command))</span></code>, the command applied without the
 schema check, so a preview can never differ from what the release stores.</p></li>
 <li><p><strong>The store</strong> parses the command, applies it through the pure reducer

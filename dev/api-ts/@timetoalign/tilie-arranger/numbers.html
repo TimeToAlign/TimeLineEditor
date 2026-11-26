@@ -416,6 +416,7 @@
 <li class="toctree-l2"><a class="reference internal" href="containers.html">containers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coordinates.html">coordinates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="edgeValues.html">edgeValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
@@ -436,7 +437,9 @@
 <li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/region.html">gestures/region</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/travel.html">gestures/travel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/wheel.html">gestures/wheel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index-1.html">index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="items.html">items</a></li>
@@ -535,7 +538,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>GRID_FREE</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/numbers.ts#L5">arranger/src/numbers.ts:5</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/numbers.ts#L5">arranger/src/numbers.ts:5</a></p>
 <p>The step of a canvas number when the grid does not snap: 1/2048 unit, the font’s
 units per em, so text-derived edges at scale 1 are stored exactly.</p>
 </section>
@@ -545,7 +548,7 @@ units per em, so text-derived edges at scale 1 are stored exactly.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>MIN_LENGTH</strong>: <code class="docutils literal notranslate"><span class="pre">8</span></code> = <code class="docutils literal notranslate"><span class="pre">8</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/numbers.ts#L9">arranger/src/numbers.ts:9</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/numbers.ts#L9">arranger/src/numbers.ts:9</a></p>
 <p>The smallest graphical length a resize gives a block’s root.</p>
 </section>
 <hr class="docutils" />
@@ -554,7 +557,7 @@ units per em, so text-derived edges at scale 1 are stored exactly.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>MIN_SCALE</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/numbers.ts#L7">arranger/src/numbers.ts:7</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/numbers.ts#L7">arranger/src/numbers.ts:7</a></p>
 <p>The smallest scale a resize gives a block.</p>
 </section>
 </section>
@@ -565,7 +568,7 @@ units per em, so text-derived edges at scale 1 are stored exactly.</p>
 <blockquote>
 <div><p><strong>positionStep</strong>(<code class="docutils literal notranslate"><span class="pre">grid</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/numbers.ts#L20">arranger/src/numbers.ts:20</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/numbers.ts#L20">arranger/src/numbers.ts:20</a></p>
 <p>The step of positions under a grid: its size when it snaps, otherwise <code class="docutils literal notranslate"><span class="pre">GRID_FREE</span></code>.</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
@@ -592,7 +595,7 @@ units per em, so text-derived edges at scale 1 are stored exactly.</p>
 <blockquote>
 <div><p><strong>quantize</strong>(<code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">step</span></code>): <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/numbers.ts#L15">arranger/src/numbers.ts:15</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/numbers.ts#L15">arranger/src/numbers.ts:15</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">value</span></code> rounded to the nearest multiple of <code class="docutils literal notranslate"><span class="pre">step</span></code>, halves towards +∞ and
 never −0, so a stored canvas number carries no binary noise.</p>
 <section id="id1">
@@ -617,7 +620,7 @@ never −0, so a stored canvas number carries no binary noise.</p>
 <blockquote>
 <div><p><strong>sameSequence</strong>(<code class="docutils literal notranslate"><span class="pre">left</span></code>, <code class="docutils literal notranslate"><span class="pre">right</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/numbers.ts#L25">arranger/src/numbers.ts:25</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/numbers.ts#L25">arranger/src/numbers.ts:25</a></p>
 <p>Whether two sequences hold the same entries in the same order.</p>
 <section id="id3">
 <h4>Parameters<a class="headerlink" href="#id3" title="Link to this heading">#</a></h4>

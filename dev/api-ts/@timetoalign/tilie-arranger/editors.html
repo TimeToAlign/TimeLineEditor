@@ -416,6 +416,7 @@
 <li class="toctree-l2"><a class="reference internal" href="containers.html">containers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coordinates.html">coordinates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="edgeValues.html">edgeValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">editors</a></li>
@@ -436,7 +437,9 @@
 <li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/region.html">gestures/region</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/travel.html">gestures/travel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/wheel.html">gestures/wheel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index-1.html">index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="items.html">items</a></li>
@@ -530,48 +533,72 @@
 <h1>editors<a class="headerlink" href="#editors" title="Link to this heading">#</a></h1>
 <section id="interfaces">
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
-<section id="editortoopen">
-<h3>EditorToOpen<a class="headerlink" href="#editortoopen" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/editors.ts#L28">arranger/src/editors.ts:28</a></p>
-<p>An editor to open: its target and, for the flow editor, its kind (else the one the target opens).</p>
+<section id="editorchoice">
+<h3>EditorChoice<a class="headerlink" href="#editorchoice" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/editors.ts#L96">arranger/src/editors.ts:96</a></p>
+<p>One editor a long press offers: the target <code class="docutils literal notranslate"><span class="pre">editorTargetOf</span></code> would name for it, and its words.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
-<section id="kind">
-<h5>kind?<a class="headerlink" href="#kind" title="Link to this heading">#</a></h5>
+<section id="label">
+<h5>label<a class="headerlink" href="#label" title="Link to this heading">#</a></h5>
 <blockquote>
-<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>kind?</strong>: <a class="reference internal" href="../tilie-core/workspace/sessions.html#editorkind"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">EditorKind</span></code></span></a></p>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>label</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/editors.ts#L30">arranger/src/editors.ts:30</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/editors.ts#L99">arranger/src/editors.ts:99</a></p>
+<p><code class="docutils literal notranslate"><span class="pre">Flow</span> <span class="pre">control</span> <span class="pre">of</span> <span class="pre">timeline</span> <span class="pre">'Score'</span></code>, <code class="docutils literal notranslate"><span class="pre">Timeline</span> <span class="pre">'Score'</span></code>, <code class="docutils literal notranslate"><span class="pre">Group</span> <span class="pre">'Themes'</span></code> (core’s <code class="docutils literal notranslate"><span class="pre">addressWords</span></code>).</p>
 </section>
 <section id="target">
 <h5>target<a class="headerlink" href="#target" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>target</strong>: <a class="reference internal" href="../tilie-core/workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/editors.ts#L29">arranger/src/editors.ts:29</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/editors.ts#L97">arranger/src/editors.ts:97</a></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="editortoopen">
+<h3>EditorToOpen<a class="headerlink" href="#editortoopen" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/editors.ts#L36">arranger/src/editors.ts:36</a></p>
+<p>An editor to open: its target and, for the flow-control editor, its kind (else the one the target opens).</p>
+<section id="id1">
+<h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
+<section id="kind">
+<h5>kind?<a class="headerlink" href="#kind" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>kind?</strong>: <a class="reference internal" href="../tilie-core/workspace/sessions.html#editorkind"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">EditorKind</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/editors.ts#L38">arranger/src/editors.ts:38</a></p>
+</section>
+<section id="id2">
+<h5>target<a class="headerlink" href="#id2" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>target</strong>: <a class="reference internal" href="../tilie-core/workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/editors.ts#L37">arranger/src/editors.ts:37</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="pressedpoint">
 <h3>PressedPoint<a class="headerlink" href="#pressedpoint" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/editors.ts#L34">arranger/src/editors.ts:34</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/editors.ts#L42">arranger/src/editors.ts:42</a></p>
 <p>Where a pointer pressed: the drawing of the hit’s block and the drawing point.</p>
-<section id="id1">
-<h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
+<section id="id3">
+<h4>Properties<a class="headerlink" href="#id3" title="Link to this heading">#</a></h4>
 <section id="drawing">
 <h5>drawing<a class="headerlink" href="#drawing" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>drawing</strong>: <a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/editors.ts#L35">arranger/src/editors.ts:35</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/editors.ts#L43">arranger/src/editors.ts:43</a></p>
 </section>
 <section id="point">
 <h5>point<a class="headerlink" href="#point" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>point</strong>: <a class="reference internal" href="boxes.html#drawingpoint"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawingPoint</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/editors.ts#L36">arranger/src/editors.ts:36</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/editors.ts#L44">arranger/src/editors.ts:44</a></p>
 </section>
 </section>
 </section>
@@ -583,15 +610,15 @@
 <blockquote>
 <div><p><strong>editorOf</strong>(<code class="docutils literal notranslate"><span class="pre">target</span></code>): <a class="reference internal" href="#editortoopen"><code class="docutils literal notranslate"><span class="pre">EditorToOpen</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/editors.ts#L91">arranger/src/editors.ts:91</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/editors.ts#L87">arranger/src/editors.ts:87</a></p>
 <p>The editor an address <code class="docutils literal notranslate"><span class="pre">editorTargetOf</span></code> named opens: a root’s flow control
-band (<code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">R,</span> <span class="pre">facet:</span> <span class="pre">&quot;flow_control&quot;}</span></code>) opens the flow editor of
-the root <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">R}</span></code>, every other address the editor its target
-opens.</p>
+band (<code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">R,</span> <span class="pre">facet:</span> <span class="pre">&quot;flow_control&quot;}</span></code>) opens the flow-control
+editor of the root <code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">R}</span></code>, every other address the editor its
+target opens.</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
-<section id="id2">
-<h5>target<a class="headerlink" href="#id2" title="Link to this heading">#</a></h5>
+<section id="id4">
+<h5>target<a class="headerlink" href="#id4" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a></p>
 </section>
 </section>
@@ -601,33 +628,20 @@ opens.</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="editortargetof">
-<h3>editorTargetOf()<a class="headerlink" href="#editortargetof" title="Link to this heading">#</a></h3>
+<section id="editorsunder">
+<h3>editorsUnder()<a class="headerlink" href="#editorsunder" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>editorTargetOf</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">hit</span></code>, <code class="docutils literal notranslate"><span class="pre">editing</span></code>, <code class="docutils literal notranslate"><span class="pre">at?</span></code>): <a class="reference internal" href="../tilie-core/workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+<div><p><strong>editorsUnder</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">hit</span></code>, <code class="docutils literal notranslate"><span class="pre">editing</span></code>, <code class="docutils literal notranslate"><span class="pre">at</span></code>): readonly <a class="reference internal" href="#editorchoice"><code class="docutils literal notranslate"><span class="pre">EditorChoice</span></code></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/editors.ts#L60">arranger/src/editors.ts:60</a></p>
-<p>The editor target a double-click, a double tap or Enter on <code class="docutils literal notranslate"><span class="pre">hit</span></code> opens, by
-the container that is hit, never by what it holds: the block itself opens
-the block (the bundle editor), a frame its group (the group editor),
-a card its timeline, and a timeline’s line, wherever it is drawn, that
-timeline (the timeline editor), so a root’s line opens the root and a
-child’s line the child. A root’s flow control band opens the flow editor
-of the root (<code class="docutils literal notranslate"><span class="pre">editorOf</span></code>), named by the band’s own address: on the
-arranger, a press on a root’s card whose drawing point <code class="docutils literal notranslate"><span class="pre">at</span></code> lies in that
-card’s flow control band (a band is no hit there), and in that root’s
-timeline editor the band hit itself; in both, so does any element that
-band draws (a flow-control element of the root’s tree, hit before the
-band), and Enter on such an element selected. Every other band opens
-nothing. Inside a flow editor nothing opens. Anything else drawn (a name,
-a label, a region, a boundary) opens what the last drawn card or frame
-holding it stands for, the innermost where none overlap (<code class="docutils literal notranslate"><span class="pre">hit.within</span></code>),
-and nothing (<code class="docutils literal notranslate"><span class="pre">null</span></code>) when none holds it. With an editor open, only a
-target inside the edited element opens, never the edited element itself:
-any target of its block in the bundle editor, else one the edited group or
-timeline contains (core’s <code class="docutils literal notranslate"><span class="pre">contains</span></code>).</p>
-<section id="id3">
-<h4>Parameters<a class="headerlink" href="#id3" title="Link to this heading">#</a></h4>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/editors.ts#L110">arranger/src/editors.ts:110</a></p>
+<p>The editors under a long press on <code class="docutils literal notranslate"><span class="pre">hit</span></code> at the drawing point <code class="docutils literal notranslate"><span class="pre">at</span></code>,
+innermost first, each once and each one that opens under <code class="docutils literal notranslate"><span class="pre">editing</span></code>
+(<code class="docutils literal notranslate"><span class="pre">openableIn</span></code>): what a double-click there opens (<code class="docutils literal notranslate"><span class="pre">editorTargetOf</span></code>: the
+element’s, the band’s or the card’s own editor), then the card under the
+point (<code class="docutils literal notranslate"><span class="pre">hit.within</span></code>, else the card hit), then the group of the frame on
+top under the point (<code class="docutils literal notranslate"><span class="pre">boxAt</span></code>). Empty inside the flow-control editor.</p>
+<section id="id5">
+<h4>Parameters<a class="headerlink" href="#id5" title="Link to this heading">#</a></h4>
 <section id="view">
 <h5>view<a class="headerlink" href="#view" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
@@ -641,13 +655,88 @@ timeline contains (core’s <code class="docutils literal notranslate"><span cla
 <p><a class="reference internal" href="editing.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Editing</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
 <section id="at">
-<h5>at?<a class="headerlink" href="#at" title="Link to this heading">#</a></h5>
+<h5>at<a class="headerlink" href="#at" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="#pressedpoint"><code class="docutils literal notranslate"><span class="pre">PressedPoint</span></code></a></p>
 </section>
 </section>
-<section id="id4">
-<h4>Returns<a class="headerlink" href="#id4" title="Link to this heading">#</a></h4>
+<section id="id6">
+<h4>Returns<a class="headerlink" href="#id6" title="Link to this heading">#</a></h4>
+<p>readonly <a class="reference internal" href="#editorchoice"><code class="docutils literal notranslate"><span class="pre">EditorChoice</span></code></a>[]</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="editortargetof">
+<h3>editorTargetOf()<a class="headerlink" href="#editortargetof" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>editorTargetOf</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">hit</span></code>, <code class="docutils literal notranslate"><span class="pre">editing</span></code>, <code class="docutils literal notranslate"><span class="pre">at?</span></code>): <a class="reference internal" href="../tilie-core/workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/editors.ts#L67">arranger/src/editors.ts:67</a></p>
+<p>The editor target a double-click, a double tap, Enter or the inspector’s
+Edit button on <code class="docutils literal notranslate"><span class="pre">hit</span></code> opens, in every view by the same rule: what is hit
+opens its own editor, and what has none the editor of the card holding
+it. The block itself opens the block (the bundle editor), a frame its
+group (the group editor), a timeline’s line, wherever it is drawn, that
+timeline (so a child’s line the child), and a flow-control element (its
+line, symbol, fork, arc or label, hit before any band) the flow control
+band of the root whose tree holds it. A band (<code class="docutils literal notranslate"><span class="pre">bandUnder</span></code>: with the
+drawing point <code class="docutils literal notranslate"><span class="pre">at</span></code>, the band under the pointer, else a band hit) opens
+the editor of its timeline, a root’s flow control band the flow-control
+editor of the root (<code class="docutils literal notranslate"><span class="pre">editorOf</span></code>), named by the band’s own address
+<code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">R,</span> <span class="pre">facet:</span> <span class="pre">&quot;flow_control&quot;}</span></code>. A free spot of a card opens the
+card’s timeline; anything else drawn (a name, a label, a region, a
+stamp, a boundary) what the last drawn card or frame holding it stands
+for, the innermost where none overlap (<code class="docutils literal notranslate"><span class="pre">hit.within</span></code>), and nothing
+(<code class="docutils literal notranslate"><span class="pre">null</span></code>) when none holds it. Inside the flow-control editor nothing
+opens. With an editor open, only a target inside the edited element
+opens (<code class="docutils literal notranslate"><span class="pre">openableIn</span></code>).</p>
+<section id="id7">
+<h4>Parameters<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>
+<section id="id8">
+<h5>view<a class="headerlink" href="#id8" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</section>
+<section id="id9">
+<h5>hit<a class="headerlink" href="#id9" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="boxes.html#hit"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Hit</span></code></span></a></p>
+</section>
+<section id="id10">
+<h5>editing<a class="headerlink" href="#id10" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="editing.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Editing</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+<section id="id11">
+<h5>at?<a class="headerlink" href="#id11" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="#pressedpoint"><code class="docutils literal notranslate"><span class="pre">PressedPoint</span></code></a></p>
+</section>
+</section>
+<section id="id12">
+<h4>Returns<a class="headerlink" href="#id12" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="../tilie-core/workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="editorwords">
+<h3>editorWords()<a class="headerlink" href="#editorwords" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>editorWords</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">target</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/editors.ts#L142">arranger/src/editors.ts:142</a></p>
+<p>The words of the editor <code class="docutils literal notranslate"><span class="pre">target</span></code> opens (<code class="docutils literal notranslate"><span class="pre">editorOf</span></code>): a root’s flow
+control band <code class="docutils literal notranslate"><span class="pre">Flow</span> <span class="pre">control</span> <span class="pre">of</span></code> its root’s words, any other target its own
+words capitalised (core’s <code class="docutils literal notranslate"><span class="pre">addressWords</span></code>).</p>
+<section id="id13">
+<h4>Parameters<a class="headerlink" href="#id13" title="Link to this heading">#</a></h4>
+<section id="id14">
+<h5>view<a class="headerlink" href="#id14" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</section>
+<section id="id15">
+<h5>target<a class="headerlink" href="#id15" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a></p>
+</section>
+</section>
+<section id="id16">
+<h4>Returns<a class="headerlink" href="#id16" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 </section>
 </section>
@@ -701,16 +790,24 @@ timeline contains (core’s <code class="docutils literal notranslate"><span cla
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editortoopen">EditorToOpen</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editorchoice">EditorChoice</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#kind">kind?</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#label">label</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#target">target</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pressedpoint">PressedPoint</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editortoopen">EditorToOpen</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#kind">kind?</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">target</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pressedpoint">PressedPoint</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Properties</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#drawing">drawing</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#point">point</a></li>
 </ul>
@@ -722,21 +819,41 @@ timeline contains (core’s <code class="docutils literal notranslate"><span cla
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editorof">editorOf()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">target</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">target</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editortargetof">editorTargetOf()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editorsunder">editorsUnder()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#view">view</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#hit">hit</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#editing">editing</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#at">at?</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#at">at</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editortargetof">editorTargetOf()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">view</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">hit</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">editing</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">at?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#editorwords">editorWords()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">view</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">target</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">Returns</a></li>
 </ul>
 </li>
 </ul>

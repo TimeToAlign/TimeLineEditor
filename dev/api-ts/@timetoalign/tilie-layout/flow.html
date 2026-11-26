@@ -517,7 +517,7 @@
 <blockquote>
 <div><p><strong>flowControlBand</strong>(<code class="docutils literal notranslate"><span class="pre">scope</span></code>, <code class="docutils literal notranslate"><span class="pre">line</span></code>): <a class="reference internal" href="bands.html#preparedband"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PreparedBand</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/layout/src/flow.ts#L282">layout/src/flow.ts:282</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/layout/src/flow.ts#L312">layout/src/flow.ts:312</a></p>
 <p>The flow control band of the timeline drawn with the line <code class="docutils literal notranslate"><span class="pre">line</span></code> (section
 6.4, Gathering, Flow control, Flow labels, Symbols, Forks and Arcs):
 present only for the root of the member drawing, whose band draws the
@@ -538,7 +538,8 @@ the canvas, never placed by first fit, <code class="docutils literal notranslate
 branches a fork has;</p></li>
 <li><p>the <strong>arcs</strong> of each displayed jump, one per destination not <code class="docutils literal notranslate"><span class="pre">by</span></code> 0 and
 not <code class="docutils literal notranslate"><span class="pre">volta</span></code> whose place resolves (<code class="docutils literal notranslate"><span class="pre">placeOf</span></code>), in a member’s card only where its to
-lies on the member’s stretch; sorted stably by span and placed by first
+lies on the member’s stretch, on an unfolded card only in a piece holding both its from
+and its to (section 8.10); sorted stably by span and placed by first
 fit, never widened by their labels, into the <code class="docutils literal notranslate"><span class="pre">K</span></code> jump rows; then each
 row’s labels, in the order of its arcs, by one first fit of the row
 into its <code class="docutils literal notranslate"><span class="pre">Tk</span></code> label tiers (<code class="docutils literal notranslate"><span class="pre">Tk</span> <span class="pre">=</span> <span class="pre">1</span></code> without a label), the row’s pitch

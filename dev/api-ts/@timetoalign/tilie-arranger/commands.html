@@ -416,6 +416,7 @@
 <li class="toctree-l2"><a class="reference internal" href="containers.html">containers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coordinates.html">coordinates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="edgeValues.html">edgeValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
@@ -436,7 +437,9 @@
 <li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/region.html">gestures/region</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/travel.html">gestures/travel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/wheel.html">gestures/wheel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index-1.html">index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="items.html">items</a></li>
@@ -530,76 +533,119 @@
 <h1>commands<a class="headerlink" href="#commands" title="Link to this heading">#</a></h1>
 <section id="interfaces">
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
-<section id="move">
-<h3>Move<a class="headerlink" href="#move" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L38">arranger/src/commands.ts:38</a></p>
-<p>A block’s node position after a gesture, before quantization.</p>
+<section id="deletequestion">
+<h3>DeleteQuestion<a class="headerlink" href="#deletequestion" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L509">arranger/src/commands.ts:509</a></p>
+<p>What a deletion asks first: it also deletes virtual timelines made from
+what it names, and the user chooses between deleting them all and
+hiding instead, or, where core would refuse to delete them all, learns
+why and may only hide instead.</p>
 <section id="properties">
 <h4>Properties<a class="headerlink" href="#properties" title="Link to this heading">#</a></h4>
+<section id="hide">
+<h5>hide<a class="headerlink" href="#hide" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>hide</strong>: <a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <a class="reference internal" href="../tilie-core/commands/types.html#stylecommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">StyleCommand</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L528">arranger/src/commands.ts:528</a></p>
+<p>“Hide instead”, which removes nothing: the <code class="docutils literal notranslate"><span class="pre">set</span></code> hiding the cards of
+the targets where every one is a virtual timeline whose card its block
+holds (<code class="docutils literal notranslate"><span class="pre">hideCommand</span></code>), the <code class="docutils literal notranslate"><span class="pre">style</span></code> hiding the one target where it is a
+root timeline (<code class="docutils literal notranslate"><span class="pre">rootDisplayCommand</span></code>); else <code class="docutils literal notranslate"><span class="pre">null</span></code>.</p>
+</section>
+<section id="question">
+<h5>question<a class="headerlink" href="#question" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>question</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L516">arranger/src/commands.ts:516</a></p>
+<p>The question: what is deleted, and every virtual timeline it takes
+along, each by its kind and its name, else its ID (<code class="docutils literal notranslate"><span class="pre">addressWords</span></code>);
+where core refuses “Delete all”, that they cannot all be deleted and
+core’s reason.</p>
+</section>
+<section id="remove">
+<h5>remove<a class="headerlink" href="#remove" title="Link to this heading">#</a></h5>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>remove</strong>: <a class="reference internal" href="../tilie-core/commands/types.html#removecommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">RemoveCommand</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L521">arranger/src/commands.ts:521</a></p>
+<p>“Delete all”: the <code class="docutils literal notranslate"><span class="pre">remove</span></code> naming those virtual timelines as well;
+<code class="docutils literal notranslate"><span class="pre">null</span></code> where core refuses it, so it is not offered.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="move">
+<h3>Move<a class="headerlink" href="#move" title="Link to this heading">#</a></h3>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L42">arranger/src/commands.ts:42</a></p>
+<p>A block’s node position after a gesture, before quantization.</p>
+<section id="id1">
+<h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
 <section id="id">
 <h5>id<a class="headerlink" href="#id" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>id</strong>: <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L39">arranger/src/commands.ts:39</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L43">arranger/src/commands.ts:43</a></p>
 </section>
 <section id="x">
 <h5>x<a class="headerlink" href="#x" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>x</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L40">arranger/src/commands.ts:40</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L44">arranger/src/commands.ts:44</a></p>
 </section>
 <section id="y">
 <h5>y<a class="headerlink" href="#y" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>y</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L41">arranger/src/commands.ts:41</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L45">arranger/src/commands.ts:45</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="visible">
 <h3>Visible<a class="headerlink" href="#visible" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L124">arranger/src/commands.ts:124</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L128">arranger/src/commands.ts:128</a></p>
 <p>The visible part of the canvas: Svelte Flow’s transform and the pane’s size in screen pixels.</p>
-<section id="id1">
-<h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
+<section id="id2">
+<h4>Properties<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
 <section id="height">
 <h5>height<a class="headerlink" href="#height" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>height</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L129">arranger/src/commands.ts:129</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L133">arranger/src/commands.ts:133</a></p>
 </section>
 <section id="width">
 <h5>width<a class="headerlink" href="#width" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>width</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L128">arranger/src/commands.ts:128</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L132">arranger/src/commands.ts:132</a></p>
 </section>
-<section id="id2">
-<h5>x<a class="headerlink" href="#id2" title="Link to this heading">#</a></h5>
+<section id="id3">
+<h5>x<a class="headerlink" href="#id3" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>x</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L125">arranger/src/commands.ts:125</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L129">arranger/src/commands.ts:129</a></p>
 </section>
-<section id="id3">
-<h5>y<a class="headerlink" href="#id3" title="Link to this heading">#</a></h5>
+<section id="id4">
+<h5>y<a class="headerlink" href="#id4" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>y</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L126">arranger/src/commands.ts:126</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L130">arranger/src/commands.ts:130</a></p>
 </section>
 <section id="zoom">
 <h5>zoom<a class="headerlink" href="#zoom" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>zoom</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L127">arranger/src/commands.ts:127</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L131">arranger/src/commands.ts:131</a></p>
 </section>
 </section>
 </section>
@@ -611,7 +657,7 @@
 <blockquote>
 <div><p><strong>ZOrderAction</strong> = <code class="docutils literal notranslate"><span class="pre">&quot;front&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;back&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;forward&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;backward&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L216">arranger/src/commands.ts:216</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L220">arranger/src/commands.ts:220</a></p>
 <p>A change of stacking order: to the front or back, or one step forward or backward.</p>
 </section>
 </section>
@@ -622,7 +668,7 @@
 <blockquote>
 <div><p><strong>addCommand</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">visible</span></code>, <code class="docutils literal notranslate"><span class="pre">metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">pane?</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#addcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AddCommand</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L176">arranger/src/commands.ts:176</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L180">arranger/src/commands.ts:180</a></p>
 <p>One <code class="docutils literal notranslate"><span class="pre">add</span></code> of a new block <code class="docutils literal notranslate"><span class="pre">id</span></code> holding <code class="docutils literal notranslate"><span class="pre">manifest</span></code>, its top-left at the
 centre of what <code class="docutils literal notranslate"><span class="pre">visible</span></code> shows, quantized as a move under the view’s grid
 is, then moved right past every block it would overlap: while its node
@@ -637,16 +683,16 @@ are the workspace’s block defaults.</p>
 <h5>view<a class="headerlink" href="#view" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </section>
-<section id="id4">
-<h5>id<a class="headerlink" href="#id4" title="Link to this heading">#</a></h5>
+<section id="id5">
+<h5>id<a class="headerlink" href="#id5" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
 <section id="manifest">
 <h5>manifest<a class="headerlink" href="#manifest" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </section>
-<section id="id5">
-<h5>visible<a class="headerlink" href="#id5" title="Link to this heading">#</a></h5>
+<section id="id6">
+<h5>visible<a class="headerlink" href="#id6" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="#visible"><code class="docutils literal notranslate"><span class="pre">Visible</span></code></a></p>
 </section>
 <section id="metrics">
@@ -664,12 +710,75 @@ are the workspace’s block defaults.</p>
 </section>
 </section>
 <hr class="docutils" />
+<section id="id7">
+<h3>deleteQuestion()<a class="headerlink" href="#id7" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>deleteQuestion</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code>): <a class="reference internal" href="#deletequestion"><code class="docutils literal notranslate"><span class="pre">DeleteQuestion</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L577">arranger/src/commands.ts:577</a></p>
+<p>The question <code class="docutils literal notranslate"><span class="pre">command</span></code> asks before it is stored, where removing its
+targets also removes virtual timelines it does not name (core’s
+<code class="docutils literal notranslate"><span class="pre">removedBy</span></code>: those made from a removed timeline or virtual timeline, or
+through a removed FlowMap, at any depth); <code class="docutils literal notranslate"><span class="pre">null</span></code> where it removes none,
+and for the virtual timelines of a block removed whole. Core refuses to
+remove a virtual timeline another one left is made from, so “Delete all”
+names each of them, after the targets, in each block’s order of its
+virtual timelines. That <code class="docutils literal notranslate"><span class="pre">remove</span></code> is previewed with core (<code class="docutils literal notranslate"><span class="pre">preview</span></code>),
+never checked by a copy of its rules: where core refuses it (a FlowMap
+left names one of them as a chunk), the question says so in core’s
+words and offers only hiding instead, where hiding is possible.</p>
+<section id="id8">
+<h4>Parameters<a class="headerlink" href="#id8" title="Link to this heading">#</a></h4>
+<section id="id9">
+<h5>view<a class="headerlink" href="#id9" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</section>
+<section id="command">
+<h5>command<a class="headerlink" href="#command" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/commands/types.html#removecommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">RemoveCommand</span></code></span></a></p>
+</section>
+</section>
+<section id="id10">
+<h4>Returns<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="#deletequestion"><code class="docutils literal notranslate"><span class="pre">DeleteQuestion</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="hidecommand">
+<h3>hideCommand()<a class="headerlink" href="#hidecommand" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>hideCommand</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">targets</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L358">arranger/src/commands.ts:358</a></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">set</span></code> hiding the cards of the virtual timelines <code class="docutils literal notranslate"><span class="pre">targets</span></code> (each
+<code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">V}</span></code>, its card held by its block): every member of each one’s
+stated place unstated, the virtual timeline kept. Only a virtual
+timeline’s card is hidden so: a root’s card is drawn whether its place is
+stated or not, so a rule hides it (<code class="docutils literal notranslate"><span class="pre">rootDisplayCommand</span></code>), and a member’s
+card in its frame has no place of its own.</p>
+<section id="id11">
+<h4>Parameters<a class="headerlink" href="#id11" title="Link to this heading">#</a></h4>
+<section id="id12">
+<h5>view<a class="headerlink" href="#id12" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
+</section>
+<section id="targets">
+<h5>targets<a class="headerlink" href="#targets" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="../tilie-core/workspace/address.html#address"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Address</span></code></span></a>[]</p>
+</section>
+</section>
+<section id="id13">
+<h4>Returns<a class="headerlink" href="#id13" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a></p>
+</section>
+</section>
+<hr class="docutils" />
 <section id="movecommand">
 <h3>moveCommand()<a class="headerlink" href="#movecommand" title="Link to this heading">#</a></h3>
 <blockquote>
 <div><p><strong>moveCommand</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">moves</span></code>, <code class="docutils literal notranslate"><span class="pre">metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">pane?</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L88">arranger/src/commands.ts:88</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L92">arranger/src/commands.ts:92</a></p>
 <p>One <code class="docutils literal notranslate"><span class="pre">set</span></code> placing every moved block where its node is dropped, <code class="docutils literal notranslate"><span class="pre">moves</span></code>
 holding node positions (the block’s top-left corner, <code class="docutils literal notranslate"><span class="pre">nodePosition</span></code>): each
 quantized to <code class="docutils literal notranslate"><span class="pre">GRID_FREE</span></code> and stored as the position of the block’s place
@@ -677,27 +786,27 @@ origin, in the order of <code class="docutils literal notranslate"><span class="
 change is left out, and <code class="docutils literal notranslate"><span class="pre">null</span></code> is returned when nothing is left. Snapping
 is <code class="docutils literal notranslate"><span class="pre">snap</span></code>’s job: the caller passes the dragged node’s snapped position,
 and the other nodes of the drag moved by the same delta.</p>
-<section id="id6">
-<h4>Parameters<a class="headerlink" href="#id6" title="Link to this heading">#</a></h4>
-<section id="id7">
-<h5>view<a class="headerlink" href="#id7" title="Link to this heading">#</a></h5>
+<section id="id14">
+<h4>Parameters<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
+<section id="id15">
+<h5>view<a class="headerlink" href="#id15" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </section>
 <section id="moves">
 <h5>moves<a class="headerlink" href="#moves" title="Link to this heading">#</a></h5>
 <p>readonly <a class="reference internal" href="#move"><code class="docutils literal notranslate"><span class="pre">Move</span></code></a>[]</p>
 </section>
-<section id="id8">
-<h5>metrics<a class="headerlink" href="#id8" title="Link to this heading">#</a></h5>
+<section id="id16">
+<h5>metrics<a class="headerlink" href="#id16" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">FontMetrics</span></code></p>
 </section>
-<section id="id9">
-<h5>pane?<a class="headerlink" href="#id9" title="Link to this heading">#</a></h5>
+<section id="id17">
+<h5>pane?<a class="headerlink" href="#id17" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="pane.html#panesource"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PaneSource</span></code></span></a></p>
 </section>
 </section>
-<section id="id10">
-<h4>Returns<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
+<section id="id18">
+<h4>Returns<a class="headerlink" href="#id18" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
 </section>
@@ -707,15 +816,15 @@ and the other nodes of the drag moved by the same delta.</p>
 <blockquote>
 <div><p><strong>nudgeCommand</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">ids</span></code>, <code class="docutils literal notranslate"><span class="pre">dx</span></code>, <code class="docutils literal notranslate"><span class="pre">dy</span></code>, <code class="docutils literal notranslate"><span class="pre">metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">pane?</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L103">arranger/src/commands.ts:103</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L107">arranger/src/commands.ts:107</a></p>
 <p>One <code class="docutils literal notranslate"><span class="pre">set</span></code> moving the blocks <code class="docutils literal notranslate"><span class="pre">ids</span></code> by <code class="docutils literal notranslate"><span class="pre">dx</span></code>, <code class="docutils literal notranslate"><span class="pre">dy</span></code> grid steps: each node’s
 position moved and quantized to the grid when it snaps, otherwise to
 <code class="docutils literal notranslate"><span class="pre">GRID_FREE</span></code>, then stored as the position of its place origin. <code class="docutils literal notranslate"><span class="pre">null</span></code> when
 nothing moves.</p>
-<section id="id11">
-<h4>Parameters<a class="headerlink" href="#id11" title="Link to this heading">#</a></h4>
-<section id="id12">
-<h5>view<a class="headerlink" href="#id12" title="Link to this heading">#</a></h5>
+<section id="id19">
+<h4>Parameters<a class="headerlink" href="#id19" title="Link to this heading">#</a></h4>
+<section id="id20">
+<h5>view<a class="headerlink" href="#id20" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </section>
 <section id="ids">
@@ -730,17 +839,17 @@ nothing moves.</p>
 <h5>dy<a class="headerlink" href="#dy" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </section>
-<section id="id13">
-<h5>metrics<a class="headerlink" href="#id13" title="Link to this heading">#</a></h5>
+<section id="id21">
+<h5>metrics<a class="headerlink" href="#id21" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">FontMetrics</span></code></p>
 </section>
-<section id="id14">
-<h5>pane?<a class="headerlink" href="#id14" title="Link to this heading">#</a></h5>
+<section id="id22">
+<h5>pane?<a class="headerlink" href="#id22" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="pane.html#panesource"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PaneSource</span></code></span></a></p>
 </section>
 </section>
-<section id="id15">
-<h4>Returns<a class="headerlink" href="#id15" title="Link to this heading">#</a></h4>
+<section id="id23">
+<h4>Returns<a class="headerlink" href="#id23" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
 </section>
@@ -750,7 +859,7 @@ nothing moves.</p>
 <blockquote>
 <div><p><strong>removeCommand</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">selection</span></code>, <code class="docutils literal notranslate"><span class="pre">editing</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <a class="reference internal" href="../tilie-core/commands/types.html#removecommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">RemoveCommand</span></code></span></a> | { <code class="docutils literal notranslate"><span class="pre">refused</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; }</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L384">arranger/src/commands.ts:384</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L443">arranger/src/commands.ts:443</a></p>
 <p>What Delete stores for the selected addresses: one <code class="docutils literal notranslate"><span class="pre">remove</span></code>, an
 element’s part or card standing for the element whose ID it carries, or
 one <code class="docutils literal notranslate"><span class="pre">set</span></code> hiding the selected virtual cards. Every element can be
@@ -773,11 +882,13 @@ refused there (<code class="docutils literal notranslate"><span class="pre">segm
 refusal as it shows every refusal of the store. Inside an editor the
 edited element is never removed, a part of it standing for it as well:
 it is left out of the targets, and a selection that names nothing else
-is refused with a hint to close the editor first.</p>
-<section id="id16">
-<h4>Parameters<a class="headerlink" href="#id16" title="Link to this heading">#</a></h4>
-<section id="id17">
-<h5>view<a class="headerlink" href="#id17" title="Link to this heading">#</a></h5>
+is refused with a hint to close the editor first. A <code class="docutils literal notranslate"><span class="pre">remove</span></code> that also
+takes along virtual timelines made from what it names is asked about
+before it is stored (<code class="docutils literal notranslate"><span class="pre">deleteQuestion</span></code>).</p>
+<section id="id24">
+<h4>Parameters<a class="headerlink" href="#id24" title="Link to this heading">#</a></h4>
+<section id="id25">
+<h5>view<a class="headerlink" href="#id25" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </section>
 <section id="selection">
@@ -789,9 +900,66 @@ is refused with a hint to close the editor first.</p>
 <p><a class="reference internal" href="editing.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Editing</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
 </section>
-<section id="id18">
-<h4>Returns<a class="headerlink" href="#id18" title="Link to this heading">#</a></h4>
+<section id="id26">
+<h4>Returns<a class="headerlink" href="#id26" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <a class="reference internal" href="../tilie-core/commands/types.html#removecommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">RemoveCommand</span></code></span></a> | { <code class="docutils literal notranslate"><span class="pre">refused</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; }</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="rootdisplaycommand">
+<h3>rootDisplayCommand()<a class="headerlink" href="#rootdisplaycommand" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>rootDisplayCommand</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">root</span></code>, <code class="docutils literal notranslate"><span class="pre">hidden</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#stylecommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">StyleCommand</span></code></span></a></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L396">arranger/src/commands.ts:396</a></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">style</span></code> hiding the root timeline <code class="docutils literal notranslate"><span class="pre">root</span></code> of the block <code class="docutils literal notranslate"><span class="pre">block</span></code>
+(<code class="docutils literal notranslate"><span class="pre">display:</span> <span class="pre">none</span></code> on <code class="docutils literal notranslate"><span class="pre">rootSelector</span></code>’s addresses), or, with <code class="docutils literal notranslate"><span class="pre">hidden</span></code>
+false, removing that rule, so the root is drawn again. Its card keeps
+its place while hidden (section 8.4); a member of a group lying inside
+the root is drawn by its frame and stays, without the root’s ancestor
+line, and the ancestor cards of the root behind frames are not drawn.</p>
+<section id="id27">
+<h4>Parameters<a class="headerlink" href="#id27" title="Link to this heading">#</a></h4>
+<section id="block">
+<h5>block<a class="headerlink" href="#block" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="root">
+<h5>root<a class="headerlink" href="#root" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+<section id="hidden">
+<h5>hidden<a class="headerlink" href="#hidden" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</section>
+</section>
+<section id="id28">
+<h4>Returns<a class="headerlink" href="#id28" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="../tilie-core/commands/types.html#stylecommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">StyleCommand</span></code></span></a></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="roothidden">
+<h3>rootHidden()<a class="headerlink" href="#roothidden" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>rootHidden</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">root</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L406">arranger/src/commands.ts:406</a></p>
+<p>Whether <code class="docutils literal notranslate"><span class="pre">manifest</span></code>’s own rules hide the root <code class="docutils literal notranslate"><span class="pre">root</span></code> with <code class="docutils literal notranslate"><span class="pre">rootDisplayCommand</span></code>’s rule.</p>
+<section id="id29">
+<h4>Parameters<a class="headerlink" href="#id29" title="Link to this heading">#</a></h4>
+<section id="id30">
+<h5>manifest<a class="headerlink" href="#id30" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
+</section>
+<section id="id31">
+<h5>root<a class="headerlink" href="#id31" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<section id="id32">
+<h4>Returns<a class="headerlink" href="#id32" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </section>
 </section>
 <hr class="docutils" />
@@ -800,20 +968,20 @@ is refused with a hint to close the editor first.</p>
 <blockquote>
 <div><p><strong>zOrderCommand</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">ids</span></code>, <code class="docutils literal notranslate"><span class="pre">action</span></code>): <a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/commands.ts#L261">arranger/src/commands.ts:261</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/commands.ts#L265">arranger/src/commands.ts:265</a></p>
 <p>One <code class="docutils literal notranslate"><span class="pre">set</span></code> of <code class="docutils literal notranslate"><span class="pre">index</span></code> raising or lowering the blocks <code class="docutils literal notranslate"><span class="pre">ids</span></code> among their
 siblings: to the front or back, or one step past their unchosen
 neighbour. Only the chosen blocks get new fractional indices, each run of
 them between its unchosen neighbours and below every index a chosen block
 holds there. <code class="docutils literal notranslate"><span class="pre">null</span></code> when the order is unchanged.</p>
-<section id="id19">
-<h4>Parameters<a class="headerlink" href="#id19" title="Link to this heading">#</a></h4>
-<section id="id20">
-<h5>view<a class="headerlink" href="#id20" title="Link to this heading">#</a></h5>
+<section id="id33">
+<h4>Parameters<a class="headerlink" href="#id33" title="Link to this heading">#</a></h4>
+<section id="id34">
+<h5>view<a class="headerlink" href="#id34" title="Link to this heading">#</a></h5>
 <p><a class="reference internal" href="../tilie-core/workspace/view.html#view"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">View</span></code></span></a></p>
 </section>
-<section id="id21">
-<h5>ids<a class="headerlink" href="#id21" title="Link to this heading">#</a></h5>
+<section id="id35">
+<h5>ids<a class="headerlink" href="#id35" title="Link to this heading">#</a></h5>
 <p>readonly <code class="docutils literal notranslate"><span class="pre">string</span></code>[]</p>
 </section>
 <section id="action">
@@ -821,8 +989,8 @@ holds there. <code class="docutils literal notranslate"><span class="pre">null</
 <p><a class="reference internal" href="#zorderaction"><code class="docutils literal notranslate"><span class="pre">ZOrderAction</span></code></a></p>
 </section>
 </section>
-<section id="id22">
-<h4>Returns<a class="headerlink" href="#id22" title="Link to this heading">#</a></h4>
+<section id="id36">
+<h4>Returns<a class="headerlink" href="#id36" title="Link to this heading">#</a></h4>
 <p><a class="reference internal" href="../tilie-core/commands/types.html#setcommand"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SetCommand</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
 </section>
@@ -877,8 +1045,17 @@ holds there. <code class="docutils literal notranslate"><span class="pre">null</
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interfaces">Interfaces</a><ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#move">Move</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#deletequestion">DeleteQuestion</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#properties">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#hide">hide</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#question">question</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#remove">remove</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#move">Move</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Properties</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id">id</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#x">x</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#y">y</a></li>
@@ -887,11 +1064,11 @@ holds there. <code class="docutils literal notranslate"><span class="pre">null</
 </ul>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#visible">Visible</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Properties</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Properties</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#height">height</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#width">width</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">x</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">y</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">x</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">y</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#zoom">zoom</a></li>
 </ul>
 </li>
@@ -907,9 +1084,9 @@ holds there. <code class="docutils literal notranslate"><span class="pre">null</
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#addcommand">addCommand()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#view">view</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">id</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">id</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#manifest">manifest</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">visible</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">visible</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#metrics">metrics</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pane">pane?</a></li>
 </ul>
@@ -917,48 +1094,85 @@ holds there. <code class="docutils literal notranslate"><span class="pre">null</
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#movecommand">moveCommand()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">view</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#moves">moves</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">metrics</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">pane?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">deleteQuestion()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">view</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#command">command</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nudgecommand">nudgeCommand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hidecommand">hideCommand()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">view</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#ids">ids</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#dx">dx</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#dy">dy</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">metrics</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">pane?</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#targets">targets</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#removecommand">removeCommand()</a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">view</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#selection">selection</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#editing">editing</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#movecommand">moveCommand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">view</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#moves">moves</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">metrics</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">pane?</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#zordercommand">zOrderCommand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nudgecommand">nudgeCommand()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">view</a></li>
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">ids</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#ids">ids</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#dx">dx</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#dy">dy</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">metrics</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">pane?</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#removecommand">removeCommand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">view</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#selection">selection</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#editing">editing</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id26">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#rootdisplaycommand">rootDisplayCommand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id27">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#block">block</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#root">root</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#hidden">hidden</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#roothidden">rootHidden()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id29">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id30">manifest</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id31">root</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#zordercommand">zOrderCommand()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id33">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id34">view</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id35">ids</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#action">action</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id36">Returns</a></li>
 </ul>
 </li>
 </ul>

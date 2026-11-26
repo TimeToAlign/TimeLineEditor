@@ -45,7 +45,7 @@
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" />
     <link rel="next" title="index" href="../index-1.html" />
-    <link rel="prev" title="gestures/resize" href="resize.html" />
+    <link rel="prev" title="gestures/travel" href="travel.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
@@ -416,6 +416,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../containers.html">containers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../coordinates.html">coordinates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../drawing.html">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../edgeValues.html">edgeValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../editors.html">editors</a></li>
@@ -436,7 +437,9 @@
 <li class="toctree-l2"><a class="reference internal" href="held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="host.html">gestures/host</a></li>
 <li class="toctree-l2"><a class="reference internal" href="item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="region.html">gestures/region</a></li>
 <li class="toctree-l2"><a class="reference internal" href="resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="travel.html">gestures/travel</a></li>
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">gestures/wheel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../index-1.html">index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../items.html">items</a></li>
@@ -530,38 +533,72 @@
 <h1>gestures/wheel<a class="headerlink" href="#gestures-wheel" title="Link to this heading">#</a></h1>
 <section id="variables">
 <h2>Variables<a class="headerlink" href="#variables" title="Link to this heading">#</a></h2>
+<section id="own-wheel">
+<h3>OWN_WHEEL<a class="headerlink" href="#own-wheel" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>OWN_WHEEL</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;tilie-own-wheel&quot;</span></code> = <code class="docutils literal notranslate"><span class="pre">&quot;tilie-own-wheel&quot;</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/wheel.ts#L19">arranger/src/gestures/wheel.ts:19</a></p>
+<p>The class of an overlay of the canvas that takes the plain wheel itself
+(<code class="docutils literal notranslate"><span class="pre">ownWheel</span></code>), so the canvas neither pans under it nor sees it; a zooming
+wheel still zooms the canvas there.</p>
+</section>
+<hr class="docutils" />
 <section id="pan-speed">
 <h3>PAN_SPEED<a class="headerlink" href="#pan-speed" title="Link to this heading">#</a></h3>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>PAN_SPEED</strong>: <code class="docutils literal notranslate"><span class="pre">0.5</span></code> = <code class="docutils literal notranslate"><span class="pre">0.5</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/wheel.ts#L6">arranger/src/gestures/wheel.ts:6</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/wheel.ts#L9">arranger/src/gestures/wheel.ts:9</a></p>
 <p>Canvas pixels panned per pixel of wheel travel, Svelte Flow’s default.</p>
 </section>
 </section>
 <section id="functions">
 <h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<section id="ownwheel">
+<h3>ownWheel()<a class="headerlink" href="#ownwheel" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>ownWheel</strong>(<code class="docutils literal notranslate"><span class="pre">event</span></code>): <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/wheel.ts#L27">arranger/src/gestures/wheel.ts:27</a></p>
+<p>The wheel listener of an overlay of class <code class="docutils literal notranslate"><span class="pre">OWN_WHEEL</span></code>: a wheel with Ctrl
+or Cmd held (a touchpad pinch included) goes on to the canvas, which
+zooms as anywhere else; any other wheel stays with the overlay, which
+scrolls as the browser scrolls it.</p>
+<section id="parameters">
+<h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
+<section id="event">
+<h5>event<a class="headerlink" href="#event" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">WheelEvent</span></code></p>
+</section>
+</section>
+<section id="returns">
+<h4>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">void</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
 <section id="shiftwheel">
 <h3>shiftWheel()<a class="headerlink" href="#shiftwheel" title="Link to this heading">#</a></h3>
 <blockquote>
 <div><p><strong>shiftWheel</strong>(<code class="docutils literal notranslate"><span class="pre">pan</span></code>): <code class="docutils literal notranslate"><span class="pre">Attachment</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">HTMLElement</span></code>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/gestures/wheel.ts#L19">arranger/src/gestures/wheel.ts:19</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/gestures/wheel.ts#L39">arranger/src/gestures/wheel.ts:39</a></p>
 <p>Shift+wheel pans horizontally. Svelte Flow, outside macOS, turns a Shift
 wheel’s vertical travel into horizontal travel, but Chromium and Firefox
 on Linux and Windows already report it as horizontal travel, which Svelte
 Flow would then discard; such an event is panned here instead, by
 <code class="docutils literal notranslate"><span class="pre">pan(dx)</span></code> screen pixels, before Svelte Flow and actively (Svelte’s own
 wheel listeners are passive).</p>
-<section id="parameters">
-<h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
+<section id="id1">
+<h4>Parameters<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
 <section id="pan">
 <h5>pan<a class="headerlink" href="#pan" title="Link to this heading">#</a></h5>
 <p>(<code class="docutils literal notranslate"><span class="pre">dx</span></code>) =&gt; <code class="docutils literal notranslate"><span class="pre">void</span></code></p>
 </section>
 </section>
-<section id="returns">
-<h4>Returns<a class="headerlink" href="#returns" title="Link to this heading">#</a></h4>
+<section id="id2">
+<h4>Returns<a class="headerlink" href="#id2" title="Link to this heading">#</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">Attachment</span></code>&lt;<code class="docutils literal notranslate"><span class="pre">HTMLElement</span></code>&gt;</p>
 </section>
 </section>
@@ -579,12 +616,12 @@ wheel listeners are passive).</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="resize.html"
+       href="travel.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">gestures/resize</p>
+        <p class="prev-next-title">gestures/travel</p>
       </div>
     </a>
     <a class="right-next"
@@ -616,16 +653,25 @@ wheel listeners are passive).</p>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#variables">Variables</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#own-wheel">OWN_WHEEL</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pan-speed">PAN_SPEED</a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a><ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#shiftwheel">shiftWheel()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ownwheel">ownWheel()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="nav section-nav flex-column">
-<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pan">pan</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#event">event</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#shiftwheel">shiftWheel()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#pan">pan</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Returns</a></li>
 </ul>
 </li>
 </ul>

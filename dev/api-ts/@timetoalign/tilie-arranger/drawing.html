@@ -44,7 +44,7 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="editing" href="editing.html" />
+    <link rel="next" title="edgeValues" href="edgeValues.html" />
     <link rel="prev" title="coordinates" href="coordinates.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
@@ -416,6 +416,7 @@
 <li class="toctree-l2"><a class="reference internal" href="containers.html">containers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coordinates.html">coordinates</a></li>
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">drawing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="edgeValues.html">edgeValues</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editing.html">editing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editorFocus.svelte.html">editorFocus.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="editors.html">editors</a></li>
@@ -436,7 +437,9 @@
 <li class="toctree-l2"><a class="reference internal" href="gestures/held.html">gestures/held</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/host.html">gestures/host</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/item.html">gestures/item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/region.html">gestures/region</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/resize.html">gestures/resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gestures/travel.html">gestures/travel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gestures/wheel.html">gestures/wheel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index-1.html">index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="items.html">items</a></li>
@@ -532,7 +535,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="raisedcard">
 <h3>RaisedCard<a class="headerlink" href="#raisedcard" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/drawing.ts#L178">arranger/src/drawing.ts:178</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/drawing.ts#L178">arranger/src/drawing.ts:178</a></p>
 <p>A raised ancestor card and the entries it draws, in drawing order.</p>
 <section id="type-parameters">
 <h4>Type Parameters<a class="headerlink" href="#type-parameters" title="Link to this heading">#</a></h4>
@@ -548,14 +551,14 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>box</strong>: <a class="reference internal" href="../tilie-layout/boxes.html#drawnbox"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">DrawnBox</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/drawing.ts#L179">arranger/src/drawing.ts:179</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/drawing.ts#L179">arranger/src/drawing.ts:179</a></p>
 </section>
 <section id="entries">
 <h5>entries<a class="headerlink" href="#entries" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>entries</strong>: readonly <code class="docutils literal notranslate"><span class="pre">E</span></code>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/drawing.ts#L180">arranger/src/drawing.ts:180</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/drawing.ts#L180">arranger/src/drawing.ts:180</a></p>
 </section>
 </section>
 </section>
@@ -567,7 +570,7 @@
 <blockquote>
 <div><p><strong>descriptorsOf</strong>(<code class="docutils literal notranslate"><span class="pre">drawing</span></code>): readonly <a class="reference internal" href="../tilie-writers/descriptors.html#descriptor"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Descriptor</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/drawing.ts#L152">arranger/src/drawing.ts:152</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/drawing.ts#L152">arranger/src/drawing.ts:152</a></p>
 <p>The element descriptors of a drawing, memoized by the drawing.</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
@@ -587,7 +590,7 @@
 <blockquote>
 <div><p><strong>drawingOf</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">graphical</span></code>, <code class="docutils literal notranslate"><span class="pre">metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">overrides?</span></code>, <code class="docutils literal notranslate"><span class="pre">pane?</span></code>): <a class="reference internal" href="../tilie-layout/elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/drawing.ts#L89">arranger/src/drawing.ts:89</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/drawing.ts#L89">arranger/src/drawing.ts:89</a></p>
 <p>The drawing of a block: its manifest drawn at its placement with the
 default layer, the workspace’s <code class="docutils literal notranslate"><span class="pre">graphical</span></code> and the manifest’s own
 (<code class="docutils literal notranslate"><span class="pre">manifestLayer</span></code>: its styles and rules), from lowest to highest, for the
@@ -638,7 +641,7 @@ pointer move, and the block its preview stores draws one of them again.</p>
 <blockquote>
 <div><p><strong>nodePosition</strong>(<code class="docutils literal notranslate"><span class="pre">block</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>): <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/drawing.ts#L167">arranger/src/drawing.ts:167</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/drawing.ts#L167">arranger/src/drawing.ts:167</a></p>
 <p>Where the node of <code class="docutils literal notranslate"><span class="pre">block</span></code> drawn as <code class="docutils literal notranslate"><span class="pre">drawing</span></code> lies: a block’s <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code> are
 the canvas position of its place origin (<code class="docutils literal notranslate"><span class="pre">docs/drawing.md</span></code> in
 TimeToShare, section 8.6), which lies at <code class="docutils literal notranslate"><span class="pre">drawing.origin</span></code> in the block, so
@@ -677,7 +680,7 @@ a block that grows left or up moves nothing it holds.</p>
 <blockquote>
 <div><p><strong>raisedLayers</strong>&lt;<code class="docutils literal notranslate"><span class="pre">E</span></code>&gt;(<code class="docutils literal notranslate"><span class="pre">entries</span></code>, <code class="docutils literal notranslate"><span class="pre">drawing</span></code>, <code class="docutils literal notranslate"><span class="pre">root</span></code>): <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/drawing.ts#L193">arranger/src/drawing.ts:193</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/drawing.ts#L193">arranger/src/drawing.ts:193</a></p>
 <p>The entries of a block in the layers it shows them in (<code class="docutils literal notranslate"><span class="pre">stackingOf</span></code>):
 <code class="docutils literal notranslate"><span class="pre">below</span></code>, every entry no raised card draws, in drawing order, then each
 displayed ancestor card of the root <code class="docutils literal notranslate"><span class="pre">root</span></code> (<code class="docutils literal notranslate"><span class="pre">raisedRoot</span></code>, or the root a
@@ -731,7 +734,7 @@ never changed: only the order and the layers the block shows it in.</p>
 <blockquote>
 <div><p><strong>styleLayers</strong>(<code class="docutils literal notranslate"><span class="pre">graphical</span></code>, <code class="docutils literal notranslate"><span class="pre">manifest</span></code>): (<code class="docutils literal notranslate"><span class="pre">Graphical</span></code> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code>)[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e8ed5a856a0ea0348e0792d4e5bfa53998a1cce/app/packages/arranger/src/drawing.ts#L64">arranger/src/drawing.ts:64</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4f0583f4af6dca016dd02cfe9ec9af52dcb7a1a2/app/packages/arranger/src/drawing.ts#L64">arranger/src/drawing.ts:64</a></p>
 <p>The style layers a block is drawn with: the defaults, the workspace’s rules, then its manifest’s.</p>
 <section id="id14">
 <h4>Parameters<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
@@ -772,11 +775,11 @@ never changed: only the order and the layers the block shows it in.</p>
       </div>
     </a>
     <a class="right-next"
-       href="editing.html"
+       href="edgeValues.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">editing</p>
+        <p class="prev-next-title">edgeValues</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
