@@ -53,11 +53,12 @@ function drawnManifest(manifest: Manifest, extra: readonly Graphical[] = []): Dr
   );
 }
 
-/** The `add` command of an elision on the timeline `timeline` of the block. */
-const elisionOn = (timeline: string, elision: object): object => ({
+/** The `add` command of an elision on the timeline `timeline` of the block, given the ID `id`. */
+const elisionOn = (timeline: string, elision: object, id: string): object => ({
   type: "add",
   into: target(timeline),
   elision,
+  ids: [id],
 });
 
 /** A layer of one rule hiding the element `id`. */
@@ -567,12 +568,16 @@ describe("stored elisions", () => {
 describe("the ancestor-row distance", () => {
   const manifest = edit(
     "groups/group_grandchild",
-    elisionOn("movement", {
-      start: [1, 1],
-      end: [6, 1],
-      name: "Intro",
-      display: ["ellipsis", "name"],
-    }),
+    elisionOn(
+      "movement",
+      {
+        start: [1, 1],
+        end: [6, 1],
+        name: "Intro",
+        display: ["ellipsis", "name"],
+      },
+      "intro",
+    ),
   );
   const drawing = drawnManifest(manifest);
 
@@ -581,9 +586,9 @@ describe("the ancestor-row distance", () => {
     expect([card.drawn, card.proportion, card.gaps.map(gapShape)]).toEqual([
       "custom",
       1,
-      [[at("elision_1"), "stored", "movement", "1", "6", 250, 32]],
+      [[at("intro"), "stored", "movement", "1", "6", 250, 32]],
     ]);
-    expect(labelTexts(drawing, at("elision_1"))).toEqual(["Intro"]);
+    expect(labelTexts(drawing, at("intro"))).toEqual(["Intro"]);
   });
 
   it("counts its label stack, so both rows lie at their heights on the card behind", () => {
@@ -673,26 +678,24 @@ describe("an elision that is not drawn", () => {
   it("takes nothing from a later card elision", () => {
     const manifest = edit(
       "groups/group_grandchild",
-      elisionOn("score", { start: [0, 1], end: [12, 1] }),
-      elisionOn("score", { start: [4, 1], end: [14, 1] }),
+      elisionOn("score", { start: [0, 1], end: [12, 1] }, "hidden"),
+      elisionOn("score", { start: [4, 1], end: [14, 1] }, "later"),
     );
-    const card = exposureOf(drawnManifest(manifest, hiding("elision_1")), {
+    const card = exposureOf(drawnManifest(manifest, hiding("hidden")), {
       item: "group_1",
       member: "score",
     });
-    expect(card.gaps.map(gapShape)).toEqual([
-      [at("elision_2"), "stored", "score", "4", "14", 500, 32],
-    ]);
+    expect(card.gaps.map(gapShape)).toEqual([[at("later"), "stored", "score", "4", "14", 500, 32]]);
   });
 
   it("takes nothing from a later group elision", () => {
     const manifest = edit(
       "groups/group_elided_members",
-      elisionOn("voice", { start: [0, 1], end: [12, 1] }),
+      elisionOn("voice", { start: [0, 1], end: [12, 1] }, "opening"),
     );
     const frame = exposureOf(drawnManifest(manifest, hiding("elision_1")), { item: "group_1" });
     expect(frame.gaps.map(gapShape)).toEqual([
-      [at("elision_3"), "stored", "voice", "0", "12", 200, 32],
+      [at("opening"), "stored", "voice", "0", "12", 200, 32],
       [at("elision_2"), "stored", "phrase", "2", "6", 66.66666666666666, 33.33333333333333],
     ]);
   });
@@ -701,16 +704,16 @@ describe("an elision that is not drawn", () => {
 describe("a cut piece", () => {
   const manifest = edit(
     "groups/group_elided_members",
-    elisionOn("voice", { start: [10, 1], end: [14, 1] }),
-    elisionOn("voice", { start: [12, 1], end: [20, 1] }),
+    elisionOn("voice", { start: [10, 1], end: [14, 1] }, "cut"),
+    elisionOn("voice", { start: [12, 1], end: [20, 1] }, "after"),
   );
   const frame = exposureOf(drawnManifest(manifest, hiding("elision_2")), { item: "group_1" });
 
   it("keeps the exact end of the piece that cut it", () => {
     expect(frame.gaps.map(gapShape)).toEqual([
       [at("elision_1"), "stored", "excerpt", "2", "8", 150, 32],
-      [at("elision_3"), "stored", "voice", "12", "14", 33.33333333333334, 32],
-      [at("elision_4"), "stored", "voice", "14", "20", 100.00000000000003, 32],
+      [at("cut"), "stored", "voice", "12", "14", 33.33333333333334, 32],
+      [at("after"), "stored", "voice", "14", "20", 100.00000000000003, 32],
     ]);
   });
 
@@ -890,7 +893,7 @@ describe("the label stacks of neighbouring gaps", () => {
         "score",
         16,
         ...stretches.map(([start, end], index) =>
-          elisionOn("score", { start, end, width: { canvas: widths[index] } }),
+          elisionOn("score", { start, end, width: { canvas: widths[index] } }, `gap_${index + 1}`),
         ),
       ),
     );

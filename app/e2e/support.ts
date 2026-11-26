@@ -492,6 +492,19 @@ export function entriesLength(page: Page): Promise<number> {
  * journal with no editor open), as JSON; `null` when there is none or it is
  * a closed session.
  */
+/**
+ * The newest command of the innermost level apart from the IDs the store
+ * gave what it created (its `ids`, minted in the page, so random): `ids` is
+ * `[]` for a command that created nothing. A spec names a minted element by
+ * these, never by a literal.
+ */
+export async function newestMinted(page: Page): Promise<{ command: unknown; ids: string[] }> {
+  const newest = (await newestCommand(page)) as { readonly ids?: string[] } | null;
+  if (newest === null) throw new Error("no command was journaled");
+  const { ids = [], ...command } = newest;
+  return { command, ids };
+}
+
 export function newestCommand(page: Page): Promise<unknown> {
   return page.evaluate(() => {
     const entry = window.__tilie.store().entries.at(-1);

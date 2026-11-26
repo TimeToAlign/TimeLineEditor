@@ -5,7 +5,6 @@ import { ServerError } from "@timetoalign/tilie-client";
 import {
   DEFAULT_USER,
   emptyWorkspace,
-  importedManifest,
   isLoadError,
   loadManifest,
   saveManifest,
@@ -46,7 +45,7 @@ import type { MessageLevel } from "../src/messages.svelte.ts";
 import type { FileHost } from "../src/workspaceSession.svelte.ts";
 import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
 import { matchTable, TABLE_MANIFEST_TEXT, tableManifest } from "./matches.ts";
-import { fixtureText, workspaceOf } from "./support.ts";
+import { fixtureText, importedAs, workspaceOf } from "./support.ts";
 
 /** The short sentence, written out (README 9e). */
 const NEED = "Matches need a running tilie-server.";
@@ -302,7 +301,7 @@ describe("the manifest naming the tables", () => {
       ["MatchClaim", "match_claims.parquet"],
       ["Projection", "projections.parquet"],
     ]);
-    expect(saveManifest(block.manifest)).toBe(saveManifest(importedManifest(read)));
+    expect(saveManifest(block.manifest)).toBe(saveManifest(importedAs(read, block.manifest)));
   });
 });
 

@@ -6,6 +6,7 @@
  */
 
 import type { Address, Command, View } from "@timetoalign/tilie-core";
+import { createIdMinter } from "@timetoalign/tilie-core";
 import { flushSync, tick } from "svelte";
 import { vi } from "vitest";
 import type { LevelRules } from "../src/containers.ts";
@@ -225,6 +226,7 @@ export function recordingActions(
       metrics,
       pane: () => undefined,
       view: () => view,
+      minter: () => createIdMinter({ seed: 1n }),
       zoom: () => zoom,
       rules: () => rules,
       reducedMotion: () => reducedMotion,

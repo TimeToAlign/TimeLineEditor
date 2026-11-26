@@ -351,9 +351,10 @@ describe("the defaults", () => {
     });
     const store = storeOf(INSIDE);
     if ("refused" in command) throw new Error(command.refused);
-    expect(store.dispatch(command)).toBeNull();
+    // Given an ID each, in list order: the second gap of the list is stored as the second ID.
+    expect(store.dispatch({ ...command, ids: ["gap_1", "gap_2", "gap_3"] })).toBeNull();
     const entry = { timeline: "first", start: q(16n), end: q(32n) };
-    expect(storedAs(store.view, A, entry)).toEqual(inBlock(A, ELISION("elision_2")));
+    expect(storedAs(store.view, A, entry)).toEqual(inBlock(A, ELISION("gap_2")));
     const members = defaultsStored(MEMBERS, A, drawingIn(MEMBERS), card);
     expect("refused" in members || members.type !== "add" ? null : members.elision).toEqual(
       [

@@ -17,7 +17,7 @@
               "coordinate": 0.0,
               "display": ["wedge", "coordinate"],
               "groupstamp": false,
-              "id": "timestamp_3",
+              "id": "performance_origin",
               "matchstamp": false,
               "name": "origin",
               "timeline": "performance"
@@ -26,7 +26,7 @@
               "coordinate": 2.25,
               "display": ["wedge", "coordinate", "cross_section"],
               "groupstamp": false,
-              "id": "timestamp_9",
+              "id": "entry",
               "matchstamp": false,
               "name": "Entry",
               "timeline": "performance"
@@ -35,7 +35,7 @@
               "coordinate": 8.0,
               "display": ["wedge", "coordinate"],
               "groupstamp": false,
-              "id": "timestamp_4",
+              "id": "performance_length",
               "matchstamp": false,
               "name": "length",
               "timeline": "performance"
@@ -44,7 +44,7 @@
               "coordinate": [5, 1],
               "display": ["wedge", "id"],
               "groupstamp": false,
-              "id": "timestamp_8",
+              "id": "cadence",
               "matchstamp": false,
               "name": "Cadence",
               "timeline": "phrase"
@@ -53,7 +53,7 @@
               "coordinate": [0, 1],
               "display": ["wedge", "coordinate"],
               "groupstamp": false,
-              "id": "timestamp_1",
+              "id": "score_origin",
               "matchstamp": false,
               "name": "origin",
               "timeline": "score"
@@ -62,7 +62,7 @@
               "coordinate": [4, 1],
               "display": ["wedge", "name", "cross_section"],
               "groupstamp": false,
-              "id": "timestamp_5",
+              "id": "theme",
               "matchstamp": false,
               "name": "Theme",
               "timeline": "score"
@@ -71,7 +71,7 @@
               "coordinate": [21, 2],
               "display": ["wedge", "name", "id", "coordinate", "cross_section"],
               "groupstamp": false,
-              "id": "timestamp_6",
+              "id": "climax",
               "matchstamp": false,
               "name": "Climax",
               "timeline": "score"
@@ -80,7 +80,7 @@
               "coordinate": [14, 1],
               "display": [],
               "groupstamp": false,
-              "id": "timestamp_7",
+              "id": "silent",
               "matchstamp": false,
               "name": "Silent",
               "timeline": "score"
@@ -89,7 +89,7 @@
               "coordinate": [16, 1],
               "display": ["wedge", "coordinate"],
               "groupstamp": false,
-              "id": "timestamp_2",
+              "id": "score_length",
               "matchstamp": false,
               "name": "length",
               "timeline": "score"
@@ -297,6 +297,7 @@
     {
       "author": "TimeLineEditor",
       "command": {
+        "ids": ["score_origin", "score_length"],
         "into": {
           "block": "timestamps"
         },
@@ -425,6 +426,7 @@
     {
       "author": "TimeLineEditor",
       "command": {
+        "ids": ["performance_origin", "performance_length"],
         "into": {
           "block": "timestamps"
         },
@@ -514,6 +516,7 @@
     {
       "author": "TimeLineEditor",
       "command": {
+        "ids": ["theme"],
         "into": {
           "block": "timestamps",
           "id": "score"
@@ -529,6 +532,7 @@
     {
       "author": "TimeLineEditor",
       "command": {
+        "ids": ["climax"],
         "into": {
           "block": "timestamps",
           "id": "score"
@@ -545,6 +549,7 @@
     {
       "author": "TimeLineEditor",
       "command": {
+        "ids": ["silent"],
         "into": {
           "block": "timestamps",
           "id": "score"
@@ -561,6 +566,7 @@
     {
       "author": "TimeLineEditor",
       "command": {
+        "ids": ["cadence"],
         "into": {
           "block": "timestamps",
           "id": "phrase"
@@ -577,6 +583,7 @@
     {
       "author": "TimeLineEditor",
       "command": {
+        "ids": ["entry"],
         "into": {
           "block": "timestamps",
           "id": "performance"
@@ -593,7 +600,7 @@
   ],
   "meta": {
     "format": "tilie-workspace",
-    "version": 7
+    "version": 8
   },
   "name": "Timestamps",
   "sessions": {},

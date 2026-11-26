@@ -277,9 +277,10 @@ test.describe("a MatchStamp shown", () => {
       type: "add",
       into: { id: "middle" },
       elision: { start: [5, 1], end: [7, 1], name: "Gap" },
+      ids: ["gap"],
     });
-    await press(page, block, stored("elision_1", "ellipsis"));
-    await elisionsShown(page, block, stored("elision_1"));
+    await press(page, block, stored("gap", "ellipsis"));
+    await elisionsShown(page, block, stored("gap"));
     await matchLetGo(page);
   });
 });

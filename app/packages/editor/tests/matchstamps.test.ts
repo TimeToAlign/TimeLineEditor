@@ -62,10 +62,23 @@ function stampAt(index: AnchorIndex, timeline: string, value: Parameters<typeof 
 const text = ({ timeline, value }: StampCoordinate) => [timeline, String(value)];
 
 /** Name the potential MatchStamp of `clt_1` 0 "Downbeat" in `store`. */
+/**
+ * The IDs naming "Downbeat" gives, in core's order: the MatchStamp's, its match timestamps'
+ * (`clt_1`, `cpt_1`, `dpt_1` at 0) and its two anchors'.
+ */
+const DOWNBEAT_IDS = [
+  "downbeat",
+  "clt_1_at_0",
+  "cpt_1_at_0",
+  "dpt_1_at_0",
+  "downbeat_cpt",
+  "downbeat_dpt",
+];
+
 function nameDownbeat(store: Store, drawing: Drawing): void {
   const { shown } = matchIndexes(matchTable(), DEFAULT_MATCH_CLAIM_FILTER, ME, CONTEXT);
   const stamp = potentialStamp(A, shown, stampAt(shown, "clt_1", q(0)), drawing);
-  expect(store.dispatch(nameCommand(stamp, "Downbeat"))).toBe(null);
+  expect(store.dispatch({ ...nameCommand(stamp, "Downbeat"), ids: DOWNBEAT_IDS })).toBe(null);
 }
 
 describe("the indexes", () => {
@@ -138,17 +151,21 @@ describe("a potential MatchStamp", () => {
         item.display,
       ]),
     ).toEqual([
-      ["timestamp_1", "clt_1", "[0,1]", true, ["cross_section"]],
-      ["timestamp_2", "cpt_1", "0.0", true, ["cross_section"]],
-      ["timestamp_3", "dpt_1", "0", true, ["cross_section"]],
+      ["clt_1_at_0", "clt_1", "[0,1]", true, ["cross_section"]],
+      ["cpt_1_at_0", "cpt_1", "0.0", true, ["cross_section"]],
+      ["dpt_1_at_0", "dpt_1", "0", true, ["cross_section"]],
     ]);
     expect(graphical?.matchstamps).toEqual([
       {
-        id: "matchstamp_1",
+        id: "downbeat",
         name: "Downbeat",
         alignment_anchors: [
-          { id: "anchor_1", timestamps: ["timestamp_1", "timestamp_2"], display: ["line", "name"] },
-          { id: "anchor_2", timestamps: ["timestamp_1", "timestamp_3"], display: ["line"] },
+          {
+            id: "downbeat_cpt",
+            timestamps: ["clt_1_at_0", "cpt_1_at_0"],
+            display: ["line", "name"],
+          },
+          { id: "downbeat_dpt", timestamps: ["clt_1_at_0", "dpt_1_at_0"], display: ["line"] },
         ],
         match_claims: ["claim_1", "claim_2"],
       },
@@ -178,14 +195,14 @@ describe("naming under a timelines filter", () => {
       "Naming also stores 1 anchor on timelines the MatchClaim filter hides.",
     );
 
-    expect(store.dispatch(nameCommand(named, "Downbeat"))).toBe(null);
+    expect(store.dispatch({ ...nameCommand(named, "Downbeat"), ids: DOWNBEAT_IDS })).toBe(null);
     const manifest = store.view.blocks[A]?.manifest;
     const matchstamp = manifest?.graphical?.matchstamps?.[0];
     if (manifest === undefined || matchstamp === undefined) throw new Error("not named");
     expect(matchstamp.match_claims).toEqual(["claim_1", "claim_2"]);
     expect(matchstamp.alignment_anchors.map((anchor) => anchor.timestamps)).toEqual([
-      ["timestamp_1", "timestamp_2"],
-      ["timestamp_1", "timestamp_3"],
+      ["clt_1_at_0", "cpt_1_at_0"],
+      ["clt_1_at_0", "dpt_1_at_0"],
     ]);
     const [compared] = namedComparisons(manifest, indexes.compared);
     if (compared === undefined) throw new Error("no comparison");
@@ -215,16 +232,16 @@ describe("a named MatchStamp against the table", () => {
     if (manifest === undefined || named === undefined) throw new Error("not named");
     const { compared } = matchIndexes(doubted(), DEFAULT_MATCH_CLAIM_FILTER, ME, CONTEXT);
     const [comparison] = namedComparisons(manifest, compared);
-    expect(comparison?.id).toBe("matchstamp_1");
+    expect(comparison?.id).toBe("downbeat");
     if (comparison === undefined) throw new Error("no comparison");
     const stamp = namedStamp(A, manifest, named, comparison.comparison, drawing);
     expect(stamp.anchors.map((anchor) => [anchor.id, anchor.stated])).toEqual([
-      ["anchor_1", true],
-      ["anchor_2", false],
+      ["downbeat_cpt", true],
+      ["downbeat_dpt", false],
     ]);
     expect(differencesOf(manifest, named, comparison.comparison, compared)).toEqual([
       { label: "MatchClaims the belief filter leaves out", items: ["claim_1"] },
-      { label: "Anchors gone", items: ["anchor_2"] },
+      { label: "Anchors gone", items: ["downbeat_dpt"] },
     ]);
     expect(namedStamp(A, manifest, named, null, drawing).anchors.map((a) => a.stated)).toEqual([
       null,
@@ -241,16 +258,16 @@ describe("a named MatchStamp against the table", () => {
     const update = namedComparisons(manifest, compared)[0]?.comparison.update;
     if (update == null) throw new Error("no update");
     const before = store.journal.length;
-    expect(store.dispatch(updateCommand(A, "matchstamp_1", update, compared, drawing))).toBe(null);
+    expect(store.dispatch(updateCommand(A, "downbeat", update, compared, drawing))).toBe(null);
     expect(store.journal.length).toBe(before + 1);
     const graphical = store.view.blocks[A]?.manifest.graphical;
     expect(graphical?.matchstamps?.[0]?.alignment_anchors).toEqual([
-      { id: "anchor_1", timestamps: ["timestamp_1", "timestamp_2"], display: ["line", "name"] },
+      { id: "downbeat_cpt", timestamps: ["clt_1_at_0", "cpt_1_at_0"], display: ["line", "name"] },
     ]);
     expect(graphical?.matchstamps?.[0]?.match_claims).toEqual(["claim_2"]);
-    expect(graphical?.timestamps?.map((item) => item.id)).toEqual(["timestamp_1", "timestamp_2"]);
+    expect(graphical?.timestamps?.map((item) => item.id)).toEqual(["clt_1_at_0", "cpt_1_at_0"]);
 
-    expect(store.dispatch(removeCommand(A, "matchstamp_1"))).toBe(null);
+    expect(store.dispatch(removeCommand(A, "downbeat"))).toBe(null);
     expect(store.journal.length).toBe(before + 2);
     const removed = store.view.blocks[A]?.manifest.graphical;
     expect([removed?.matchstamps, removed?.timestamps]).toEqual([[], []]);
@@ -378,13 +395,13 @@ describe("the tab rule of MatchStamps", () => {
     const { store, drawing } = setup();
     nameDownbeat(store, drawing);
     const { view } = store;
-    expect(namedMatchStampOf(view, { block: A, id: "matchstamp_1" })).toBe("matchstamp_1");
-    expect(namedMatchStampOf(view, { block: A, id: "anchor_2" })).toBe("matchstamp_1");
-    expect(namedMatchStampOf(view, { block: A, id: "timestamp_1" })).toBe(null);
+    expect(namedMatchStampOf(view, { block: A, id: "downbeat" })).toBe("downbeat");
+    expect(namedMatchStampOf(view, { block: A, id: "downbeat_dpt" })).toBe("downbeat");
+    expect(namedMatchStampOf(view, { block: A, id: "clt_1_at_0" })).toBe(null);
     expect(namedMatchStampOf(view, { block: A })).toBe(null);
-    const named: HeldMatch = { kind: "named", block: A, id: "matchstamp_1" };
+    const named: HeldMatch = { kind: "named", block: A, id: "downbeat" };
     expect(matchOutlived(named, view, null)).toBe(false);
-    store.dispatch(removeCommand(A, "matchstamp_1"));
+    store.dispatch(removeCommand(A, "downbeat"));
     expect(matchOutlived(named, store.view, null)).toBe(true);
   });
 });
@@ -449,10 +466,10 @@ describe("the overlay", () => {
     expect(input?.named).toBe(namedComparisons(manifest, indexes.compared));
     expect(input?.beliefs).toBe(indexes.beliefs);
     expect(matchInputs(store.view, [A], () => null)).toEqual([]);
-    // `stated` in the order of the MatchStamp's `alignment_anchors`: anchor_1 stated, anchor_2 not.
+    // `stated` in the order of the MatchStamp's `alignment_anchors`: downbeat_cpt stated, downbeat_dpt not.
     const anchors = manifest.graphical?.matchstamps?.[0]?.alignment_anchors ?? [];
     const [named] = input?.named ?? [];
-    expect(anchors.map((anchor) => anchor.id)).toEqual(["anchor_1", "anchor_2"]);
+    expect(anchors.map((anchor) => anchor.id)).toEqual(["downbeat_cpt", "downbeat_dpt"]);
     expect(named?.comparison.stated.map((anchor) => anchor === null)).toEqual([false, true]);
   });
 
@@ -463,9 +480,7 @@ describe("the overlay", () => {
     expect(pinnedMatchStampOf(pinned, indexesOf)).toEqual({ block: A, matchStamp: 1 });
     expect(pinnedMatchStampOf({ ...pinned, index: indexes.compared }, indexesOf)).toBe(null);
     expect(pinnedMatchStampOf(pinned, () => null)).toBe(null);
-    expect(pinnedMatchStampOf({ kind: "named", block: A, id: "matchstamp_1" }, indexesOf)).toBe(
-      null,
-    );
+    expect(pinnedMatchStampOf({ kind: "named", block: A, id: "downbeat" }, indexesOf)).toBe(null);
     expect(pinnedMatchStampOf(null, indexesOf)).toBe(null);
   });
 });

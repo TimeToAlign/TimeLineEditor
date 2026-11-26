@@ -18,7 +18,11 @@ non-corpus fixtures carries the named timestamps an editor gives a new
 root, `origin` at 0 and `length` at its length (none for an unknown
 length), each drawing its wedge and its coordinate label, and a manifest
 built through commands starts from a root that carries them too (`bare`'s,
-moved to the new root and its length); the corpus fixtures carry none. The
+moved to the new root and its length); the corpus fixtures carry none.
+The commands of such a manifest are applied with a minter of a fixed seed
+(`MINTER_SEED`), so what they create is the same every run; a test names
+only the IDs its commands give (`ids`, a speaking ID such as `here` or
+`gap_1`), never one the minter gives. The
 defaults show every ancestor card (section 8.8), which takes no room in
 its frame but moves the origin, and moves the items after its frame where
 it reaches beyond it ("Ancestor cards" point 14): a test whose subject is not the ancestor card (the
@@ -1418,17 +1422,17 @@ line's marker (`AxisMarker.crossSection.span`) is its card's span.
 
 - `group_parent_both` (`middle`, offset 4, length 8 in `piece` of 16) with
   the named timestamp `Here` at 2 on `middle`, `display` `[cross_section]`
-  (`timestamp_5`): `middle` at 47.20703125, `piece`'s ancestor line below
+  (given the ID `here`): `middle` at 47.20703125, `piece`'s ancestor line below
   at 85.18359375; one line at `x0 + 400 × 2 / 8 = 211.70361328125` from
   the top of `middle`'s card to its bottom, across the ancestor line.
 - The same with a child `inner` of `middle` (offset 1, length 2) and a
-  named timestamp at 1 on `inner`, `display` `[cross_section]`: its line
+  named timestamp `in` at 1 on `inner`, `display` `[cross_section]`: its line
   crosses `middle`'s whole card too, at the same abscissa (1 + 1 of
   `middle`'s 8): a descendant's line is the card's, as the member's.
 - Hiding the ancestor line (`{addresses: [{id: piece}]}`, `display: none`)
   leaves the line across the card.
 - `group_grandchild_parent_on_top`: `theme`'s marker spans its card, and
-  `Here` at 2 on `theme` (`timestamp_5`) draws its line at 211.70361328125
+  `Here` at 2 on `theme` (`here`) draws its line at 211.70361328125
   from the card's top, above `movement`'s line, to its bottom, below
   `score`'s.
 - `data/clair-de-lune-session.yaml` (a session of a score image, its time
@@ -1452,10 +1456,9 @@ card that draws `A` as a root (section 8.8). What proves it:
 `group_child_member` (`second-half` 8 at 8 in `piece` 16, the window 8 to
 16, the quantities above: `x0 = 120.61962890625`, `piece` at
 85.18359375) with four timestamps added on `piece` through commands,
-minted in this order: `timestamp_5` at 4 (wedge, name, line), outside, of
-which nothing is drawn; `timestamp_6` "B" at 8 (wedge, name), the start;
-`timestamp_7` "C" at 12 (wedge, name, line); `timestamp_8` at 16 (wedge),
-the end. The wedges lie at `x0`, `x0 + 200`, `x0 + 400`, tip `85.18359375
+each given its name in lower case as its ID: `before` at 4 (wedge, name,
+line), outside, of which nothing is drawn; `b` "B" at 8 (wedge, name), the
+start; `c` "C" at 12 (wedge, name, line); `d` at 16 (wedge), the end. The wedges lie at `x0`, `x0 + 200`, `x0 + 400`, tip `85.18359375
 + 1.5`, base `+ 14.5`. The first fit places "B" at `x0` and "C" at `x0 +
 200`, both in tier 1 (the secondary coordinates of `origin` and `length`
 on `piece` are hidden and take no room): baselines `85.18359375 + (1.5 +
@@ -1473,11 +1476,11 @@ four pieces, two in the ancestor card and two in the member's, and
 carries the value it shows on its timeline's axis (`coordinate`), and only
 the coordinate label shows one: a name or ID label carries none, on an
 ancestor line as in a markers band, both built by one function. What
-proves it: `group_child_member` with `timestamp_5` "Start" added on `piece`
+proves it: `group_child_member` with `start` "Start" added on `piece`
 at 8 through a command, its `display` listing the wedge, name, ID and
 coordinate. Drawn with the default layer and the ancestor card hidden, its
 labels on `piece`'s ancestor line in the member's card are, in order,
-"Start", "timestamp_5" and "8 ♩", carrying no coordinate, no coordinate
+"Start", "start" and "8 ♩", carrying no coordinate, no coordinate
 and 8 quarters; drawn with the default layer alone, the same three labels
 come first in `piece`'s markers band of its own card with the same
 coordinates, then once more on the ancestor line.
@@ -2032,7 +2035,7 @@ elision without `display` draws `["ellipsis", "name"]`.
    counted (point 1).
 10. **The row distance counts a stored card elision's labels** (section
    8.3, `dr`). `group_grandchild` with one more elision added by core's
-   `add` into `movement`: `elision_1` from 1 to 6, named `Intro`, `display
+   `add` into `movement`: `intro` from 1 to 6, named `Intro`, `display
    [ellipsis, name]`. `movement` lies in no group, so it is a card elision
    of `score`; the ancestor card of `score` behind `group_1` (aligned to
    `theme`: `ts = −24`, `λ = 8`, `LA = 400 × 64 / 8 = 3200`, 50 per
@@ -2059,36 +2062,36 @@ elision without `display` draws `["ellipsis", "name"]`.
    at `99.18359375 − 33.9765625`, off the member card's.)
 11. **An elision that is not drawn takes nothing** (section 8.9, Pieces).
    Card elisions: `group_grandchild` with two elisions added into `score`,
-   `elision_1` 0–12 and `elision_2` 4–14 (canonical order: `elision_1`
-   first), `elision_1` hidden by a layer `{addresses: [{id: elision_1}]}`
-   `display: none`: the ancestor card of `score` draws `elision_2` whole,
+   `hidden` 0–12 and `later` 4–14 (canonical order: `hidden` first, by
+   start), `hidden` hidden by a layer `{addresses: [{id: hidden}]}`
+   `display: none`: the ancestor card of `score` draws `later` whole,
    4–14 on `score`, natural `10 × 50 = 500`, the standard gap 32; were
-   `elision_1` to take 0–12, `elision_2` would be clipped to 12–14 (natural
-   100). Group elisions: `group_elided_members` with `elision_3` added into
+   `hidden` to take 0–12, `later` would be clipped to 12–14 (natural
+   100). Group elisions: `group_elided_members` with `opening` added into
    `voice`, 0–12 (proportions 0 to `1/2`), `elision_1` (on `excerpt`,
    `1/8` to `1/2`, first in canonical order) hidden likewise: the frame
-   draws `elision_3` whole, `voice` 0–12, natural `400 × 0.5 = 200`,
+   draws `opening` whole, `voice` 0–12, natural `400 × 0.5 = 200`,
    drawn 32, then `elision_2`; were `elision_1` to take `1/8` to `1/2`,
-   `elision_3` would be clipped to 0–3 (natural 50).
+   `opening` would be clipped to 0–3 (natural 50).
 12. **A cut piece keeps its exact ends** (section 8.9, Group elisions and
    Carried gaps). `group_elided_members` with `elision_2` hidden (so it
    takes nothing) and two overlapping group elisions added into `voice`
-   (`λ = 24`): `elision_3` 10–14 and `elision_4` 12–20, in canonical order
+   (`λ = 24`): `cut` 10–14 and `after` 12–20, in canonical order (by start)
    after `elision_1` (`excerpt`, `1/8` to `1/2`). Pieces are clipped on
-   exact proportions: `elision_3` (`5/12` to `7/12`) loses `5/12`–`1/2` to
-   `elision_1` and draws `1/2` to `7/12`; `elision_4` (`1/2` to `5/6`)
+   exact proportions: `cut` (`5/12` to `7/12`) loses `5/12`–`1/2` to
+   `elision_1` and draws `1/2` to `7/12`; `after` (`1/2` to `5/6`)
    loses `1/2`–`7/12` to the two before it and draws `7/12` to `5/6`, its
    start cut at `7/12`, the double `0.5833333333333334` of which is not
-   7/12. The frame's gaps: `elision_1` as in point 3, `elision_3` on
+   7/12. The frame's gaps: `elision_1` as in point 3, `cut` on
    `voice` 12–14 (natural `400 × 0.5833333333333334 − 400 × 0.5 =
-   33.33333333333334`, the standard 32), `elision_4` on `voice` 14–20
+   33.33333333333334`, the standard 32), `after` on `voice` 14–20
    (natural `400 × 0.8333333333333334 − 400 × 0.5833333333333334 =
    100.00000000000003`, 32): a cut piece's elided coordinates on an exact
-   axis are its exact proportions times `λ`, so `elision_4` starts at 14
-   exactly where `elision_3` ends. Their elided coordinates across the
-   frame are exact on every fraction timeline: `elision_3` `excerpt`
+   axis are its exact proportions times `λ`, so `after` starts at 14
+   exactly where `cut` ends. Their elided coordinates across the
+   frame are exact on every fraction timeline: `cut` `excerpt`
    8–28/3, `piece` 24–76/3, `voice` 12–14, `phrase` 0–2, `sketch` none;
-   `elision_4` `excerpt` 28/3–40/3, `piece` 76/3–88/3, `voice` 14–20,
+   `after` `excerpt` 28/3–40/3, `piece` 76/3–88/3, `voice` 14–20,
    `phrase` 2–8 (its span 12–20 on `voice` holds 14–20, ends included),
    `sketch` none.
 13. **A member reads its frame's gaps at their exact proportions** (section
@@ -2406,17 +2409,17 @@ brace) are the oracle. No fixture draws a region across a gap, so the case
 is built through core's commands: `build("score", 16)` (quarters,
 fraction, `x(t) = x0 + 25 t` at full scale), with the region `region_1`
 `theme` from 2 to 14 (midpoint 8) and six stored card elisions on `score`,
-each with a `canvas` width (drawn `g`, natural `n = 25 × (b − a)`, shrink
+given the IDs `gap_1` to `gap_6`, each with a `canvas` width (drawn `g`, natural `n = 25 × (b − a)`, shrink
 `n − g`):
 
 | elision | stretch | `n` | `g` | edges `x(a)`, `x(b)` less `x0` |
 |---|---|---|---|---|
-| `elision_1` | 2–5/2 | 12.5 | 8 | 50, 58 |
-| `elision_2` | 3–5 | 50 | 10 | 70.5, 80.5 |
-| `elision_3` | 5–6 | 25 | 5 | 80.5, 85.5 |
-| `elision_4` | 15/2–8 | 12.5 | 6 | 123, 129 |
-| `elision_5` | 10–12 | 50 | 8 | 179, 187 |
-| `elision_6` | 14–15 | 25 | 4 | 237, 241 |
+| `gap_1` | 2–5/2 | 12.5 | 8 | 50, 58 |
+| `gap_2` | 3–5 | 50 | 10 | 70.5, 80.5 |
+| `gap_3` | 5–6 | 25 | 5 | 80.5, 85.5 |
+| `gap_4` | 15/2–8 | 12.5 | 6 | 123, 129 |
+| `gap_5` | 10–12 | 50 | 8 | 179, 187 |
+| `gap_6` | 14–15 | 25 | 4 | 237, 241 |
 
 The edges are `25 a − D` and `25 b − D'`, `D` the shrinks of the gaps
 before, `D'` with the gap's own (4.5, 44.5, 64.5, 71, 113, 134). The row
@@ -2427,9 +2430,9 @@ draws its name label `score` (the default display `ellipsis name`), `w =
 5548 × 9 / 2048 = 24.380859375` wide, below its ellipsis at its middle
 `xm − x0` = 54, 75.5, 83, 126, 183 and 239. Their one first fit (section
 6.6; extents `xm − x0 ± (w / 2 + 1)`, `± 13.1904296875`) keeps
-`elision_1`, `elision_3` (its extent starts at 69.8095703125, after
-`elision_1`'s end 67.1904296875) and the last three on line 1 and moves
-`elision_2` (62.3095703125 to 88.6904296875, across both neighbours) to
+`gap_1`, `gap_3` (its extent starts at 69.8095703125, after
+`gap_1`'s end 67.1904296875) and the last three on line 1 and moves
+`gap_2` (62.3095703125 to 88.6904296875, across both neighbours) to
 line 2. Its stack takes that room in `score`'s markers band, which so
 holds two lines (the timestamps' labels `0 ♩` and `16 ♩` on line 1), one
 `h(9) = 10.4765625` more than in `with_region`: the regions band starts
@@ -2439,15 +2442,15 @@ Every number here is a multiple of 2^−9, so each sum is exact.
 
 The region's start, end and midpoint lie in no gap (2, 8 and 14 are
 edges), so it is drawn at its elided x: `X1 = x0 + 50`, `Xm = x0 + 129`,
-`X2 = x0 + 350 − 113 = x0 + 237`. Its brace spans the gaps of `elision_1`
-to `elision_5` (each whole between 2 and 14) and not `elision_6`, which
+`X2 = x0 + 350 − 113 = x0 + 237`. Its brace spans the gaps of `gap_1`
+to `gap_5` (each whole between 2 and 14) and not `gap_6`, which
 starts at the region's end: the element's `cuts` are those five gaps'
 edges, from the left. The straight parts run from `X1 + k = x0 + 53` to `Xm
 − k = x0 + 126` and from `x0 + 132` to `X2 − k = x0 + 234`. Clipped to
-them: `elision_1` leaves out `x0 + 53` to `x0 + 58` (its left edge lies on
-the arm's curve), `elision_2` and `elision_3` touch and are one cut, `x0 +
-70.5` to `x0 + 85.5`, `elision_4` leaves out `x0 + 123` to `x0 + 126` (its
-right edge is the tip's abscissa), and `elision_5` `x0 + 179` to `x0 + 187`
+them: `gap_1` leaves out `x0 + 53` to `x0 + 58` (its left edge lies on
+the arm's curve), `gap_2` and `gap_3` touch and are one cut, `x0 +
+70.5` to `x0 + 85.5`, `gap_4` leaves out `x0 + 123` to `x0 + 126` (its
+right edge is the tip's abscissa), and `gap_5` `x0 + 179` to `x0 + 187`
 of the right part. So the path is `M X1 Yb Q X1 Ym X1+k Ym`, then `M x0+58
 Ym` (the `L` to `x0 + 53`, where the pen stands, left out), `L x0+70.5 Ym M
 x0+85.5 Ym L x0+123 Ym M x0+126 Ym` (the `L` to `Xm − k` left out), `Q Xm
@@ -2665,7 +2668,7 @@ h(9))`, `y` `b`'s line.
 length 8 (with `origin` and `length`), the locked child `c` at 2, length
 4, the LinearMap `m`, the band order `[conversion_maps, line, children,
 markers, regions, flow_control]` set on `r`, and the timestamp `Here` added
-at 3 (`timestamp_3`, the default `display`). Above `r`'s line its
+at 3 (given the ID `here`, the default `display`). Above `r`'s line its
 conversion maps band at level 1 from 0, one slot: `e = 1.5 + 5 = 6.5`, `Ea
 = 6.5`, `y_root = max(8 + 6.5, 8 + 6.40234375) = 14.5`, the line at 22.5.
 Below, the children band at level −1 from `max(1.5 + 4, 7) = 7`, `c`'s row
@@ -2925,7 +2928,7 @@ ends `1.5 + 13 + 2 + h(9)` below its line.
    line from `bottom(score)` to `bottom(performance)`; style stroke
    `#1BA1E2`, width 1, dash `3 3` (the default cross-section style).
 2. **A member's descendant**: with a child `motif` (quarters, offset 2,
-   length 4) added to `score` and a groupstamp `timestamp_6` "Motif" at 1
+   length 4) added to `score` and a groupstamp `motif_beat` "Motif" at 1
    on it, its lines lie at the abscissa of 1 on `motif`'s line (`score`'s
    abscissa of 3): from `top(score)` to the tip below `motif`'s line, from
    the end of its label to `bottom(score)`, then from `bottom(score)` to
@@ -2966,7 +2969,7 @@ ends `1.5 + 13 + 2 + h(9)` below its line.
 7. **A secondary coordinate's label is written in its timeline's number
    type** (section 2, "read on that timeline's axis"; core's `cardStamps`
    derives the value, "Secondary coordinates" there): with a groupstamp
-   `timestamp_6` "Beat" added on `performance` at the float 1.0, `display`
+   `beat` "Beat" added on `performance` at the float 1.0, `display`
    `[wedge, coordinate]`, and the same rule, its secondary coordinate on
    `score` (fraction) lies at 1.0 / 4.0 × 8 = 2 quarters, and its
    coordinate label reads `2 ♩` with the coordinate `{unit: quarters,
@@ -3001,7 +3004,7 @@ ends `1.5 + 13 + 2 + h(9)` below its line.
    secondary one's opacity 0.35.
 9. **On an ancestor line** (section 8.3): `groups/group_child_member_stamps.yaml`
    (`group_1` of the child `middle`, quarters 8 at 4 in `piece` 16, and
-   `recording`, seconds 10.0), with a groupstamp `Half` added on
+   `recording`, seconds 10.0), with a groupstamp `half` "Half" added on
    `recording` at the float 5.0 (`display` wedge, name, coordinate) and the
    rule of item 6: on `middle`'s card its secondary coordinates lie on
    `middle`'s line and on its ancestor line `piece`. With `recording`'s

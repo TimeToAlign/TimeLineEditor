@@ -186,6 +186,7 @@ const withLate = (): View =>
     type: "add",
     into: { block: A },
     timeline: { id: "late", unit: "quarters", number_type: "fraction", length: null },
+    ids: ["late_origin"],
   });
 
 /** `view` with the `display` of the named timestamp `id` of block A emptied. */
@@ -1426,6 +1427,7 @@ describe("a named timestamp's pin", () => {
       type: "add",
       into: inBlock(A, idAddress(into)),
       timestamp: { name: "Mark", coordinate },
+      ids: ["mark"],
     });
 
   const pinIn = (view: View, id: string) => {
@@ -1447,15 +1449,15 @@ describe("a named timestamp's pin", () => {
 
   it("is read on its line's cross-section, as a click there reads it", () => {
     const view = stamped(viewWith("map"), "melody", [4, 1]);
-    const pin = pinIn(view, "timestamp_3");
+    const pin = pinIn(view, "mark");
     const spec = specOf(view, "melody");
     expect(pin).toEqual({
       spec,
       knots: "no_server",
       timestamp: timestampAt(spec, q(4), "no_server"),
-      named: named(view, "timestamp_3"),
+      named: named(view, "mark"),
     });
-    expect(pin?.named).toBe(named(view, "timestamp_3"));
+    expect(pin?.named).toBe(named(view, "mark"));
     expect(pin?.timestamp.parts.map(({ timeline, position }) => [timeline, position])).toEqual([
       ["melody", q(4)],
       ["phrase", q(2)],
@@ -1464,7 +1466,7 @@ describe("a named timestamp's pin", () => {
 
   it("of a segment without a line is anchored on the segment, read on its segment line's line", () => {
     const view = stamped(segmentTicks(), "b2", [1, 1]);
-    const pin = pinIn(view, "timestamp_3");
+    const pin = pinIn(view, "mark");
     const b2 = blockIn(view, A).manifest.timelines[0]?.children[1]?.children[1];
     expect(b2?.id).toBe("b2");
     expect(pin?.spec).toEqual({
@@ -1539,8 +1541,8 @@ describe("a named timestamp's pin", () => {
   });
 
   it("of a zero-length line is read on that line, though nothing is hovered there", () => {
-    const view = undisplayed(withLate(), "timestamp_3");
-    const pin = pinIn(view, "timestamp_3");
+    const view = undisplayed(withLate(), "late_origin");
+    const pin = pinIn(view, "late_origin");
     expect(pin?.named?.timeline).toBe("late");
     expect(pin?.spec).toEqual({
       block: A,
@@ -1572,7 +1574,7 @@ describe("a named timestamp's pin", () => {
     });
     expect(axes(hidden).size).toBe(0);
     const melody = load("map").timelines[0];
-    const pin = pinIn(hidden, "timestamp_3");
+    const pin = pinIn(hidden, "mark");
     expect(pin?.spec).toEqual({
       block: A,
       granularity: DEFAULT_GRANULARITY,
@@ -1631,8 +1633,9 @@ describe("a named timestamp's pin", () => {
       type: "add",
       into: inBlock(A, idAddress("motif")),
       timestamp: { name: "Motif", coordinate: [1, 1], groupstamp: true },
+      ids: ["motif_mark"],
     });
-    const pin = pinIn(view, "timestamp_6");
+    const pin = pinIn(view, "motif_mark");
     expect(
       pin?.spec.members.map(({ timeline, offset, scale }) => [timeline, offset, scale]),
     ).toEqual([
@@ -1765,12 +1768,13 @@ describe("a position's pin on a timeline", () => {
       type: "add",
       into: inBlock(A, idAddress("melody")),
       timestamp: { name: "Mark", coordinate: [4, 1] },
+      ids: ["mark"],
     });
     const named = namedPin(
       blockIn(view, A).manifest,
       A,
       drawingIn(view),
-      "timestamp_3",
+      "mark",
       DEFAULT_GRANULARITY,
       "no_server",
       null,
@@ -2112,9 +2116,9 @@ describe("the affordance of a named timestamp that draws nothing", () => {
   });
 
   it("lies on a zero-length line at its start", () => {
-    const view = undisplayed(withLate(), "timestamp_3");
+    const view = undisplayed(withLate(), "late_origin");
     const [line] = drawnLine(view, "late");
-    expect(affordances(view)).toEqual([expected(view, "timestamp_3", line, 63.53662109375)]);
+    expect(affordances(view)).toEqual([expected(view, "late_origin", line, 63.53662109375)]);
   });
 
   it("is computed once per drawing", () => {

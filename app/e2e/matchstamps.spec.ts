@@ -139,11 +139,12 @@ test("a named MatchStamp is shown when selected and removed in one entry", async
           ],
           match_claims: ["claim_1"],
         },
+        ids: ["downbeat"],
       }),
     block,
   );
   expect(refusal).toBe(null);
-  await select(page, [{ block, id: "matchstamp_1" }]);
+  await select(page, [{ block, id: "downbeat" }]);
   await expect(tabs(page).getByRole("tab", { name: "Matchstamp", exact: true })).toHaveAttribute(
     "aria-selected",
     "true",
@@ -222,6 +223,8 @@ test("a click on a match timestamp's line selects its MatchStamp in the Matchsta
           ],
           match_claims: ["claim_1"],
         },
+        // The MatchStamp's ID, those of its match timestamps on `clt_1` and `dpt_1`, its anchor's.
+        ids: ["downbeat", "downbeat_clt_1", "downbeat_dpt_1", "downbeat_anchor"],
       }),
     block,
   );
@@ -243,7 +246,7 @@ test("a click on a match timestamp's line selects its MatchStamp in the Matchsta
     `[data-testid="block"] svg line[data-id="${timestamp?.[0]?.id}"][data-part="line"]`,
   );
   await line.dispatchEvent("click");
-  await expect.poll(() => selection(page)).toEqual([{ block, id: "matchstamp_1" }]);
+  await expect.poll(() => selection(page)).toEqual([{ block, id: "downbeat" }]);
   await expect(tabs(page).getByRole("tab", { name: "Matchstamp", exact: true })).toHaveAttribute(
     "aria-selected",
     "true",
@@ -270,7 +273,7 @@ test("a click on a match timestamp's line selects its MatchStamp in the Matchsta
     await lines.evaluateAll((items) =>
       items.map((item) => item.getAttribute("data-timestamp") ?? item.getAttribute("data-anchor")),
     ),
-  ).toEqual([onClt, "anchor_1", onDpt]);
+  ).toEqual([onClt, "downbeat_anchor", onDpt]);
   const journal = () => page.evaluate(() => window.__tilie.store().journal.length);
   const before = await journal();
   await lines.first().getByRole("button", { name: "Wedge", exact: true }).click();

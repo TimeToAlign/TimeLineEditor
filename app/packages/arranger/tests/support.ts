@@ -22,6 +22,7 @@ import {
   BUNDLE_ADDRESS,
   bandAddress,
   cardAddress,
+  createIdMinter,
   createStore,
   createView,
   emptyWorkspace,
@@ -49,6 +50,17 @@ const packageDir = path.dirname(
 export const A = "0000000000";
 export const B = "0000000001";
 export const C = "0000000002";
+
+/**
+ * What mints the IDs of the elements `changed` creates beyond those its
+ * command gives (`ids`): one minter of a fixed seed for the test file, so
+ * the IDs are the same every run and never repeat in it. A test names only
+ * the IDs its commands give, never one this minter gives.
+ */
+const MINTER = createIdMinter({ seed: 20261126n });
+
+/** The seed of the minter of every store `storeOf` builds, another than `MINTER`'s. */
+const STORE_SEED = 20261127n;
 
 function fixtureText(name: string): string {
   return readFileSync(path.join(packageDir, "fixtures", SCHEMA_VERSION, `${name}.yaml`), "utf8");
@@ -81,9 +93,12 @@ export function loadUnlocked(name: string, ...ids: string[]): Manifest {
   return loadText(dumps({ ...value, timelines }), name);
 }
 
-/** The view a command leaves, failing loudly if it is refused. */
+/**
+ * The view a command leaves, what it creates beyond its `ids` given the IDs
+ * `MINTER` mints, failing loudly if it is refused.
+ */
 export function changed(view: View, command: Command | object | null): View {
-  const result = apply(view, command);
+  const result = apply(view, command, MINTER);
   if (isCommandError(result)) throw new Error(`${result.code} at ${JSON.stringify(result.path)}`);
   return result;
 }
@@ -93,10 +108,12 @@ export function changed(view: View, command: Command | object | null): View {
  * with `view`'s settings, one `set` of the workspace's `graphical` when it
  * has one, then one `add` per block in index order, stating its placement
  * and places. A store verifies its journal, so a view is never handed to it
- * without one.
+ * without one. The store mints with a minter of `STORE_SEED`.
  */
 export function storeOf(view: View): Store {
-  const store = createStore(emptyWorkspace());
+  const store = createStore(emptyWorkspace(), {
+    minter: createIdMinter({ seed: STORE_SEED }),
+  });
   const configured = store.configure(view.settings);
   if (configured !== null) throw new Error(`${configured.code} at ${configured.path}`);
   const commands: object[] = [];

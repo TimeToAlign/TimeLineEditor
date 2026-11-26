@@ -320,6 +320,7 @@ describe("group_grandchild_parent_on_top: an ancestor line on each side", () => 
       type: "add",
       into: target("theme"),
       timestamp: { name: "Here", coordinate: [2, 1], display: ["cross_section"] },
+      ids: ["here"],
     });
     const edited = draw(
       manifest,
@@ -327,7 +328,7 @@ describe("group_grandchild_parent_on_top: an ancestor line on each side", () => 
       [DEFAULT_LAYER, HIDDEN_ANCESTOR_CARDS, manifestLayer(manifest)],
       metrics,
     );
-    const crossing = element(edited, at("timestamp_5", "line")) as DrawnElement & {
+    const crossing = element(edited, at("here", "line")) as DrawnElement & {
       x: number;
       y1: number;
       y2: number;
@@ -471,6 +472,7 @@ describe("single changes to group_child_member", () => {
       type: "add",
       into: target("piece"),
       timestamp: { name: "Wedge", coordinate: [12, 1], display: ["wedge"] },
+      ids: ["wedge"],
     });
     const drawing = draw(
       manifest,
@@ -484,7 +486,7 @@ describe("single changes to group_child_member", () => {
       ya: 85.18359375,
       height: 74.87890625,
     });
-    expect(element(drawing, at("timestamp_5"))).toMatchObject({
+    expect(element(drawing, at("wedge"))).toMatchObject({
       x: 320.61962890625,
       yt: 86.68359375,
       corners: unturned(99.68359375),
@@ -496,6 +498,7 @@ describe("single changes to group_child_member", () => {
       type: "add",
       into: target("piece"),
       timestamp: { name: "Start", coordinate: [8, 1], display: ["wedge", "coordinate"] },
+      ids: ["start"],
     });
     const drawing = draw(
       manifest,
@@ -514,7 +517,7 @@ describe("single changes to group_child_member", () => {
       ya: 85.18359375,
       height: 251.48828125,
     });
-    expect(element(drawing, at("timestamp_5", "coordinate"))).toMatchObject({
+    expect(element(drawing, at("start", "coordinate"))).toMatchObject({
       text: "8 ♩",
       x: 130.93359375,
       baseline: 240.9169921875,
@@ -641,6 +644,7 @@ describe("a member's cross-section lines cross its whole card", () => {
     type: "add",
     into: target("middle"),
     timestamp: { name: "Here", coordinate: [2, 1], display: ["cross_section"] },
+    ids: ["here"],
   };
   const drawEdited = (manifest: Manifest, extra: Graphical[] = []) =>
     draw(
@@ -669,7 +673,7 @@ describe("a member's cross-section lines cross its whole card", () => {
     const drawing = drawEdited(edit("groups/group_parent_both", here));
     expect([yOf(drawing, "middle"), yOf(drawing, "piece")]).toEqual([47.20703125, 85.18359375]);
     const { y1, y2 } = cardSpan(drawing, { item: "group_1", member: "middle" });
-    expect(piecesOf(drawing, "timestamp_5")).toEqual([[xOf(drawing, "middle") + 100, y1, y2]]);
+    expect(piecesOf(drawing, "here")).toEqual([[xOf(drawing, "middle") + 100, y1, y2]]);
     expect(spansCards(drawing)).toBe(true);
   });
 
@@ -678,10 +682,11 @@ describe("a member's cross-section lines cross its whole card", () => {
       type: "add",
       into: target("inner"),
       timestamp: { name: "In", coordinate: [1, 1], display: ["cross_section"] },
+      ids: ["in"],
     });
     const drawing = drawEdited(manifest);
     const { y1, y2 } = cardSpan(drawing, { item: "group_1", member: "middle" });
-    expect(piecesOf(drawing, "timestamp_6")).toEqual([[xOf(drawing, "middle") + 100, y1, y2]]);
+    expect(piecesOf(drawing, "in")).toEqual([[xOf(drawing, "middle") + 100, y1, y2]]);
     expect(spansCards(drawing)).toBe(true);
   });
 
@@ -691,7 +696,7 @@ describe("a member's cross-section lines cross its whole card", () => {
     ]);
     expect(all(drawing, at("piece"))).toEqual([]);
     const { y1, y2 } = cardSpan(drawing, { item: "group_1", member: "middle" });
-    expect(piecesOf(drawing, "timestamp_5")).toEqual([[xOf(drawing, "middle") + 100, y1, y2]]);
+    expect(piecesOf(drawing, "here")).toEqual([[xOf(drawing, "middle") + 100, y1, y2]]);
   });
 
   it("spans every card of a recorded session", () => {
@@ -707,13 +712,14 @@ describe("a member's cross-section lines cross its whole card", () => {
 
 describe("named timestamps of an ancestor, on its line in the member's card", () => {
   // `piece` (16 quarters) holds `second-half` at 8 for 8: the window on `piece`'s axis is 8 to 16,
-  // its ends included. Four timestamps of `piece`, minted in this order: `timestamp_5` at 4
-  // (outside), `timestamp_6` at 8 (the start: wedge and name), `timestamp_7` at 12 (wedge, name,
-  // line), `timestamp_8` at 16 (the end: wedge alone).
+  // its ends included. Four timestamps of `piece`, each given its name in lower case: `before` at 4
+  // (outside), `b` at 8 (the start: wedge and name), `c` at 12 (wedge, name,
+  // line), `d` at 16 (the end: wedge alone).
   const stamp = (name: string, coordinate: number, display: readonly string[]) => ({
     type: "add",
     into: target("piece"),
     timestamp: { name, coordinate: [coordinate, 1], display },
+    ids: [name.toLowerCase()],
   });
   const manifest = edit(
     "groups/group_child_member",
@@ -733,10 +739,10 @@ describe("named timestamps of an ancestor, on its line in the member's card", ()
   const ya = 85.18359375;
 
   it("draws those whose position lies within the member's span, its ends included", () => {
-    expect(all(drawing, at("timestamp_5"))).toEqual([]);
-    expect(all(drawing, at("timestamp_5", "line"))).toEqual([]);
+    expect(all(drawing, at("before"))).toEqual([]);
+    expect(all(drawing, at("before", "line"))).toEqual([]);
     expect(
-      ["timestamp_6", "timestamp_7", "timestamp_8"].map((id) => {
+      ["b", "c", "d"].map((id) => {
         const wedge = element(drawing, at(id));
         return wedge.type === "wedge" ? [wedge.x, wedge.yt, baseOf(wedge)] : [];
       }),
@@ -751,7 +757,7 @@ describe("named timestamps of an ancestor, on its line in the member's card", ()
     // `B` at x0 and `C` at x0 + 200 meet nothing: both take tier 1. The secondary coordinates of
     // the member's `origin` and `length` on `piece` are hidden and take no room.
     expect(
-      ["timestamp_6", "timestamp_7"].map((id) => {
+      ["b", "c"].map((id) => {
         const label = element(drawing, at(id, "name"));
         return label.type === "label" ? [label.text, label.x, label.baseline] : [];
       }),
@@ -766,12 +772,12 @@ describe("named timestamps of an ancestor, on its line in the member's card", ()
 
   it("draws the line, the primary wedge and the labels at full opacity", () => {
     const opacities = [
-      at("timestamp_6"),
-      at("timestamp_6", "name"),
-      at("timestamp_7"),
-      at("timestamp_7", "name"),
-      at("timestamp_7", "line"),
-      at("timestamp_8"),
+      at("b"),
+      at("b", "name"),
+      at("c"),
+      at("c", "name"),
+      at("c", "line"),
+      at("d"),
     ].map((address) => element(drawing, address).style.opacity);
     expect(opacities).toEqual([1, 1, 1, 1, 1, 1]);
   });
@@ -781,7 +787,7 @@ describe("named timestamps of an ancestor, on its line in the member's card", ()
     // `1.5 + 13 + 2 + h(9)` below it.
     const { y1, y2 } = cardSpan(drawing, { item: "group_1", member: "second-half" });
     expect(
-      all(drawing, at("timestamp_7", "line")).map((item) =>
+      all(drawing, at("c", "line")).map((item) =>
         item.type === "cross_section" ? [item.x, item.y1, item.y2] : [],
       ),
     ).toEqual([
@@ -796,8 +802,8 @@ describe("named timestamps of an ancestor, on its line in the member's card", ()
     // The ancestor card of `piece` draws `C` as `piece`'s own timestamp, its line across that
     // card in two pieces too; its segment is the member card's alone (sections 8.7, 8.8). The
     // ancestor card is aligned to the member, so its row `second-half` starts at the member's x0.
-    expect(all(shown, at("timestamp_7", "line")).length).toBe(4);
-    expect(timestampSegments(shown.axes, "timestamp_7")).toEqual([
+    expect(all(shown, at("c", "line")).length).toBe(4);
+    expect(timestampSegments(shown.axes, "c")).toEqual([
       { x: xOf(shown, "second-half") + 200, y1, y2 },
     ]);
   });
@@ -812,14 +818,15 @@ describe("the labels of a stack on an ancestor line", () => {
       coordinate: [8, 1],
       display: ["wedge", "name", "id", "coordinate"],
     },
+    ids: ["start"],
   });
   const labels = (layers: Parameters<typeof draw>[2]) =>
     draw(manifest, DEFAULT_PLACEMENT, layers, metrics)
-      .elements.filter((item) => item.type === "label" && item.address.id === "timestamp_5")
+      .elements.filter((item) => item.type === "label" && item.address.id === "start")
       .map((item) => [(item as TextElement).text, (item as TextElement).coordinate]);
   const shown = [
     ["Start", undefined],
-    ["timestamp_5", undefined],
+    ["start", undefined],
     ["8 ♩", { unit: "quarters", value: Rational.of(8n) }],
   ];
 

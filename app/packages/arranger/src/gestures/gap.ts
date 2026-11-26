@@ -190,7 +190,8 @@ export function gapGesture(host: GapHost, edge: GapEdge): GestureStrategy<GapPre
       }
       const command = gapCommand(press.view, id, press.subject, change);
       previewCommand(actions, id, press.view, command);
-      const shown = command === null ? press.view : previewed(press.view, command);
+      const shown =
+        command === null ? press.view : previewed(press.view, command, actions.minter());
       host.live(placed(press, shown, change));
     },
     command(press, change) {

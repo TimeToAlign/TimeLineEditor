@@ -15,6 +15,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { AddKind, Address, Command, Manifest } from "../../packages/core/src/index.ts";
 import {
+  createIdMinter,
   createStore,
   emptyWorkspace,
   isLoadError,
@@ -22,7 +23,11 @@ import {
   writeWorkspace,
 } from "../../packages/core/src/index.ts";
 import type { FixtureBlock } from "../../packages/editor/src/fixtureWorkspace.ts";
-import { FIXTURE_TIME, fixtureWorkspace } from "../../packages/editor/src/fixtureWorkspace.ts";
+import {
+  FIXTURE_SEED,
+  FIXTURE_TIME,
+  fixtureWorkspace,
+} from "../../packages/editor/src/fixtureWorkspace.ts";
 
 const here = import.meta.dirname;
 
@@ -136,27 +141,34 @@ function linear(id: string, name: string, source: string, target: string, scalar
  * and `coda`; a float root `performance` (8 seconds) made a segment line of
  * `take_1` and `take_2`, with a map to samples; and named timestamps showing
  * several `display` sets, the empty one included. Each root is given its
- * default `origin` and `length` timestamps by its `add`.
+ * default `origin` and `length` timestamps by its `add`. Every ID a command
+ * creates is given by the command (`ids`), a speaking one: a root's
+ * `origin` and `length` are `<root>_origin` and `<root>_length`, a named
+ * timestamp's ID is its name in lower case.
  */
 export function timestampsCommands(): Command[] {
   const block = { block: TIMESTAMPS_BLOCK };
   const at = (id: string) => ({ ...block, id });
   const manifest = { timetoshare: SCHEMA_VERSION, name: "Timestamps", timelines: [] };
-  const add = (into: Address, kind: AddKind, value: object): Command => ({
+  const add = (into: Address, kind: AddKind, value: object, ids?: string[]): Command => ({
     type: "add",
     into,
     [kind]: value,
+    ...(ids === undefined ? {} : { ids }),
   });
+  const root = (id: string, name: string, unit: string, length: Value) =>
+    add(block, "timeline", { id, name, unit, length }, [`${id}_origin`, `${id}_length`]);
   const stamp = (timeline: string, name: string, coordinate: Value, display?: string[]) =>
-    add(at(timeline), "timestamp", {
-      name,
-      coordinate,
-      ...(display === undefined ? {} : { display }),
-    });
+    add(
+      at(timeline),
+      "timestamp",
+      { name, coordinate, ...(display === undefined ? {} : { display }) },
+      [name.toLowerCase()],
+    );
   return [
     { type: "set", changes: [{ target: {}, values: { name: "Timestamps" } }] },
     add({}, "block", { id: TIMESTAMPS_BLOCK, manifest, x: 0, y: 0 }),
-    add(block, "timeline", { id: "score", name: "Score", unit: "quarters", length: [16, 1] }),
+    root("score", "Score", "quarters", [16, 1]),
     add(at("score"), "map", linear("ticks", "Ticks", "quarters", "ticks", 480)),
     add(at("score"), "map", linear("bars", "Bars", "quarters", "whole_notes", [1, 4])),
     add(at("score"), "map", linear("tempo", "Tempo", "quarters", "seconds", [1, 2])),
@@ -175,7 +187,7 @@ export function timestampsCommands(): Command[] {
       length: [4, 1],
       offset: [12, 1],
     }),
-    add(block, "timeline", { id: "performance", name: "Performance", unit: "seconds", length: 8 }),
+    root("performance", "Performance", "seconds", 8),
     add(at("performance"), "map", linear("samples", "Samples", "seconds", "samples", 44100)),
     add(at("performance"), "child", {
       id: "take_1",
@@ -202,13 +214,15 @@ export function timestampsCommands(): Command[] {
 
 /**
  * The workspace text of `commands`, journalled by `EXAMPLE_AUTHOR`, the
- * first at `FIXTURE_TIME` and each next one second later.
+ * first at `FIXTURE_TIME` and each next one second later, every ID a
+ * command creates minted by a minter of `FIXTURE_SEED`.
  */
 export function exampleWorkspace(commands: readonly Command[]): string {
   let calls = 0;
   const store = createStore(emptyWorkspace(), {
     author: EXAMPLE_AUTHOR,
     clock: () => new Date(Date.parse(FIXTURE_TIME) + 1000 * calls++),
+    minter: createIdMinter({ seed: FIXTURE_SEED }),
   });
   for (const [index, command] of commands.entries()) {
     const refusal = store.dispatch(command);

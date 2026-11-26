@@ -14,6 +14,40 @@ import type { BlockId } from "../workspace/blocks.ts";
  * ID it does not take. The store fills the list of a command it dispatches,
  * after the IDs the command carries, and journals the command with it, so
  * replaying the journal creates the same IDs.
+ *
+ * Which elements take an ID from the list: those whose ID the editor
+ * mints, never one the command's value states. A timeline, a child, a map,
+ * a region, a measure map or a flow-control element is added with its own
+ * `id` and takes none; a `group` takes one only where its value leaves `id`
+ * out; a named timestamp, an elision, a named MatchStamp, an alignment
+ * anchor, a match timestamp, a default timestamp and a segment a segment
+ * line is given always take one. In the order they are created:
+ *
+ * - `add` of a `block`, or `set manifest` of one: the first segment of each
+ *   segment line of known length that holds none, in the order of the
+ *   lines, depth first.
+ * - `add` of a root `timeline`: those segments of its own lines, then its
+ *   default timestamps, `origin` before `length` (none for an unknown
+ *   length). `add` of a `child`: the segments of its lines.
+ * - `add` of a `timestamp` or of an `elision` into a timeline: its ID; of
+ *   an `elision` into a block: one for each, in list order.
+ * - `add` of a `matchstamp`: the MatchStamp's ID; then, anchor by anchor in
+ *   screen order and the left end before the right, the ID of each match
+ *   timestamp it needs that is not there yet (one already at the
+ *   coordinate is reused and takes none); then each anchor's ID in screen
+ *   order. `set anchors` of a named MatchStamp: the new match timestamps
+ *   as for `add`, then each new anchor's ID (an anchor it keeps takes
+ *   none).
+ * - `set groups` that makes a child timeline join a group: its `origin`
+ *   and `length` groupstamps, in that order.
+ *
+ * After the command's own elements, every command, a `remove` or a `set`
+ * included, takes one ID for each segment line of known length its change
+ * leaves without a segment (removing a line's only segment, `set
+ * is_segment_line`): the line is given a first segment covering it, in
+ * the order of the lines, depth first, block by block in the order the
+ * command changed them. So a command that names no new element may still
+ * need IDs.
  */
 export interface CarriedIds {
   readonly ids?: readonly string[];
@@ -51,8 +85,9 @@ export type AddKind = (typeof ADD_KINDS)[number];
  * next ID in list order. A `group` without an `id` is given one. A
  * `matchstamp` into a block names a potential MatchStamp: `{name, anchors,
  * match_claims}`, its anchors pairs of `{timeline, coordinate}` in screen
- * order; its ID, its anchors' and those of the match timestamps it needs
- * are given to it. Every ID given is the next of the command's `ids`.
+ * order; it is given its ID, then the IDs of the match timestamps it
+ * needs, then its anchors' IDs. Every ID given is the next of the
+ * command's `ids`, in the order `CarriedIds` states for each kind.
  */
 export type AddCommand = {
   readonly type: "add";

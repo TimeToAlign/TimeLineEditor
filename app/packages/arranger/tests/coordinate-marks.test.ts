@@ -56,12 +56,13 @@ const VIEW: Viewport = { x: 0, y: 0, zoom: 1 };
 /** Block A holding `map` at (40, 80). */
 const mapView = (): View => viewOf({ id: A, fixture: "map", x: 40, y: 80 });
 
-/** `map` with the named timestamp `timestamp_3` ("Four") at 4 quarters on `melody`. */
+/** `map` with the named timestamp `four` ("Four") at 4 quarters on `melody`. */
 const namedView = (): View =>
   changed(mapView(), {
     type: "add",
     into: inBlock(A, idAddress("melody")),
     timestamp: { name: "Four", coordinate: [4, 1] },
+    ids: ["four"],
   });
 
 let mounted: ReturnType<typeof mount> | undefined;
@@ -256,8 +257,8 @@ describe("the hovered position", () => {
     await toggleCoordinates();
     await hoverAt(client(AT_4, MELODY_Y));
     const node = one(".svelte-flow__node[data-id] svg");
-    const wedge = one('polygon[data-id="timestamp_3"]:not([data-part])', node);
-    const lines = [...node.querySelectorAll('line[data-id="timestamp_3"][data-part="line"]')];
+    const wedge = one('polygon[data-id="four"]:not([data-part])', node);
+    const lines = [...node.querySelectorAll('line[data-id="four"][data-part="line"]')];
     // The line across the card, cut where the wedge and its label stack stand: two pieces. The
     // hover draws no labels, so its lower piece starts at the wedge's base, 55, where the named
     // one's starts below its name label.
@@ -428,7 +429,7 @@ describe("the pinned timestamp", () => {
     expect(marks("pin")).toEqual(expectedMarks(drawing, key, AT_2));
 
     const timestamps = blockIn(namedView(), A).manifest.graphical?.timestamps ?? [];
-    harness.pin({ ...pin, named: timestamps.find((item) => item.id === "timestamp_3") ?? null });
+    harness.pin({ ...pin, named: timestamps.find((item) => item.id === "four") ?? null });
     await settle();
     expect(marks("pin")).toBeNull();
 
@@ -554,7 +555,7 @@ describe("pinning", () => {
 });
 
 describe("the mode split", () => {
-  const timestamp: Address = inBlock(A, idAddress("timestamp_3"));
+  const timestamp: Address = inBlock(A, idAddress("four"));
 
   /** The elements of block A's node letting the pointer through, as `[tag, data-id, data-part]`. */
   function passing(): (string | null)[][] {
@@ -576,10 +577,10 @@ describe("the mode split", () => {
     );
   }
 
-  /** The drawn elements of `timestamp_3` that show the selection, as `data-part`. */
+  /** The drawn elements of `four` that show the selection, as `data-part`. */
   function glowing(): (string | null)[] {
     const node = one(".svelte-flow__node[data-id] svg");
-    return [...node.querySelectorAll('[data-id="timestamp_3"][data-selected]')].map((element) =>
+    return [...node.querySelectorAll('[data-id="four"][data-selected]')].map((element) =>
       element.getAttribute("data-part"),
     );
   }
@@ -593,14 +594,14 @@ describe("the mode split", () => {
         .map(([, id, part]) => `${id} ${part}`)
         .sort(),
     ).toEqual([
+      "four line",
+      "four line",
+      "four name",
+      "four null",
       "timestamp_1 coordinate",
       "timestamp_1 null",
       "timestamp_2 coordinate",
       "timestamp_2 null",
-      "timestamp_3 line",
-      "timestamp_3 line",
-      "timestamp_3 name",
-      "timestamp_3 null",
     ]);
     expect(passing()).toEqual(stampParts());
     await toggleCoordinates();
@@ -608,9 +609,9 @@ describe("the mode split", () => {
   });
 
   it.each([
-    ["wedge", 'polygon[data-id="timestamp_3"]:not([data-part])'],
-    ["name label", 'text[data-id="timestamp_3"][data-part="name"]'],
-    ["line", 'line[data-id="timestamp_3"][data-part="line"]'],
+    ["wedge", 'polygon[data-id="four"]:not([data-part])'],
+    ["name label", 'text[data-id="four"][data-part="name"]'],
+    ["line", 'line[data-id="four"][data-part="line"]'],
   ])("selects the timestamp by its %s with Show coordinates off", async (_, selector) => {
     await show(namedView());
     const element = one(selector, one(".svelte-flow__node[data-id] svg"));
@@ -642,7 +643,7 @@ describe("the mode split", () => {
 
   it("shows a selected name label part on the label alone", async () => {
     await show(namedView());
-    harness.select(selectionOf([inBlock(A, partAddress(idAddress("timestamp_3"), "name"))]));
+    harness.select(selectionOf([inBlock(A, partAddress(idAddress("four"), "name"))]));
     await settle();
     expect(glowing()).toEqual(["name"]);
   });

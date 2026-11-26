@@ -1,6 +1,6 @@
 /** What a block node and the canvas's controls ask of the canvas while the user edits. */
 
-import type { Address, BlockId, Command, View } from "@timetoalign/tilie-core";
+import type { Address, BlockId, Command, IdMinter, View } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { createContext } from "svelte";
 import type { LevelRules } from "./containers.ts";
@@ -36,6 +36,11 @@ export interface NodeActions {
   pane(): PaneSource | undefined;
   /** The workspace view the canvas currently shows as stored. */
   view(): View;
+  /**
+   * A copy of the store's minter at its count (`Store.minter`): a preview
+   * minting with it shows the IDs the release of its command stores.
+   */
+  minter(): IdMinter;
   /** The canvas zoom: screen pixels per canvas unit. */
   zoom(): number;
   /** What the canvas allows now, the lock and the read-only mode applied (`rulesOf`). */

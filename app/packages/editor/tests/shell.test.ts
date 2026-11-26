@@ -9,10 +9,10 @@ import {
   createView,
   DEFAULT_USER,
   emptyWorkspace,
-  importedManifest,
   isLoadError,
   loadManifest,
   manifestFileOf,
+  manifestIds,
   readWorkspace,
   saveManifest,
   writeWorkspace,
@@ -36,6 +36,7 @@ import {
   fixtureText,
   flushAutosaves,
   hook,
+  importedAs,
   interceptDownloads,
   openDialog,
   pickFile,
@@ -675,11 +676,17 @@ describe("manifests", () => {
     const loaded = loadManifest(text);
     if (isLoadError(loaded) || id === undefined) throw new Error("not imported");
     const manifest = hook().store().view.blocks[id]?.manifest;
-    expect(manifest).toEqual(importedManifest(loaded));
-    expect(manifest?.graphical?.timestamps?.map((item) => [item.timeline, item.name])).toEqual([
+    if (manifest === undefined) throw new Error("no block");
+    // The import mints the timestamps' IDs: refer to them through the imported manifest.
+    expect(manifest).toEqual(importedAs(loaded, manifest));
+    const stamps = manifest.graphical?.timestamps ?? [];
+    expect(stamps.map((item) => [item.timeline, item.name])).toEqual([
       ["clt_1", "origin"],
       ["clt_1", "length"],
     ]);
+    const ids = new Set(stamps.map((item) => item.id));
+    // Two IDs, neither one the file's.
+    expect([ids.size, [...ids].some((item) => manifestIds(loaded).has(item))]).toEqual([2, false]);
   });
 
   it("offers Import manifest… while an editor is open", () => {

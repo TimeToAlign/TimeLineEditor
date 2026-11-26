@@ -32,7 +32,7 @@ const addText = (text: string) => ({
 function started(text: string): Store {
   const store = createStore(
     { view: createView(), journal: [], sessions: {} },
-    { clock: testClock() },
+    { clock: testClock(), minter: createIdMinter({ seed: 20261011n }) },
   );
   for (const command of [addText(text), addBlock(B, "bare.yaml")]) {
     expect(store.dispatch(command)).toBeNull();

@@ -107,7 +107,7 @@ export function applyChanges(
     if (checked && left > 0) {
       return problem(
         ErrorCode.invalidCommand,
-        `the command creates ${given.length - left} of the ${given.length} IDs it lists`,
+        `the command takes ${given.length - left} of the ${given.length} IDs it lists`,
         ["ids", given.length - left],
       );
     }

@@ -14,6 +14,19 @@ fixtures, one block per manifest journalled as one `add` (blocks
 `0000000000`, `0000000001`, … side by side), or are the committed
 end-to-end workspaces.
 
+**Minted IDs.** Core mints the IDs of what a command creates beyond those
+it carries (`ids`). The workspaces of the tests are written with a minter
+of `FIXTURE_SEED`, a test's store (`storeOf`) mints with a minter of
+`STORE_SEED`, so every run mints the same IDs; a test never types a minted
+ID. A command a test dispatches gives speaking IDs where the test names
+what it creates (`theme`, `bar_two`, `gap`, `downbeat`); what the editor
+dispatches is named through what holds the ID (the view, the journaled
+command's `ids`), or, where the expected command itself must list them,
+as the store's first mints computed by a minter of the store's seed
+(`storeMints(...prefixes)`, in core's order, `CarriedIds`). A manifest an
+import gives default timestamps is compared with core's import of the
+file under the IDs the import minted (`importedAs`).
+
 Vitest leaves components' stylesheets out of jsdom, and jsdom computes no
 contrast. Where a test proves how text looks (`dom.ts` `addStylesOf`), it
 adds the component's own `<style>` to the document, unscoped, and reads
@@ -198,14 +211,15 @@ and its one block `timestamps` holds the roots `performance` (8 seconds,
 float, a segment line of `take_1` at 0 and `take_2` at 3.5, the map
 `samples` to samples) and `score` (16 quarters, fraction, maps `bars`,
 `tempo` and `ticks` to whole notes, seconds and ticks; children `phrase`
-with `phrase_ticks` and `coda`); its timestamps, as `[id, timeline, name,
-display]`: `timestamp_1` `score` origin, `timestamp_2` `score` length,
-`timestamp_3` `performance` origin, `timestamp_4` `performance` length
-(each `["wedge", "coordinate"]`), `timestamp_5` `score` Theme (the
-default), `timestamp_6` `score` Climax (all five), `timestamp_7` `score`
-Silent (`[]`), `timestamp_8` `phrase` Cadence (`["wedge", "id"]`),
-`timestamp_9` `performance` Entry (`["wedge", "coordinate",
-"cross_section"]`).
+with `phrase_ticks` and `coda`); its timestamps, each given its ID by its
+command (a root's `origin` and `length` `<root>_origin` and
+`<root>_length`, a named one its name in lower case), as `[id, timeline,
+name, display]` sorted by ID: `cadence` `phrase` Cadence (`["wedge",
+"id"]`), `climax` `score` Climax (all five), `entry` `performance` Entry
+(`["wedge", "coordinate", "cross_section"]`), `performance_length` and
+`performance_origin` (each `["wedge", "coordinate"]`), `score_length` and
+`score_origin` (alike), `silent` `score` Silent (`[]`), `theme` `score`
+Theme (the default).
 
 A workspace's file name is its name and `.tle.json`, every character a
 file name cannot hold on Windows, macOS or Linux (the control characters
@@ -551,7 +565,10 @@ fixture's or the warning case's `manifest`, which core's `loadManifest`
 accepts, so each option imports (`fixtures.test.ts`, one case per fixture
 named by its label, so that a failure names the fixture); every end-to-end
 workspace is of kind `workspace`, its text the file's, which the reader
-accepts; 206 + 18 + 1 = 225 entries of kind `manifest` and 5 of kind
+accepts and `createStore` opens (its journal replays to the file's view,
+the store holding that very view; `OPEN_TIMEOUT` is 15 s, about three
+times the replay of `grid-900`'s 900 adds, 3.7 s alone at a load average
+of 23 and past 5 s in the whole project's run); 206 + 18 + 1 = 225 entries of kind `manifest` and 5 of kind
 `workspace`. A
 manifest fixture is imported, never replacing the workspace and asking
 nothing, even with unsaved changes: chosen on a workspace holding one
@@ -1669,11 +1686,12 @@ core's message, so the oracle is core's own nesting rule written out:
    ["group_1", "group_2"]`. None for two groups, a timeline or the block,
    nor in the group editor of `group_1`.
 3. **New group** (`newGroupOf`). For the block: `add {into: {block: M},
-   group: {id: "group_3", members: []}}`, not refused (`group_1` and
-   `group_2` taken, `group_3` the smallest free `group_N`). For `score`'s
-   card and `annotations`: members `["score", "annotations"]`. For
-   `recording` and `excerpt`: refused with exactly `'excerpt' and
-   'recording', a member of group 'group_3', would hold one another`. None
+   group: {members: []}}`, not refused, the group carrying no ID (the
+   store mints it). For `score`'s card and `annotations`: members
+   `["score", "annotations"]`. For `recording` and `excerpt`: refused with
+   exactly `'excerpt' and 'recording', a member of group '<ID>', would
+   hold one another`, `<ID>` the first ID a minter of the seed the verdict
+   is given (7) mints for `group`, read from that minter. None
    for `group_1`, the block with a timeline, nothing selected, and in the
    group editor of `group_1`.
 4. **Mounted.** For `score`'s card a fieldset "Groups" holds the checkboxes
@@ -1683,8 +1701,9 @@ core's message, so the oracle is core's own nesting rule written out:
    entry. For `recording`, "Facsimile" is disabled, its label's title item
    1's message. For `group_1` the fieldset "Members" lists the six labels of
    item 2, "Excerpt" indented by 1.25rem. For the block the button "New
-   group" adds `group_3` in one entry, and the manifest then holds three
-   groups. A command the store refuses although core takes it (the store
+   group" adds one group in one entry, journaled with the one ID it was
+   given (`ids`), and the manifest then holds three groups, `group_1`,
+   `group_2` and that one. A command the store refuses although core takes it (the store
    has the group editor of `group_1` open while the panel shows the
    arranger, so `score` joining `group_2` is a side effect) leaves the
    journal as it was, the box unchecked, and the status line holds exactly
@@ -1947,8 +1966,8 @@ quarters, fraction) with `bars` (×1/4 to whole notes, fraction), `tempo`
 (×1/2 to seconds, float), `ticks` (×480, int), in this canonical order,
 the children `phrase` (offset
 4, length 6, its map `phrase_ticks`) and `coda` (offset 12, length 4); the
-named `Theme` (`timestamp_5`, at 4, the default display), `Climax`
-(`timestamp_6`, at 21/2, all five words), `Silent` (`timestamp_7`, at 14,
+named `Theme` (`theme`, at 4, the default display), `Climax`
+(`climax`, at 21/2, all five words), `Silent` (`silent`, at 14,
 none). Theme crosses `score` and `phrase` at its start, listed top to
 bottom as their lines lie (`phrase`'s above `score`'s, in its children
 band), each timeline's rows top to bottom as drawn (its maps' band above
@@ -2142,7 +2161,7 @@ ticks `5760`, coordinate `12` ♩.
    nothing journalled; `1920` in "cmap_1 of Score" gives the pin at 4 and
    `2.5` in "cmap_2 of Score" the pin at 5 (the maps' inverses). On Theme,
    `9/2` in "coordinate of Score" journals exactly `{type: "set", changes:
-   [{target: {block: "timestamps", id: "timestamp_5"}, values: {coordinate:
+   [{target: {block: "timestamps", id: "theme"}, values: {coordinate:
    [9, 2]}}]}`, and `shownPin()` is the named pin read at 9/2; `4`, its
    own coordinate, journals nothing. Text core refuses (`abc`, refused by
    `parseAxisValue`) or a position outside the timeline (`13` on `score`
@@ -2190,7 +2209,7 @@ ticks `5760`, coordinate `12` ♩.
      text shown in the pane is exactly the named timestamp's members and
      an empty `[mapping]` table, no line for `cmap_1`, and no refusal
      shows.
-   - *Every map with a value* (regression). Theme (`timestamp_5` of the
+   - *Every map with a value* (regression). Theme (`theme` of the
      example "Timestamps", at 4 on `score`, its rows all valued) gives the
      same TOML text as before the rule: the codec's text of
      `timestampJson` unchanged, written out in the test.
@@ -2222,13 +2241,15 @@ ticks `5760`, coordinate `12` ♩.
      unnamed pin at 16/5 journals exactly `{type: "add", into: {block:
      "0000000000", id: "score"}, timestamp: {name: "Upbeat", coordinate:
      [16, 5], groupstamp: true}}` (`score` is a member of the group
-     Performance and no editor is open, item 7a); the pane then shows the named `timestamp_11` (the
-     smallest free ID): Name "Upbeat", the toggles and Delete enabled,
-     `shownPin().named.id` `timestamp_11`. An emptied name journals
+     Performance and no editor is open, item 7a) and the one ID the store
+     minted for it (`ids`; the test reads it from the view, the timestamp
+     named "Upbeat", and calls it `upbeat`); the pane then shows that named
+     timestamp: Name "Upbeat", the toggles and Delete enabled,
+     `shownPin().named.id` `upbeat`. An emptied name journals
      nothing.
    - *Named.* Theme shows Name "Theme" and no placeholder; "Subject" and Enter journals
      `{type: "set", changes: [{target: {block: "timestamps", id:
-     "timestamp_5"}, values: {name: "Subject"}}]}`; an emptied name and
+     "theme"}, values: {name: "Subject"}}]}`; an emptied name and
      Enter journals nothing, shows "Theme" again and, at the field, "A
      named timestamp keeps a name; Delete removes it."; leaving the field
      unchanged journals nothing.
@@ -2241,7 +2262,7 @@ ticks `5760`, coordinate `12` ♩.
      afterwards. The toggles are buttons, reached with Tab and pressed with
      Enter or Space.
    - *Delete* journals `{type: "remove", targets: [{block: "timestamps",
-     id: "timestamp_5"}]}`; the pane then shows the hint and no Properties.
+     id: "theme"}]}`; the pane then shows the hint and no Properties.
 7a. **GroupStamp.** The toggle is offered exactly where core's
    `isGroupMember` holds for the timestamp's timeline, a match timestamp's
    included; whether it is pressed, and what naming stores, is
@@ -2258,10 +2279,10 @@ ticks `5760`, coordinate `12` ♩.
    - *Unnamed, in a timeline editor of `score`.* GroupStamp is shown not
      pressed; "Upbeat" journals exactly `{type: "add", into: {block:
      "0000000000", id: "score"}, timestamp: {name: "Upbeat", coordinate:
-     [16, 5]}}`, no `groupstamp` (the command's default, `false`).
-   - *Named.* The named `timestamp_11` (stored a groupstamp) shows
+     [16, 5]}, ids: [upbeat]}`, no `groupstamp` (the command's default, `false`).
+   - *Named.* The named `upbeat` (stored a groupstamp) shows
      GroupStamp pressed and enabled; a press journals exactly `{type:
-     "set", changes: [{target: {block: "0000000000", id: "timestamp_11"},
+     "set", changes: [{target: {block: "0000000000", id: upbeat},
      values: {groupstamp: false}}]}` and shows it not pressed, a second
      press `groupstamp: true`.
    - *A member's descendant.* On `bundle_mixed` with the child
@@ -2301,7 +2322,7 @@ ticks `5760`, coordinate `12` ♩.
    Disabled, the slider is faded (opacity 0.5) but the value beside it is
    text, not a control: it is muted (`rgb(89, 89, 89)`) and faded by no
    opacity; enabled, it keeps its own colour, unfaded. Specimens: the example "Timestamps" (no rule sets a rotation; Theme
-   `timestamp_5` displays its wedge, Silent `timestamp_7` displays
+   `theme` displays its wedge, Silent `silent` displays
    nothing); `bundle_mixed`'s `score`, a member of "Performance" (item
    7a).
    - *Theme, unrotated.* Value 0, "0 degrees", "0°"; the stop 0 pressed,
@@ -2365,9 +2386,9 @@ ticks `5760`, coordinate `12` ♩.
      coordinate and stands at 0 like any timestamp's (drawing
      specification section 4; only a secondary coordinate's wedge turns
      −45), so no hint names another initial value.
-   - *Named groupstamp.* Named "Upbeat" (`timestamp_11`, a groupstamp
+   - *Named groupstamp.* Named "Upbeat" (`upbeat`, a groupstamp
      displaying its wedge): 0 read from the drawing, no Default,
-     enabled. The stop 45 journals `rotation: 45` on `timestamp_11` and
+     enabled. The stop 45 journals `rotation: 45` on `upbeat` and
      shows 45 with Default; Default journals `rotation: null` and shows 0
      again.
    - *In a timeline editor.* With the timeline editor of `score` open in
@@ -2397,7 +2418,8 @@ ticks `5760`, coordinate `12` ♩.
     read again when they arrive; without `knotsOf` it reads them as
     `no_server`. Specimen: `group_measure_map` (block `0000000000`), its
     `score` (16 quarters) with the `MeasureRecordMap` `cmap_1`, and the
-    timestamp "Bar two" added at 6 on `score`; the rows of `measuremap_1`
+    timestamp "Bar two" added at 6 on `score` (given the ID `bar_two`, which
+    its JSON, YAML and TOML texts write); the rows of `measuremap_1`
     are four 4/4 measures named "1" to "4" at qstamps 0, 4, 8 and 12, so 6
     lies in measure "2". Selected while `knotsOf` answers `pending`, the row
     `cmap_1` reads "waiting for the server"; once it answers the rows (a
@@ -2414,7 +2436,8 @@ ticks `5760`, coordinate `12` ♩.
     Coordinates read their conversion-map rows with it: the MatchStamp
     "Bar two" named by one `add {into: {block}, matchstamp: {name: "Bar
     two", anchors: [[{timeline: "score", coordinate: [6, 1]}, {timeline:
-    "midi", coordinate: 2880}]], match_claims: ["claim_1"]}}` and selected
+    "midi", coordinate: 2880}]], match_claims: ["claim_1"]}, ids:
+    [bar_two_match]}` and selected
     shows the row `cmap_1` of `score` and the row `cmap_3` of `midi` (2880
     ticks = 6 quarters through its `ppq`) as "waiting for the server"
     while `knotsOf` answers `pending`, then both "2" once it answers the
@@ -2648,18 +2671,18 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    Wedge, Name, ID, Coordinate, Line), showing what naming stores
    (TimeToShare's default of a match timestamp: Line alone pressed); an
    anchor line Line and Name, none pressed while potential. Named
-   "Downbeat" (item 3) the lines are `timestamp_1`, `anchor_1`,
-   `timestamp_2`, `anchor_2`, `timestamp_3`, each label followed by its ID;
-   the timestamps show Line pressed alone, `anchor_1` Line and Name,
-   `anchor_2` Line. Wedge on `timestamp_2`'s line journals exactly one
-   `{type: "set", changes: [{target: {block, id: "timestamp_2"}, values:
+   "Downbeat" (item 3) the lines are `clt_1_at_0`, `downbeat_cpt`,
+   `cpt_1_at_0`, `downbeat_dpt`, `dpt_1_at_0`, each label followed by its ID;
+   the timestamps show Line pressed alone, `downbeat_cpt` Line and Name,
+   `downbeat_dpt` Line. Wedge on `cpt_1_at_0`'s line journals exactly one
+   `{type: "set", changes: [{target: {block, id: "cpt_1_at_0"}, values:
    {display: ["wedge", "cross_section"]}}]}` and shows Wedge and Line
-   pressed; Name on `anchor_2`'s journals the anchor's `display` `["line",
+   pressed; Name on `downbeat_dpt`'s journals the anchor's `display` `["line",
    "name"]`. **A shared match timestamp**: after a second MatchStamp
    "Other" is added by one `add {into: {block}, matchstamp: {name: "Other",
    anchors: [[clt_1 [0, 1], dpt_1 176400]], match_claims: ["claim_3"]}}`,
-   which reuses `timestamp_1` (core reuses a match timestamp per timeline
-   and exact value), Downbeat's `timestamp_1` line alone says "Also a line
+   which reuses `clt_1_at_0` (core reuses a match timestamp per timeline
+   and exact value), Downbeat's `clt_1_at_0` line alone says "Also a line
    of MatchStamp 'Other': a change shows there too."; the other lines say
    nothing of the kind.
 2b. **GroupStamps and the coordinates the MatchClaims state.** A new
@@ -2685,32 +2708,33 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    "Second half" added to `score` (4 quarters at offset 4, `SECOND_HALF`),
    `score`'s conversion-maps band hidden (as in item 2), and "Turn" named
    by one `add` with the anchor [`score` `[6, 1]`, `performance` `3.0`],
-   claim `claim_1`: core writes `timestamp_11` on `score` and
-   `timestamp_12` on `performance`, both `groupstamp: true`.
+   claim `claim_1`, the command giving the IDs `turn`, `turn_score`,
+   `turn_performance` and `turn_anchor`: core writes `turn_score` on `score` and
+   `turn_performance` on `performance`, both `groupstamp: true`.
    - *Lines*, as [label, display toggles pressed, GroupStamp pressed]:
-     "Score 6 ♩ timestamp_11" [Line] pressed; the anchor "Score –
-     Performance anchor_1" [Line, Name] with no GroupStamp toggle;
-     "Performance 3″ timestamp_12" [Line] pressed; every toggle enabled.
+     "Score 6 ♩ turn_score" [Line] pressed; the anchor "Score –
+     Performance turn_anchor" [Line, Name] with no GroupStamp toggle;
+     "Performance 3″ turn_performance" [Line] pressed; every toggle enabled.
    - *Coordinates with both GroupStamps on*, the coordinates in screen
      order (`score` above `performance`), each coordinate's groups top to
      bottom as core's `timestampRows` lists them, as [heading, through,
      caption, rows (label, text, disabled, unit)]. The coordinate on
-     `score`, read from `timestamp_11`'s pin: "Second half" crossed [2 ♩,
+     `score`, read from `turn_score`'s pin: "Second half" crossed [2 ♩,
      6 − its offset 4; drawn above `score`'s line]; "Score" claimed [6 ♩;
      no map row, the band is hidden]; "Performance" group "through group
      'Performance'" [`cmap_3` 275625 smp = 6.25 × 44100, drawn above its
      line; 6.25 s = 6 × 12.5/12, the members' drawn ends]. The coordinate on `performance`, read
-     from `timestamp_12`'s pin: "Score" group "through group 'Performance'"
+     from `turn_performance`'s pin: "Score" group "through group 'Performance'"
      [72/25 ♩ = 3.0 × 12/12.5; "Second half" is not listed, since 72/25
      lies before its offset 4, outside its span]; "Performance" claimed
      [`cmap_3` 132300 smp; 3.0 s]. Bold: exactly the "coordinate" rows of
      "Score" in the first and of "Performance" in the second coordinate.
-   - *The toggle.* Pressing `timestamp_12`'s GroupStamp journals exactly
-     `{type: "set", changes: [{target: {block, id: "timestamp_12"},
+   - *The toggle.* Pressing `turn_performance`'s GroupStamp journals exactly
+     `{type: "set", changes: [{target: {block, id: "turn_performance"},
      values: {groupstamp: false}}]}`; its toggle then shows not pressed,
      and the coordinate on `performance` lists "Performance" claimed alone
      [`cmap_3` 132300 smp; 3.0 s], the first coordinate's groups unchanged.
-   - *Both tabs alike.* The Timestamp tab showing `timestamp_11` lists, heading for
+   - *Both tabs alike.* The Timestamp tab showing `turn_score` lists, heading for
      heading and row for row ([label, text, unit]), the first coordinate's
      three groups.
    - *Potential.* One rule: a potential MatchStamp's timestamp line and
@@ -2732,11 +2756,11 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      'Performance' [72/25 ♩], "Performance" claimed. Nothing is stored yet,
      and the potential overlay draws no frame line.
    - *Potential, reusing a match timestamp that is no GroupStamp.* With
-     "Turn" named and `timestamp_12`'s GroupStamp turned off, a table of
+     "Turn" named and `turn_performance`'s GroupStamp turned off, a table of
      one MatchClaim `claim_2`, `score` 5 – `performance` 3.0, shows the
      potential MatchStamp whose coordinate on `performance` lies on
-     `timestamp_12`: its line "Performance 3″" shows GroupStamp not
-     pressed (naming takes `timestamp_12` as it is), the line "Score 5 ♩"
+     `turn_performance`: its line "Performance 3″" shows GroupStamp not
+     pressed (naming takes `turn_performance` as it is), the line "Score 5 ♩"
      pressed (naming adds a GroupStamp on `score` at 5), both disabled;
      the coordinate on `performance`, read without its group, lists
      "Performance" claimed alone [`cmap_3` 132300 smp; 3.0 s], the last
@@ -2747,8 +2771,10 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      binary64, a tie, which an int axis rounds to the even integer; 125/24
      s = 5 × 12.5/12, written as the float nearest it,
      5.208333333333333]. Naming it then stores
-     `timestamp_12` unchanged (`groupstamp: false`) and a new
-     `timestamp_13` on `score` at 5 with `groupstamp: true`, and the named
+     `turn_performance` unchanged (`groupstamp: false`) and a new
+     match timestamp on `score` at 5 with `groupstamp: true` (its ID, the
+     MatchStamp's and the anchor's the store's first three mints,
+     `storeMints`), and the named
      MatchStamp's lines show exactly the states the potential one
      showed.
    **Screen order follows the raised card.** The tab reads every place
@@ -2833,12 +2859,15 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    What would be wrong: the same MatchStamp stored in another orientation
    because an editor happened to be open.
 3. **Naming** that potential MatchStamp "Downbeat" through the tab is one
-   journal entry, `add` into the block: match timestamps `timestamp_1`
-   (`clt_1` [0, 1]), `timestamp_2` (`cpt_1` 0.0), `timestamp_3` (`dpt_1`
+   journal entry, `add` into the block (the six IDs below are those
+   `matchstamps.test.ts` gives the `add`; `matchstamp-panel.test.ts`,
+   naming through the tab, reads them as the store's first six mints,
+   `storeMints`, in core's order): match timestamps `clt_1_at_0`
+   (`clt_1` [0, 1]), `cpt_1_at_0` (`cpt_1` 0.0), `dpt_1_at_0` (`dpt_1`
    0), each `matchstamp: true` with the display `["cross_section"]`; the
-   MatchStamp `matchstamp_1` "Downbeat" with `anchor_1` [`timestamp_1`,
-   `timestamp_2`] showing `["line", "name"]` (the middle anchor of two is
-   the upper one), `anchor_2` [`timestamp_1`, `timestamp_3`] showing
+   MatchStamp `downbeat` "Downbeat" with `downbeat_cpt` [`clt_1_at_0`,
+   `cpt_1_at_0`] showing `["line", "name"]` (the middle anchor of two is
+   the upper one), `downbeat_dpt` [`clt_1_at_0`, `dpt_1_at_0`] showing
    `["line"]`, MatchClaims `["claim_1", "claim_2"]`; the tab then shows the
    named MatchStamp. Opened in a timeline editor of `cpt_1`, naming first
    closes the editor (the editing path is empty after) and is accepted;
@@ -2852,23 +2881,23 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    coordinate, {`clt_1` 0, `cpt_1` 0.0, `dpt_1` 0}, MatchClaims `claim_1`,
    `claim_2`, and the tab says so before the name is typed: "Naming also
    stores 1 anchor on timelines the MatchClaim filter hides." Named
-   "Downbeat", it is the MatchStamp above (`anchor_1` [`timestamp_1`,
-   `timestamp_2`], `anchor_2` [`timestamp_1`, `timestamp_3`], MatchClaims
+   "Downbeat", it is the MatchStamp above (`downbeat_cpt` [`clt_1_at_0`,
+   `cpt_1_at_0`], `downbeat_dpt` [`clt_1_at_0`, `dpt_1_at_0`], MatchClaims
    `["claim_1", "claim_2"]`), and compared with the compared index it is
    not out of date: no difference. Without a timelines filter what naming
    stores is the shown MatchStamp itself (the same object) and the tab
    says nothing.
 4. **A named MatchStamp against the table.** With that MatchStamp named
    and the user's belief in `claim_1` changed to `false` (a second table),
-   the comparison marks `anchor_2` not stated (its line red, the words "not
+   the comparison marks `downbeat_dpt` not stated (its line red, the words "not
    stated by the table"), and the tab lists exactly "MatchClaims the belief
-   filter leaves out: claim_1" and "Anchors gone: anchor_2" (the label
+   filter leaves out: claim_1" and "Anchors gone: downbeat_dpt" (the label
    holds under every filter: under the states `["true"]` it also names
    MatchClaims nobody believes either way, core's `claimsFilteredOut`);
    Update is enabled and sends
    one `set` of `anchors` [[`clt_1` [0, 1], `cpt_1` 0.0]] and `match_claims`
-   `["claim_2"]` (one journal entry, `anchor_1` kept with its display,
-   `timestamp_3` gone); Remove deletes the MatchStamp and its three match
+   `["claim_2"]` (one journal entry, `downbeat_cpt` kept with its display,
+   `dpt_1_at_0` gone); Remove deletes the MatchStamp and its three match
    timestamps in one entry, leaving the tab on the hint. Without a table
    nothing is compared: no anchor is marked, no difference listed, no
    Update shown, Remove offered.
@@ -2974,8 +3003,8 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    anchors by. Each comparison's
    `stated` follows its MatchStamp's `alignment_anchors`: with "Downbeat"
    named and the user believing `claim_1` false, `stated` of
-   `matchstamp_1` is [an index anchor, `null`] for [`anchor_1`, `anchor_2`],
-   the order the canvas reads to draw `anchor_2` red. The pinned
+   `downbeat` is [an index anchor, `null`] for [`downbeat_cpt`, `downbeat_dpt`],
+   the order the canvas reads to draw `downbeat_dpt` red. The pinned
    MatchStamp is `{block, matchStamp}` only for a potential MatchStamp
    read from its block's shown index as it is now; read from another
    index, a named one, or none, it is `null`.
@@ -3339,7 +3368,8 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
     workspace without asking again.
 
 The Timestamp tab lists, for a match timestamp, the MatchStamps naming it
-in a list "MatchStamps" ("Downbeat matchstamp_1" for `timestamp_1`); an
+in a list "MatchStamps" ("Downbeat" and the MatchStamp's ID for its match
+timestamp on `clt_1`); an
 ordinary timestamp ("Theme" on `clt_1` at 1) has no such list.
 
 ## How a read settled (`settlements.test.ts`)

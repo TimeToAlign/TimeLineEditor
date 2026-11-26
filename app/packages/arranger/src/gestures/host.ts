@@ -3,7 +3,7 @@
  * the one way every gesture previews: the command it would store, applied.
  */
 
-import type { BlockId, Command, PlaceKey, View } from "@timetoalign/tilie-core";
+import type { BlockId, Command, IdMinter, PlaceKey, View } from "@timetoalign/tilie-core";
 import { isCommandError, preview } from "@timetoalign/tilie-core";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import type { Point } from "../gesture.ts";
@@ -42,8 +42,10 @@ export interface NodeHost {
 
 /**
  * Show block `block` as `command` would leave `view`, through core's
- * `preview`: the reducer without the schema check and the invariants, so a
- * preview never differs from what the release stores. No command (the
+ * `preview` with a copy of the store's minter (`actions.minter()`): the
+ * reducer without the schema check and the invariants, so a preview never
+ * differs from what the release stores, the IDs of what it creates
+ * included. No command (the
  * pointer back where it started) and a command the reducer refuses show the
  * block as `view` holds it; the release of a refused command shows the
  * refusal.
@@ -54,14 +56,17 @@ export function previewCommand(
   view: View,
   command: Command | null,
 ): void {
-  actions.preview(block, { view: command === null ? view : previewed(view, command) });
+  actions.preview(block, {
+    view: command === null ? view : previewed(view, command, actions.minter()),
+  });
 }
 
 /**
- * `view` as `command` would leave it, through core's `preview`; `view`
- * itself where the reducer refuses the command.
+ * `view` as `command` would leave it, through core's `preview`, what it
+ * creates given the IDs `minter` mints; `view` itself where the reducer
+ * refuses the command.
  */
-export function previewed(view: View, command: Command): View {
-  const shown = preview(view, command);
+export function previewed(view: View, command: Command, minter: IdMinter): View {
+  const shown = preview(view, command, minter);
   return isCommandError(shown) ? view : shown;
 }

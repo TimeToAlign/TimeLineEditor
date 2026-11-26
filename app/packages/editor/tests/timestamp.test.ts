@@ -59,9 +59,9 @@ const B = "0000000001";
 const T = "timestamps";
 
 const ORIGIN: Address = { block: A, id: "timestamp_9" };
-const THEME: Address = { block: T, id: "timestamp_5" };
-const CLIMAX: Address = { block: T, id: "timestamp_6" };
-const SILENT: Address = { block: T, id: "timestamp_7" };
+const THEME: Address = { block: T, id: "theme" };
+const CLIMAX: Address = { block: T, id: "climax" };
+const SILENT: Address = { block: T, id: "silent" };
 
 const HINT =
   "Turn on Show coordinates (C) and click a timeline to pin a timestamp. With Show coordinates off, click a timestamp to edit it.";
@@ -401,6 +401,15 @@ const row = (label: string, value: string, unit: string) => [label, value, unit,
 function lastCommand(store: Store): unknown {
   const entry = store.journal.at(-1);
   return entry !== undefined && "command" in entry ? entry.command : undefined;
+}
+
+/** The ID block A's named timestamp `name` was given: core mints it when the name stores it. */
+function idNamed(store: Store, name: string): string {
+  const found = store.view.blocks[A]?.manifest.graphical?.timestamps?.find(
+    (item) => item.name === name,
+  );
+  if (found === undefined) throw new Error(`no timestamp named ${name}`);
+  return found.id;
 }
 
 /** `pin` held in the view of `store`. */
@@ -1242,7 +1251,7 @@ describe("the format switch", () => {
         "coordinate = [ 4, 1 ]",
         'display = [ "wedge", "name", "cross_section" ]',
         "groupstamp = false",
-        'id = "timestamp_5"',
+        'id = "theme"',
         "matchstamp = false",
         'name = "Theme"',
         'timeline = "score"',
@@ -1341,10 +1350,12 @@ describe("properties", () => {
 
     type(nameField(), "Upbeat");
     press(nameField(), "Enter");
+    const upbeat = idNamed(store, "Upbeat");
     expect(lastCommand(store)).toEqual({
       type: "add",
       into: { block: A, id: "score" },
       timestamp: { name: "Upbeat", coordinate: [16, 5], groupstamp: true },
+      ids: [upbeat],
     });
     expect([
       nameField().value,
@@ -1353,7 +1364,7 @@ describe("properties", () => {
       deleteButton()?.disabled,
       inspector.shownPin()?.named?.id,
       properties()?.classList.contains("unnamed"),
-    ]).toEqual(["Upbeat", false, pressed(["Wedge", "Name", "Line"]), false, "timestamp_11", false]);
+    ]).toEqual(["Upbeat", false, pressed(["Wedge", "Name", "Line"]), false, upbeat, false]);
   });
 
   it("renames a named timestamp, keeps a name and journals nothing for an unchanged one", () => {
@@ -1469,7 +1480,7 @@ describe("GroupStamp", () => {
 
     type(nameField(), "Upbeat");
     press(nameField(), "Enter");
-    const named: Address = { block: A, id: "timestamp_11" };
+    const named: Address = { block: A, id: idNamed(store, "Upbeat") };
     expect([groupstamp(), describedGroup()]).toEqual([["GroupStamp", "true", false], CROSSES]);
     pressGroupstamp();
     expect(lastCommand(store)).toEqual({
@@ -1497,6 +1508,7 @@ describe("GroupStamp", () => {
       type: "add",
       into: { block: A, id: "score" },
       timestamp: { name: "Upbeat", coordinate: [16, 5] },
+      ids: [idNamed(store, "Upbeat")],
     });
   });
 
@@ -1912,7 +1924,7 @@ describe("the wedge's rotation", () => {
 
     type(nameField(), "Upbeat");
     press(nameField(), "Enter");
-    const upbeat: Address = { block: A, id: "timestamp_11" };
+    const upbeat: Address = { block: A, id: idNamed(store, "Upbeat") };
     expect([rotation(), described(slider())]).toEqual([
       ["0", "0 degrees", "0°", ["0"], null, false],
       "",
@@ -2053,6 +2065,7 @@ describe("a named timestamp's MeasureMaps", () => {
       type: "add",
       into: { block: A, id: "score" },
       timestamp: { name: "Bar two", coordinate: [6, 1] },
+      ids: ["bar_two"],
     });
     if (added !== null) throw new Error(added.message);
     const found = store.view.blocks[A]?.manifest.graphical?.timestamps?.find(
@@ -2122,9 +2135,10 @@ describe("a named timestamp's MeasureMaps", () => {
           ],
           match_claims: ["claim_1"],
         },
+        ids: ["bar_two_match"],
       }),
     ).toBe(null);
-    const BAR_TWO: Address = { block: A, id: "matchstamp_1" };
+    const BAR_TWO: Address = { block: A, id: "bar_two_match" };
     /** The texts of the Matchstamp tab's rows `cmap_1` and `cmap_3`. */
     const mapRows = () => {
       const id = tabNamed("Matchstamp").getAttribute("aria-controls");
@@ -2179,7 +2193,7 @@ describe("a named timestamp's MeasureMaps", () => {
         '  "coordinate": [6, 1],',
         '  "display": ["wedge", "name", "cross_section"],',
         '  "groupstamp": false,',
-        '  "id": "timestamp_5",',
+        '  "id": "bar_two",',
         '  "mapping": {',
         '    "cmap_1": {',
         '      "ID": "2",',
@@ -2206,7 +2220,7 @@ describe("a named timestamp's MeasureMaps", () => {
         "coordinate: [6, 1]",
         "display: [wedge, name, cross_section]",
         "groupstamp: false",
-        "id: timestamp_5",
+        "id: bar_two",
         "mapping:",
         "  cmap_1:",
         '    ID: "2"',
@@ -2227,7 +2241,7 @@ describe("a named timestamp's MeasureMaps", () => {
     );
     expect(toml).toBe(
       [
-        'id = "timestamp_5"',
+        'id = "bar_two"',
         'timeline = "score"',
         "coordinate = [ 6, 1 ]",
         'name = "Bar two"',

@@ -71,6 +71,12 @@ own, imported, never copied.
   block's drawing records, and `bands(block)`, the bands drawn in a block
   (`bands.spec.ts`). A stored number is compared with
   `toEqual`/`toBe` against a literal; nothing is read back from pixels.
+- **Minted IDs**: the store in the page mints the IDs of what a command
+  creates at random, so a spec never types one. A command dispatched
+  through the hook gives its elements speaking IDs (`ids`), and an element
+  a gesture creates is named by the IDs the store journaled with its
+  command (`support.ts` `newestMinted`); the fixture workspaces' own IDs
+  are the manifests' and stay.
 - **The DOM** for what the editor renders: nodes
   `.svelte-flow__node[data-id="<block id>"]` (a selected block's node
   carries Svelte Flow's class `selected`), counted as
@@ -757,7 +763,7 @@ so the automatic proportions are those of a wide canvas.
    header (`matchstamp-name`). Automatic: a rule on `piece`'s card
    (`elision-mode: proportional`, `elision-proportion: 0.25`) makes the
    ancestor card draw `piece`'s automatic elision; stored: `add` puts
-   `elision_1` "Gap" on `middle` from 5 to 7 quarters, a group elision of
+   `gap` "Gap" (the ID the command gives) on `middle` from 5 to 7 quarters, a group elision of
    `group_1`. A click on the elision's ellipsis shows Elisions and lets the
    MatchStamp go: the selection emptied leaves Elisions, and Matchstamp
    chosen then shows no name header.
@@ -816,8 +822,9 @@ With `group_2` selected, the fieldset "Members" shows "Recording" disabled
 `page`'s `groups []`, after which the box is unchecked. With
 `annotations`' card selected, "New group" is one command, an `add`,
 after which the manifest's groups are `group_1` and `group_2` as before
-and `group_3` of `annotations`, and the fieldset "Groups" shows `group_3`,
-which has no name, checked.
+and a third of `annotations`, its ID the one the store minted and
+journaled with the `add`, and the fieldset "Groups" shows that ID, the
+group having no name, checked.
 
 **`a11y.spec.ts`** (Chromium, Firefox, WebKit) runs axe-core on the page
 with `small` open and requires an empty violation list on the canvas, with
@@ -1238,25 +1245,28 @@ drawing order: `first` `[0, 1]`–`[8, 1]` `{canvas: 57.14285714285714}`,
 `[1, 1]`–`[31, 1]` `{canvas: 128.57142857142856}` (each `W = r × n`,
 `n` = 400, 800 and 1600 at 50 canvas units a quarter, the third's gap
 `W` less the two visible ends of 50), each with the card's
-`elision-display`, initially `["ellipsis", "name"]`; the mode `auto`
+`elision-display`, initially `["ellipsis", "name"]`, and `ids` the three
+IDs the store minted for them (random in the page, so the spec reads them
+from the entry, `newestMinted`, and names the gaps by them: `first0`,
+`first16`, `second1`); the mode `auto`
 then draws as `custom` (a stored card elision), so no rule is written.
 Custom is checked, the count reads "3 elisions" and the rows (name, else
 "—"; timeline; stretch) read "—", "First", "0–8 ♩"; "—", "First",
 "16–32 ♩"; "—", "Second", "1–31 ♩", and the card draws the stored
-`elision_3` (three dots) in place of `second`'s default (none). Add elision
+`second1` (three dots) in place of `second`'s default (none). Add elision
 journals one `add` into `{block, id: piece}` of `{start: [32, 1], end:
-[48, 1]}`: `excerpt` lies in a group, so the elision goes on the root,
+[48, 1]}` with one minted ID, `first32`: `excerpt` lies in a group, so the elision goes on the root,
 on the middle third of the longest stretch of `piece` outside the
 protected span 8–16, i.e. 16–64; the count reads "4 elisions". Remove all
 journals one `remove` of every card elision of `piece`'s tree in the
 manifest's canonical order (timeline, then start, then ID):
-`elision_1`, `elision_2` (`first` 0 and 16), `elision_4` (`piece` 32),
-`elision_3` (`second` 1). None is stored after it, Proportional is
+`first0`, `first16` (`first` 0 and 16), `first32` (`piece` 32),
+`second1` (`second` 1). None is stored after it, Proportional is
 checked again and the three dots of `second`'s default gap are drawn.
 
 *A selected gap: its handles, its mode menu and one keyboard edit.* On
 the same import, after Custom has stored the defaults, a click on the
-row of `Second` selects `{block, id: elision_3}` alone; the root's block,
+row of `Second` selects `{block, id: second1}` alone; the root's block,
 which holds it, and the form's block are open without a click, and the
 form reads `Elision on "Second"`, From `1`, To `31`. The viewport is moved so that
 the middle dot of its ellipsis lies at (400, 400) on the canvas, left of
@@ -1274,7 +1284,7 @@ the first multiple of `1/d` within reach for the divisors `d` of 2520
 ascending (`d` = 1 to 4 give 31, 31, 31 and 31.25, all farther; `d` = 5
 gives 31.2), and no snapping value of `second` (0, 32) lies between 31 and
 31.2. Exactly one entry is journalled, `{type: "set", changes: [{target:
-{block, id: "elision_3"}, values: {end: [156, 5]}}]}`, and `elision_3`
+{block, id: second1}, values: {end: [156, 5]}}]}`, and `second1`
 is stored ending at `[156, 5]`.
 
 *A group's elisions.* On `groups/group_elided_members` imported the same
@@ -1294,9 +1304,10 @@ the frame nor carried into `piece`'s card; Custom journals the same rule
 with `{"elision-mode": null}` and the six dots are drawn again. Add
 elision journals one `add` into `{block, id: excerpt}`, the frame's
 first member in display order, of `{start: [16, 3], end: [32, 3]}`, the
-middle third of its 16 quarters, exactly; the count reads "3 elisions".
+middle third of its 16 quarters, exactly, with one minted ID,
+`excerpt16`; the count reads "3 elisions".
 Remove all journals one `remove` of the group's elisions in canonical
-order, `elision_1` (`excerpt` 2), `elision_3` (`excerpt` 16/3),
+order, `elision_1` (`excerpt` 2), `excerpt16` (`excerpt` 16/3),
 `elision_2` (`phrase`); the count reads "0 elisions", nothing is stored
 and Remove all is disabled.
 
@@ -1893,11 +1904,11 @@ before. In the Timestamp pane the values are exact:
 Delete are disabled. `4` typed as "coordinate of Melody" moves the pin
 there (`Tempo of Melody` `2.0`), nothing journalled; the name `Four` and
 Enter then journal exactly `{type: "add", into: {block: "map0000000", id:
-"melody"}, timestamp: {name: "Four", coordinate: [4, 1]}}`, Delete and
+"melody"}, timestamp: {name: "Four", coordinate: [4, 1]}}` and one ID
+the store minted for it (`ids`, read from the entry), Delete and
 the toggles are enabled (Wedge, Name and Line pressed, ID and
-Coordinate not), the pinned marks are gone and the named timestamp
-`timestamp_3` (after `melody`'s default `origin` and `length`) is drawn as
-an element. The inspector's top stays put: the name header is
+Coordinate not), the pinned marks are gone and the named timestamp, by
+that ID, is drawn as an element. The inspector's top stays put: the name header is
 `position: sticky` at `top: 0px` inside the panels' scroll container,
 its label "Name" has `font-weight` 700, and the tab list is not inside
 that scroll container; scrolled to its end, the tab list and the name
@@ -1907,7 +1918,7 @@ shows "Denominator" 2520 and "Decimals" 3; typing 4 as the denominator
 sets `settings.granularity` to `{denominator: 4, decimals: 3}` without a
 journal entry, and the same abscissa then reads `2 1/2 ♩` (divisors 1, 2
 and 4 miss 2.46 by 0.46, 0.04 and 0.04; the nearest multiple of 1/4 is
-5/2); typing 0 marks the field invalid and changes nothing. A timestamp added at 4 on `melody` lets the
+5/2); typing 0 marks the field invalid and changes nothing. A timestamp added at 4 on `melody` (through the hook, given the ID `four`) lets the
 pointer through while Show coordinates is on (a click on it selects
 nothing of it); with Show coordinates off a click on its wedge, its name
 label or its line (its lower piece, below the name label: the upper piece
@@ -1916,7 +1927,7 @@ inside its first dash, since the line is dashed `3 3` from its top and a
 gap takes no click), each at its centre rounded to a whole pixel (the
 rectangle lies a hair off the drawing's points, and a floored centre
 misses the one-pixel line), selects exactly `{block: "map0000000", id:
-"timestamp_3"}` and shows it in the Timestamp pane (Name "Four",
+"four"}` and shows it in the Timestamp pane (Name "Four",
 coordinate `4`, Delete enabled), and hovering shows no flag and no marks.
 
 **`matchstamps.spec.ts`** (Chromium, Firefox, WebKit) proves MatchClaim
@@ -1938,8 +1949,8 @@ its text has no `claim_1`. Unchecking `cpt_1` stores the block's filter
 "unlikely"]}` in
 `settings.matchClaimFilters` and journals nothing. A MatchStamp named
 through the hook (`add` of "Downbeat", one anchor [`clt_1` [0, 1],
-`dpt_1` 0], `match_claims` `["claim_1"]`, no refusal) and then selected
-(`{block, id: "matchstamp_1"}`) selects the Matchstamp tab, whose name
+`dpt_1` 0], `match_claims` `["claim_1"]`, given the ID `downbeat`, no
+refusal) and then selected (`{block, id: "downbeat"}`) selects the Matchstamp tab, whose name
 header shows "Downbeat", whose Coordinates show "coordinate of clt_1"
 and "coordinate of dpt_1" as disabled fields holding `0` and `0`, each
 with its "Copy the value" button, and whose MatchClaims list `claim_1`;
@@ -1950,12 +1961,13 @@ as a 1 × 1 px box out of the flow (`display: block`, `position:
 absolute`); Remove
 empties `graphical.matchstamps` in exactly one journal entry, and the
 selection losing the MatchStamp lets it go, so the tab shown before it,
-Properties, is selected again. Named the same way, its match timestamp
+Properties, is selected again. Named the same way (given the IDs
+`downbeat`, `downbeat_clt_1`, `downbeat_dpt_1` and `downbeat_anchor`), its match timestamp
 on `clt_1` (whose children band gives its line a length) is written with
 `display` `["cross_section"]`, its line only; a click on that line
 (`line[data-id=<it>][data-part="line"]`, dispatched on the element, the
 canvas's selection reading the element clicked) selects `{block, id:
-"matchstamp_1"}`, not the timestamp, and the Matchstamp tab is selected
+"downbeat"}`, not the timestamp, and the Matchstamp tab is selected
 with the name "Downbeat" in its name header (`matchstamp-name`). Its
 Lines list, in screen order (`clt_1` drawn above `dpt_1`), the line of
 the match timestamp on `clt_1`, the anchor's, then the line of the one on

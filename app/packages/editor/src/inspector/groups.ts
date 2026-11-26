@@ -9,7 +9,10 @@
  * whose command core refuses is offered disabled, with core's message as
  * its reason. Memberships are offered on the arranger and in the bundle
  * editor, which hold every group of a block; a group or timeline editor
- * changes only what it edits, and offers none.
+ * changes only what it edits, and offers none. Core's verdict on a command
+ * that creates elements (a new group, a member's groupstamps) mints their
+ * IDs with the `minter` given, a fresh one by default; given a copy of the
+ * store's (`Store.minter`), a refusal names the IDs the dispatch would.
  */
 
 import type { Editing, Subject } from "@timetoalign/tilie-arranger";
@@ -18,6 +21,7 @@ import type {
   Address,
   Block,
   Change,
+  IdMinter,
   Manifest,
   ResolvedAddress,
   SetCommand,
@@ -154,11 +158,10 @@ function groupsChange(block: Block, timeline: string, groups: readonly string[])
 
 /**
  * What core says of `command` on `view`: its message when it refuses it,
- * else `null`. The IDs of what it creates are minted as the store mints
- * them when it is dispatched.
+ * else `null`. The IDs of what it creates are minted by `minter`.
  */
-function refusalOf(view: View, command: SetCommand | AddCommand): string | null {
-  const result = apply(view, command, createIdMinter());
+function refusalOf(view: View, command: SetCommand | AddCommand, minter: IdMinter): string | null {
+  const result = apply(view, command, minter);
   return isCommandError(result) ? result.message : null;
 }
 
@@ -175,6 +178,7 @@ export function groupsOf(
   view: View,
   subjects: readonly Subject[],
   editing: Editing | null,
+  minter: IdMinter = createIdMinter(),
 ): Memberships | null {
   if (!offered(editing)) return null;
   const block = blockOf(view, subjects);
@@ -199,7 +203,7 @@ export function groupsOf(
       checked,
       mixed: members.length > 0 && !checked,
       command,
-      refusal: refusalOf(view, command),
+      refusal: refusalOf(view, command, minter.copy()),
     };
   });
   return { legend: "Groups", rows };
@@ -217,6 +221,7 @@ export function membersOf(
   view: View,
   subjects: readonly Subject[],
   editing: Editing | null,
+  minter: IdMinter = createIdMinter(),
 ): Memberships | null {
   const [subject, ...others] = subjects;
   if (!offered(editing) || subject === undefined || others.length > 0) return null;
@@ -238,7 +243,7 @@ export function membersOf(
       checked,
       mixed: false,
       command,
-      refusal: refusalOf(view, command),
+      refusal: refusalOf(view, command, minter.copy()),
     };
   });
   return { legend: "Members", rows };
@@ -255,6 +260,7 @@ export function newGroupOf(
   view: View,
   subjects: readonly Subject[],
   editing: Editing | null,
+  minter: IdMinter = createIdMinter(),
 ): NewGroup | null {
   if (!offered(editing)) return null;
   const block = blockOf(view, subjects);
@@ -264,5 +270,5 @@ export function newGroupOf(
   if (members === null) return null;
   const into: Address = { block: block.id };
   const command: AddCommand = { type: "add", into, group: { members: [...members] } };
-  return { command, refusal: refusalOf(view, command) };
+  return { command, refusal: refusalOf(view, command, minter.copy()) };
 }

@@ -179,21 +179,19 @@ describe("elementsInRect", () => {
       type: "add",
       into: inBlock(A, idAddress("recording")),
       timestamp: { name: "Mark", coordinate: 22050, display: [] },
+      ids: ["mark"],
     });
+    const named = new Set(blockIn(marked, A).manifest.graphical?.timestamps?.map(({ id }) => id));
     const stamps = (shown: BlockNode) => {
       const { width, height } = shown.data.drawing;
       return elementsInRect(shown, { ...shown.position, width, height }, shown.data.inside, metrics)
-        .flatMap(({ id }) => (id?.startsWith("timestamp_") ? [id] : []))
+        .flatMap(({ id }) => (id !== undefined && named.has(id) ? [id] : []))
         .sort();
     };
     expect(stamps(nodeOf(marked, null))).toEqual(
       [1, 10, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `timestamp_${n}`),
     );
-    expect(stamps(nodeOf(marked, RECORDING))).toEqual([
-      "timestamp_11",
-      "timestamp_3",
-      "timestamp_4",
-    ]);
+    expect(stamps(nodeOf(marked, RECORDING))).toEqual(["mark", "timestamp_3", "timestamp_4"]);
   });
 
   it("takes a named timestamp for its parts, and one that draws nothing by its wedge", () => {

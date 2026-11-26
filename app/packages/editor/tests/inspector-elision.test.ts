@@ -42,7 +42,7 @@ import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
 import { paneContext } from "../src/pane.ts";
 import { holder } from "./holder.svelte.ts";
-import { blockId, posting, providing, storeOf } from "./support.ts";
+import { blockId, posting, providing, storeMints, storeOf } from "./support.ts";
 
 const B = blockId(0);
 const INSIDE = "groups/group_elided_inside";
@@ -648,7 +648,14 @@ describe("the Elisions tab", () => {
     [
       "Add elision",
       () => click(button("Add elision", part("elisions"))),
-      [{ type: "add", into: at("score"), elision: { start: [112, 3], end: [152, 3] } }],
+      [
+        {
+          type: "add",
+          into: at("score"),
+          elision: { start: [112, 3], end: [152, 3] },
+          ids: storeMints("elision"),
+        },
+      ],
       [],
       "Custom, 4 elisions",
     ],
@@ -806,9 +813,12 @@ describe("the Elisions tab", () => {
     show(store, [{ id: "piece" }]);
     click(radio("elisions", "Custom"));
     expect(store.journal.length - base).toBe(1);
+    // The store's minter gives the three their IDs, in list order, which is canonical order.
+    const ids = storeMints("elision", "elision", "elision");
     expect(last(store)).toEqual({
       type: "add",
       into: { block: B },
+      ids,
       elision: [
         {
           timeline: "first",
@@ -837,10 +847,7 @@ describe("the Elisions tab", () => {
     expect(part("elisions")?.querySelectorAll(".rows li")).toHaveLength(3);
     click(button("Remove all", part("elisions")));
     expect(store.journal.length - base).toBe(2);
-    expect(last(store)).toEqual({
-      type: "remove",
-      targets: ["elision_1", "elision_2", "elision_3"].map(at),
-    });
+    expect(last(store)).toEqual({ type: "remove", targets: ids.map(at) });
     expect(checked("elisions")).toEqual(["proportional"]);
   });
 
@@ -1114,6 +1121,7 @@ describe("a root drawn once behind a row side by side", () => {
     type: "add",
     into: at("session"),
     elision: { start: 50.0, end: 80.0 },
+    ids: ["session_gap"],
   };
 
   const arrangedOf = (root: RootElisions | null) =>
@@ -1205,9 +1213,9 @@ describe("a root drawn once behind a row side by side", () => {
     ).toEqual([["—", "Session", "50″–1′20″", "not drawn while arranged side by side"]]);
     expect(arranged?.custom?.rows[0]?.remove).toEqual({
       type: "remove",
-      targets: [at("elision_1")],
+      targets: [at("session_gap")],
     });
-    expect(arranged?.custom?.removeAll).toEqual({ type: "remove", targets: [at("elision_1")] });
+    expect(arranged?.custom?.removeAll).toEqual({ type: "remove", targets: [at("session_gap")] });
   });
 
   it("shows the gap and the undrawn elision in the tab", () => {

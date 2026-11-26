@@ -309,7 +309,9 @@ const deviceRatio: () => number = (() => {
 
 /** The transient command's block as the command leaves the view; `null` without one. */
 const transientPreview = $derived(
-  transient === null ? null : { id: transient.block, view: previewed(view, transient.command) },
+  transient === null
+    ? null
+    : { id: transient.block, view: previewed(view, transient.command, store.minter()) },
 );
 
 const nodes = new CanvasNodes(
@@ -479,6 +481,7 @@ setNodeActions({
   pane: () => pane,
   previewing: (block) => nodes.preview?.id === block || transient?.block === block,
   view: () => view,
+  minter: () => store.minter(),
   zoom: () => viewport.zoom,
   rules: () => rules,
   reducedMotion: () => reducedMotion.current,

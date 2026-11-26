@@ -20,7 +20,7 @@ import { namedPinOf } from "../src/inspector/timestamp.ts";
 import type { MatchClaimServer } from "../src/matchClaims.svelte.ts";
 import { MatchClaimTables } from "../src/matchClaims.svelte.ts";
 import { BELIEFS_BY_ROW, indexesOver, ME, matchTable, q, tableManifest } from "./matches.ts";
-import { posting, providing, storeOf } from "./support.ts";
+import { posting, providing, storeMints, storeOf } from "./support.ts";
 
 /** The command of the store's last journal entry. */
 function lastCommand(store: Store): unknown {
@@ -28,6 +28,23 @@ function lastCommand(store: Store): unknown {
 }
 
 const A = "0000000000";
+
+/**
+ * What naming "Downbeat" (`nameDownbeat`) mints as a store's first IDs, in
+ * core's order: the MatchStamp's, those of its three match timestamps
+ * (`clt_1`, `cpt_1`, `dpt_1` at 0) and those of its two anchors.
+ */
+const [DOWNBEAT_ID, CLT_1_AT_0, CPT_1_AT_0, DPT_1_AT_0, ANCHOR_1, ANCHOR_2] = storeMints(
+  "matchstamp",
+  "timestamp",
+  "timestamp",
+  "timestamp",
+  "anchor",
+  "anchor",
+) as [string, string, string, string, string, string];
+
+/** The IDs "Turn" gives: the MatchStamp, its match timestamps on `score` and `performance`, its anchor. */
+const TURN_IDS = ["turn", "turn_score", "turn_performance", "turn_anchor"];
 const NO_SERVER =
   "Matches need a running tilie-server. To start it, run " +
   "uv run tilie --static-dir ../app/packages/editor/dist in the repository's server folder " +
@@ -205,7 +222,7 @@ describe("naming", () => {
   it("names a potential MatchStamp in one entry and reports the named one", () => {
     const store = storeOf(tableManifest());
     const before = store.journal.length;
-    expect(nameDownbeat(store)).toEqual([{ kind: "named", block: A, id: "matchstamp_1" }]);
+    expect(nameDownbeat(store)).toEqual([{ kind: "named", block: A, id: DOWNBEAT_ID }]);
     expect(store.journal.length).toBe(before + 1);
     expect(store.view.blocks[A]?.manifest.graphical?.matchstamps?.map((m) => m.name)).toEqual([
       "Downbeat",
@@ -235,18 +252,18 @@ describe("naming", () => {
     const before = store.journal.length;
     name("Downbeat");
     expect(store.journal.length).toBe(before + 1);
-    expect(reported).toEqual([{ kind: "named", block: A, id: "matchstamp_1" }]);
+    expect(reported).toEqual([{ kind: "named", block: A, id: DOWNBEAT_ID }]);
     const [stored] = store.view.blocks[A]?.manifest.graphical?.matchstamps ?? [];
     expect(
       stored?.alignment_anchors.map((anchor) => [anchor.id, anchor.timestamps, anchor.display]),
     ).toEqual([
-      ["anchor_1", ["timestamp_1", "timestamp_2"], ["line", "name"]],
-      ["anchor_2", ["timestamp_1", "timestamp_3"], ["line"]],
+      [ANCHOR_1, [CLT_1_AT_0, CPT_1_AT_0], ["line", "name"]],
+      [ANCHOR_2, [CLT_1_AT_0, DPT_1_AT_0], ["line"]],
     ]);
     expect(stored?.match_claims).toEqual(["claim_1", "claim_2"]);
 
     unmountTab();
-    show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(table));
+    show(store, { kind: "named", block: A, id: DOWNBEAT_ID }, tablesWith(table));
     expect(document.querySelector("[data-testid=matchstamp-differences]")).toBe(null);
     expect([...document.querySelectorAll("li.gone")]).toEqual([]);
   });
@@ -403,12 +420,13 @@ describe("Coordinates", () => {
           ],
           match_claims: ["claim_1"],
         },
+        ids: ["climax", "climax_half", "climax_performance", "climax_anchor"],
       }),
     ).toBe(null);
-    show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(null));
+    show(store, { kind: "named", block: A, id: "climax" }, tablesWith(null));
     const before = store.journal.length;
-    pressGroupstamp("timestamp_11");
-    pressGroupstamp("timestamp_12");
+    pressGroupstamp("climax_half");
+    pressGroupstamp("climax_performance");
     expect(store.journal.length).toBe(before + 2);
     const matchstamp = shownGroups();
     expect(matchstamp).toEqual([
@@ -461,11 +479,12 @@ describe("Coordinates", () => {
           ],
           match_claims: ["claim_1"],
         },
+        ids: TURN_IDS,
       }),
     ).toBe(null);
-    show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(null));
-    pressGroupstamp("timestamp_11");
-    pressGroupstamp("timestamp_12");
+    show(store, { kind: "named", block: A, id: "turn" }, tablesWith(null));
+    pressGroupstamp("turn_score");
+    pressGroupstamp("turn_performance");
     const matchstamp = shownGroups();
     expect(matchstamp).toEqual([
       ["Second half", [["coordinate", "2", true, "♩"]]],
@@ -590,6 +609,8 @@ describe("an ancestor card raised", () => {
         ],
         match_claims: ["p_1"],
       },
+      // Naming mints the MatchStamp's ID, its two match timestamps' and its anchor's.
+      ids: storeMints("matchstamp", "timestamp", "timestamp", "anchor"),
     });
     expect(namePickup(true)).toBe(stored);
   });
@@ -617,11 +638,22 @@ describe("an ancestor card raised", () => {
       return command;
     }
     const stored = update(false);
+    // Naming took the store's first four IDs; Update mints the match timestamp of `middle` at 1
+    // and the new anchor (the other anchor is kept, `piece` at 3 reused).
+    const [pickup, , , , middle1, anchor] = storeMints(
+      "matchstamp",
+      "timestamp",
+      "timestamp",
+      "anchor",
+      "timestamp",
+      "anchor",
+    );
     expect(JSON.parse(stored)).toEqual({
       type: "set",
+      ids: [middle1, anchor],
       changes: [
         {
-          target: { block: A, id: "matchstamp_1" },
+          target: { block: A, id: pickup },
           values: {
             anchors: [
               [
@@ -687,32 +719,32 @@ describe("Lines", () => {
     const store = storeOf(tableManifest());
     nameDownbeat(store);
     unmountTab();
-    show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(null));
+    show(store, { kind: "named", block: A, id: DOWNBEAT_ID }, tablesWith(null));
     expect(lines()).toEqual([
-      ["timestamp", "clt_1 0 ♩ timestamp_1", ["Line"], false],
-      ["anchor", "clt_1 – cpt_1 anchor_1", ["Line", "Name"], false],
-      ["timestamp", "cpt_1 0″ timestamp_2", ["Line"], false],
-      ["anchor", "clt_1 – dpt_1 anchor_2", ["Line"], false],
-      ["timestamp", "dpt_1 0 smp timestamp_3", ["Line"], false],
+      ["timestamp", `clt_1 0 ♩ ${CLT_1_AT_0}`, ["Line"], false],
+      ["anchor", `clt_1 – cpt_1 ${ANCHOR_1}`, ["Line", "Name"], false],
+      ["timestamp", `cpt_1 0″ ${CPT_1_AT_0}`, ["Line"], false],
+      ["anchor", `clt_1 – dpt_1 ${ANCHOR_2}`, ["Line"], false],
+      ["timestamp", `dpt_1 0 smp ${DPT_1_AT_0}`, ["Line"], false],
     ]);
     const before = store.journal.length;
-    toggleOf("li[data-timestamp='timestamp_2']", "Wedge").click();
+    toggleOf(`li[data-timestamp='${CPT_1_AT_0}']`, "Wedge").click();
     flushSync();
     expect(store.journal.length).toBe(before + 1);
     expect(lastCommand(store)).toEqual({
       type: "set",
       changes: [
         {
-          target: { block: A, id: "timestamp_2" },
+          target: { block: A, id: CPT_1_AT_0 },
           values: { display: ["wedge", "cross_section"] },
         },
       ],
     });
-    toggleOf("li[data-anchor='anchor_2']", "Name").click();
+    toggleOf(`li[data-anchor='${ANCHOR_2}']`, "Name").click();
     flushSync();
     expect(store.journal.length).toBe(before + 2);
-    expect(lines()[2]).toEqual(["timestamp", "cpt_1 0″ timestamp_2", ["Wedge", "Line"], false]);
-    expect(lines()[3]).toEqual(["anchor", "clt_1 – dpt_1 anchor_2", ["Line", "Name"], false]);
+    expect(lines()[2]).toEqual(["timestamp", `cpt_1 0″ ${CPT_1_AT_0}`, ["Wedge", "Line"], false]);
+    expect(lines()[3]).toEqual(["anchor", `clt_1 – dpt_1 ${ANCHOR_2}`, ["Line", "Name"], false]);
   });
 
   it("say where a match timestamp is a line of another MatchStamp too", () => {
@@ -733,9 +765,10 @@ describe("Lines", () => {
           ],
           match_claims: ["claim_3"],
         },
+        ids: ["other"],
       }),
     ).toBe(null);
-    show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(null));
+    show(store, { kind: "named", block: A, id: DOWNBEAT_ID }, tablesWith(null));
     expect(
       [...document.querySelectorAll("section.lines li")].map(
         (item) => item.querySelector(".shared")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
@@ -782,9 +815,10 @@ describe("GroupStamps", () => {
           ],
           match_claims: ["claim_1"],
         },
+        ids: TURN_IDS,
       }),
     ).toBe(null);
-    show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(null));
+    show(store, { kind: "named", block: A, id: "turn" }, tablesWith(null));
   }
 
   /**
@@ -856,9 +890,9 @@ describe("GroupStamps", () => {
     const store = mixedStore();
     showTurn(store);
     expect(lineStates()).toEqual([
-      ["timestamp", "Score 6 ♩ timestamp_11", ["Line"], true, false],
-      ["anchor", "Score – Performance anchor_1", ["Line", "Name"], null, false],
-      ["timestamp", "Performance 3″ timestamp_12", ["Line"], true, false],
+      ["timestamp", "Score 6 ♩ turn_score", ["Line"], true, false],
+      ["anchor", "Score – Performance turn_anchor", ["Line", "Name"], null, false],
+      ["timestamp", "Performance 3″ turn_performance", ["Line"], true, false],
     ]);
     expect(
       [...document.querySelectorAll("section.lines .groupstamp .hint")].map(
@@ -888,15 +922,15 @@ describe("GroupStamps", () => {
     const store = mixedStore();
     showTurn(store);
     const before = store.journal.length;
-    pressGroupstamp("timestamp_12");
+    pressGroupstamp("turn_performance");
     expect(store.journal.length).toBe(before + 1);
     expect(lastCommand(store)).toEqual({
       type: "set",
-      changes: [{ target: { block: A, id: "timestamp_12" }, values: { groupstamp: false } }],
+      changes: [{ target: { block: A, id: "turn_performance" }, values: { groupstamp: false } }],
     });
     expect(lineStates()[2]).toEqual([
       "timestamp",
-      "Performance 3″ timestamp_12",
+      "Performance 3″ turn_performance",
       ["Line"],
       false,
       false,
@@ -964,7 +998,7 @@ describe("GroupStamps", () => {
   it("show a reused match timestamp's own GroupStamp on a potential MatchStamp", () => {
     const store = mixedStore();
     showTurn(store);
-    pressGroupstamp("timestamp_12");
+    pressGroupstamp("turn_performance");
     unmountTab();
     showPotential(store, scoreToPerformance("claim_2", 5), 5);
     expect(lineStates()).toEqual([
@@ -987,22 +1021,29 @@ describe("GroupStamps", () => {
       PERFORMANCE_CLAIMED,
     ]);
     name("Cue");
+    // Naming mints the MatchStamp's ID, the new match timestamp's at 5 and the anchor's, the
+    // store's first IDs ("Turn" gave its own); `performance` at 3.0 is reused.
+    const [cue, score5, cueAnchor] = storeMints("matchstamp", "timestamp", "anchor") as [
+      string,
+      string,
+      string,
+    ];
     const stamps = store.view.blocks[A]?.manifest.graphical?.timestamps ?? [];
     expect(
       stamps
         .filter((item) => item.matchstamp)
         .map((item) => [item.id, item.timeline, item.coordinate, item.groupstamp]),
     ).toEqual([
-      ["timestamp_12", "performance", new JsonFloat(3), false],
-      ["timestamp_13", "score", [5, 1], true],
-      ["timestamp_11", "score", [6, 1], true],
+      ["turn_performance", "performance", new JsonFloat(3), false],
+      [score5, "score", [5, 1], true],
+      ["turn_score", "score", [6, 1], true],
     ]);
     unmountTab();
-    show(store, { kind: "named", block: A, id: "matchstamp_2" }, tablesWith(null));
+    show(store, { kind: "named", block: A, id: cue }, tablesWith(null));
     expect(lineStates()).toEqual([
-      ["timestamp", "Score 5 ♩ timestamp_13", ["Line"], true, false],
-      ["anchor", "Score – Performance anchor_2", ["Line", "Name"], null, false],
-      ["timestamp", "Performance 3″ timestamp_12", ["Line"], false, false],
+      ["timestamp", `Score 5 ♩ ${score5}`, ["Line"], true, false],
+      ["anchor", `Score – Performance ${cueAnchor}`, ["Line", "Name"], null, false],
+      ["timestamp", "Performance 3″ turn_performance", ["Line"], false, false],
     ]);
   });
 });
@@ -1043,7 +1084,7 @@ describe("a named MatchStamp", () => {
     unmountTab();
     return store;
   }
-  const DOWNBEAT: HeldMatch = { kind: "named", block: A, id: "matchstamp_1" };
+  const DOWNBEAT: HeldMatch = { kind: "named", block: A, id: DOWNBEAT_ID };
   const doubted = () => matchTable([[[ME, "false"]], ...BELIEFS_BY_ROW.slice(1)]);
 
   it("shows what differs from the table, marks the anchor gone, updates and removes", () => {
@@ -1053,8 +1094,8 @@ describe("a named MatchStamp", () => {
     expect(nameField().value).toBe("Downbeat");
     const anchors = [...document.querySelectorAll("li[data-anchor]")];
     expect(anchors.map((item) => [item.getAttribute("data-anchor"), item.className])).toEqual([
-      ["anchor_1", expect.not.stringContaining("gone")],
-      ["anchor_2", expect.stringContaining("gone")],
+      [ANCHOR_1, expect.not.stringContaining("gone")],
+      [ANCHOR_2, expect.stringContaining("gone")],
     ]);
     expect(anchors[1]?.querySelector(".gone-word")?.textContent).toBe("not stated by the table");
     const differences = document.querySelector("[data-testid=matchstamp-differences] dl");
@@ -1062,7 +1103,7 @@ describe("a named MatchStamp", () => {
       "MatchClaims the belief filter leaves out",
       "claim_1",
       "Anchors gone",
-      "anchor_2",
+      ANCHOR_2,
     ]);
 
     const before = store.journal.length;
@@ -1097,7 +1138,7 @@ describe("a named MatchStamp", () => {
   it("toggles an anchor's name in one entry", () => {
     const store = named();
     show(store, DOWNBEAT, tablesWith(null));
-    const toggles = document.querySelectorAll("li[data-anchor='anchor_2'] .toggle");
+    const toggles = document.querySelectorAll(`li[data-anchor='${ANCHOR_2}'] .toggle`);
     expect([...toggles].map((item) => item.getAttribute("aria-pressed"))).toEqual([
       "true",
       "false",
@@ -1393,10 +1434,11 @@ describe("the Timestamp tab", () => {
         type: "add",
         into: { block: A, id: "clt_1" },
         timestamp: { name: "Theme", coordinate: [1, 1] },
+        ids: ["theme"],
       }),
     ).toBe(null);
-    expect(listed(store, "timestamp_1")).toEqual(["Downbeat matchstamp_1"]);
-    expect(listed(store, "timestamp_4")).toBe(null);
+    expect(listed(store, CLT_1_AT_0)).toEqual([`Downbeat ${DOWNBEAT_ID}`]);
+    expect(listed(store, "theme")).toBe(null);
   });
 
   it("offers the GroupStamp on a match timestamp of a group member", () => {
@@ -1410,7 +1452,7 @@ describe("the Timestamp tab", () => {
     ).toBe(null);
     nameDownbeat(store);
     unmountTab();
-    const pin = namedPinOf(store.view, { block: A, id: "timestamp_1" }, fontMetrics);
+    const pin = namedPinOf(store.view, { block: A, id: CLT_1_AT_0 }, fontMetrics);
     mounted = mount(TimestampPanel, {
       target: document.body,
       context: posting(),
@@ -1430,7 +1472,7 @@ describe("the Timestamp tab", () => {
     flushSync();
     expect(lastCommand(store)).toEqual({
       type: "set",
-      changes: [{ target: { block: A, id: "timestamp_1" }, values: { groupstamp: false } }],
+      changes: [{ target: { block: A, id: CLT_1_AT_0 }, values: { groupstamp: false } }],
     });
   });
 });

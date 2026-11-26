@@ -14,7 +14,9 @@ import path from "node:path";
 import type { Editing, Level } from "@timetoalign/tilie-arranger";
 import type { Manifest, Store } from "@timetoalign/tilie-core";
 import {
+  createIdMinter,
   createStore,
+  importedManifest,
   isLoadError,
   loadManifest,
   readWorkspace,
@@ -35,6 +37,24 @@ import { ProfilesState, provideProfiles } from "../src/profiles/profiles.svelte.
 import type { TestHook } from "../src/testHook.ts";
 import type { UserContext } from "../src/user.svelte.ts";
 import { provideUser, UserState } from "../src/user.svelte.ts";
+
+/**
+ * Core's import of `file` (`importedManifest`), which mints the IDs of the
+ * default timestamps it gives: those IDs, in the canonical order of the
+ * timestamps, replaced by the ones `imported` holds there, so an imported
+ * block's manifest is compared with it whole.
+ */
+export function importedAs(file: Manifest, imported: Manifest): Manifest {
+  const expected = importedManifest(file);
+  const { graphical } = expected;
+  if (graphical === undefined || file.graphical !== undefined) return expected;
+  const minted = imported.graphical?.timestamps ?? [];
+  const timestamps = (graphical.timestamps ?? []).map((item, index) => ({
+    ...item,
+    id: minted[index]?.id ?? item.id,
+  }));
+  return { ...expected, graphical: { ...graphical, timestamps } };
+}
 
 const directory = path.join(
   path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timetoshare/package.json")),
@@ -88,11 +108,30 @@ export function workspaceOf(...manifests: readonly (string | Manifest)[]): strin
   );
 }
 
-/** A store opened on `workspaceOf(...manifests)`. */
+/**
+ * The seed of the minter of every store `storeOf` opens, another than the
+ * fixture workspaces' (`FIXTURE_SEED`): what a test dispatches mints the
+ * same IDs every run. A test names a minted ID only through what holds it
+ * (the journaled command's `ids`, the view), never as a literal.
+ */
+export const STORE_SEED = 20261127n;
+
+/**
+ * The IDs a store of `storeOf` mints first, one for each of `prefixes`, in
+ * order: what the first command dispatched to it that creates elements
+ * without carrying their IDs is given, in the order core creates them
+ * (`CarriedIds`). Computed by a minter of `STORE_SEED`, never typed.
+ */
+export function storeMints(...prefixes: readonly string[]): string[] {
+  const minter = createIdMinter({ seed: STORE_SEED });
+  return prefixes.map((prefix) => minter.mint(prefix));
+}
+
+/** A store opened on `workspaceOf(...manifests)`, minting with a minter of `STORE_SEED`. */
 export function storeOf(...manifests: readonly (string | Manifest)[]): Store {
   const workspace = readWorkspace(workspaceOf(...manifests));
   if (isLoadError(workspace)) throw new Error("the written workspace is refused");
-  return createStore(workspace);
+  return createStore(workspace, { minter: createIdMinter({ seed: STORE_SEED }) });
 }
 
 /**

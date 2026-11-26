@@ -7,6 +7,7 @@ import {
   type AxisValue,
   apply,
   type ContainerKind,
+  createIdMinter,
   createView,
   type ElementAddress,
   type Facet,
@@ -48,6 +49,12 @@ const packageDir = path.dirname(require.resolve("@timetoalign/timetoshare/packag
 export const fixturesDir = path.join(packageDir, "fixtures", SCHEMA_VERSION);
 export { fontMetrics as metrics } from "@timetoalign/timetoshare";
 export const BLOCK = "0000000000";
+/**
+ * The seed of the minter the command builders apply their commands with:
+ * what a command creates beyond the IDs it gives (`ids`) is minted the same
+ * every run, and a test names only the IDs its commands give.
+ */
+export const MINTER_SEED = 20261126n;
 
 /**
  * The fixtures at the top by name, then those sorted into `groups/…`,
@@ -229,7 +236,7 @@ export function quarters(numerator: number, denominator = 1): AxisValue {
  * A manifest built through commands: a quarters root `rootId` of length `length` with the
  * named timestamps an editor gives every new root, `origin` at 0 and `length` at its length,
  * each drawing its wedge and its coordinate label (`bare`'s, moved to the new root), then
- * commands on its block.
+ * commands on its block, applied with a minter of `MINTER_SEED`.
  */
 export function build(rootId: string, length: number, ...commands: object[]): Manifest {
   const source = load("bare");
@@ -241,14 +248,19 @@ export function build(rootId: string, length: number, ...commands: object[]): Ma
     ...(timestamp.name === "length" ? { coordinate: quarters(length) } : {}),
   }));
   const graphical = { ...source.graphical, timestamps };
-  let view = apply(createView(), {
-    type: "add",
-    into: WORKSPACE,
-    block: { id: BLOCK, manifest: { ...source, graphical, timelines: [timeline] }, x: 0, y: 0 },
-  });
+  const minter = createIdMinter({ seed: MINTER_SEED });
+  let view = apply(
+    createView(),
+    {
+      type: "add",
+      into: WORKSPACE,
+      block: { id: BLOCK, manifest: { ...source, graphical, timelines: [timeline] }, x: 0, y: 0 },
+    },
+    minter,
+  );
   for (const command of [...commands]) {
     if (isCommandError(view)) break;
-    view = apply(view, command);
+    view = apply(view, command, minter);
   }
   if (isCommandError(view)) throw new Error(`${view.code}: ${view.message}`);
   return (view.blocks[BLOCK] as { readonly manifest: Manifest }).manifest;
@@ -259,16 +271,17 @@ export function edit(name: string, ...commands: object[]): Manifest {
   return edited(loadFile(name), ...commands);
 }
 
-/** A manifest changed by commands on its block. */
+/** A manifest changed by commands on its block, applied with a minter of `MINTER_SEED`. */
 export function edited(manifest: Manifest, ...commands: object[]): Manifest {
-  let view = apply(createView(), {
-    type: "add",
-    into: WORKSPACE,
-    block: { id: BLOCK, manifest, x: 0, y: 0 },
-  });
+  const minter = createIdMinter({ seed: MINTER_SEED });
+  let view = apply(
+    createView(),
+    { type: "add", into: WORKSPACE, block: { id: BLOCK, manifest, x: 0, y: 0 } },
+    minter,
+  );
   for (const command of commands) {
     if (isCommandError(view)) break;
-    view = apply(view, command);
+    view = apply(view, command, minter);
   }
   if (isCommandError(view)) throw new Error(`${view.code}: ${view.message}`);
   return (view.blocks[BLOCK] as { readonly manifest: Manifest }).manifest;

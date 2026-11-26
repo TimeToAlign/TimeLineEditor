@@ -1275,7 +1275,8 @@ segment, a group added without `id`) is given one, and nothing is renamed:
 an ID held twice is refused where the manifest is checked. The reducer
 mints nothing. It takes each ID, in the order it creates the elements, from
 the command's `ids`, then from the minter its caller gives (`apply(view,
-command, minter)`, the store's, a fresh one for `preview`); without a
+command, minter)`: the store's, and for `preview` the copy of the
+store's the caller passes, a fresh one by default); without a
 minter a command creating more elements than its `ids` lists is refused, so
 a journal entry lacking an ID never replays to another view. The store
 mints with its minter (`StoreOptions.minter`, 64 random bits by default)
@@ -1300,7 +1301,11 @@ to `L` characters, one counter for every prefix.
    IDs; length 1 gives the last character of the 13-character suffix
    (`x_v`); lengths 0, 14 and 2.5 throw `RangeError`. Without a seed the
    seed is the 8 bytes `crypto.getRandomValues` fills, big-endian: bytes 1
-   to 8 give `0x0102030405060708n`, one call.
+   to 8 give `0x0102030405060708n`, one call. A copy of a seed-7 minter
+   that has minted one ID mints `…0g2wfq87pa7jx` (its second) twice over:
+   once from the copy, then from the original, which minting from the copy
+   left where it was; a copy of that copy, taken after it minted, mints
+   the third, `…12u94xeswial0`.
 3. **The command carries them.** `parseCommand` reads `ids` on every
    command type (`add`, `remove`, `style` alike) and drops `[]`; refused,
    `invalid_command`: `"coda"` at `["ids"]` ("ids is a list of IDs");
@@ -1311,13 +1316,13 @@ to `L` characters, one counter for every prefix.
    `timestamp_2`, `coda`, `timestamp_3`; without `ids` `apply` refuses it,
    `invalid_command` at `["ids"]`, "the command creates more elements than
    the 0 IDs it lists"; with `ids: ["coda", "extra"]` at `["ids", 1]`, "the
-   command creates 1 of the 2 IDs it lists".
+   command takes 1 of the 2 IDs it lists".
 4. **A minter follows the given IDs.** `apply` with a minter of seed 7:
    the add of `Coda` without `ids` gives `timestamp_1hvif5xc2r1fv`; with
    `ids: ["coda"]`, `coda`; a group added without `id` (members `clt_1`)
    is `group_1hvif5xc2r1fv`, one given `id: "g"` keeps `g` and needs no
-   minter. `preview` of the add without `ids` is accepted with a fresh ID,
-   no ID of the manifest before, on the timestamp `{timeline: "clt_1",
+   minter. `preview` of the add without `ids`, given no minter, is
+   accepted with a fresh ID, no ID of the manifest before, on the timestamp `{timeline: "clt_1",
    coordinate: [15, 2], name: "Coda", display: ["wedge", "name",
    "cross_section"], matchstamp: false, groupstamp: false}`.
 5. **The store journals every ID it took.** A store over `timestamps.yaml`
@@ -1333,6 +1338,17 @@ to `L` characters, one counter for every prefix.
    of seed 8, verifies and holds the very same view and journal: a replay
    mints nothing. A command giving `ids: ["coda"]` is journaled with
    exactly those; one giving `["coda-2", "extra"]` is refused as in item 3.
+   **A preview shows what the dispatch stores.** A store over
+   `timestamps.yaml` with a minter of seed 7: `preview` of the add of
+   `Coda` without `ids`, given `store.minter()`, holds the timestamp
+   `timestamp_1hvif5xc2r1fv`, and so does a second such preview (the copy
+   never advances the store's); dispatching the command leaves a view
+   deep-equal to that preview. Then the preview of naming `Arrival` (as
+   above, without `ids`) gives the MatchStamp `matchstamp_0g2wfq87pa7jx`,
+   its match timestamps `timestamp_12u94xeswial0` and
+   `timestamp_154xnogdizwvv` and its anchor `anchor_0gij7x6u8kfra` (the fifth suffix), and
+   the dispatch journals exactly those IDs and leaves a view deep-equal to
+   the preview.
 6. **A removed timeline the MatchClaim table names.** The table's rows
    name timelines by ID; nothing removes them. On `nested.yaml` with a
    minter of seed 7, removing `clt_3` (and so `clt_2`), then making `clt_1`
@@ -4898,7 +4914,10 @@ an `id` given, a `display` in any order, with an unknown or repeated
 word), a `set` of its `name`, `coordinate`, `display` or `timeline`, and
 its `remove`, on the manifest's timestamps and an unknown one.
 Each manifest fixture starts as block `A` beside a block `B` of
-`bare.yaml`, in a store with an injected clock, for ten sequences.
+`bare.yaml`, in a store with an injected clock and a minter of seed
+`20261011` (so a counterexample replays with the same IDs, and so the
+same targets, which the generator picks in canonical order by ID), for
+ten sequences.
 
 1. After every accepted command the view check finds nothing, and every
    block's manifest saves and reloads deep-equal with identical text.

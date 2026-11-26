@@ -482,17 +482,22 @@ describe("a cross-section line in a band order of its own", () => {
     set("r", {
       order: bandOrder(["conversion_maps"], ["children", "markers", "regions", "flow_control"]),
     }),
-    { type: "add", into: target("r"), timestamp: { name: "Here", coordinate: [3, 1] } },
+    {
+      type: "add",
+      into: target("r"),
+      timestamp: { name: "Here", coordinate: [3, 1] },
+      ids: ["here"],
+    },
   );
   const drawing = drawn(manifest);
 
   it("crosses the whole card, its gap where its wedge and label lie beyond the children", () => {
     expect([lineY(drawing, "r"), lineY(drawing, "c")]).toEqual([22.5, 36.5]);
-    const mark = wedge(drawing, at("timestamp_3"));
+    const mark = wedge(drawing, at("here"));
     expect([mark.yt, mark.corners]).toEqual([49, unturned(62)]);
     const x = lineXs(drawing, "r") + 150;
     const { top, bottom } = cardOf(drawing, "r");
-    expect(pieces(drawing, "timestamp_3")).toEqual([
+    expect(pieces(drawing, "here")).toEqual([
       [x, top, 49],
       [x, 22.5 + (26.5 + 13 + 2 + measure.lineHeight(9)), bottom],
     ]);

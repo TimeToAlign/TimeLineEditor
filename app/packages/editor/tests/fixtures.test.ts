@@ -2,7 +2,7 @@
 import { readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { isLoadError, loadManifest, readWorkspace } from "@timetoalign/tilie-core";
+import { createStore, isLoadError, loadManifest, readWorkspace } from "@timetoalign/tilie-core";
 import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { FIXTURES } from "../src/fixtures.ts";
@@ -37,6 +37,13 @@ const workspaces = readdirSync(E2E)
   .map((file) => `e2e/${file.slice(0, -".tle.json".length)}`);
 
 const names = FIXTURES.map(({ label }) => label);
+
+/**
+ * The time a store takes to open a workspace fixture, replaying its journal:
+ * `grid-900` (900 adds) took 3.7 s alone at a load average of 23 and more
+ * than 5 s in the whole project's run; about three times that (README).
+ */
+const OPEN_TIMEOUT = 15_000;
 
 describe("the fixture menu", () => {
   it("lists every fixture once, under its path label, in code-unit order", () => {
@@ -93,8 +100,13 @@ describe("an entry", () => {
     expect(isLoadError(read) ? read.problems.map(({ code }) => code) : []).toEqual([]);
   });
 
-  it.each(opened)("$label is a workspace the reader accepts", async ({ text }) => {
-    const read = readWorkspace(await text());
-    expect(isLoadError(read) ? read.problems.map(({ code }) => code) : []).toEqual([]);
-  });
+  it.each(opened)(
+    "$label is a workspace the reader accepts and the store opens",
+    { timeout: OPEN_TIMEOUT },
+    async ({ text }) => {
+      const read = readWorkspace(await text());
+      if (isLoadError(read)) throw new Error(JSON.stringify(read.problems.map(({ code }) => code)));
+      expect(createStore(read).view).toBe(read.view);
+    },
+  );
 });

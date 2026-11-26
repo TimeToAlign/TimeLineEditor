@@ -36,6 +36,7 @@ import {
   importFixture,
   journalLength,
   newestCommand,
+  newestMinted,
   node,
   nodeTransform,
   pane,
@@ -260,17 +261,21 @@ const STORED_DEFAULTS = [
   { timeline: "second", start: [1, 1], end: [31, 1], width: { canvas: 128.57142857142856 } },
 ].map((elision) => ({ ...elision, display: ["ellipsis", "name"] }));
 
-/** Choose Custom on `group_elided_inside`'s root: the drawn defaults stored, one entry. */
-async function storeDefaults(page: Page, block: string): Promise<void> {
+/**
+ * Choose Custom on `group_elided_inside`'s root: the drawn defaults stored,
+ * one entry; the IDs the store gave them, in their order.
+ */
+async function storeDefaults(page: Page, block: string): Promise<string[]> {
   const before = await journalLength(page);
   await mode(page, "Custom").click();
   await expect.poll(() => journalLength(page)).toBe(before + 1);
-  expect(await newestCommand(page)).toEqual({
-    type: "add",
-    into: { block },
-    elision: STORED_DEFAULTS,
-  });
+  const { command, ids } = await newestMinted(page);
+  expect([command, ids.length]).toEqual([
+    { type: "add", into: { block }, elision: STORED_DEFAULTS },
+    STORED_DEFAULTS.length,
+  ]);
   await expect(mode(page, "Custom")).toBeChecked();
+  return ids;
 }
 
 test("the root's elisions switch to Full and back by the arrow keys", async ({ page }) => {
@@ -301,7 +306,7 @@ test("Custom stores the drawn defaults, Add elision adds one and Remove all remo
 }) => {
   const block = await elidedInside(page);
   const section = page.getByTestId("elisions");
-  await storeDefaults(page, block);
+  const [first0, first16, second1] = await storeDefaults(page, block);
   await expect(section.locator(".count")).toHaveText("3 elisions");
   expect(await rowsOf(section)).toEqual([
     ["—", "First", "0–8 ♩"],
@@ -311,23 +316,25 @@ test("Custom stores the drawn defaults, Add elision adds one and Remove all remo
   // The card now draws the stored elision in the default's place.
   await expect(element(page, block, SECOND)).toHaveCount(0);
   await expect(
-    element(page, block, { id: "elision_3", part: ["ellipsis"] } as ElementAddress),
+    element(page, block, { id: second1, part: ["ellipsis"] } as ElementAddress),
   ).toHaveCount(3);
 
   await section.getByRole("button", { name: "Add elision" }).click();
   await expect.poll(() => journalLength(page)).toBe(3);
-  expect(await newestCommand(page)).toEqual({
-    type: "add",
-    into: { block, id: "piece" },
-    elision: { start: [32, 1], end: [48, 1] },
-  });
+  const added = await newestMinted(page);
+  expect([added.command, added.ids.length]).toEqual([
+    { type: "add", into: { block, id: "piece" }, elision: { start: [32, 1], end: [48, 1] } },
+    1,
+  ]);
+  const [first32] = added.ids;
   await expect(section.locator(".count")).toHaveText("4 elisions");
 
   await section.getByRole("button", { name: "Remove all" }).click();
   await expect.poll(() => journalLength(page)).toBe(4);
   expect(await newestCommand(page)).toEqual({
     type: "remove",
-    targets: ["elision_1", "elision_2", "elision_4", "elision_3"].map((id) => ({ block, id })),
+    // In canonical order: by timeline, then start.
+    targets: [first0, first16, first32, second1].map((id) => ({ block, id })),
   });
   expect(await storedElisions(page, block)).toEqual([]);
   await expect(mode(page, "Proportional")).toBeChecked();
@@ -338,11 +345,11 @@ test("a selected elision shows its handles and mode menu, and a key moves its en
   page,
 }) => {
   const block = await elidedInside(page);
-  await storeDefaults(page, block);
+  const [, , second1] = await storeDefaults(page, block);
   await page.getByTestId("elisions").locator("button.row", { hasText: "Second" }).click();
   await expect
     .poll(() => page.evaluate(() => [...window.__tilie.selection()]))
-    .toEqual([{ block, id: "elision_3" }]);
+    .toEqual([{ block, id: second1 }]);
   // The selected elision's blocks are open without a click: the root's, which holds it, and its own.
   await expect(page.getByTestId("elisions-expand")).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByTestId("elision-form-expand")).toHaveAttribute("aria-expanded", "true");
@@ -353,7 +360,7 @@ test("a selected elision shows its handles and mode menu, and a key moves its en
 
   // The gap brought to (400, 400) on the canvas, left of the drawer, so its menu takes clicks.
   const dot = await element(page, block, {
-    id: "elision_3",
+    id: second1,
     part: ["ellipsis"],
   } as ElementAddress)
     .nth(1)
@@ -386,10 +393,10 @@ test("a selected elision shows its handles and mode menu, and a key moves its en
   await expect.poll(() => journalLength(page)).toBe(3);
   expect(await newestCommand(page)).toEqual({
     type: "set",
-    changes: [{ target: { block, id: "elision_3" }, values: { end: [156, 5] } }],
+    changes: [{ target: { block, id: second1 }, values: { end: [156, 5] } }],
   });
   const stored = (await storedElisions(page, block)) as { id: string; end: unknown }[];
-  expect(stored.find((elision) => elision.id === "elision_3")?.end).toEqual([156, 5]);
+  expect(stored.find((elision) => elision.id === second1)?.end).toEqual([156, 5]);
 });
 
 test("a group's elisions switch to Full and back, and are added to and removed", async ({
@@ -434,18 +441,20 @@ test("a group's elisions switch to Full and back, and are added to and removed",
 
   await section.getByRole("button", { name: "Add elision" }).click();
   await expect.poll(() => journalLength(page)).toBe(4);
-  expect(await newestCommand(page)).toEqual({
-    type: "add",
-    into: { block, id: "excerpt" },
-    elision: { start: [16, 3], end: [32, 3] },
-  });
+  const added = await newestMinted(page);
+  expect([added.command, added.ids.length]).toEqual([
+    { type: "add", into: { block, id: "excerpt" }, elision: { start: [16, 3], end: [32, 3] } },
+    1,
+  ]);
+  const [excerpt16] = added.ids;
   await expect(section.locator(".count")).toHaveText("3 elisions");
 
   await section.getByRole("button", { name: "Remove all" }).click();
   await expect.poll(() => journalLength(page)).toBe(5);
   expect(await newestCommand(page)).toEqual({
     type: "remove",
-    targets: ["elision_1", "elision_3", "elision_2"].map((id) => ({ block, id })),
+    // In canonical order: by timeline, then start.
+    targets: ["elision_1", excerpt16, "elision_2"].map((id) => ({ block, id })),
   });
   await expect(section.locator(".count")).toHaveText("0 elisions");
   expect(await storedElisions(page, block)).toEqual([]);

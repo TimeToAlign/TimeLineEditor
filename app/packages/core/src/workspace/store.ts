@@ -131,6 +131,13 @@ export interface Store {
    */
   dispatch(command: unknown): CommandError | null;
   /**
+   * A copy of the store's minter at its count (`IdMinter.copy`): it mints the
+   * IDs the next `dispatch` mints beyond those its command carries, and
+   * minting from it never advances the store's. `preview` with it shows the
+   * IDs the dispatch of the same command stores.
+   */
+  minter(): IdMinter;
+  /**
    * Change the settings: journals nothing, is never undone, and gives a new
    * view; `null` when accepted, else the first problem of the settings it
    * would leave (at `["settings", …]`).
@@ -531,6 +538,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       notify();
       return null;
     },
+    minter: () => minter.copy(),
     configure(change) {
       const merged = {
         grid: { ...settings.grid, ...change.grid },

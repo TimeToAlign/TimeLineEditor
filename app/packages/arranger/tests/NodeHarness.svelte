@@ -20,6 +20,9 @@ const IDLE: NodeActions = {
   view() {
     throw new Error("no test edits this node");
   },
+  minter() {
+    throw new Error("no test edits this node");
+  },
   zoom: () => 1,
   rules: () => LEVELS.arranger,
   reducedMotion: () => false,
@@ -45,6 +48,7 @@ setNodeActions({
   },
   pane: () => current().pane(),
   view: () => current().view(),
+  minter: () => current().minter(),
   zoom: () => current().zoom(),
   rules: () => current().rules(),
   reducedMotion: () => current().reducedMotion(),

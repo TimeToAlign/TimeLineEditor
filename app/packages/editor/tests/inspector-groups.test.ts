@@ -8,7 +8,7 @@ import path from "node:path";
 import type { Level, Selection } from "@timetoalign/tilie-arranger";
 import { liveStore, resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
 import type { CommandEntry, ElementAddress, SetCommand, Store } from "@timetoalign/tilie-core";
-import { createStore, isLoadError, readWorkspace } from "@timetoalign/tilie-core";
+import { createIdMinter, createStore, isLoadError, readWorkspace } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
@@ -41,7 +41,10 @@ function addresses(...elements: ElementAddress[]): Selection {
   return selectionOf(elements.map((element) => ({ block: M, ...element })));
 }
 
-/** What `read` offers for `elements` of `M` at `level`. */
+/** The seed of the minter core's verdicts mint with: a new group's ID is the first one it mints. */
+const SEED = 7n;
+
+/** What `read` offers for `elements` of `M` at `level`, core's verdicts minting with `SEED`. */
 function offered<T>(
   read: typeof groupsOf | typeof membersOf | typeof newGroupOf,
   elements: ElementAddress[],
@@ -50,7 +53,7 @@ function offered<T>(
   const store = storeOf();
   const editing = editorAt(level, M);
   const subjects = resolveSelection(store.view, addresses(...elements), editing, fontMetrics);
-  return read(store.view, subjects, editing) as T;
+  return read(store.view, subjects, editing, createIdMinter({ seed: SEED })) as T;
 }
 
 /** The `set` of each timeline's `groups`, in order. */
@@ -181,9 +184,9 @@ describe("the members of a selected group", () => {
 });
 
 describe("a new group", () => {
-  it("adds an empty group to a selected block, its id the smallest free one", () => {
+  it("adds an empty group to a selected block, leaving its ID to the store", () => {
     expect(offered(newGroupOf, [{}])).toEqual({
-      command: { type: "add", into: { block: M }, group: { id: "group_3", members: [] } },
+      command: { type: "add", into: { block: M }, group: { members: [] } },
       refusal: null,
     });
   });
@@ -193,7 +196,7 @@ describe("a new group", () => {
       command: {
         type: "add",
         into: { block: M },
-        group: { id: "group_3", members: ["score", "annotations"] },
+        group: { members: ["score", "annotations"] },
       },
       refusal: null,
     });
@@ -204,8 +207,10 @@ describe("a new group", () => {
       { id: "recording" },
       { id: "excerpt" },
     ]);
+    // The new group's ID in core's message is the one the verdict's minter gives it.
+    const group = createIdMinter({ seed: SEED }).mint("group");
     expect(shown?.refusal).toBe(
-      "'excerpt' and 'recording', a member of group 'group_3', would hold one another",
+      `'excerpt' and 'recording', a member of group '${group}', would hold one another`,
     );
   });
 
@@ -327,16 +332,15 @@ describe("the mounted memberships", () => {
     const before = store.journal.length;
     click(button);
     expect(store.journal.length).toBe(before + 1);
+    const ids = store.view.blocks[M]?.manifest.groups.map((group) => group.id) ?? [];
+    const added = ids.filter((id) => id !== "group_1" && id !== "group_2");
+    expect([ids.length, added.length]).toEqual([3, 1]);
     expect(lastCommand(store)).toEqual({
       type: "add",
       into: { block: M },
-      group: { id: "group_3", members: [] },
+      group: { members: [] },
+      ids: added,
     });
-    expect(store.view.blocks[M]?.manifest.groups.map((group) => group.id)).toEqual([
-      "group_1",
-      "group_2",
-      "group_3",
-    ]);
   });
 
   it("shows the store's refusal until the selection changes", () => {

@@ -13,6 +13,7 @@ import {
   cardsOf,
   commandsFrom,
   journalLength,
+  newestMinted,
   OPENED_JOURNAL,
   open,
   select,
@@ -84,19 +85,27 @@ test("New group adds a group of the selected timelines", async ({ page }) => {
   await page.getByRole("button", { name: "New group" }).click();
   await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.bundles + 1);
   expect(await commandsFrom(page, OPENED_JOURNAL.bundles)).toEqual([{ type: "add" }]);
-  expect(
-    await page.evaluate(
-      (block) =>
-        window.__tilie
-          .store()
-          .view.blocks[block]?.manifest.groups.map(({ id, members }) => ({ id, members })),
-      BUNDLES.mixed,
-    ),
-  ).toEqual([
-    { id: "group_1", members: ["performance", "score"] },
-    { id: "group_2", members: ["excerpt", "page"] },
-    { id: "group_3", members: ["annotations"] },
+  // The store mints the new group's ID: it is the one ID the add journaled.
+  const [added] = (await newestMinted(page)).ids;
+  if (added === undefined) throw new Error("the new group was given no ID");
+  const listed = await page.evaluate(
+    (block) =>
+      window.__tilie
+        .store()
+        .view.blocks[block]?.manifest.groups.map(({ id, members }) => ({ id, members })),
+    BUNDLES.mixed,
+  );
+  // Groups are in canonical order, by ID, so the minted one may lie anywhere among them.
+  expect([
+    listed?.filter(({ id }) => id !== added),
+    listed?.filter(({ id }) => id === added),
+  ]).toEqual([
+    [
+      { id: "group_1", members: ["performance", "score"] },
+      { id: "group_2", members: ["excerpt", "page"] },
+    ],
+    [{ id: added, members: ["annotations"] }],
   ]);
   const fieldset = page.getByRole("group", { name: "Groups" });
-  await expect(fieldset.getByRole("checkbox", { name: "group_3" })).toBeChecked();
+  await expect(fieldset.getByRole("checkbox", { name: added })).toBeChecked();
 });

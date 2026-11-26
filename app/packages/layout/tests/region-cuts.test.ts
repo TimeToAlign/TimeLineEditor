@@ -17,10 +17,11 @@ import {
 import { at, build, metrics, quarters, target } from "./support.ts";
 
 /** A stored elision on `score` from `start` to `end`, drawn `canvas` wide. */
-const elision = (start: AxisValue, end: AxisValue, canvas: number): object => ({
+const elision = (id: string, start: AxisValue, end: AxisValue, canvas: number): object => ({
   type: "add",
   into: target("score"),
   elision: { start, end, width: { canvas } },
+  ids: [id],
 });
 
 const REGION = {
@@ -45,12 +46,12 @@ function regionOf(drawing: Drawing, address: ElementAddress): RegionElement {
 }
 
 const ELISIONS = [
-  elision(quarters(2), quarters(5, 2), 8),
-  elision(quarters(3), quarters(5), 10),
-  elision(quarters(5), quarters(6), 5),
-  elision(quarters(15, 2), quarters(8), 6),
-  elision(quarters(10), quarters(12), 8),
-  elision(quarters(14), quarters(15), 4),
+  elision("gap_1", quarters(2), quarters(5, 2), 8),
+  elision("gap_2", quarters(3), quarters(5), 10),
+  elision("gap_3", quarters(5), quarters(6), 5),
+  elision("gap_4", quarters(15, 2), quarters(8), 6),
+  elision("gap_5", quarters(10), quarters(12), 8),
+  elision("gap_6", quarters(14), quarters(15), 4),
 ];
 
 const x0 = 53.798828125;

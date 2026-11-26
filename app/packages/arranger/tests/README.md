@@ -22,6 +22,13 @@ Block ids are `A = "0000000000"`, `B = "0000000001"` and `C =
 "0000000002"`. Block A holds `bare` at (40, 80) unless stated otherwise.
 The grid is the default `{size: 8, snap: true}`.
 
+**Minted IDs.** What a command creates beyond the IDs it gives (`ids`)
+is minted by a minter of a fixed seed: one for the test file where a view
+is changed (`changed`), one per store (`storeOf`), so the IDs are the
+same every run. A test names only an ID its command gives (a speaking
+one: `four`, `mark`, `gap`, `late_origin`) or one a fixture states, never
+a minted one.
+
 **Addresses in this file.** An address is an object (TimeToShare's
 drawing specification, section 2.2), compared as a whole object, never a
 string composed from IDs: `{}` the workspace, `{block: A}` a block,
@@ -1483,9 +1490,9 @@ as a press reports it) and names the `{block: A, id}` picked or `null`.
   `jump_1` (𝄇, `{id: "jump_1", part: ["symbol"]}`; the defaults hide its
   arcs, drawing.md section 4) pick nothing.
 - **`with_region` with a stored elision**: after `add {into: {block: A, id:
-  "clt_1"}, elision: {start: [1, 1], end: [2, 1]}}` the manifest holds
-  `elision_1` on `clt_1`, which core resolves to the kind `elision`; a press
-  on `{id: "elision_1"}` picks nothing, exactly as on a named timestamp: an
+  "clt_1"}, elision: {start: [1, 1], end: [2, 1]}, ids: [gap]}` the manifest holds
+  `gap` on `clt_1` (the ID the command gives), which core resolves to the kind `elision`; a press
+  on `{id: "gap"}` picks nothing, exactly as on a named timestamp: an
   elision names no timeline or region of its own to pick. A default gap
   and its parts pick nothing alike (Elisions on the canvas, below), though
   core resolves them as parts of their timeline.
@@ -2596,15 +2603,15 @@ each result an address in block A, written below by its element address:
   takes nothing, since each name drawn in it is drawn once more in the
   member card, right of it.
 - An affordance on an ancestor card's line counts by the same rule: with
-  a timestamp `Mark` (22050 samples, `display` `[]`) added to `recording`,
+  a timestamp `mark` "Mark" (22050 samples, `display` `[]`) added to `recording`,
   the only marked line holding `recording` is the card's, so its
   affordance lies there, behind the frame. A rectangle over the whole
   drawing takes the ten timestamps `timestamp_1` to `timestamp_10` and not
-  `timestamp_11`; in `recording`'s editor it takes `timestamp_3`,
-  `timestamp_4` and `timestamp_11`. The node's `inside` (the projection's
+  `mark`; in `recording`'s editor it takes `timestamp_3`,
+  `timestamp_4` and `mark`. The node's `inside` (the projection's
   `insideOf`) and the marquee read the affordances with the root the
   node's editor raises, as the block node draws them, so what the marquee
-  can take is what is drawn: `timestamp_11` is inside the node only in
+  can take is what is drawn: `mark` is inside the node only in
   `recording`'s editor. What would be wrong: the marquee reading the
   affordances of nothing raised while the node draws the raised ones (an
   affordance drawn on the raised card that no marquee takes).
@@ -2714,7 +2721,7 @@ on the line 300 right of its start, `p` = 300 · 0.035 = 10.5 and `h` =
 the timestamp holds `score` at 21/2 and `coda` at 1/2. A root of unknown
 length added to `map` without content, `late` (block A, `add {into:
 {block: A}, timeline: {id: late, unit: quarters, number_type: fraction,
-length: null}}`, which brings its `origin` `timestamp_3` at 0), reaches 0:
+length: null}, ids: [late_origin]}`, which brings its `origin` `late_origin` at 0), reaches 0:
 its line is drawn (y 22.40234375 from 63.53662109375 to 463.53662109375)
 but its drawn length is 0, so it is not among the lines read and nothing
 is hovered on it.
@@ -3414,7 +3421,7 @@ anchor, always, at its own coordinate: read as a click at its coordinate
 reads it, on the line it was named from while that is one of its places,
 else on the line of its first place (above, "A coordinate's place"),
 with that line's cross-section (`{spec, knots, timestamp, named}`,
-`named` the manifest's own entry, the same object). With `timestamp_3` (the next free ID: `map`
+`named` the manifest's own entry, the same object). With `mark` (given by the command; `map`
 holds `origin` and `length` as `timestamp_1` and `timestamp_2`) at 4 on
 `melody`, the spec is `melody`'s from the root above and the timestamp
 core's `timestampAt(spec, 4)`: `melody` 4, `phrase` 2. A timestamp of a
@@ -3438,7 +3445,7 @@ holds on a line of unknown length: `unknown_length`'s `origin`
 (`timestamp_1` at 0 on `score`) reads `score`'s spec (anchor `score`,
 length unknown, no maps; member `coda` at 10, 4 long) and the timestamp
 `score` 0 alone (`coda` starts at 10), and on a zero-length line: `late`'s
-`origin` (`timestamp_3`, above) reads anchor `late` (length unknown, its
+`origin` (`late_origin`, above) reads anchor `late` (length unknown, its
 reach there 0, no maps, at its line's ordinate 22.40234375), no members,
 `late` 0. Where no line draws its timeline (its line
 hidden by a `style` of `{id: "melody"}`, `display: "none"`, so that the
@@ -3461,7 +3468,7 @@ map ordinates of its own card (`score`'s `cmap_1`, `performance`'s
 `cmap_2`, each the `yc` of its drawing in layout's record); `timestamp_3`
 (`length`, no groupstamp) on `performance` holds `performance` alone. On a
 member's descendant: with a child `motif` (offset 2, 4 quarters) added to
-`score` and the groupstamp `timestamp_6` at 1 on it, the members are
+`score` and the groupstamp `motif_mark` at 1 on it, the members are
 `score` at −2 (its ancestor), then `performance` at −2, scale 1/2, and the
 parts `motif` 1, `score` 3, `performance` the float 1.5. In
 `groups/group_groupstamp_child_member` the groupstamp `timestamp_1` at 2
@@ -3518,8 +3525,8 @@ ancestor card hidden (the ancestor line then from 126.29150390625 to
 
 **A position's pin on a timeline** (`timelinePin`, the Matchstamp tab's
 coordinates) is read with the one spec a named timestamp's pin is read
-with, unnamed: with `timestamp_3` at 4 on `melody` in `map`, the pin of
-`melody` at 4 equals `namedPin`'s for `timestamp_3` but for `named`,
+with, unnamed: with `mark` at 4 on `melody` in `map`, the pin of
+`melody` at 4 equals `namedPin`'s for `mark` but for `named`,
 which is `null`; with `melody`'s line hidden as above, its spec is the
 own-axis one above (anchor with `[tempo]`, no members). It never reads a
 group: in `groups/group_groupstamp` the pin of `score` at 4 holds
@@ -3547,7 +3554,7 @@ the one affordance is `timestamp_4`'s.
 `unknown_length` with `origin` emptied (a new root of unknown length,
 which gets an `origin` by default): one affordance, `timestamp_1` on
 `score`'s line, its points `wedgeAt` at 53.798828125 (0 / 14). `map` with
-`late` added and its `origin` emptied: one affordance, `timestamp_3` on
+`late` added and its `origin` emptied: one affordance, `late_origin` on
 `late`'s line at its start 63.53662109375, the line being zero-length;
 `melody`'s `origin` and `length` display their wedge and coordinate, so
 neither has one.
@@ -4532,8 +4539,8 @@ design's table: the right edge dragged by `Δx`, the left one mirrored):
    114.28571428571428}`, `second` 1–31 `{canvas: 128.57142857142856}`,
    each `display: [ellipsis, name]` (the card's `elision-display`, the
    initial `ellipsis name`) and its coordinates as Fraction pairs; after
-   it `storedAs` finds `first` 16–32 at `{block: A, id: elision_2}` (minted
-   second). In `group_elided_members` the two `piece` gaps 1–15 and 33–47,
+   it, dispatched with `ids: [gap_1, gap_2, gap_3]`, `storedAs` finds
+   `first` 16–32 at `{block: A, id: gap_2}` (the second ID, in list order). In `group_elided_members` the two `piece` gaps 1–15 and 33–47,
    `{canvas: 74.33333333333334}`. A card drawing no default (`score`'s in
    `bundle_elisions_stored`) is refused: "The card draws no automatic
    elision."
@@ -5096,7 +5103,7 @@ y 40.5, its 4 quarters at the abscissa 263.53662109375 and 2 at
 dyadic, so a pointer there picks exactly 4 and 2. `map` holds the named
 timestamps `origin` (`timestamp_1`, at 0) and `length` (`timestamp_2`, at
 8) on `melody`, each displaying its wedge and its coordinate label; a
-named timestamp added there is `timestamp_3` ("Four", at 4, the default
+named timestamp added there, given the ID `four`, is "Four" (, at 4, the default
 display: wedge, name label, cross-section line).
 
 - **Hover.** With Show coordinates on, the pointer on `melody` at 4
@@ -5110,7 +5117,7 @@ display: wedge, name label, cross-section line).
   styles are opaque). They are drawn in an `<svg>` whose `width`, `height`
   and `viewBox` equal the block node's own and whose left and top are the
   node's position, so they are in the drawing's units and scale with the
-  zoom as the drawing does. With `timestamp_3` added, the hovered marks
+  zoom as the drawing does. With `four` added, the hovered marks
   equal its drawn wedge's and its two cross-section line pieces'
   attributes, but for where the lower piece starts: the named line's gap
   holds its label stack too (the name label "Four", down to 67.4766), the
@@ -5208,13 +5215,13 @@ pole's left, at the node's left + 263.53662109375 − 0.5 − 180). It holds two
   that carry an address of a named timestamp (core resolves it to the
   timestamp or one of its parts) carry `pointer-events="none"`, in the
   drawing's order; they are eight, `timestamp_1`'s and `timestamp_2`'s
-  wedges and coordinate labels and `timestamp_3`'s wedge, name label and
+  wedges and coordinate labels and `four`'s wedge, name label and
   the two pieces of its line (the order among them is layout's); so the browser's hit test
   passes a press on them to what lies beneath (the end-to-end suite
   asserts the hit test). With it off, none do, and the node's element
   tree stays the exported figure's. With Show coordinates off a click on
-  `timestamp_3`'s wedge, name label or line selects exactly `{block: A,
-  id: "timestamp_3"}`, and all of them then show the selection (in drawing
+  `four`'s wedge, name label or line selects exactly `{block: A,
+  id: "four"}`, and all of them then show the selection (in drawing
   order, the wedge, the name label, the line's two pieces); a selected name label part
   alone shows it on the label only. A groupstamp's line across the other
   members of its group is the timestamp's line too: in
@@ -5237,8 +5244,8 @@ pole's left, at the node's left + 263.53662109375 − 0.5 − 180). It holds two
   Show coordinates off a click on it selects exactly `{block: A, id:
   "timestamp_2"}` and it shows the selection; with Show coordinates on it
   lets the pointer through, as every drawn part does.
-- **Delete.** With `timestamp_3` selected, Delete on the canvas removes
-  it (one `remove` of `{block: A, id: "timestamp_3"}`): the block's
+- **Delete.** With `four` selected, Delete on the canvas removes
+  it (one `remove` of `{block: A, id: "four"}`): the block's
   manifest then holds `timestamp_1` and `timestamp_2` only, and the
   selection is empty.
 - **Zoom.** The zoom ranges from 0.05 to 256: `+` from 250 is 256 (300

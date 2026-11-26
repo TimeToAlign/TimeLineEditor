@@ -62,9 +62,10 @@ it reproduces the view whatever minter the replaying store holds. The minter
 (`createIdMinter`, `workspace/ids.ts`) is seeded with 64 random bits per
 store, or with a seed a test gives; from one seed it mints exactly the IDs
 timetoalign's minter mints, since both pass the minted-ID vectors that
-TimeToShare ships (`fixtures/ids/minted_ids.json`). `preview` mints with a
-fresh minter, so a gesture's preview may show other IDs than the command it
-dispatches. Nothing is renamed: an ID a manifest already holds, given or
+TimeToShare ships (`fixtures/ids/minted_ids.json`). `store.minter()` hands
+out a copy of the store's minter at its count, which mints what the next
+dispatch mints without advancing the store's; the canvas previews a gesture
+with it, so a preview shows the IDs its release stores. Nothing is renamed: an ID a manifest already holds, given or
 minted, is refused when the manifest is checked. A block or session ID is
 ten random base-36 characters, carried in the command or the entry as before.
 

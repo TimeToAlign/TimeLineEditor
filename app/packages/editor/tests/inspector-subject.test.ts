@@ -166,10 +166,11 @@ describe("inspectedSubject", () => {
       type: "add",
       into: at("bmixed0000", { id: "score" }),
       elision: { start: [1, 1], end: [2, 1] },
+      ids: ["gap"],
     });
     if (error !== null) throw new Error(error.message);
-    expect(inspectedSubject(store.view, selected(at("bmixed0000", { id: "elision_1" })))).toEqual(
-      unnamed("Elision", "elision_1"),
+    expect(inspectedSubject(store.view, selected(at("bmixed0000", { id: "gap" })))).toEqual(
+      unnamed("Elision", "gap"),
     );
   });
 

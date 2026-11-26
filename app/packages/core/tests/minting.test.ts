@@ -48,7 +48,7 @@ const vectors = JSON.parse(
 ) as Vectors;
 
 /** The suffixes of the first four IDs a minter of seed 7 and length 13 mints. */
-const SEVEN = ["1hvif5xc2r1fv", "0g2wfq87pa7jx", "12u94xeswial0", "154xnogdizwvv"];
+const SEVEN = ["1hvif5xc2r1fv", "0g2wfq87pa7jx", "12u94xeswial0", "154xnogdizwvv", "0gij7x6u8kfra"];
 
 const at = (id: string) => ({ block: A, id });
 const view = deepFreeze(viewOf([A, "timestamps.yaml"]));
@@ -127,6 +127,16 @@ describe("the minter", () => {
     expect(createIdMinter().seed).toBe(0x0102030405060708n);
     expect(spy).toHaveBeenCalledTimes(1);
   });
+
+  it("copies itself at its count, each copy advancing on its own", () => {
+    const minter = createIdMinter({ seed: 7n });
+    minter.mint("x");
+    const copy = minter.copy();
+    expect([copy.seed, copy.length]).toEqual([7n, 13]);
+    expect(copy.mint("x")).toBe(`x_${SEVEN[1]}`);
+    expect(minter.mint("x")).toBe(`x_${SEVEN[1]}`);
+    expect(copy.copy().mint("x")).toBe(`x_${SEVEN[2]}`);
+  });
 });
 
 describe("the IDs a command carries", () => {
@@ -166,7 +176,7 @@ describe("the IDs a command carries", () => {
     });
     expect(refused(apply(view, coda(["coda", "extra"])))).toEqual({
       code: "invalid_command",
-      message: "the command creates 1 of the 2 IDs it lists",
+      message: "the command takes 1 of the 2 IDs it lists",
       path: ["ids", 1],
     });
   });
@@ -183,7 +193,7 @@ describe("the IDs a command carries", () => {
     expect(block(named).manifest.groups.map((item) => item.id)).toEqual(["g"]);
   });
 
-  it("are minted afresh by a preview, as the store would mint them", () => {
+  it("are minted afresh by a preview given no minter", () => {
     const shown = preview(view, coda() as Command);
     const ids = isCommandError(shown) ? [] : timestampIds(shown);
     expect(ids).toHaveLength(4);
@@ -245,13 +255,54 @@ describe("the store", () => {
     expect(again.journal).toEqual(workspace.journal);
   });
 
+  it("previews with a copy of its minter the IDs its dispatch stores", () => {
+    const store = storeOf(view, { minter: createIdMinter({ seed: 7n }) });
+    const shown = preview(store.view, coda() as Command, store.minter());
+    if (isCommandError(shown)) throw new Error(shown.message);
+    expect(timestampIds(shown)[2]).toBe(`timestamp_${SEVEN[0]}`);
+    const again = preview(store.view, coda() as Command, store.minter());
+    expect(isCommandError(again) ? again : timestampIds(again)[2]).toBe(`timestamp_${SEVEN[0]}`);
+    expect(store.dispatch(coda())).toBeNull();
+    expect(store.view).toEqual(shown);
+    const named = {
+      type: "add",
+      into: { block: A },
+      matchstamp: {
+        name: "Arrival",
+        anchors: [
+          [
+            { timeline: "clt_1", coordinate: [1, 1] },
+            { timeline: "clt_2", coordinate: [1, 1] },
+          ],
+        ],
+        match_claims: ["claim_1"],
+      },
+    } as const satisfies Command;
+    const arrival = preview(store.view, named, store.minter());
+    if (isCommandError(arrival)) throw new Error(arrival.message);
+    const { graphical } = block(arrival).manifest;
+    const matchstamp = graphical?.matchstamps?.[0];
+    expect(matchstamp?.id).toBe(`matchstamp_${SEVEN[1]}`);
+    expect(matchstamp?.alignment_anchors.map((anchor) => [anchor.id, anchor.timestamps])).toEqual([
+      [`anchor_${SEVEN[4]}`, [`timestamp_${SEVEN[2]}`, `timestamp_${SEVEN[3]}`]],
+    ]);
+    expect(store.dispatch(named)).toBeNull();
+    expect(last(store.journal).ids).toEqual([
+      `matchstamp_${SEVEN[1]}`,
+      `timestamp_${SEVEN[2]}`,
+      `timestamp_${SEVEN[3]}`,
+      `anchor_${SEVEN[4]}`,
+    ]);
+    expect(store.view).toEqual(arrival);
+  });
+
   it("keeps the IDs a command gives, minting none", () => {
     const store = storeOf(view, { minter: createIdMinter({ seed: 7n }) });
     expect(store.dispatch(coda(["coda"]))).toBeNull();
     expect(last(store.journal)).toEqual({ ...coda(), ids: ["coda"] });
     expect(store.dispatch(coda(["coda-2", "extra"]))).toEqual({
       code: "invalid_command",
-      message: "the command creates 1 of the 2 IDs it lists",
+      message: "the command takes 1 of the 2 IDs it lists",
       path: ["ids", 1],
     });
   });

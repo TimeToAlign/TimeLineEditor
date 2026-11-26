@@ -38,9 +38,10 @@
  * - `phrase` at 263.53662109375: 2 quarters (`2 ♩`), `ticks` 960
  *   (`960 ticks`), no `tempo` row.
  * - `melody` holds its default timestamps `origin` and `length`
- *   (`timestamp_1`, `timestamp_2`), so a timestamp added at 4 on `melody`
- *   is `timestamp_3`; with the default display it draws its wedge, its
- *   name label and its cross-section line at `xStart + 200`.
+ *   (`timestamp_1`, `timestamp_2`); a timestamp added at 4 on `melody`
+ *   (given the ID `four`, or named in the tab, the store minting its ID)
+ *   draws with the default display its wedge, its name label and its
+ *   cross-section line at `xStart + 200`.
  * - The Timestamp tab edits the pin: its Coordinates show the exact
  *   values (`37/15`, never rounded); `4` typed as `melody`'s coordinate
  *   moves the pin there (`tempo` `2.0`), nothing journalled; while it is
@@ -67,7 +68,7 @@ import {
   emptyPoint,
   fixtureText,
   journalLength,
-  newestCommand,
+  newestMinted,
   OPENED_JOURNAL,
   open,
   panel,
@@ -126,7 +127,7 @@ const wedge = (page: Page, kind: "hover" | "pin") =>
 const crossSectionLine = (page: Page, kind: "hover" | "pin") =>
   marks(page, kind).getByTestId("coordinate-line");
 /** The timestamp added at 4 on `melody` of block `map`, after its default `origin` and `length`. */
-const TIMESTAMP = { block: SMALL.map, id: "timestamp_3" };
+const TIMESTAMP = { block: SMALL.map, id: "four" };
 const timestampTab = (page: Page) =>
   tabs(page).getByRole("tab", { name: "Timestamp", exact: true });
 
@@ -274,11 +275,18 @@ test("the Timestamp tab moves the pin, then names it into the manifest", async (
   const name = shown.getByLabel("Name", { exact: true });
   await name.fill("Four");
   await name.press("Enter");
-  expect(await newestCommand(page)).toEqual({
-    type: "add",
-    into: { block: SMALL.map, id: "melody" },
-    timestamp: { name: "Four", coordinate: [4, 1] },
-  });
+  // The store gives the named timestamp its one ID.
+  const { command, ids } = await newestMinted(page);
+  expect([command, ids.length]).toEqual([
+    {
+      type: "add",
+      into: { block: SMALL.map, id: "melody" },
+      timestamp: { name: "Four", coordinate: [4, 1] },
+    },
+    1,
+  ]);
+  const [four] = ids;
+  if (four === undefined) throw new Error("the named timestamp was given no ID");
   await expect(remove).toBeEnabled();
   for (const [label, pressed] of [
     ["Wedge", "true"],
@@ -291,7 +299,7 @@ test("the Timestamp tab moves the pin, then names it into the manifest", async (
     await expect(toggle(label)).toHaveAttribute("aria-pressed", pressed);
   }
   await expect(marks(page, "pin")).toHaveCount(0);
-  await expect(part(page, SMALL.map, { id: TIMESTAMP.id })).toHaveCount(1);
+  await expect(part(page, SMALL.map, { id: four })).toHaveCount(1);
 
   // The inspector's top stays put: only the panels scroll, the name header sticking under the tabs.
   const header = shown.getByTestId("timestamp-name");
@@ -335,6 +343,7 @@ test("a named timestamp passes the pointer on while coordinates show, else is se
     type: "add",
     into: { block: SMALL.map, id: "melody" },
     timestamp: { name: "Four", coordinate: [4, 1] },
+    ids: [TIMESTAMP.id],
   });
   expect(added).toBeNull();
 

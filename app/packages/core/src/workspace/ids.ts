@@ -13,7 +13,7 @@
  *
  * The reducer mints nothing: it takes every ID it creates from an `IdSource`,
  * the IDs a command carries, then those a minter gives where the caller
- * holds one (`dispatch`, `preview`).
+ * holds one (`dispatch`, and `preview` with a copy of the store's minter).
  */
 
 import type { TimelineClass } from "../manifest/elements.ts";
@@ -84,6 +84,11 @@ export interface IdMinter {
   readonly length: number;
   /** The next ID: `prefix`, `_` and the next suffix of the minter. */
   mint(prefix: string): string;
+  /**
+   * A minter of this one's seed and length at its count: it mints what this
+   * one mints next, and minting from either leaves the other where it was.
+   */
+  copy(): IdMinter;
 }
 
 /** The options of `createIdMinter`. */
@@ -110,10 +115,14 @@ export function createIdMinter(options: IdMinterOptions = {}): IdMinter {
   if (!Number.isInteger(length) || length < 1 || length > ID_LENGTH) {
     throw new RangeError(`an ID's length is an integer from 1 to ${ID_LENGTH}, not ${length}`);
   }
-  const seed = BigInt.asUintN(64, options.seed ?? randomSeed());
+  return minterAt(BigInt.asUintN(64, options.seed ?? randomSeed()), length, 0n);
+}
+
+/** A minter of `seed` and `length` that has minted `count` IDs. */
+function minterAt(seed: bigint, length: number, count: bigint): IdMinter {
   const start = mix64(seed);
   const modulus = 36n ** BigInt(length);
-  let counter = 0n;
+  let counter = count;
   return {
     seed,
     length,
@@ -122,6 +131,7 @@ export function createIdMinter(options: IdMinterOptions = {}): IdMinter {
       const suffix = (mix64(start + counter) % modulus).toString(36).padStart(length, "0");
       return `${prefix}_${suffix}`;
     },
+    copy: () => minterAt(seed, length, counter),
   };
 }
 

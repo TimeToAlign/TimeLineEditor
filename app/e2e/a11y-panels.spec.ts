@@ -266,9 +266,10 @@ test.describe("the Matchstamp tab and the MatchClaim controls", () => {
           ],
           match_claims: ["claim_1"],
         },
+        ids: ["downbeat"],
       }),
     ).toBeNull();
-    await select(page, [{ block, id: "matchstamp_1" }]);
+    await select(page, [{ block, id: "downbeat" }]);
     await expect(tab(page, "Matchstamp")).toHaveAttribute("aria-selected", "true");
     await page.getByTestId("matches").click();
     await expect(page.getByTestId("matches")).toHaveAttribute("aria-pressed", "true");

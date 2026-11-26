@@ -147,6 +147,7 @@ describe("a groupstamp's line", () => {
       type: "add",
       into: target("motif"),
       timestamp: { name: "Motif", coordinate: quarters(1), groupstamp: true },
+      ids: ["motif_beat"],
     };
     const drawing = drawn(plain(child("score", "motif", 2, 4), motif));
     const score = axisOf(drawing, "score");
@@ -155,7 +156,7 @@ describe("a groupstamp's line", () => {
     expect(line.xStart + (1 / 4) * (line.xEnd - line.xStart)).toBe(x);
     const first = card(drawing, "score");
     const last = card(drawing, "performance");
-    const stamp = partAddress(idAddress("timestamp_6"), "line");
+    const stamp = partAddress(idAddress("motif_beat"), "line");
     const pieces = drawing.elements.filter((item) => sameAddress(item.address, stamp));
     expect(pieces).toMatchObject([
       { address: stamp, style: STYLE, x, y1: first.top, y2: out(drawing, "motif", 1.5) },
@@ -319,7 +320,7 @@ describe("a groupstamp's secondary coordinates on the frame's other members", ()
   });
 
   it("label a secondary coordinate in its timeline's number type", () => {
-    // `timestamp_6` at the float 1.0 of `performance`'s 4.0: on `score` (fraction) at 2 quarters.
+    // `beat` at the float 1.0 of `performance`'s 4.0: on `score` (fraction) at 2 quarters.
     const beat = plain({
       type: "add",
       into: target("performance"),
@@ -329,11 +330,12 @@ describe("a groupstamp's secondary coordinates on the frame's other members", ()
         display: ["wedge", "coordinate"],
         groupstamp: true,
       },
+      ids: ["beat"],
     });
     const coordinates = drawn(beat, [SHOW]).elements.filter(
       (item): item is TextElement =>
         item.type === "label" &&
-        sameAddress(item.address, partAddress(idAddress("timestamp_6"), "coordinate")),
+        sameAddress(item.address, partAddress(idAddress("beat"), "coordinate")),
     );
     expect(coordinates.map((label) => [label.text, label.coordinate])).toEqual([
       ["2 ♩", { unit: "quarters", value: Rational.of(2n) }],
@@ -506,6 +508,7 @@ describe("a groupstamp's secondary coordinates where a length of the group is no
         display: ["wedge", "name", "coordinate"],
         groupstamp: true,
       },
+      ids: ["half"],
     };
     const fixture = "groups/group_child_member_stamps";
     const valued = drawn(edit(fixture, half), [SHOW]);
@@ -513,12 +516,10 @@ describe("a groupstamp's secondary coordinates where a length of the group is no
     const secondaries = (wedges: readonly MarkerElement[]) =>
       wedges.filter((wedge) => wedge.style.rotation === -45).map((wedge) => wedge.style.opacity);
     // On `middle`'s line and on its ancestor line `piece`, faded by the defaults there.
-    expect(secondaries(wedgesOf(valued, "timestamp_8"))).toEqual([FADED_OPACITY, 1]);
-    expect(placed(wedgesOf(drawing, "timestamp_8"))).toEqual(
-      faded(wedgesOf(valued, "timestamp_8")),
-    );
+    expect(secondaries(wedgesOf(valued, "half"))).toEqual([FADED_OPACITY, 1]);
+    expect(placed(wedgesOf(drawing, "half"))).toEqual(faded(wedgesOf(valued, "half")));
     const coordinates = (shown: Drawing) =>
-      labelParts(shown, "timestamp_8").filter((part) => part?.[0] === "coordinate").length;
+      labelParts(shown, "half").filter((part) => part?.[0] === "coordinate").length;
     expect([coordinates(valued), coordinates(drawing)]).toEqual([3, 1]);
   });
 });

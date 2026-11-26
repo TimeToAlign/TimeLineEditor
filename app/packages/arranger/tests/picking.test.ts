@@ -84,9 +84,10 @@ describe("what a press picks", () => {
       type: "add",
       into: inBlock(A, idAddress("clt_1")),
       elision: { start: [1, 1], end: [2, 1] },
+      ids: ["gap"],
     });
     const { manifest } = blockIn(view, A);
-    const address = inBlock(A, idAddress("elision_1"));
+    const address = inBlock(A, idAddress("gap"));
     expect(resolveAddress(view, address)).toMatchObject({ kind: "elision" });
     const hit: Hit = {
       block: A,

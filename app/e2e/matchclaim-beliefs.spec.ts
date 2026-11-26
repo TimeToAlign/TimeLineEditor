@@ -200,11 +200,12 @@ async function nameDownbeat(page: Page, block: string): Promise<void> {
           ],
           match_claims: ["claim_1"],
         },
+        ids: ["downbeat"],
       }),
     block,
   );
   expect(refusal).toBe(null);
-  await select(page, [{ block, id: "matchstamp_1" }]);
+  await select(page, [{ block, id: "downbeat" }]);
 }
 
 /** What an expanded MatchClaim says while no server reads tables: that, then how to start the server. */
