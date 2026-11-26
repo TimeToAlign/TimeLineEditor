@@ -6553,8 +6553,9 @@ never a spelled-out random literal.
    virtual timeline's `place`, are accepted; a `set` of `score`'s name is
    `side_effect` at `[<address key of score>, "name"]`, "the name of
    timeline 'Score' lies outside the flow-control editor of timeline
-   'Score': an editor changes only what it edits", a `style` at the
-   key of `score`; opening any editor inside it is `not_inside`. Done
+   'Score': an editor changes only what it edits", a `style` whose
+   selector names no address (`{element: card}`) at the key of `score`;
+   opening any editor inside it is `not_inside`. Done
    journals one session entry whose session states `kind: "flow"`, the
    workspace file writes and reads it back equal, and the journal replays
    to the same view, the minted IDs carried. Reopening `score` as a
@@ -6602,6 +6603,43 @@ never a spelled-out random literal.
    hand-made FlowMap's chunks name Regions, child timelines and virtual
    timelines, never a flow-control element, so no change here reaches
    one.
+   **It styles the flow-control elements of its root's tree**, and
+   nothing else: the display controls of a flow-control element send a
+   `style` whose selector names that element or one of its parts by
+   address, for its own block, and such a `style` is accepted exactly
+   when every address the selector names is a flow-control element of the
+   root's tree or a part of one. What proves it is that each admitted
+   `style` leaves exactly the rule asked in the manifest's `graphical.rules`
+   (the manifest valid), including a press that names a part the previous
+   press hid, while a `style` naming one address beyond that tree, or
+   reaching beyond the one block, is refused by the editor itself. On
+   `sonata_exposition`, inside the editor of `score`, each with `blocks:
+   [A]`: `style {select: {element: symbol, addresses: [{id: jump_2, part:
+   [symbol]}]}, set: {display: none}}` (the repeat sign of `jump_2`; the
+   volta `jump_1` draws no symbol), then `style {select: {element:
+   fork, addresses: [{id: jump_1, part: [fork]}]}, set: {display: none}}`
+   and `style {select: {element: jump, addresses: [{id: jump_1}]}, set:
+   {label-display: name}}` are accepted, leaving `graphical.rules` exactly
+   these three rules in that order; then `style` of the symbol's selector
+   with `set: {display: null}` is accepted (the symbol is hidden, its
+   address still names it) and leaves the fork's and the jump's rules
+   only. Refused, each `side_effect`: the jump's selector with
+   `addresses: [{id: jump_1}, {id: score, part: [card]}]` at the key of
+   `{block: A, id: score, part: [card]}`, "the card of timeline 'Score' lies
+   outside the flow-control editor of timeline 'Score': an editor changes
+   only what it edits"; the jump's selector without `blocks` (it would
+   reach every block holding a match), with a `name` (a named style is
+   shared by every rule using it), and `{element: jump, within: score}`
+   (it names no address, so it reaches elements added later and is a
+   band's rule, not an element's), each at the key of `score`. On
+   `child_flow_control.yaml`, inside the editor of `piece`, the symbol of
+   `fine` (a child's element) `style {select: {element: symbol,
+   addresses: [{id: fine, part: [symbol]}]}, set: {display: none}}` is
+   accepted. On `groups/switched_frame.yaml`, inside the editor of
+   `recording`, `style {select: {element: jump, addresses: [{id:
+   volta_jump}]}, set: {display: none}}` is `side_effect` at the key of
+   `volta_jump`, "jump 'volta_jump' lies outside the flow-control editor
+   of timeline 'Recording': an editor changes only what it edits".
 7. **Named timestamps on a virtual timeline** (drawing.md §8.10: its
    named timestamps lie on its own axis, from 0 to its length). On
    `groups/virtual_member.yaml` (`allegro_default`, 4241/2 quarters, a

@@ -167,7 +167,7 @@ function readEntries(problems: Problem[]): Reader {
 }
 
 /**
- * A session: `{target, entries}`, and `kind: "flow"` for a flow editor's,
+ * A session: `{target, entries}`, and `kind: "flow"` for a flow-control editor's,
  * whose target, a root timeline, would open the timeline editor; the kind
  * is written only there.
  */
