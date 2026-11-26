@@ -43,9 +43,11 @@ import type { Block } from "../workspace/blocks.ts";
 import { BLOCK_ID } from "../workspace/blocks.ts";
 import type { Mint } from "../workspace/ids.ts";
 import {
+  CONVERSION_MAP_PREFIX,
   ELISION_PREFIX,
   GROUP_PREFIX,
   MATCHSTAMP_PREFIX,
+  REGION_PREFIX,
   TIMESTAMP_PREFIX,
 } from "../workspace/ids.ts";
 import { indexBetween } from "../workspace/order.ts";
@@ -104,9 +106,9 @@ export const ADDABLE: { readonly [kind in TargetKind]: readonly AddKind[] } = {
 function entryPrefix(kind: EntryKind, value: unknown): string | undefined {
   switch (kind) {
     case "map":
-      return "cmap";
+      return CONVERSION_MAP_PREFIX;
     case "region":
-      return "region";
+      return REGION_PREFIX;
     case "flow_control": {
       const role = isJsonObject(value) ? value.role : undefined;
       return typeof role === "string" ? role : undefined;

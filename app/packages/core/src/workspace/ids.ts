@@ -62,6 +62,15 @@ export const ANCHOR_PREFIX = "anchor";
 /** The prefix of a group's ID. */
 export const GROUP_PREFIX = "group";
 
+/** The prefix of a FlowMap's ID. */
+export const FLOW_MAP_PREFIX = "flow";
+
+/** The prefix of a region's ID. */
+export const REGION_PREFIX = "region";
+
+/** The prefix of a conversion map's ID. */
+export const CONVERSION_MAP_PREFIX = "cmap";
+
 /** The number of base-36 characters of a minted ID's suffix by default. */
 export const ID_LENGTH = 13;
 

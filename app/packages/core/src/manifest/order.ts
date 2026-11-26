@@ -99,12 +99,18 @@ function orderAt(manifest: Manifest, at: Located): readonly string[] {
 /**
  * The band order the timeline `timelineId` is drawn with, `line` and all
  * five facets: its own entry in `graphical.order` completed against the
- * order it inherits (`inheritedBandOrder`), else that order. An ID no
- * timeline carries gets the default band order.
+ * order it inherits (`inheritedBandOrder`), else that order. A virtual
+ * timeline, which lies in no tree, completes its own entry against the
+ * default band order, as a root does (drawing.md section 8.10). Any other
+ * ID gets the default band order.
  */
 export function bandOrderOf(manifest: Manifest, timelineId: string): readonly string[] {
   const at = locateTimeline(manifest, timelineId);
-  return at === undefined ? DEFAULT_BAND_ORDER : orderAt(manifest, at);
+  if (at !== undefined) return orderAt(manifest, at);
+  const own = (manifest.virtual_timelines ?? []).some((item) => item.id === timelineId)
+    ? ownOrder(manifest, timelineId)
+    : undefined;
+  return own === undefined ? DEFAULT_BAND_ORDER : completedBandOrder(own, DEFAULT_BAND_ORDER);
 }
 
 /**

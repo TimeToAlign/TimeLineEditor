@@ -35,14 +35,11 @@ import { toRational } from "../number/real.ts";
 import { readNullableString, readObject, toJson, unknownMember } from "../values.ts";
 import { manifestIds } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
-import { TIMELINE_PREFIX } from "../workspace/ids.ts";
+import { FLOW_MAP_PREFIX, TIMELINE_PREFIX } from "../workspace/ids.ts";
 import type { View } from "../workspace/view.ts";
 import type { ChangeSet } from "./mutations.ts";
 import { record, recordValue, sameJson, withBlock } from "./mutations.ts";
 import type { BlockTarget, FlowMapTarget, TimelineTarget } from "./targets.ts";
-
-/** The prefix of a FlowMap's ID. */
-export const FLOW_MAP_PREFIX = "flow";
 
 /** The members a FlowMap `add` may be given. */
 const FLOW_MAP_VALUE = [

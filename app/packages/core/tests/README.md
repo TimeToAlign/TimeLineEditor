@@ -1230,6 +1230,13 @@ the schema agree by construction.
    character by its `not` over control characters (the tests assert code and
    path, not the validator's wording); every value core accepts the schema accepts and every value it refuses
    the schema refuses.
+7. **A virtual timeline's band order** (drawing.md §8.10: its entry of
+   `graphical.order`, else the default). It lies in no tree, so its own
+   entry is completed against `D` as a root's: on
+   `groups/virtual_member.yaml`, `set {order: ["regions", "line"]}` on
+   `allegro_default` stores that entry and draws `["children",
+   "conversion_maps", "regions", "line", "markers", "flow_control"]`;
+   `allegro_single`, without an entry, draws `D`.
 
 ## One walk to find timelines (`tree.test.ts`)
 
@@ -3286,6 +3293,16 @@ where things lie on the canvas is layout's. What proves each part:
   that only follows a cycle, which it lies after, takes no part in it: the
   conflict is the cycle's alone, whatever comes first in the stored order
   or by ID.
+- **Virtual timelines** (drawing.md §8.6, §8.10): every virtual timeline
+  in no group is an item, after the ungrouped roots, by ID (its block-held
+  card, which the block draws where `places` holds its ID; a drawing passes
+  over the items it does not draw), and a virtual member lies in its
+  group's frame: on `groups/virtual_member.yaml` the items are
+  `performance`, `allegro`, `allegro_by_hand`, `allegro_single`; the stored
+  order `[allegro_single, allegro_default, allegro]` (a member is no item,
+  passed over) gives `[allegro_single, allegro, performance,
+  allegro_by_hand]`, and side by side that row with no root and no anchor
+  (no group hangs on a root: `performance`'s members are roots).
 - **The commands** are proven by the block or workspace a `set` leaves
   (the exact `arrangement` member, or its absence), the exact code, path
   and message of a refusal, and the journal of the store (one entry per

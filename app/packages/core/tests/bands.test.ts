@@ -15,7 +15,17 @@ import {
   LINE,
 } from "../src/manifest/order.ts";
 import type { Manifest } from "../src/manifest/types.ts";
-import { fileText, load, loadText, manifestValue } from "./support.ts";
+import {
+  A,
+  at,
+  block,
+  changed,
+  fileText,
+  load,
+  loadText,
+  manifestValue,
+  viewOf,
+} from "./support.ts";
 
 /** The default band order, drawing.md section 4. */
 const D = ["children", "conversion_maps", "line", "markers", "regions", "flow_control"];
@@ -264,5 +274,25 @@ describe("band order problems", () => {
         validatorRefusal(carrying(manifest, "clt_3", value)) === null,
       ]),
     ).toEqual(values.map((_, index) => (index < 7 ? [true, true] : [false, false])));
+  });
+});
+
+describe("the band order of a virtual timeline", () => {
+  it("completes its own entry against the default band order", () => {
+    const view = changed(viewOf([A, "groups/virtual_member.yaml"]), {
+      type: "set",
+      changes: [{ target: at("allegro_default"), values: { order: ["regions", "line"] } }],
+    });
+    const { manifest } = block(view);
+    expect(manifest.graphical?.order?.allegro_default).toEqual(["regions", "line"]);
+    expect(bandOrderOf(manifest, "allegro_default")).toEqual([
+      "children",
+      "conversion_maps",
+      "regions",
+      "line",
+      "markers",
+      "flow_control",
+    ]);
+    expect(bandOrderOf(manifest, "allegro_single")).toEqual(DEFAULT_BAND_ORDER);
   });
 });
