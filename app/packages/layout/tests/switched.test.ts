@@ -8,7 +8,14 @@
 
 import type { ElementAddress, Manifest } from "@timetoalign/tilie-core";
 import { BLOCK_KEY, elementKey } from "@timetoalign/tilie-core/drawing";
-import type { Address, Graphical, Rule } from "@timetoalign/timetoshare";
+import {
+  type Address,
+  canonicalOrder,
+  type Graphical,
+  type Rule,
+  validate,
+  withFileIds,
+} from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { Cascade } from "../src/cascade.ts";
 import {
@@ -17,9 +24,18 @@ import {
   type Drawing,
   type DrawnElement,
   draw,
+  lineAxes,
   manifestLayer,
 } from "../src/index.ts";
-import { boxesOf, element, load, loadFile, metrics, quarters } from "./support.ts";
+import {
+  boxesOf,
+  element,
+  HIDDEN_ANCESTOR_CARDS,
+  load,
+  loadFile,
+  metrics,
+  quarters,
+} from "./support.ts";
 
 const L = 400;
 /** `x(t) − x0` on the virtual axis of `default`, `Λ` = 4241/2. */
@@ -333,5 +349,102 @@ describe("a switched frame", () => {
       ["label", [0, "label"], "Take"],
       ["label", [1, "label"], "Take"],
     ]);
+  });
+
+  it("unfolds the ancestor lines of a carried child member", () => {
+    const source = loadFile("groups/group_child_member");
+    const graphical = source.graphical ?? { styles: {}, rules: [], order: {} };
+    const timelines = source.timelines.map((timeline) =>
+      timeline.id === "recording"
+        ? { ...timeline, regions: [{ id: "take", name: "Take", start: 0.0, end: 10.0 }] }
+        : timeline,
+    );
+    const twice = {
+      id: "twice",
+      timeline: "recording",
+      chunks: ["take", "take"],
+      provenance: [{ method: "manual" as const }],
+    };
+    const bar = {
+      id: "bar_7",
+      timeline: "piece",
+      coordinate: quarters(12),
+      name: "Bar 7",
+      display: ["wedge" as const, "coordinate" as const],
+      matchstamp: false,
+      groupstamp: false,
+    };
+    const written = canonicalOrder({
+      ...source,
+      timelines,
+      flow_maps: [...(source.flow_maps ?? []), twice],
+      graphical: { ...graphical, timestamps: [...(graphical.timestamps ?? []), bar] },
+    } as Manifest);
+    const manifest = withRules(written, [
+      ...(graphical.rules ?? []),
+      switching("recording", "twice"),
+    ]);
+    validate(withFileIds(manifest));
+    const drawing = drawn(manifest, [HIDDEN_ANCESTOR_CARDS]);
+    const [recording] = linesOf(drawing, "recording");
+    if (recording === undefined) throw new Error("recording's line");
+    const x = (t: number) => recording.xs + L * (t / 20.0);
+    expect(chunksOf(drawing, "recording").filter(([type]) => type !== "boundary")).toEqual([
+      ["region", [0], x(0), x(10)],
+      ["region", [1], x(10), x(20)],
+      ["label", [0, "label"], "Take"],
+      ["label", [1, "label"], "Take"],
+    ]);
+    expect(linesOf(drawing, "second-half")).toHaveLength(2);
+    const ancestors = drawing.elements.flatMap((item) => (item.type === "ancestor" ? [item] : []));
+    const [first] = ancestors;
+    if (first === undefined) throw new Error("piece's ancestor line");
+    const w = first.style["stroke-width"];
+    expect(
+      ancestors.map((item) => [item.address, item.xs, item.xe, item.start, item.end, item.y]),
+    ).toEqual([
+      [{ id: "piece" }, x(0) - 4 * w, x(10), "chevrons", "arrowhead", first.y],
+      [{ id: "piece" }, x(10) - 4 * w, x(20), "chevrons", "arrowhead", first.y],
+    ]);
+    const axes = [...lineAxes(drawing).entries()].filter(([, axis]) => axis.timeline === "piece");
+    expect(
+      axes.map(([, axis]) => [
+        axis.xStart,
+        axis.xEnd,
+        String(axis.start),
+        String(axis.length),
+        String(axis.drawnLength),
+        axis.unit,
+        axis.numberType,
+      ]),
+    ).toEqual([
+      [x(0), x(10), "8", "8", "8", "quarters", "fraction"],
+      [x(10), x(20), "8", "8", "8", "quarters", "fraction"],
+    ]);
+    expect(axes.map(([key]) => key.endsWith("#1"))).toEqual([false, true]);
+    const pieces = drawing.axes.filter((axis) => axis.address.id === "piece");
+    expect(pieces.map((axis) => [String(axis.end), axis.timestamps.map((item) => item.x)])).toEqual(
+      [
+        ["16", [x(5)]],
+        ["16", [x(15)]],
+      ],
+    );
+    expect(stampsOf(drawing, "bar_7")).toEqual({
+      wedges: [x(5), x(15)],
+      labels: ["12 ♩", "12 ♩"],
+    });
+    const names = drawing.elements.filter(
+      (item) => item.type === "name" && item.address.id === "piece",
+    );
+    expect(names).toHaveLength(1);
+    const asWritten = drawn(written, [HIDDEN_ANCESTOR_CARDS]);
+    const [member] = linesOf(asWritten, "second-half");
+    if (member === undefined) throw new Error("second-half's line");
+    expect(
+      asWritten.elements.flatMap((item) =>
+        item.type === "ancestor" ? [[item.xs, item.xe, item.start, item.end]] : [],
+      ),
+    ).toEqual([[member.xs - 4 * w, member.xs + L, "chevrons", "arrowhead"]]);
+    expect(chunksOf(asWritten, "recording")).toEqual([]);
   });
 });

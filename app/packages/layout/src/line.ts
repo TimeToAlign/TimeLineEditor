@@ -14,7 +14,16 @@ import type { Cut, LineElement } from "./elements.ts";
 import { type Extent, labelExtent, labelTiers, Rows } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { midpoint } from "./numbers.ts";
-import { type Entry, endOf, known, maxSize, nth, type Scope, shown } from "./traversal.ts";
+import {
+  type Entry,
+  endOf,
+  known,
+  maxSize,
+  nth,
+  rootPieces,
+  type Scope,
+  shown,
+} from "./traversal.ts";
 import { chunkSpans, chunkStarts } from "./virtual.ts";
 
 /** A timeline's line and its segments' boundaries and labels, before any distance is known. */
@@ -102,7 +111,7 @@ export function ownTiers(staged: StagedZero): SegmentTiers {
  */
 export function drawnEntries(scope: Scope, line: Entry): readonly Entry[] {
   if (line !== scope.rootEntry || !scope.carried) return [line];
-  return (scope.index.sourcesByLine.get(line) ?? []).filter((entry) => entry.piece !== null);
+  return rootPieces(scope);
 }
 
 /**

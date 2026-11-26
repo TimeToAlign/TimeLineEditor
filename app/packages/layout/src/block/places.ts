@@ -403,13 +403,8 @@ export function placeItems(
       });
       const switching = styled.filter(({ own }) => own !== null);
       const [only] = switching;
-      // A member that is a child timeline would carry its ancestor lines onto the FlowMap's
-      // axis, which is not drawn yet: such a frame is drawn as written.
       const switched =
-        switching.length === 1 &&
-        only !== undefined &&
-        only.own !== null &&
-        members.every((member) => member.ancestors.length === 0)
+        switching.length === 1 && only !== undefined && only.own !== null
           ? { member: only.card.member, to: only.own }
           : null;
       // Each member drawing is traversed at its card's own spacing and margin, then laid out on

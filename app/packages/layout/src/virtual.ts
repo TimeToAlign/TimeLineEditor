@@ -35,7 +35,7 @@ import {
   type CardAxis,
   type DrawnChunk,
   type DrawnFlow,
-  type Entry,
+  rootPieces,
   type Scope,
   withAxis,
 } from "./traversal.ts";
@@ -367,7 +367,7 @@ export function chunkSpans(scope: Scope): ChunkSpan[] {
   if (flow === null) return [];
   const drawn = flow.chunks.filter((chunk) => chunk.drawn);
   if (!scope.carried) return drawn.map((chunk) => ({ chunk, start: chunk.start, end: chunk.end }));
-  return piecesOf(scope).flatMap((piece) =>
+  return rootPieces(scope).flatMap((piece) =>
     drawn.flatMap((chunk) => {
       const span = scope.over(piece, chunk.start, chunk.end);
       return span === undefined ? [] : [{ chunk, start: span.start, end: span.end }];
@@ -385,17 +385,10 @@ export function chunkStarts(scope: Scope): { readonly chunk: DrawnChunk; readonl
   if (flow === null) return [];
   const bounded = flow.chunks.filter((chunk) => chunk.boundary);
   if (!scope.carried) return bounded.map((chunk) => ({ chunk, at: chunk.start }));
-  return piecesOf(scope).flatMap((piece) =>
+  return rootPieces(scope).flatMap((piece) =>
     bounded.flatMap((chunk) => {
       const at = scope.at(piece, chunk.start);
       return at === undefined ? [] : [{ chunk, at }];
     }),
-  );
-}
-
-/** The pieces of the root of `scope`, in their order. */
-function piecesOf(scope: Scope): Entry[] {
-  return (scope.index.sourcesByLine.get(scope.rootEntry) ?? []).filter(
-    (entry) => entry.piece !== null,
   );
 }

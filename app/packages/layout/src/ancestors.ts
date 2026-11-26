@@ -40,6 +40,7 @@ import {
   known,
   maxSize,
   nth,
+  rootPieces,
   rowPitch,
   type Scope,
   type Styled,
@@ -113,7 +114,9 @@ interface AncestorLine {
 
 /** The drawn ancestor lines, from the root A1 down to the parent Ak, at the member's scale. */
 export function ancestorLines(scope: Scope): AncestorLine[] {
-  const { manifest, member, root, rootEntry, lambda, cascade, textOf, measured } = scope;
+  const { manifest, member, root, rootEntry, cascade, textOf, measured } = scope;
+  // The member's length or reach as written: `λ` of section 8.3 on a carried card too.
+  const lambda = rootEntry.written.end;
   const ancestors = member.ancestors.map((ancestor, index) => {
     const timeline = ancestor.timeline;
     let below: Real = coordinateValue(ancestor.offset, timeline.number_type);
@@ -138,7 +141,7 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
       name: textOf(line, "name"),
       left: compareReal(start, zero(root.number_type)) < 0,
       // Where either end is not known, the line never claims the ancestor ends with the member.
-      right: end === null || rootEntry.open || compareReal(end, lambda) > 0,
+      right: end === null || lengthValue(root) === null || compareReal(end, lambda) > 0,
       te: end ?? lambda,
       end: endOf(timeline, index === 0),
       key,
@@ -207,7 +210,7 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
           stampStack(timestamp, add(position, origin), { value }),
         )
         .filter((stack) => stack.wedge !== undefined || stack.labels.length > 0);
-      const stacks = [...own, ...secondary];
+      const stacks = playedStacks(scope, [...own, ...secondary]);
       const labelled = stacks.filter((stack) => stack.labels.length > 0);
       const widest = (stack: AncestorStack) =>
         Math.max(...stack.labels.map((label) => label.width));
@@ -223,6 +226,23 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
         size,
       };
     });
+}
+
+/**
+ * The stacks `stacks` of an ancestor line at their drawn positions: as they
+ * are on a card drawn as written; on a carried card of a switched frame
+ * (section 8.10), each at every played position of its position, piece by
+ * piece in the order of the pieces, and within a piece in their order, its
+ * labels keeping the written coordinate.
+ */
+function playedStacks(scope: Scope, stacks: readonly AncestorStack[]): AncestorStack[] {
+  if (scope.unfolding === null) return [...stacks];
+  return rootPieces(scope).flatMap((piece) =>
+    stacks.flatMap((stack) => {
+      const at = scope.at(piece, stack.at);
+      return at === undefined ? [] : [{ ...stack, at, x: scope.relativeX(at) }];
+    }),
+  );
 }
 
 /** Where the wedge of `stack` carries its labels on an ancestor line of stroke width `w`, `c` 0. */
@@ -354,10 +374,31 @@ export const chevrons = (ancestors: readonly AncestorLine[]): number[] =>
   ancestors.filter((ancestor) => ancestor.left).map((ancestor) => ancestor.style["stroke-width"]);
 
 /**
+ * One drawing of an ancestor line: its element and, on a carried card of a
+ * switched frame (section 8.10), the stretch of the ancestor's own axis it
+ * draws, from the coordinate at its drawn start `xStart` to that at its drawn
+ * end `xEnd` (null where the end is not known), the abscissas without its
+ * chevrons; null on a card drawn as written, whose axes read the line whole.
+ */
+export interface AncestorPiece {
+  readonly element: LineElement;
+  readonly axis: {
+    readonly xStart: number;
+    readonly xEnd: number;
+    readonly start: Real;
+    readonly end: Real | null;
+    readonly drawnEnd: Real;
+  } | null;
+}
+
+/**
  * The ancestor lines, from A1 to Ak, each running on in chevrons or ending at the member's ends,
  * `x0 + L'` with `L' = L − DG` the drawn length of its frame's members (section 8.2); on the
  * frame's elided axis, an end short of the member's lying in a gap ends at the gap's left edge
- * without its mark, and each is cut at every gap it crosses (section 6.6, Elisions).
+ * without its mark, and each is cut at every gap it crosses (section 6.6, Elisions). Each is one
+ * drawing; on a carried card of a switched frame (section 8.10) one in every stretch piece its
+ * stretch of the member's axis, 0 to `te` or `λ`, reaches into, its start and end, chevrons
+ * included, kept only where they lie in that piece and placed at their played x.
  */
 export function ancestorLineElements(
   scope: Scope,
@@ -365,13 +406,58 @@ export function ancestorLineElements(
   bands: AncestorBands,
   x0: number,
   yRoot: number,
-): LineElement[] {
-  const { L, lambda, axis } = scope;
+): AncestorPiece[][] {
+  const { L, axis, unfolding, rootEntry, root } = scope;
+  const lambda = rootEntry.written.end;
   const drawn = L - (axis?.total ?? 0);
-  return ancestors.map((ancestor, index) => {
+  return ancestors.map((ancestor, index): AncestorPiece[] => {
     const w = ancestor.style["stroke-width"];
     // Short of the member's end (`te < λ`), the line ends at `x(te)` with its own end.
     const short = compareReal(ancestor.te, lambda) < 0;
+    const y = ancestorY(bands, index, ancestor.side, yRoot);
+    const line = { type: "ancestor", address: ancestor.address, style: ancestor.style, y } as const;
+    if (unfolding !== null) {
+      // The member's start on the ancestor's axis, and the stretch of the member's axis drawn.
+      const below = negate(ancestor.start);
+      const reach = short ? ancestor.te : lambda;
+      const own = (value: Real) => add(below, value);
+      return rootPieces(scope).flatMap((piece): AncestorPiece[] => {
+        const span = scope.over(piece, zero(root.number_type), reach);
+        const stretch = piece.piece;
+        if (span === undefined || stretch === null) return [];
+        const xStart = x0 + scope.relativeX(span.start);
+        const xEnd = x0 + scope.relativeX(span.end);
+        const opening = !span.startCut;
+        const closing = !span.endCut;
+        const end = closing
+          ? short
+            ? lengthValue(ancestor.timeline)
+            : lengthValue(root) === null
+              ? null
+              : own(lambda)
+          : own(unfolding.uncarry(stretch.b));
+        const element: LineElement = {
+          ...line,
+          xs: opening && ancestor.left ? xStart - 4 * w : xStart,
+          xe: closing && ancestor.right ? xEnd + 4 * w : xEnd,
+          start: !opening ? "none" : ancestor.left ? "chevrons" : "circle",
+          end: !closing ? "none" : ancestor.right ? "chevrons" : ancestor.end,
+          cuts: [],
+        };
+        return [
+          {
+            element,
+            axis: {
+              xStart,
+              xEnd,
+              start: opening ? below : own(unfolding.uncarry(stretch.a)),
+              end,
+              drawnEnd: end ?? own(reach),
+            },
+          },
+        ];
+      });
+    }
     const inGap = short ? axis?.gapOf(ancestor.te) : undefined;
     const end =
       inGap !== undefined
@@ -379,20 +465,17 @@ export function ancestorLineElements(
         : short
           ? x0 + (axis === undefined ? scope.relativeX(ancestor.te) : axis.relative(ancestor.te))
           : x0 + drawn;
-    const y = ancestorY(bands, index, ancestor.side, yRoot);
-    return {
-      type: "ancestor",
-      address: ancestor.address,
-      style: ancestor.style,
+    const element: LineElement = {
+      ...line,
       xs: ancestor.left ? x0 - 4 * w : x0 + L * 0,
       xe: ancestor.right ? x0 + drawn + 4 * w : end,
-      y,
       start: ancestor.left ? "chevrons" : "circle",
       end: ancestor.right ? "chevrons" : inGap !== undefined ? "none" : ancestor.end,
       cuts: (axis?.gaps ?? [])
         .filter((gap) => axis?.crosses(gap, ancestor.start, ancestor.right ? null : ancestor.te))
         .map((gap) => [x0 + gap.left, x0 + gap.right] as const),
     };
+    return [{ element, axis: null }];
   });
 }
 
@@ -417,23 +500,22 @@ function markOn(style: Style, y: number, w: number, outwards: Side): AxisWedge {
 }
 
 /**
- * The mark an editor shows at a position on each drawn ancestor line, `lines` the elements of
+ * The mark an editor shows at a position on each drawn ancestor line, `lines` the drawings of
  * `ancestors` in their order (`ancestorLineElements`): drawn as a named timestamp's wedge on it is
  * (`ancestorWedgeElements`), in the style of a wedge held by the line that no named timestamp
- * holds, so that no rule naming an address changes it; by its line's element.
+ * holds, so that no rule naming an address changes it; by each of its drawings' element.
  */
 export function ancestorLineMarks(
   ancestors: readonly AncestorLine[],
-  lines: readonly LineElement[],
+  lines: readonly (readonly AncestorPiece[])[],
 ): Map<LineElement, AxisWedge> {
   return new Map(
-    ancestors.map((ancestor, index) => {
-      const line = nth(lines, index);
-      return [
-        line,
-        markOn(ancestor.unnamed, line.y, ancestor.style["stroke-width"], ancestor.side),
-      ];
-    }),
+    ancestors.flatMap((ancestor, index) =>
+      nth(lines, index).map(({ element }) => [
+        element,
+        markOn(ancestor.unnamed, element.y, ancestor.style["stroke-width"], ancestor.side),
+      ]),
+    ),
   );
 }
 
@@ -548,27 +630,45 @@ export function ancestorCrossSections(
 }
 
 /**
- * The named timestamps each ancestor line holds (`DrawnAxis.timestamps`), from A1 to Ak; none at
- * a position in a gap, which has no abscissa.
+ * The named timestamps each drawing of an ancestor line holds (`DrawnAxis.timestamps`), by its
+ * element, `lines` the drawings of `ancestors` in their order (`ancestorLineElements`): a line
+ * drawn once holds every one of its own; a line drawn once in each piece of a switched frame
+ * (section 8.10) holds each at a played x in the first of its drawings reaching it. None at a
+ * position in a gap, which has no abscissa.
  */
 export function ancestorTimestamps(
   scope: Scope,
   ancestors: readonly AncestorLine[],
+  lines: readonly (readonly AncestorPiece[])[],
   x0: number,
   span: Span,
-): AxisTimestamp[][] {
-  return ancestors.map((ancestor) =>
-    ancestor.stacks.flatMap((stack) => {
-      const x = scope.drawnX(stack.at);
-      if (!stack.primary || x === undefined) return [];
-      return [
-        {
-          id: stack.id,
-          x: x0 + x,
-          line: stack.line?.style ?? null,
-          segment: { y1: span[0], y2: span[1] },
-        },
-      ];
+): Map<LineElement, AxisTimestamp[]> {
+  return new Map(
+    ancestors.flatMap((ancestor, index) => {
+      const stamps = ancestor.stacks.flatMap((stack): AxisTimestamp[] => {
+        const x = scope.drawnX(stack.at);
+        if (!stack.primary || x === undefined) return [];
+        return [
+          {
+            id: stack.id,
+            x: x0 + x,
+            line: stack.line?.style ?? null,
+            segment: { y1: span[0], y2: span[1] },
+          },
+        ];
+      });
+      const drawings = nth(lines, index);
+      const [only] = drawings;
+      if (drawings.length === 1 && only !== undefined) return [[only.element, stamps] as const];
+      const taken = new Set<AxisTimestamp>();
+      return drawings.map(({ element, axis }) => {
+        const held = stamps.filter(
+          (stamp) =>
+            axis !== null && !taken.has(stamp) && axis.xStart <= stamp.x && stamp.x <= axis.xEnd,
+        );
+        for (const stamp of held) taken.add(stamp);
+        return [element, held] as const;
+      });
     }),
   );
 }

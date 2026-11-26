@@ -124,6 +124,7 @@ const EMPTY: MemberDrawn = {
   marks: new Map(),
   timestamps: new Map(),
   entries: new Map(),
+  ancestorAxes: new Map(),
 };
 
 /**
