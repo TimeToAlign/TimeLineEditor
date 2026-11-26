@@ -80,6 +80,7 @@ test("entering and leaving editors in view keeps the chosen tab, the level tab r
   await expect(tabs(page).getByRole("tab")).toHaveText([
     "Arranger",
     "Properties",
+    "Regions",
     "Metadata",
     "Manifest",
     "Journal",
@@ -93,6 +94,7 @@ test("entering and leaving editors in view keeps the chosen tab, the level tab r
     await expect(tabs(page).getByRole("tab")).toHaveText([
       word,
       "Properties",
+      "Regions",
       "Metadata",
       "Manifest",
       "Journal",

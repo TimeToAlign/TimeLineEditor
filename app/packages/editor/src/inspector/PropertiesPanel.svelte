@@ -123,15 +123,22 @@ const region = $derived(regionRows(inspected));
 /** The stored lock of the inspected timelines; `null` unless every subject is one. */
 const lock = $derived(block === null ? null : lockOf(inspected));
 
-/** The memberships offered: the selected timelines' groups, or the selected group's members; else `null`. */
+/**
+ * The memberships offered: the selected timelines' groups, or the selected
+ * group's members; else `null`. Their refusals are read with a copy of the
+ * store's minter, so a message names the IDs the dispatch would store.
+ */
 const memberships = $derived(
   block === null
     ? null
-    : (groupsOf(view, inspected, editing) ?? membersOf(view, inspected, editing)),
+    : (groupsOf(view, inspected, editing, store.minter()) ??
+        membersOf(view, inspected, editing, store.minter())),
 );
 
 /** The New group button's command, for selected timelines or the selected block; else `null`. */
-const newGroup = $derived(block === null ? null : newGroupOf(view, inspected, editing));
+const newGroup = $derived(
+  block === null ? null : newGroupOf(view, inspected, editing, store.minter()),
+);
 
 /** A refusal of the store, and the selection it was refused for. */
 interface MembershipRefusal {

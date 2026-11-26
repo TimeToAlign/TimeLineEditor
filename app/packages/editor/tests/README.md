@@ -1832,7 +1832,11 @@ core's message, so the oracle is core's own nesting rule written out:
    item 2, "Excerpt" indented by 1.25rem. For the block the button "New
    group" adds one group in one entry, journaled with the one ID it was
    given (`ids`), and the manifest then holds three groups, `group_1`,
-   `group_2` and that one. A command the store refuses although core takes it (the store
+   `group_2` and that one. For `recording` and `excerpt` the button is
+   disabled, its title item 3's message with `<ID>` the first ID a copy of
+   the store's own minter (`Store.minter`) mints for `group`: the panel
+   reads the verdict with the store's minter, so the message names the ID
+   the dispatch would store. A command the store refuses although core takes it (the store
    has the group editor of `group_1` open while the panel shows the
    arranger, so `score` joining `group_2` is a side effect) leaves the
    journal as it was, the box unchecked, and the status line holds exactly
