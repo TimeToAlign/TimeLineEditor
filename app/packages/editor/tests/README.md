@@ -1099,6 +1099,22 @@ no rows for two regions, a region with its timeline, or a flow-control
 element. Mounted, the region's name field (`B`) stands above the rows
 `[data-testid="region-rows"]`, no geometry hint and no other input.
 
+**A selected virtual timeline** (`virtualDeletionOf`,
+`inspector-bands.test.ts`). Delete on the canvas hides a virtual card
+(the arranger's README, Deleting); deleting the virtual timeline is the
+Properties tab's. In `flow/virtual_cards` with `allegro_default` placed
+by one `set` of its place, the virtual timeline alone, by its address
+`{id: "allegro_default"}` or by its card `{id: "allegro_default", part:
+["card"]}`, gives `{type: "remove", targets: [{block: A, id:
+"allegro_default"}]}`; none for both virtual timelines, a virtual
+timeline with `allegro`, a chunk `{id: "allegro_default", facet:
+"regions", part: [0]}`, the FlowMap `default` or `allegro`. Mounted with
+the card selected, the tab shows one button "Delete virtual timeline"; a
+press journals exactly that command, after which the manifest holds no
+`allegro_default`, its place is gone, and the FlowMap `default` and the
+two other virtual timelines stay. `allegro` selected shows no such
+button.
+
 ## A flow-control element (`inspector-flow.test.ts`)
 
 The editor reads, keeps, draws and writes flow control and changes nothing

@@ -16,7 +16,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import Inspector from "../src/inspector/Inspector.svelte";
 import { manifestOf, manifestText } from "../src/inspector/manifestText.ts";
 import type { Shown } from "../src/inspector/properties.ts";
-import { bandRows, geometryOf, regionRows } from "../src/inspector/properties.ts";
+import {
+  bandRows,
+  geometryOf,
+  regionRows,
+  virtualDeletionOf,
+} from "../src/inspector/properties.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
 import { posting, storeOf as storeOfFixtures } from "./support.ts";
 
@@ -179,6 +184,43 @@ describe("regionRows", () => {
     expect(regionRowsOf(store, [at(A, { id: "region_1" }), at(A, { id: "score" })])).toBeNull();
     expect(regionRowsOf(store, [at(A, { id: "jump_1" })])).toBeNull();
     expect(regionRowsOf(store, [])).toBeNull();
+  });
+});
+
+/** `flow/virtual_cards` in block A, `allegro_default` placed at (0, 200) by one `set` of its place. */
+function virtualCards(): Store {
+  const store = storeOfFixtures("flow/virtual_cards");
+  const refused = store.dispatch({
+    type: "set",
+    changes: [{ target: at(A, { id: "allegro_default" }), values: { place: { x: 0, y: 200 } } }],
+  });
+  if (refused !== null) throw new Error(refused.message);
+  return store;
+}
+
+describe("virtualDeletionOf", () => {
+  const removal = { type: "remove", targets: [at(A, { id: "allegro_default" })] };
+  const deletion = (store: Store, selection: readonly Address[]) =>
+    virtualDeletionOf(subjectsOf(store.view, selection));
+
+  it("removes the one virtual timeline selected, by its address or by its card", () => {
+    const store = virtualCards();
+    expect(deletion(store, [at(A, { id: "allegro_default" })])).toEqual(removal);
+    expect(deletion(store, [at(A, { id: "allegro_default", part: ["card"] })])).toEqual(removal);
+  });
+
+  it("gives none for anything else", () => {
+    const store = virtualCards();
+    for (const selection of [
+      [at(A, { id: "allegro_default" }), at(A, { id: "allegro_by_hand" })],
+      [at(A, { id: "allegro_default" }), at(A, { id: "allegro" })],
+      [at(A, { id: "allegro_default", facet: "regions", part: [0] })],
+      [at(A, { id: "default" })],
+      [at(A, { id: "allegro" })],
+      [],
+    ]) {
+      expect(deletion(store, selection)).toBeNull();
+    }
   });
 });
 
@@ -353,5 +395,56 @@ describe("the Properties panel of a band", () => {
     expect(texts('[data-testid="region-rows"] dd')).toEqual(["12 ♩", "16 ♩", "4 ♩"]);
     expect(panel().querySelector(".hint")).toBe(null);
     expect([...panel().querySelectorAll("input")].map((input) => input.name)).toEqual(["name"]);
+  });
+});
+
+describe("the Properties panel of a virtual timeline", () => {
+  let app: ReturnType<typeof mount> | undefined;
+
+  afterEach(() => {
+    if (app !== undefined) unmount(app);
+    app = undefined;
+    document.body.innerHTML = "";
+  });
+
+  function deleteButtons(store: Store, selection: readonly Address[]): HTMLButtonElement[] {
+    app = mount(Inspector, {
+      target: document.body,
+      context: posting(),
+      props: { live: liveStore(store), selection: selectionOf(selection) },
+    });
+    flushSync();
+    return [...document.querySelectorAll("button")].filter(
+      (button) => button.textContent?.trim() === "Delete virtual timeline",
+    );
+  }
+
+  it("deletes the selected card's virtual timeline, its FlowMap kept", () => {
+    const store = virtualCards();
+    const [button, ...others] = deleteButtons(store, [
+      at(A, { id: "allegro_default", part: ["card"] }),
+    ]);
+    if (button === undefined) throw new Error("no Delete virtual timeline");
+    expect(others).toEqual([]);
+    const journal = store.journal.length;
+    button.click();
+    flushSync();
+    expect(store.journal.length).toBe(journal + 1);
+    const last = store.journal.at(-1);
+    expect(last !== undefined && "command" in last ? last.command : null).toEqual({
+      type: "remove",
+      targets: [at(A, { id: "allegro_default" })],
+    });
+    const { manifest, places } = blockOf(store.view, A);
+    expect((manifest.virtual_timelines ?? []).map((item) => item.id)).toEqual([
+      "allegro_by_hand",
+      "allegro_single",
+    ]);
+    expect(Object.hasOwn(places, "allegro_default")).toBe(false);
+    expect((manifest.flow_maps ?? []).map((item) => item.id)).toContain("default");
+  });
+
+  it("offers nothing on the root", () => {
+    expect(deleteButtons(virtualCards(), [at(A, { id: "allegro" })])).toEqual([]);
   });
 });

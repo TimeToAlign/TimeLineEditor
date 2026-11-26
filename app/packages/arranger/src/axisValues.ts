@@ -1,8 +1,9 @@
 /**
- * Values of a timeline's own axis as the inspector's fields read and write
- * them: an exact value as the manifest writes it on that axis, and the text
- * typed into a field read as one. Shared by every field that edits a
- * position on an axis (an elision's, a region's).
+ * Values of a timeline's own axis as fields and keys read and write them: an
+ * exact value as the manifest writes it on that axis, and a text typed as
+ * one. Shared by everything that reads a position or a length typed on an
+ * axis: the flow editor's "+ Gap", and the inspector's fields of an elision
+ * and a region.
  */
 
 import type { AxisValue, TimelineManifest } from "@timetoalign/tilie-core";
@@ -17,9 +18,9 @@ export function axisValueAt(value: Real, timeline: TimelineManifest): AxisValue 
 }
 
 /**
- * The value typed into a field of `timeline`'s axis, exact (`parseAxisValue`),
- * as the manifest writes it there: a decimal on a fraction axis is the value it
- * denotes, on a float axis the nearest double; a message where none fits.
+ * The value typed as `text` on `timeline`'s axis, exact (`parseAxisValue`),
+ * as the manifest writes it there: a decimal on a fraction axis is the value
+ * it denotes, on a float axis the nearest double; a message where none fits.
  */
 export function typedValue(text: string, timeline: TimelineManifest): AxisValue | string {
   const parsed = parseAxisValue(text, timeline.number_type);

@@ -4,7 +4,7 @@
  * derived in `README.md` ("The flow subeditor").
  */
 
-import type { Address, Command, Facet, Manifest, Store } from "@timetoalign/tilie-core";
+import type { Address, Command, Facet, Manifest, Store, View } from "@timetoalign/tilie-core";
 import { idAddress, inBlock, WORKSPACE } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import type { Hit } from "../src/boxes.ts";
@@ -13,7 +13,7 @@ import { drawingOf } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
 import { editorOf, editorTargetOf } from "../src/editors.ts";
 import { FlowEditorSession, type FlowServer, type FlowTarget } from "../src/flowEditor.svelte.ts";
-import { cardChoices, flowRows, recomputeCommands } from "../src/flowEditor.ts";
+import { cardChoices, flowRows, recomputeCommands, sameEntries } from "../src/flowEditor.ts";
 import { flowPaneOf } from "../src/flowEditorRows.ts";
 import {
   dropAt,
@@ -281,15 +281,22 @@ describe("the pane as drawn", () => {
   });
 });
 
-/** A flow editor open on `allegro`, its session, and what it dispatched and reported; `server` its flow routes. */
-function opened(server?: FlowServer): {
+/**
+ * A flow editor open on `allegro` of `from` (block A of `flow/virtual_cards`
+ * by default), its session, and what it dispatched and reported; `server`
+ * its flow routes.
+ */
+function opened(
+  server?: FlowServer,
+  from: View = view,
+): {
   store: Store;
   session: FlowEditorSession;
   target: FlowTarget;
   sent: Command[];
   said: string[];
 } {
-  const store = storeOf(view);
+  const store = storeOf(from);
   expect(store.open(allegro, "flow")).toBeNull();
   const sent: Command[] = [];
   const said: string[] = [];
@@ -472,6 +479,124 @@ describe("what each action stores", () => {
     const count = sent.length;
     session.place(target, "default", 0, 600);
     expect(sent.length).toBe(count + 1);
+  });
+
+  it("finds a Region over the whole root by value, never by spelling", () => {
+    const whole = changed(view, {
+      type: "add",
+      into: allegro,
+      region: { start: [0, 2], end: [3288, 2] },
+    });
+    const regionsOf = (shown: View) =>
+      (blockIn(shown, A).manifest.timelines[0]?.regions ?? []).map((region) => region.id);
+    const [W] = regionsOf(whole).filter((id) => !regionsOf(view).includes(id));
+    const { store, session, target, sent } = opened(undefined, whole);
+    session.add(target);
+    expect(session.land(target, { kind: "root" })).toBe(true);
+    expect(sent).toEqual([{ type: "add", into: allegro, flow_map: { chunks: [W] } }]);
+    expect(regionsOf(store.view)).toEqual(regionsOf(whole));
+  });
+
+  it("refuses a negative gap", () => {
+    const { session, target, sent } = opened();
+    session.add(target);
+    session.land(target, { kind: "element", id: "section_a" });
+    const count = sent.length;
+    expect(session.gap(target, "-4")).toBe("a gap is longer than 0: -4");
+    expect(sent.length).toBe(count);
+  });
+});
+
+describe("a hand-made row edited", () => {
+  it("becomes the edited row, never a computed one, one at a time", () => {
+    const { store, session, target } = opened();
+    expect(session.edit(target, "default")).toBe(false);
+    expect(session.draftOf(target)).toBeNull();
+    const mark = store.entries.length;
+    expect(session.edit(target, "by_hand")).toBe(true);
+    expect(session.draftOf(target)).toEqual({ ...target, flowMap: "by_hand", mark });
+    expect(session.edit(target, "printed")).toBe(false);
+    session.add(target);
+    expect(session.draftOf(target)?.flowMap).toBe("by_hand");
+  });
+
+  it("takes every gesture of the new row, each one set of its chunks", () => {
+    const { store, session, target, sent } = opened();
+    const written = manifestOf(store).flow_maps?.find((item) => item.id === "by_hand");
+    const A4 = ["section_a", "section_a", "section_a", "section_a"];
+    session.edit(target, "by_hand");
+    expect(session.move(target, 5, 0, false)).toBe(true);
+    expect(sent.at(-1)).toEqual(set("by_hand", ["section_c", ...A4, { gap: [4, 1] }]));
+    session.move(target, 1, 1, true);
+    expect(sent.at(-1)).toEqual(set("by_hand", ["section_c", "section_a", ...A4, { gap: [4, 1] }]));
+    session.remove(target, 6);
+    expect(sent.at(-1)).toEqual(set("by_hand", ["section_c", "section_a", ...A4]));
+    session.land(target, { kind: "element", id: "section_b" });
+    expect(sent.at(-1)).toEqual(set("by_hand", ["section_c", "section_a", ...A4, "section_b"]));
+    expect(session.gap(target, "2")).toBeNull();
+    expect(sent.at(-1)).toEqual(
+      set("by_hand", ["section_c", "section_a", ...A4, "section_b", { gap: [2, 1] }]),
+    );
+    const count = sent.length;
+    expect(session.move(target, 0, 0, false)).toBe(false);
+    expect(session.move(target, 0, 1, false)).toBe(false);
+    expect(sent.length).toBe(count);
+    session.cancel(target);
+    expect(session.draftOf(target)).toBeNull();
+    expect(manifestOf(store).flow_maps?.find((item) => item.id === "by_hand")).toEqual(written);
+  });
+
+  it("keeps its changes on Done", () => {
+    const { store, session, target } = opened();
+    session.edit(target, "by_hand");
+    const mark = store.entries.length;
+    session.remove(target, 4);
+    session.done(target);
+    expect(session.draftOf(target)).toBeNull();
+    expect(store.entries.length).toBe(mark + 1);
+    expect(manifestOf(store).flow_maps?.find((item) => item.id === "by_hand")?.chunks).toEqual([
+      "section_a",
+      "section_a",
+      "section_a",
+      "section_a",
+      "section_c",
+    ]);
+  });
+
+  it("compares entries by value", () => {
+    expect(
+      sameEntries([{ gap: [8, 2] }, "section_a"], [{ gap: [4, 1] }, "section_a"], "fraction"),
+    ).toBe(true);
+    expect(sameEntries([{ gap: [8, 2] }], [{ gap: [4, 1] }, "section_a"], "fraction")).toBe(false);
+    expect(sameEntries(["section_a"], ["section_b"], "fraction")).toBe(false);
+  });
+});
+
+describe("findings", () => {
+  it("are asked from a handler only, and read from what was kept", async () => {
+    let asked = 0;
+    let fail = false;
+    const server: FlowServer = {
+      withFlowMaps: async (manifest) => manifest,
+      findings: async () => {
+        asked += 1;
+        if (fail) throw new Error("down");
+        return new Map([["default", ["one"]]]);
+      },
+    };
+    const { session, target } = opened(server);
+    expect(session.findingsOf(target)).toEqual(new Map());
+    expect(asked).toBe(0);
+    await session.askFindings(target);
+    expect(session.findingsOf(target)).toEqual(new Map([["default", ["one"]]]));
+    session.findingsOf(target);
+    session.findingsOf(target);
+    expect(asked).toBe(1);
+    await session.recompute(target);
+    expect(asked).toBe(2);
+    fail = true;
+    await session.askFindings(target);
+    expect(session.findingsOf(target)).toEqual(new Map());
   });
 });
 

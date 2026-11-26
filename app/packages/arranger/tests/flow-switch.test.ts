@@ -8,7 +8,8 @@
 
 import type { ElementAddress, StyleCommand, View } from "@timetoalign/tilie-core";
 import { addressKey, cardAddress, cardFlow, idAddress } from "@timetoalign/tilie-core";
-import type { DrawnBox } from "@timetoalign/tilie-layout";
+import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
+import { lineAxes } from "@timetoalign/tilie-layout";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { boxOf } from "../src/boxes.ts";
@@ -185,8 +186,54 @@ describe("the switch's motion", () => {
 
   it("moves nothing between two drawings of one manifest", () => {
     const drawing = drawingIn(SWITCHED);
-    expect(switchMorphs(manifest(SWITCHED), drawingIn(VIRTUAL), drawing)).toEqual([]);
     expect(switchMorphs(manifest(SWITCHED), drawing, drawing)).toEqual([]);
+  });
+
+  it("moves each chunk of a card switched from its written stretch to its brace", () => {
+    const after = drawingIn(SWITCHED);
+    const asWritten = flowCommands(
+      A,
+      manifest(SWITCHED),
+      box(SWITCHED, cardAddress(ROOT)),
+      AS_WRITTEN,
+    );
+    expect(asWritten).toEqual([flowOn(null)]);
+    const before = drawingIn(asWritten.reduce(changed, SWITCHED));
+    const linesOf = (drawing: Drawing) =>
+      [...lineAxes(drawing).values()].filter((axis) => axis.timeline === ROOT);
+    // As written: one line of 1644 quarters drawn over 400 units (layout's `abscissaOf`).
+    const [written] = linesOf(before);
+    if (written === undefined) throw new Error("no line as written");
+    expect(written.xEnd - written.xStart).toBe(400);
+    const xw = (s: number) => written.xStart + (s / 1644) * (written.xEnd - written.xStart);
+    // Switched: `x(t) = x0 + 400 × u`, `u = t / (4241/2)` (layout's README, Switched cards, 2).
+    const x0 = Math.min(...linesOf(after).map((axis) => axis.xStart));
+    const x = (t: number) => x0 + 400 * (t / 2120.5);
+    // Each chunk's elements in drawing order: its brace, its boundary from k = 1, its label.
+    const parts = (k: number) =>
+      k === 0 ? [[0], [0, "label"]] : [[k], [k, "start"], [k, "label"]];
+    const elementsOf = (k: number) =>
+      parts(k).map((part) =>
+        after.elements.findIndex(
+          (element) =>
+            element.address.id === ROOT &&
+            element.address.facet === "regions" &&
+            JSON.stringify(element.address.part) === JSON.stringify(part),
+        ),
+      );
+    const morph = (k: number, from: [number, number], to: [number, number]) => ({
+      elements: elementsOf(k),
+      from: { x1: xw(from[0]), x2: xw(from[1]) },
+      to: { x1: x(to[0]), x2: x(to[1]) },
+    });
+    const morphs = switchMorphs(manifest(SWITCHED), before, after);
+    expect(morphs).toEqual([
+      morph(0, [0, 476.5], [0, 476.5]),
+      morph(1, [476.5, 500], [476.5, 500]),
+      morph(2, [0, 476.5], [500, 976.5]),
+      morph(3, [500, 1644], [976.5, 2120.5]),
+    ]);
+    expect(morphs.flatMap((item) => item.elements)).not.toContain(-1);
   });
 
   it("stretches a brace and moves a text onto the span at its progress", () => {

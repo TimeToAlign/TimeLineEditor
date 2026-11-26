@@ -22,12 +22,14 @@
 
 import type { CardAxis, Subject } from "@timetoalign/tilie-arranger";
 import {
+  axisValueAt,
   cardAxisAt,
   defaultsRemoval,
   defaultsStored,
   exposureAt,
   piecesOf,
   stretchText,
+  typedValue,
 } from "@timetoalign/tilie-arranger";
 import type {
   AddCommand,
@@ -83,7 +85,6 @@ import type {
 import { widthAs } from "@timetoalign/tilie-layout";
 import type { Declaration, Selector } from "@timetoalign/timetoshare";
 import { ELISION_DISPLAY, isJsonFloat } from "@timetoalign/timetoshare";
-import { axisValueAt, typedValue } from "./axisValues.ts";
 import type { Result } from "./problems.ts";
 import { InspectorCode, refused } from "./problems.ts";
 import { toggledDisplay } from "./stamps/commands.ts";

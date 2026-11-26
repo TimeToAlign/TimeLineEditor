@@ -14,6 +14,7 @@ import {
   type Address,
   addressKey,
   addressWords,
+  assertNever,
   idAddress,
   inBlock,
   indicesBetween,
@@ -305,36 +306,86 @@ export function zOrderCommand(
   return setOf(changes);
 }
 
-/** Whether `address` names a flow-control element of `view` (core's `resolveAddress`). */
-function isFlowControl(view: View, address: Address): boolean {
-  const resolved = resolveAddress(view, address);
-  return (
-    !isCommandError(resolved) && resolved.kind === "entry" && resolved.entry === "flow_control"
-  );
+/** What Delete does with one selected address of `view`, read through core's `resolveAddress`. */
+type Deleted =
+  | { readonly kind: "flow_control" }
+  | { readonly kind: "chunk" }
+  | { readonly kind: "hide"; readonly target: Address }
+  | { readonly kind: "framed" }
+  | { readonly kind: "owner" };
+
+function deletedAs(view: View, block: BlockId, address: Address, owner: Address): Deleted {
+  let resolved = resolveAddress(view, address);
+  if (isCommandError(resolved)) return { kind: "owner" };
+  // A part (a chunk's label, leader or start) stands for what it is a part of.
+  while (resolved.kind === "part") resolved = resolved.owner;
+  if (resolved.kind === "chunk") return { kind: "chunk" };
+  if (resolved.kind === "virtual_card") {
+    const placed = view.blocks[block]?.places[resolved.virtual.id] !== undefined;
+    return placed ? { kind: "hide", target: owner } : { kind: "framed" };
+  }
+  const flow = resolveAddress(view, owner);
+  return !isCommandError(flow) && flow.kind === "entry" && flow.entry === "flow_control"
+    ? { kind: "flow_control" }
+    : { kind: "owner" };
+}
+
+/** The hints of Delete for a selection naming nothing it deletes. */
+const DELETE_HINTS = {
+  flow_control:
+    "A flow-control element is not deleted; state your belief in it in the Properties tab to reject it.",
+  chunk: "A chunk is changed in its FlowMap; open the flow editor of its root to change it.",
+  framed:
+    "A virtual card in a frame is not hidden; delete its virtual timeline in the Properties tab.",
+  mixed:
+    "Virtual cards are hidden apart from what is deleted; select the virtual cards alone to hide them.",
+} as const;
+
+/**
+ * The `set` hiding the cards of the virtual timelines `targets` (each
+ * `{block, id: V}`, its card held by its block): every member of each one's
+ * stated place unstated, the virtual timeline kept.
+ */
+function hideCommand(view: View, targets: readonly Address[]): SetCommand {
+  const changes = targets.map((target) => {
+    const { block, element } = addressParts(target);
+    const place = element?.id === undefined ? undefined : view.blocks[block]?.places[element.id];
+    const members = Object.keys(place ?? {}).map((member) => [member, null] as const);
+    return { target, values: { place: Object.fromEntries(members) } };
+  });
+  return { type: "set", changes };
 }
 
 /**
- * One `remove` of the selected addresses, an element's part or card
- * standing for the element whose ID it carries. Every element can be removed, timelines
- * and groups included; a selection holding a manifest's title, which goes
- * only with its block, is refused whole, with a hint naming the block. A
- * band is never removed: its address is left out, and a selection of bands
- * alone is refused with a hint. Nor is a flow-control element, which is
- * rejected through its provenance and never deleted: its address, or that
- * of a part of it, is left out, and a selection that names nothing else is
- * refused with a hint. Whether a segment may go is core's to
- * decide: one that would leave a gap in its segment line is refused there
- * (`segment_not_removable`), and the canvas shows that refusal as it shows
- * every refusal of the store. Inside an editor the edited element is never
- * removed, a part of it standing for it as well: it is left out of the
- * targets, and a selection that names nothing else is refused with a hint
- * to close the editor first.
+ * What Delete stores for the selected addresses: one `remove`, an
+ * element's part or card standing for the element whose ID it carries, or
+ * one `set` hiding the selected virtual cards. Every element can be
+ * removed, timelines and groups included; a selection holding a manifest's
+ * title, which goes only with its block, is refused whole, with a hint
+ * naming the block. A band is never removed: its address is left out, and a
+ * selection of bands alone is refused with a hint. Nor is a flow-control
+ * element, which is rejected through its provenance and never deleted, nor
+ * a chunk of a virtual timeline or of a switched card, which is changed in
+ * its FlowMap: their addresses, or those of their parts, are left out, and
+ * a selection that names nothing else is refused with a hint. A selected
+ * virtual card held by its block is hidden: its place is unstated (core's
+ * `set` of `place` with every stated member null) and its virtual timeline
+ * kept, which only a `remove` of the virtual timeline's own address
+ * deletes (the Properties tab's "Delete virtual timeline"); a virtual card
+ * in a frame is left out with a hint, and a selection hiding virtual cards
+ * and deleting anything else is refused with a hint. Whether a segment may
+ * go is core's to decide: one that would leave a gap in its segment line is
+ * refused there (`segment_not_removable`), and the canvas shows that
+ * refusal as it shows every refusal of the store. Inside an editor the
+ * edited element is never removed, a part of it standing for it as well:
+ * it is left out of the targets, and a selection that names nothing else
+ * is refused with a hint to close the editor first.
  */
 export function removeCommand(
   view: View,
   selection: Selection,
   editing: Editing | null,
-): RemoveCommand | { readonly refused: string } {
+): RemoveCommand | SetCommand | { readonly refused: string } {
   if (selection.size === 0) return { refused: "Nothing is selected." };
   const addresses = [...selection.values()].filter(
     (address) => selectedBand(view, address) === null,
@@ -343,8 +394,9 @@ export function removeCommand(
     return { refused: "A band is not deleted; select its elements to delete them." };
   }
   const targets = new Map<string, Address>();
+  const hidden = new Map<string, Address>();
   const add = (target: Address) => targets.set(addressKey(target), target);
-  let flow = false;
+  let left: keyof typeof DELETE_HINTS | null = null;
   for (const address of addresses) {
     const { block: id, element } = addressParts(address);
     const block = view.blocks[id];
@@ -359,21 +411,32 @@ export function removeCommand(
       };
     }
     const owner = inBlock(block.id, idAddress(element.id));
-    if (isFlowControl(view, owner)) {
-      flow = true;
-      continue;
+    const deleted = deletedAs(view, block.id, address, owner);
+    switch (deleted.kind) {
+      case "owner":
+        add(owner);
+        break;
+      case "hide":
+        hidden.set(addressKey(deleted.target), deleted.target);
+        break;
+      case "flow_control":
+      case "chunk":
+      case "framed":
+        left ??= deleted.kind;
+        break;
+      default:
+        return assertNever(deleted);
     }
-    add(owner);
-  }
-  if (targets.size === 0 && flow) {
-    return {
-      refused:
-        "A flow-control element is not deleted; state your belief in it in the Properties tab to reject it.",
-    };
   }
   const removed = [...targets.values()].filter(
     (target) => editing === null || !sameAddress(target, editing.target),
   );
+  if (hidden.size > 0) {
+    return removed.length > 0
+      ? { refused: DELETE_HINTS.mixed }
+      : hideCommand(view, [...hidden.values()]);
+  }
+  if (targets.size === 0 && left !== null) return { refused: DELETE_HINTS[left] };
   if (removed.length === 0) return { refused: "Close its editor to delete the edited element." };
   return { type: "remove", targets: removed };
 }

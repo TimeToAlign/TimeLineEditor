@@ -10,6 +10,7 @@
  */
 
 import type { Subject } from "@timetoalign/tilie-arranger";
+import { axisValueAt, typedValue } from "@timetoalign/tilie-arranger";
 import type {
   AddCommand,
   Address,
@@ -33,7 +34,6 @@ import {
 import { reachOf } from "@timetoalign/tilie-core/drawing";
 import { axisCoordinate, Rational, realOf } from "@timetoalign/tilie-core/numbers";
 import { ATOMIC_SECTION, expandIri } from "@timetoalign/timetoshare";
-import { axisValueAt, typedValue } from "./axisValues.ts";
 import type { Result } from "./problems.ts";
 import { InspectorCode, refused } from "./problems.ts";
 

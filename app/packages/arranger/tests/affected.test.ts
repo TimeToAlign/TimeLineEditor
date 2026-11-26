@@ -100,3 +100,9 @@ describe("affectedBy", () => {
     expect(affectedBy(manifest, selected(chosen), null)).toEqual(keysOf(expected));
   });
 });
+
+it("takes nothing away for a selected virtual card, which Delete hides", () => {
+  expect(
+    affectedBy(load("flow/virtual_cards"), selected([cardAddress("allegro_default")]), null),
+  ).toEqual(new Set());
+});

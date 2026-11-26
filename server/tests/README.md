@@ -438,7 +438,7 @@ for `POST /api/flows/flow-maps` alone, `actor`, who asks, and `date`, the
 day (`YYYY-MM-DD`), both optional: the actor whose belief `false`, on that
 day, rejects an atomic section written before that is none any more.
 
-**The oracle** is not the library's output: TimeToShare states, for nine
+**The oracle** is not the library's output: TimeToShare states, for ten
 of its `flow/` manifest fixtures, the flows expected of them
 (`fixtures/flows/0.2.0/<name>.yaml`), each derived by hand in the trace
 beside it (`<name>.md`) from the format's rules alone. An expected-flows
@@ -473,9 +473,9 @@ are compared as they are. A finding holds, beside the file's `kind`,
 Every convention has its findings; `printed` plays the whole axis and
 finds nothing.
 
-**Every expected-flows file.** For each of the nine files (`da_capo_al_fine`,
+**Every expected-flows file.** For each of the ten files (`da_capo_al_fine`,
 `dal_segno_al_coda`, `loop`, `ossia`, `repairs`, `repeat_end_and_dal_segno`,
-`sections`, `sonata_exposition`, `volta_passes`; the test fails when the
+`sections`, `sonata_exposition`, `virtual_cards`, `volta_passes`; the test fails when the
 folder holds another list), the manifest fixture it names is posted with
 its timeline and no convention, once in the minimal form and once in the
 complete form, both canonical YAML as they lie in the format's package.
@@ -548,8 +548,11 @@ whatever timeline is asked.
 **The manifest written.** `POST /api/flows/flow-maps` answers a manifest
 file's text: the manifest as timetoalign writes it after the call, in the
 minimal form, in timetoshare's JSON serialization (`application/json`).
-For each expected-flows file the minimal fixture is posted with the file's
-timeline, and the answer, read by timetoshare's `loads`:
+For each expected-flows file but `virtual_cards` the minimal fixture is
+posted with the file's timeline, and the answer, read by timetoshare's
+`loads` (`virtual_cards` holds a FlowMap made by hand and the virtual
+timelines applying them, which writing the flows keeps, so "no other
+FlowMap" below does not describe it):
 
 - is accepted by timetoshare's validator (`validate`);
 - holds, as the timeline's `regions`, the file's atomic sections in order

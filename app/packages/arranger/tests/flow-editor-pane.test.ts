@@ -8,8 +8,11 @@
 
 import type { Manifest, Store } from "@timetoalign/tilie-core";
 import { idAddress, inBlock } from "@timetoalign/tilie-core";
+import type { Viewport } from "@xyflow/svelte";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { FlowServer } from "../src/flowEditor.svelte.ts";
+import { type Selection, selectionOf } from "../src/selection.ts";
 import Harness from "./CanvasHarness.svelte";
 import { pointer, pressEscape, settle, stubCanvasGlobals, withScreenMatrix } from "./dom.ts";
 import { A, blockIn, metrics, storeOf, viewOf } from "./support.ts";
@@ -49,6 +52,17 @@ async function show(): Promise<void> {
 }
 
 const manifest = (): Manifest => blockIn(store.view, A).manifest;
+
+/** The harness's exports, which `tsc` reads through Svelte's generic module declaration, untyped. */
+interface Mounted {
+  showAt(next: Viewport): void;
+  select(next: Selection): void;
+}
+
+function harness(): Mounted {
+  if (mounted === undefined) throw new Error("nothing mounted");
+  return mounted as Mounted;
+}
 
 function one(selector: string, within: ParentNode = document): HTMLElement {
   const found = within.querySelector<HTMLElement>(selector);
@@ -183,6 +197,9 @@ describe("the flow editor's pane", () => {
 
   it("places a row dragged out past the editor's border as a card, and flies one back inside", async () => {
     await show();
+    // The viewport at the identity: a client point is a canvas point.
+    harness().showAt({ x: 0, y: 0, zoom: 1 });
+    await settle();
     placeOnScreen(one('[data-testid="flow-pane"]'), { left: 0, top: 200, right: 800, bottom: 600 });
     const mark = store.entries.length;
     const name = one('[data-flow-map="printed"] .name');
@@ -191,16 +208,43 @@ describe("the flow editor's pane", () => {
     pointer(name, "pointerup", 140, 320);
     await settle();
     expect(store.entries.length).toBe(mark);
+
+    // Out past the border and back inside before the release: the release decides.
+    pointer(name, "pointerdown", 100, 300);
+    pointer(name, "pointermove", 900, 340);
+    pointer(name, "pointermove", 140, 320);
+    pointer(name, "pointerup", 140, 320);
+    await settle();
+    expect(store.entries.length).toBe(mark);
+
     const virtualBefore = (manifest().virtual_timelines ?? []).map((item) => item.id);
     pointer(name, "pointerdown", 100, 300);
-    pointer(name, "pointermove", 900, 320);
-    pointer(name, "pointerup", 900, 320);
+    pointer(name, "pointermove", 900, 340);
+    pointer(name, "pointerup", 900, 340);
     await settle();
     expect(store.entries.length).toBe(mark + 2);
     const [V] = (manifest().virtual_timelines ?? [])
       .map((item) => item.id)
       .filter((id) => !virtualBefore.includes(id));
-    expect(V === undefined ? undefined : blockIn(store.view, A).places[V]).toBeDefined();
+    if (V === undefined) throw new Error("no virtual timeline written");
+    // The twin's top left (900 − 100, 340 − 300) less the block's (40, 80), on the grid's 8.
+    expect(blockIn(store.view, A).places[V]).toEqual({ x: 760, y: -40 });
+  });
+
+  it("edits a hand-made row through its Edit button, computed rows having none", async () => {
+    await show();
+    const row = (id: string) => one(`[data-testid="flow-row"][data-flow-map="${id}"]`);
+    const edit = (within: ParentNode) =>
+      [...within.querySelectorAll("button")].filter((item) => item.textContent?.trim() === "Edit");
+    expect(["default", "printed", "single"].flatMap((id) => edit(row(id)))).toEqual([]);
+    const [editing] = edit(row("by_hand"));
+    if (editing === undefined) throw new Error("no Edit button on by_hand");
+    editing.click();
+    await settle();
+    expect(row("by_hand").classList.contains("draft")).toBe(true);
+    expect(button("Done", row("by_hand"))).toBeDefined();
+    expect(button("Cancel", row("by_hand"))).toBeDefined();
+    expect(edit(document)).toEqual([]);
   });
 
   it("writes nothing for a drag ended by Escape", async () => {
@@ -217,5 +261,40 @@ describe("the flow editor's pane", () => {
     await settle();
     expect(store.entries.length).toBe(mark);
     expect(refused).toEqual([]);
+  });
+
+  it("asks the findings once, when the flow editor opens, and reads them after", async () => {
+    store = storeOf(viewOf({ id: A, fixture: "flow/virtual_cards", x: 40, y: 80 }));
+    let asked = 0;
+    const flows: FlowServer = {
+      withFlowMaps: async (manifest) => manifest,
+      findings: async () => {
+        asked += 1;
+        return new Map([["default", ["one"]]]);
+      },
+    };
+    mounted = mount(Harness, { target: document.body, props: { store, metrics, flows } });
+    await settle();
+    // Enter on the selected repeat sign, an element the flow control band draws, opens the flow editor.
+    harness().select(selectionOf([{ block: A, id: "repeat_end", part: ["symbol"] }]));
+    await settle();
+    one('[aria-label="Arranger"]').dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
+    );
+    await settle();
+    expect(store.editing.map(({ target, kind }) => ({ target, kind }))).toEqual([
+      { target: allegro, kind: "flow" },
+    ]);
+    expect(asked).toBe(1);
+    expect(one('[data-flow-map="default"] [data-chip="findings"]').textContent).toBe("1 finding");
+    button("Add +").click();
+    await settle();
+    const entry = one('[data-flow-map="default"] [data-testid="flow-entry"][data-index="0"]');
+    entry.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
+    );
+    await settle();
+    expect(asked).toBe(1);
+    expect(one('[data-flow-map="default"] [data-chip="findings"]').textContent).toBe("1 finding");
   });
 });

@@ -13,11 +13,12 @@ import { FlowMapError, resolveFlowMap, samePlaceKey } from "@timetoalign/tilie-c
 import { realOf, toAxisValue, toFloat, toRational } from "@timetoalign/tilie-core/numbers";
 import type { Drawing, DrawnBox, DrawnElement, LineElement } from "@timetoalign/tilie-layout";
 import { draw } from "@timetoalign/tilie-layout";
-import type { AttributeValue, Descriptor } from "@timetoalign/tilie-writers";
-import { ADDRESS_ATTRIBUTES, attributeText, toDescriptors } from "@timetoalign/tilie-writers";
+import { toDescriptors } from "@timetoalign/tilie-writers";
 import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
 import { styleLayers } from "./drawing.ts";
 import type { FlowEntry, FlowRow } from "./flowEditor.ts";
+import type { OverlayItem } from "./flowOverlay.ts";
+import { overlayItem } from "./flowOverlay.ts";
 
 /** The gap between the card's bottom edge and the pane, in the block's drawing units. */
 export const PANE_GAP = 6;
@@ -44,15 +45,6 @@ export function paneHeight(pane: FlowPane, emptyDraft: boolean): number {
   return PANE_HEAD + rows + (emptyDraft ? ROW_HEAD + EMPTY_DRAFT : 0);
 }
 
-/** One element drawn in a row: a descriptor of the virtual card without its address. */
-export interface RowItem {
-  /** The descriptor's index among the row drawing's descriptors: tells items apart. */
-  readonly key: number;
-  readonly tag: Descriptor["tag"];
-  readonly attributes: Readonly<Record<string, string>>;
-  readonly text: string | null;
-}
-
 /**
  * Where an entry of a row is drawn, in pane coordinates: a drawn brace's
  * span, or a gap's; `index` its entry, `last` the last entry of the run it
@@ -71,7 +63,7 @@ export interface PaneRow {
   readonly row: FlowRow;
   /** Why the FlowMap draws no chunks (it does not resolve); `null` where it resolves. */
   readonly problem: string | null;
-  readonly items: readonly RowItem[];
+  readonly items: readonly OverlayItem[];
   /** The viewBox of the row's drawing, in the coordinates of its own drawing: pane x 0 at `x`. */
   readonly viewBox: { readonly x: number; readonly y: number; readonly height: number };
   /** The ordinate of the line, from the row drawing's top. */
@@ -106,20 +98,6 @@ export interface FlowPane {
   readonly lineStart: number;
   readonly width: number;
   readonly rows: readonly PaneRow[];
-}
-
-/** A descriptor attribute as the DOM receives it (the SVG writer's text for numbers, points and paths). */
-const domValue = (value: AttributeValue): string =>
-  typeof value === "string" ? value : attributeText(value);
-
-/** A descriptor drawn in a row: its attributes without the ones writing its address. */
-function itemOf(descriptor: Descriptor, key: number): RowItem {
-  const attributes: Record<string, string> = {};
-  for (const [name, value] of descriptor.attrs) {
-    if (ADDRESS_ATTRIBUTES.some((attribute) => attribute === name)) continue;
-    attributes[name] = domValue(value);
-  }
-  return { key, tag: descriptor.tag, attributes, text: descriptor.text };
 }
 
 /** The types a row draws of its virtual card: its line, its chunks' braces, labels, leaders, boundaries. */
@@ -283,7 +261,7 @@ export function flowPaneOf(
       const inside =
         descriptor.source.element >= box.range.start && descriptor.source.element < box.range.end;
       return element !== undefined && inside && drawnInRow(element, id)
-        ? [itemOf(descriptor, key)]
+        ? [overlayItem(descriptor, key)]
         : [];
     });
     const ends = runEnds(row.entries);

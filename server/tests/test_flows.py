@@ -44,9 +44,14 @@ NAMES = [
     "repeat_end_and_dal_segno",
     "sections",
     "sonata_exposition",
+    "virtual_cards",
     "volta_passes",
 ]
 """The expected-flows files."""
+
+WRITTEN = [name for name in NAMES if name != "virtual_cards"]
+"""The expected-flows files whose fixture holds no FlowMap of its own, so
+that writing the flows gives exactly the expected ones."""
 
 NUMBER_TYPES = {"loop": "float"}
 """The number type a file spells its values in where it is not ``fraction``."""
@@ -155,7 +160,7 @@ def refused(response: Any, path: list[Any], message: str) -> None:
 # ------------------------------------------------------------------ the flows
 
 
-def test_the_expected_flows_are_the_nine() -> None:
+def test_the_expected_flows_are_the_ten() -> None:
     assert sorted(path.stem for path in EXPECTED.glob("*.yaml")) == NAMES
 
 
@@ -540,7 +545,7 @@ def intervals(manifest: Any, timeline: str) -> list[dict[str, Any]]:
     ]
 
 
-@pytest.mark.parametrize("name", NAMES)
+@pytest.mark.parametrize("name", WRITTEN)
 def test_a_fixture_is_answered_with_its_expected_flows_written(
     server: TestClient, name: str
 ) -> None:

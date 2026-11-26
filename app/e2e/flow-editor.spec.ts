@@ -5,7 +5,13 @@
  * under the card with one row per FlowMap and no axe-core violation, a new
  * FlowMap landed by a key, a row dragged out onto the canvas as a card,
  * and Done folding it all into one journal entry. The expected values are
- * derived in `README.md` ("flow-editor.spec.ts").
+ * derived in `README.md` ("flow-editor.spec.ts"). A hand-made row is
+ * edited in place: on the arranger's flow editor, the Edit button of
+ * `by_hand` (A A A A, a gap of 4, C) makes its row the edited one (Done and
+ * Cancel in it, no Edit button left); Delete on its entry 4 (the gap)
+ * stores one entry, `{type: "set", changes: [{target: {block, id:
+ * "by_hand"}, values: {chunks: [section_a ×4, section_c]}}]}`; the row's
+ * Done keeps it and leaves no edited row; the computed rows offer no Edit.
  */
 
 import AxeBuilder from "@axe-core/playwright";
@@ -141,4 +147,43 @@ test("on the arranger a double-click in the root card's flow control band opens 
   const symbol = await partCentre(page, block, { id: "repeat_end", part: ["symbol"] });
   await page.mouse.dblclick(symbol.x, symbol.y);
   await expect.poll(() => editing(page)).toEqual([{ target: allegro, kind: "flow" }]);
+});
+
+test("a hand-made row is edited in place, a computed one never", async ({ page }) => {
+  const block = await importFixture(page, "flow/virtual_cards");
+  await setViewport(page, VIEW);
+  await settledDrawing(page, block);
+  const inBand = await bandPoint(page, block, { id: "allegro", facet: "flow_control" }, 2);
+  await page.mouse.dblclick(inBand.x, inBand.y);
+  await expect
+    .poll(() => editing(page))
+    .toEqual([{ target: { block, id: "allegro" }, kind: "flow" }]);
+  const pane = page.getByTestId("flow-pane");
+  const row = (id: string) => pane.locator(`[data-testid="flow-row"][data-flow-map="${id}"]`);
+  for (const computed of ["default", "printed", "single"]) {
+    await expect(row(computed).getByRole("button", { name: "Edit", exact: true })).toHaveCount(0);
+  }
+  await row("by_hand").getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(row("by_hand")).toHaveClass(/\bdraft\b/);
+  await expect(pane.getByRole("button", { name: "Edit", exact: true })).toHaveCount(0);
+  const entries = await entriesLength(page);
+  await row("by_hand").locator('[data-testid="flow-entry"][data-index="4"]').focus();
+  await page.keyboard.press("Delete");
+  await expect.poll(() => entriesLength(page)).toBe(entries + 1);
+  expect(await entryCommands(page, entries)).toEqual([
+    {
+      type: "set",
+      changes: [
+        {
+          target: { block, id: "by_hand" },
+          values: {
+            chunks: ["section_a", "section_a", "section_a", "section_a", "section_c"],
+          },
+        },
+      ],
+    },
+  ]);
+  await row("by_hand").getByRole("button", { name: "Done", exact: true }).click();
+  await expect(row("by_hand")).not.toHaveClass(/\bdraft\b/);
+  expect(await entriesLength(page)).toBe(entries + 1);
 });

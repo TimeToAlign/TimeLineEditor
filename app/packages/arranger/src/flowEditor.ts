@@ -18,18 +18,27 @@ import type {
   View,
 } from "@timetoalign/tilie-core";
 import {
+  assertNever,
   findTimeline,
   idAddress,
   inBlock,
   isAtomicSection,
   isComputedFlowMap,
-  parseAxisValue,
   snapOnRow,
   timelineAxisOf,
 } from "@timetoalign/tilie-core";
-import { exactCoordinate, Rational, toAxisValue, toFloat } from "@timetoalign/tilie-core/numbers";
+import {
+  exactCoordinate,
+  Rational,
+  readAxisValue,
+  toAxisValue,
+  toFloat,
+  toRational,
+} from "@timetoalign/tilie-core/numbers";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { DescriptorSource } from "@timetoalign/tilie-writers";
+import type { NumberType } from "@timetoalign/timetoshare";
+import { typedValue } from "./axisValues.ts";
 import { cardAxisAt } from "./cardAxis.ts";
 import { placeChanges, placeCommand } from "./items.ts";
 
@@ -230,24 +239,49 @@ export type Dragged =
       readonly end: AxisValue;
     };
 
-/** Whether two axis values are the same value as written. */
-function sameValue(left: AxisValue, right: AxisValue): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+/**
+ * The exact value of `value`, a value of an axis of number type
+ * `numberType` as a manifest writes it there, in any of its spellings
+ * (`[2, 4]` and `[1, 2]` alike): compared by value, never by spelling.
+ */
+export function exactValue(value: AxisValue, numberType: NumberType): Rational {
+  return toRational(readAxisValue(value, numberType));
 }
 
-/** Whether `value` is 0 as written. */
-const isZero = (value: AxisValue): boolean =>
-  Array.isArray(value) ? String(value[0]) === "0" : Number(value) === 0;
+/**
+ * Whether two lists of FlowMap entries are the same: the same IDs and gaps
+ * of the same length by value, in the same order, on an axis of number type
+ * `numberType`.
+ */
+export function sameEntries(
+  left: readonly FlowEntry[],
+  right: readonly FlowEntry[],
+  numberType: NumberType,
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((entry, index) => {
+      const other = right[index];
+      if (typeof entry === "string" || typeof other === "string" || other === undefined) {
+        return entry === other;
+      }
+      return exactValue(entry.gap, numberType).equals(exactValue(other.gap, numberType));
+    })
+  );
+}
 
 /**
- * The Region of the root `timeline` spanning it whole, the first in its
- * order; `null` where none does.
+ * The Region of the root `timeline` spanning it whole, from 0 to its
+ * length by value, the first in its order; `null` where none does.
  */
 function wholeRegionOf(timeline: TimelineManifest): string | null {
-  const { length } = timeline;
+  const { length, number_type: numberType } = timeline;
   if (length === null) return null;
+  const end = exactValue(length, numberType);
   const found = timeline.regions.find(
-    (region) => isZero(region.start) && sameValue(region.end, length),
+    (region) =>
+      exactValue(region.start, numberType).numerator === 0n &&
+      exactValue(region.end, numberType).equals(end),
   );
   return found?.id ?? null;
 }
@@ -289,12 +323,8 @@ export function writeFor(block: Block, root: string, dragged: Dragged): Command 
         virtual_timeline: { map: dragged.flowMap, timeline: root },
       };
     default:
-      return assertNoDragged(dragged);
+      return assertNever(dragged);
   }
-}
-
-function assertNoDragged(dragged: never): never {
-  throw new Error(`no such drag: ${JSON.stringify(dragged)}`);
 }
 
 /**
@@ -342,7 +372,7 @@ export function landedEntry(
     case "row":
       return virtualOf(after, root, dragged.flowMap);
     default:
-      return assertNoDragged(dragged);
+      return assertNever(dragged);
   }
 }
 
@@ -418,19 +448,15 @@ export function placeVirtualCommand(
 
 /**
  * The gap length typed as `text` on the axis of `root`, exact, as the
- * manifest writes it there (`parseAxisValue`): a decimal on a fraction axis
- * the value it denotes, on a float axis the nearest double; a message where
- * none fits or the length is not positive.
+ * manifest writes it there (`typedValue`); a message where none fits or
+ * the length is not positive.
  */
 export function gapValue(text: string, root: TimelineManifest): AxisValue | string {
-  const parsed = parseAxisValue(text, root.number_type);
-  if (!(parsed instanceof Rational)) return parsed.message;
-  if (parsed.numerator <= 0n) return `a gap is longer than 0: ${text.trim()}`;
-  const value = root.number_type === "float" ? toFloat(parsed) : parsed;
-  const exact = exactCoordinate(value, root.unit, root.number_type);
-  return exact === undefined
-    ? `${text.trim()} is no ${root.number_type} value of '${root.id}'`
-    : toAxisValue(exact);
+  const value = typedValue(text, root);
+  if (typeof value === "string") return value;
+  return exactValue(value, root.number_type).numerator > 0n
+    ? value
+    : `a gap is longer than 0: ${text.trim()}`;
 }
 
 /** The timeline `id` of `manifest` at any depth; `undefined` where none is. */
@@ -466,7 +492,7 @@ export function recomputeCommands(
   const held = flowMapsOf(manifest, root).filter(isComputedFlowMap);
   for (const flowMap of flowMapsOf(answer, root).filter(isComputedFlowMap)) {
     const same = held.find((item) => item.convention === flowMap.convention);
-    if (same !== undefined && JSON.stringify(same.chunks) === JSON.stringify(flowMap.chunks)) {
+    if (same !== undefined && sameEntries(same.chunks, flowMap.chunks, current.number_type)) {
       continue;
     }
     const { id, chunks, name, convention, canonical, provenance } = flowMap;
@@ -583,11 +609,4 @@ export function sweptValue(
   const value = found.number_type === "float" ? toFloat(snapped) : snapped;
   const exact = exactCoordinate(value, found.unit, found.number_type);
   return exact === undefined ? null : toAxisValue(exact);
-}
-
-/** Whether `left` lies before `right` on one axis, both as the manifest writes them. */
-export function before(left: AxisValue, right: AxisValue): boolean {
-  const value = (written: AxisValue): number =>
-    Array.isArray(written) ? Number(written[0]) / Number(written[1]) : Number(written);
-  return value(left) < value(right);
 }

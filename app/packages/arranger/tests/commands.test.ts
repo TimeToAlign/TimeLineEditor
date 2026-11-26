@@ -27,6 +27,7 @@ import {
   withGrid,
   withoutAncestorCards,
 } from "./support.ts";
+import { BY_HAND, DEFAULT, virtualView } from "./virtualCards.ts";
 
 /**
  * `bundle_mixed` at (40, 80) with `annotations` at `{x: −30, y: −20}`, its ancestor card hidden:
@@ -374,5 +375,73 @@ describe("addCommand", () => {
     expect([block.width, block.height]).toEqual([width, height]);
     expect(block.manifest).toEqual(bare);
     expect(block.index > blockIn(after, A).index).toBe(true);
+  });
+});
+
+describe("Delete on a virtual card", () => {
+  const view = virtualView();
+  const card = (id: string): Address => ({ block: A, id, part: ["card"] });
+  const hiding = (...changes: [string, object][]) => ({
+    type: "set",
+    changes: changes.map(([id, place]) => ({ target: { block: A, id }, values: { place } })),
+  });
+  const unplaced = { x: null, y: null };
+
+  it("hides it: its place unstated, its virtual timeline kept", () => {
+    const command = removeCommand(view, selectionOf([card(DEFAULT)]), null);
+    expect(command).toEqual(hiding([DEFAULT, unplaced]));
+    const after = blockIn(changed(view, command), A);
+    expect(Object.hasOwn(after.places, DEFAULT)).toBe(false);
+    expect((after.manifest.virtual_timelines ?? []).map((item) => item.id)).toEqual([
+      BY_HAND,
+      DEFAULT,
+      "allegro_single",
+    ]);
+  });
+
+  it("hides both cards in one set, and unstates every member of a place", () => {
+    expect(removeCommand(view, selectionOf([card(BY_HAND), card(DEFAULT)]), null)).toEqual(
+      hiding([BY_HAND, unplaced], [DEFAULT, unplaced]),
+    );
+    const wide = changed(view, {
+      type: "set",
+      changes: [{ target: { block: A, id: DEFAULT }, values: { place: { width: 300 } } }],
+    });
+    expect(removeCommand(wide, selectionOf([card(DEFAULT)]), null)).toEqual(
+      hiding([DEFAULT, { x: null, y: null, width: null }]),
+    );
+  });
+
+  it("removes the virtual timeline by its own address", () => {
+    expect(removeCommand(view, selectionOf([{ block: A, id: DEFAULT }]), null)).toEqual(
+      removing({ block: A, id: DEFAULT }),
+    );
+  });
+
+  it("refuses a card hidden beside an element deleted, and leaves a chunk out", () => {
+    expect(
+      removeCommand(view, selectionOf([card(DEFAULT), { block: A, id: "section_b" }]), null),
+    ).toEqual({
+      refused:
+        "Virtual cards are hidden apart from what is deleted; select the virtual cards alone to hide them.",
+    });
+    const chunkHint = {
+      refused: "A chunk is changed in its FlowMap; open the flow editor of its root to change it.",
+    };
+    const brace: Address = { block: A, id: DEFAULT, facet: "regions", part: [1] };
+    const label: Address = { block: A, id: DEFAULT, facet: "regions", part: [1, "label"] };
+    expect(removeCommand(view, selectionOf([brace]), null)).toEqual(chunkHint);
+    expect(removeCommand(view, selectionOf([label]), null)).toEqual(chunkHint);
+    expect(removeCommand(view, selectionOf([brace, { block: A, id: "section_b" }]), null)).toEqual(
+      removing({ block: A, id: "section_b" }),
+    );
+  });
+
+  it("leaves a virtual member's card in its frame alone", () => {
+    const member = viewOf({ id: A, fixture: "groups/virtual_member" });
+    expect(removeCommand(member, selectionOf([card(DEFAULT)]), null)).toEqual({
+      refused:
+        "A virtual card in a frame is not hidden; delete its virtual timeline in the Properties tab.",
+    });
   });
 });

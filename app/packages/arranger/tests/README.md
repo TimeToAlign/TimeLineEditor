@@ -789,6 +789,33 @@ five flow-control elements stay, in their order (`jump_target_1`, `jump_target_2
 along: `{A: jump_1, A: flow:quarters}` gives `[A: flow:quarters]`,
 which leaves no timeline.
 
+**A virtual card is hidden, never deleted** (`commands.test.ts`). On
+`flow/virtual_cards` with `allegro_default` placed at (0, 200) and
+`allegro_by_hand` at (0, 400) (each one `set` of its place), Delete on the
+card `{A: allegro_default [card]}` stores one `set` unstating every member
+of its stated place, `{type: "set", changes: [{target: {block: A, id:
+"allegro_default"}, values: {place: {x: null, y: null}}}]}`; core applies
+it, `places` no longer holds `allegro_default` and `virtual_timelines`
+still holds all three. Both cards selected give one `set` with one change
+each, in selection order. A place stating more members (`allegro_default`
+also given `width: 300`) unstates each: `{x: null, y: null, width:
+null}`. The virtual timeline's own address `{A: allegro_default}` (its
+line) is removed, `remove` [`A: allegro_default`], as any element is; the
+Properties tab offers the same as "Delete virtual timeline" (the editor's
+README). A virtual card hidden beside an element deleted is refused whole
+with `Virtual cards are hidden apart from what is deleted; select the
+virtual cards alone to hide them.`: `{A: allegro_default [card], A:
+section_b}`. A chunk, `{A: allegro_default [regions] [1]}` (its brace) or
+its label `[1, label]`, is changed in its FlowMap, never deleted on the
+canvas: alone it is refused with `A chunk is changed in its FlowMap; open
+the flow editor of its root to change it.`, beside `section_b` it is
+left out (`remove` [`A: section_b`]). On `groups/virtual_member` the
+card of `allegro_default` in `performance`'s frame has no place of its
+own to unstate: alone it is refused with `A virtual card in a frame is
+not hidden; delete its virtual timeline in the Properties tab.`. A
+selected virtual card takes nothing away (below): `{allegro_default
+[card]}` affects nothing.
+
 **What a deletion also takes away** is highlighted before it happens. The
 rule reads the manifest alone: the owners are the IDs the selected
 element addresses carry (the title carries none, a band is no owner, nor
@@ -2451,7 +2478,10 @@ is a line, a brace, a label, a leader or a boundary of the row's virtual
 card.
 
 **What each action stores** (`FlowEditorSession` on a store opened in
-`allegro`'s flow editor), each command compared whole:
+`allegro`'s flow editor), each command compared whole. The **edited row**
+is the new FlowMap's (Add +) or a hand-made FlowMap's (`edit`); one row at
+a time is edited, with its own Done and Cancel, and every gesture below
+acts on it, whichever it is:
 
 1. Without the new row (Add +), a drop stores nothing and says "Add a new
    FlowMap (Add +) to drop into it"; Add + stores nothing.
@@ -2464,7 +2494,10 @@ card.
 4. Dropping the card's own line (the whole root) at the end: first `{type:
    "add", into: {block: A, id: "allegro"}, region: {start: [0, 1], end: [1644,
    1]}}` (0 written in the axis's number type), then the `set` with the new Region R appended; the root dropped
-   again lands as R and stores the `set` alone.
+   again lands as R and stores the `set` alone. A Region over the whole
+   root is found by value, never by spelling: with a Region `whole`
+   written `[0, 2]` to `[3288, 2]` on `allegro` (its length `[1644, 1]`),
+   the root lands as `whole` and nothing more is written.
 5. Dropping the row `printed`, which no virtual timeline applies: `{type:
    "add", into: {block: A}, virtual_timeline: {map: "printed", timeline:
    "allegro"}}`, then the `set` with the new virtual timeline appended;
@@ -2473,7 +2506,10 @@ card.
    (`[section_b, section_a, …]`), Alt copies it there
    (`[section_a, section_b, section_a, …]`); removing entry 0 drops it.
 7. "+ Gap" `4` stores a gap `{gap: [4, 1]}` at the end; `0` says "a gap
-   is longer than 0: 0", `x` the parser's message, and nothing is stored.
+   is longer than 0: 0", `-4` "a gap is longer than 0: -4", `x` the
+   parser's message, and nothing is stored. The text is read by the one
+   reader of a typed axis value, `typedValue`, which the inspector's
+   fields import from this package.
 8. The new row's Cancel undoes every step since Add + (the store's
    entries back to their count at Add +, the Regions and virtual
    timelines written for it gone, `allegro`'s FlowMaps as before) and
@@ -2482,6 +2518,34 @@ card.
    it writes: `{type: "add", into: {block: A, id: "allegro"}, region:
    {start: [10, 1], end: [20, 1]}}` for the stretch [10, 20], then the FlowMap's
    `add`.
+12. **A hand-made row edited.** `edit` makes `by_hand` the edited row (its
+    FlowMap `by_hand` from the start, its mark the session's entries then)
+    and refuses the computed `default` (read only) and a second row while
+    one is edited. On it: moving entry 5 (C) before 0 stores `set
+    by_hand` with `[section_c, section_a, section_a, section_a, section_a,
+    {gap: [4, 1]}]`; Alt copies entry 1 to before 1 (five As); removing
+    entry 6 (the gap by then) drops it; dropping `section_b` from the card
+    lands it at the end; "+ Gap" `2` appends `{gap: [2, 1]}`. Removing
+    entry 4 of `by_hand` as written (its gap) and Done keep `[section_a ×
+    4, section_c]`, one more entry in the session. Each change is one `set`
+    of `chunks` (Done keeps them, as for the new row). Its Cancel undoes
+    every one of them: the store's entries back to the mark and `by_hand`
+    as written; its Done keeps them and ends the edit. Moving an entry to
+    where it is (`move(0, 0)`, `move(0, 1)`) stores nothing: the entries
+    are compared by value (a gap `[8, 2]` and `[4, 1]` are one length).
+
+**Findings** are asked of the server only from a handler: when the flow
+editor opens (the canvas's `openEditor`) and after Recompute; the pane's
+rows read the answer kept for the root (`findingsOf`), which never asks.
+With a server answering `{default: ["one"]}`, `findingsOf` is empty
+before `askFindings` and `{default: ["one"]}` after it, with no further
+request however often it is read; Recompute asks once more; a failed
+request keeps none. On the canvas (`flow-editor-pane.test.ts`, a server
+answering `{default: ["one"]}`), Enter on the selected repeat sign
+`{id: "repeat_end", part: ["symbol"]}`, an element the flow control band
+draws, opens the flow editor and sends the request once; the row
+`default` shows the chip "1 finding"; Add + and an entry landed by Enter
+change the manifest and send none, the chip kept.
 10. A row placed as a card at (120, 400): its virtual timeline written
     where none is (`printed`), then one `set` of exactly one change,
     `{target: {block: A, id: V}, values: {place: {x: 120, y: 400}}}` (the
@@ -2515,7 +2579,8 @@ flies back. An entry lands before the first drawn entry whose middle lies
 right of the pointer (`dropIndex`), else at the end.
 
 **The pane on the canvas** (`flow-editor-pane.test.ts`, the canvas in
-jsdom on that store): opening the flow editor shows the pane with four
+jsdom on that store, the viewport at the identity, so a client point is
+a canvas point; block A at (40, 80), scale 1, the grid 8 and snapping): opening the flow editor shows the pane with four
 rows in the order above and Recompute disabled, saying "Recomputing needs
 a server", with no server; Add + shows the new row with Done and Cancel;
 Enter on entry 0 of `default` lands it (the `add` of item 2's form with
@@ -2524,10 +2589,18 @@ distance and released over the pane but outside the new row writes
 nothing (the twin flies back), and released on the new row lands the
 Region; Escape during a drag writes nothing; the new row's Cancel leaves
 the store's entries as they were at Add +. The row `printed` lifted by its
-name and released inside the pane flies back and stores nothing; released
-past the editor's right border (the pane from x 0 to 800 on screen) it
-stores its virtual timeline's `add` and its place's `set`, two entries,
-and the new virtual timeline then has a place.
+name and released inside the pane flies back and stores nothing; carried
+past the editor's right border (the pane from x 0 to 800 on screen) and
+brought back inside before the release it flies back too and stores
+nothing (the release decides, never the path); released past the border
+at (900, 340), pressed at (100, 300) with the row's drawing lying at
+(0, 0) on screen (jsdom lays nothing out), it stores its virtual
+timeline's `add` and its place's `set`, two entries, and the new virtual
+timeline's place is the twin's top left `(900 − 100, 340 − 300)` less the
+block's (40, 80), each rounded to the grid's 8: exactly `{x: 760, y:
+-40}`. A hand-made row's Edit button makes it the edited row (class
+`draft`, its Done and Cancel shown, no Edit button left on any row);
+computed rows have none.
 
 ## The editor's viewport (`focus.test.ts`)
 
@@ -4912,16 +4985,29 @@ h + 4` screen pixels above the box, `h` the mode menu's measured height,
 **The switch's motion.** Where a card becomes switched its chunks move from
 their written stretch on the card's line to their brace on the virtual
 axis (`switchMorphs`); between two drawings of the same manifest nothing
-moves. A moving brace or boundary at progress `t` is stretched onto the
+moves (the switched drawing against itself). `flow/switched_card` drawn as written (its rule's `flow` removed
+by the switch's own command) and as switched moves four chunks, in chunk
+order, `default`'s A B A C, each its elements in the switched drawing
+(every element addressed `{id: "allegro", facet: "regions", part: [k,
+…]}`, in drawing order: its brace `[k]`, from k = 1 its boundary `[k,
+"start"]`, its label `[k, "label"]`), from its written stretch on the as-written card's line
+(`xs + (s / 1644) × 400` to the same of `e`, the line's `xs` and its 400
+units as drawn, layout's `abscissaOf`) to its brace on the switched line
+(`x(t) = x0 + 400 × u`, `x0` that line's start, `u = t / (4241/2)`,
+layout's README, Switched cards, 2): A from `[0, 953/2]` to `[x(0),
+x(953/2)]`, B from `[953/2, 500]` to `[x(953/2), x(500)]`, A again from
+`[0, 953/2]` to `[x(500), x(1953/2)]`, C from `[500, 1644]` to
+`[x(1953/2), x(4241/2)]`. A moving brace or boundary at progress `t` is stretched onto the
 span `from + (to − from) × t`: `matrix(s 0 0 1 x1(t) − to.x1 × s 0)`, `s` the
 span's width at `t` over `to`'s; a text moves by its span's middle; at
-`t = 1` nothing. Which elements a switched drawing moves is pinned once the
-switched card is drawn by layout.
+`t = 1` nothing.
 
 ## Package (`name.test.ts`)
 
 The package exports its exact name `"@timetoalign/tilie-arranger"`; its
-surface is `Canvas`, `liveStore`, `addCommand`, the selection helpers
+surface is `Canvas`, `liveStore`, `addCommand`, the readers of a typed
+axis value `axisValueAt` and `typedValue` (the inspector's fields and the
+flow editor's "+ Gap" share them), the selection helpers
 `resolveSelection`, `blockOf`, `existing`, `editedSelection`,
 `selectionOf`, `isSelected` and `NOTHING_SELECTED`, the key helpers
 `isTextInput` and `within`, `drawingOf`, `styleLayers`, `placeChange`

@@ -46,6 +46,7 @@ import type {
   Holding,
   Manifest,
   PlaceKey,
+  RemoveCommand,
   ResolvedAddress,
   SetCommand,
   View,
@@ -290,6 +291,20 @@ export function regionRows(subjects: readonly Subject[]): readonly PropertyRow[]
   const [first, ...others] = subjects.map((subject) => regionIn(subject.resolved));
   if (first === undefined || first === null) return null;
   return others.every((other) => other?.id === first.id) ? first.rows : null;
+}
+
+/**
+ * The `remove` deleting the one virtual timeline the subjects name, by its
+ * own address or by its card's: its statement withdrawn, its FlowMap kept
+ * (the Properties tab's "Delete virtual timeline"; Delete on the canvas
+ * only hides a virtual card). `null` for any other selection.
+ */
+export function virtualDeletionOf(subjects: readonly Subject[]): RemoveCommand | null {
+  const [subject, ...others] = subjects;
+  if (subject === undefined || others.length > 0) return null;
+  const { resolved } = subject;
+  if (resolved.kind !== "virtual_timeline" && resolved.kind !== "virtual_card") return null;
+  return { type: "remove", targets: [inBlock(resolved.block.id, idAddress(resolved.virtual.id))] };
 }
 
 /**

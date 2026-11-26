@@ -27,7 +27,8 @@ function drawnAddresses(manifest: Manifest): ElementAddress[] {
  * left out: they show as selected. A band is never removed, so a selected
  * band takes nothing away, and draws nothing, so no band is affected. A
  * flow-control element is never removed either (it is rejected), so a
- * selected one, or a part of one, takes nothing away.
+ * selected one, or a part of one, takes nothing away; nor is a virtual
+ * timeline by its selected card, which Delete hides.
  * Neither is the element an open editor edits, `edited` (its ID in
  * `manifest`, `null` for none): Delete never removes it, so selecting it, or
  * a part of it, takes nothing away.
@@ -41,9 +42,18 @@ export function affectedBy(
     const resolved = resolveElement(manifest, idAddress(id));
     return resolved?.kind === "entry" && resolved.entry === "flow_control";
   };
-  const owners = [...selected.values()].flatMap(({ id, facet }) =>
-    id === undefined || facet !== undefined || id === edited || isFlowControl(id) ? [] : [id],
-  );
+  const isVirtualCard = (address: ElementAddress): boolean =>
+    resolveElement(manifest, address)?.kind === "virtual_card";
+  const owners = [...selected.values()].flatMap((address) => {
+    const { id, facet } = address;
+    return id === undefined ||
+      facet !== undefined ||
+      id === edited ||
+      isFlowControl(id) ||
+      isVirtualCard(address)
+      ? []
+      : [id];
+  });
   const removed = removedBy(manifest, owners);
   if (removed.size === 0) return new Set();
   const addresses = [...drawnAddresses(manifest), ...[...removed].map(idAddress)];

@@ -15,7 +15,9 @@
  * marks are selected with it. A selected band shows its display toggles
  * below its rows, and a region its start, end and length. A selected
  * timeline card (the card, its line, or one of its bands alone) lists its
- * bands with a Visible checkbox each (`BandList`).
+ * bands with a Visible checkbox each (`BandList`). One selected virtual
+ * timeline, or its card, offers "Delete virtual timeline", which removes
+ * it (Delete on the canvas only hides its card).
  */
 import type {
   Editing,
@@ -25,7 +27,15 @@ import type {
   Subject,
 } from "@timetoalign/tilie-arranger";
 import { liveStore } from "@timetoalign/tilie-arranger";
-import type { AddCommand, Address, Block, SetCommand, Store, View } from "@timetoalign/tilie-core";
+import type {
+  AddCommand,
+  Address,
+  Block,
+  RemoveCommand,
+  SetCommand,
+  Store,
+  View,
+} from "@timetoalign/tilie-core";
 import { sameAddress } from "@timetoalign/tilie-core";
 import type { Attachment } from "svelte/attachments";
 import { postOf } from "../messages.svelte.ts";
@@ -46,6 +56,7 @@ import {
   nameOf,
   regionRows,
   shownOf,
+  virtualDeletionOf,
 } from "./properties.ts";
 import type { PropertyDrafts } from "./propertyDrafts.svelte.ts";
 
@@ -139,6 +150,15 @@ const memberships = $derived(
 const newGroup = $derived(
   block === null ? null : newGroupOf(view, inspected, editing, store.minter()),
 );
+
+/** The `remove` deleting the one selected virtual timeline; else `null`. */
+const virtualDeletion = $derived(virtualDeletionOf(subjects));
+
+/** Delete the selected virtual timeline, posting the store's refusal. */
+function deleteVirtual(command: RemoveCommand): void {
+  const refusal = store.dispatch(command);
+  if (refusal !== null) post("info", refusal.message);
+}
 
 /** A refusal of the store, and the selection it was refused for. */
 interface MembershipRefusal {
@@ -402,6 +422,12 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
 {#if memberships !== null || newGroup !== null}
   <p class="problem" role="status">{membershipProblem ?? ""}</p>
 {/if}
+{#if virtualDeletion !== null}
+  {@const remove = virtualDeletion}
+  <button type="button" class="delete-virtual" onclick={() => deleteVirtual(remove)}
+    >Delete virtual timeline</button
+  >
+{/if}
 
 <style>
   .hint {
@@ -516,7 +542,8 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     cursor: not-allowed;
   }
 
-  .new-group {
+  .new-group,
+  .delete-virtual {
     display: block;
     margin-top: 0.5rem;
     font: inherit;

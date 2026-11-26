@@ -1,5 +1,13 @@
 <script lang="ts">
-import type { Address, Command, Granularity, Manifest, Pin, Store } from "@timetoalign/tilie-core";
+import type {
+  Address,
+  Command,
+  Granularity,
+  Manifest,
+  OpenEditor,
+  Pin,
+  Store,
+} from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
@@ -335,13 +343,15 @@ const nodes = new CanvasNodes(
 
 // --- The flow editor ---------------------------------------------------------
 
+/** The flow editor `editor` is, where it is one; `null` otherwise. */
+function flowTargetOf(editor: OpenEditor | undefined): FlowTarget | null {
+  if (editor?.kind !== "flow" || editor.target.id === undefined) return null;
+  const { block } = addressParts(editor.target);
+  return { session: editor.session, block, root: editor.target.id };
+}
+
 /** The open flow editor: the innermost editor where it is one; `null` otherwise. */
-const flowTarget: FlowTarget | null = $derived.by(() => {
-  const innermost = live.editing.at(-1);
-  if (innermost?.kind !== "flow" || innermost.target.id === undefined) return null;
-  const { block } = addressParts(innermost.target);
-  return { session: innermost.session, block, root: innermost.target.id };
-});
+const flowTarget: FlowTarget | null = $derived(flowTargetOf(live.editing.at(-1)));
 
 const flowSession = new FlowEditorSession({
   store: () => store,
@@ -358,11 +368,7 @@ const flowNode = $derived(flowTarget === null ? undefined : nodes.byId.get(flowT
 const flowPane = $derived.by(() => {
   if (flowTarget === null || flowNode === undefined) return null;
   const { block, drawing } = flowNode.data;
-  const rows = flowRows(
-    block.manifest,
-    flowTarget.root,
-    flowSession.findingsOf(block.manifest, flowTarget.root),
-  );
+  const rows = flowRows(block.manifest, flowTarget.root, flowSession.findingsOf(flowTarget));
   return flowPaneOf(block, drawing, view.graphical, metrics, flowTarget.root, rows);
 });
 
@@ -517,11 +523,19 @@ function dispatch(command: unknown): boolean {
   return error === null;
 }
 
-/** Open the editor `target` opens: a root's flow control band, its root's flow editor (`editorOf`). */
+/**
+ * Open the editor `target` opens: a root's flow control band, its root's
+ * flow editor (`editorOf`), whose findings are then asked of the server.
+ */
 function openEditor(target: Address): void {
   const opened = editorOf(target);
   const error = store.open(opened.target, opened.kind);
-  if (error !== null) onrefuse?.(error.message);
+  if (error !== null) {
+    onrefuse?.(error.message);
+    return;
+  }
+  const flow = flowTargetOf(store.editing.at(-1));
+  if (flow !== null) void flowSession.askFindings(flow);
 }
 
 setNodeActions({

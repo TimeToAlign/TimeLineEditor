@@ -3,23 +3,25 @@
  * The flow subeditor's pane, folded out under the edited card: one row per
  * FlowMap of the root, each drawn as its virtual timeline on the card's
  * scale (`flowPaneOf`), its name where a card has its name and its chips
- * above its line; Add + and Recompute in its head; the new FlowMap's row
- * with its own Done and Cancel, "+ Gap" and the card's elements to insert
- * without a pointer. The pane scrolls on its own when it is wider than the
- * canvas right of the card; the card does not move. Drags carry the card's
- * elements, a row's entries and whole rows into the new row, within it, or
- * (a row) onto the canvas as a card of its own (`gestures/flowDrag.ts`).
+ * above its line; Add + and Recompute in its head; the edited row (a new
+ * FlowMap's, or a hand-made one's, chosen by a press or Enter on one of its
+ * entries or by its Edit button) with its own Done and Cancel, "+ Gap" and
+ * the card's elements to insert without a pointer; computed rows stay read
+ * only. The pane scrolls on its own when it is wider than the canvas right
+ * of the card; the card does not move. Drags carry the card's elements, a
+ * row's entries and whole rows into the edited row, within it, or (a row)
+ * onto the canvas as a card of its own (`gestures/flowDrag.ts`).
  * An overlay of the canvas: nothing in it is part of the drawing.
  */
 import type { Block, Granularity } from "@timetoalign/tilie-core";
-import { assertNever } from "@timetoalign/tilie-core";
+import { assertNever, findTimeline } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { Viewport } from "@xyflow/svelte";
 import { ViewportPortal } from "@xyflow/svelte";
 import { isAffordance } from "./boxes.ts";
 import type { Draft, FlowEditorSession, FlowTarget } from "./flowEditor.svelte.ts";
 import type { Dragged, FlowEntry } from "./flowEditor.ts";
-import { before, cardChoices, cardPress, entryText, sweptValue } from "./flowEditor.ts";
+import { cardChoices, cardPress, entryText, exactValue, sweptValue } from "./flowEditor.ts";
 import type { FlowPane, PaneRow } from "./flowEditorRows.ts";
 import { EMPTY_DRAFT, PANE_GAP, PANE_HEAD, paneHeight, ROW_HEAD } from "./flowEditorRows.ts";
 import type { GestureSlot, Point } from "./gesture.ts";
@@ -87,11 +89,10 @@ const rootName = $derived(
 );
 const choices = $derived(cardChoices(manifest, target.root));
 
-/** The rows as drawn, the new FlowMap's last, written or not. */
+/** The edited row as drawn, once its FlowMap is written; `null` otherwise. */
 const draftRow = $derived(
   draft?.flowMap == null ? null : (pane.rows.find((row) => row.row.id === draft.flowMap) ?? null),
 );
-const others = $derived(pane.rows.filter((row) => row !== draftRow));
 
 /** The pane's height in drawing units: its head, every row and the new row's place. */
 const height = $derived(paneHeight(pane, draft !== null && draft.flowMap === null));
@@ -286,8 +287,11 @@ export function pressCard(event: PointerEvent): boolean {
           const value = (x: number) =>
             sweptValue(block, drawing, pane.key, pressed.timeline, x, pixel, granularity);
           const [a, b] = [value(start.x), value(end.x)];
-          if (a === null || b === null || JSON.stringify(a) === JSON.stringify(b)) return;
-          const [from, to] = before(a, b) ? [a, b] : [b, a];
+          const numberType = findTimeline(manifest, pressed.timeline)?.number_type;
+          if (a === null || b === null || numberType === undefined) return;
+          const order = exactValue(a, numberType).compare(exactValue(b, numberType));
+          if (order === 0) return;
+          const [from, to] = order < 0 ? [a, b] : [b, a];
           session.land(target, { kind: "sweep", timeline: pressed.timeline, start: from, end: to });
         },
         abort() {
@@ -361,12 +365,21 @@ function placeBelow(row: PaneRow): void {
   session.place(target, row.row.id, x, y);
 }
 
-/** The keys of an entry: in the new row Alt+arrows move it, D copies it, Delete removes it; elsewhere Enter inserts it. */
+/**
+ * The keys of an entry: in the edited row Alt+arrows move it, D copies it,
+ * Delete removes it; elsewhere Enter inserts it into the edited row, or,
+ * with none edited, makes a hand-made row the edited one.
+ */
 function entryKey(event: KeyboardEvent, row: PaneRow, index: number): void {
   const entry = row.row.entries[index];
   if (entry === undefined) return;
   const own = row === draftRow;
   let acted = false;
+  if (draft === null && (event.key === "Enter" || event.key === " ")) {
+    edit(row);
+    event.preventDefault();
+    return;
+  }
   if (own && event.altKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
     acted = session.move(target, index, event.key === "ArrowLeft" ? index - 1 : index + 2, false);
   } else if (own && (event.key === "d" || event.key === "D")) {
@@ -377,6 +390,11 @@ function entryKey(event: KeyboardEvent, row: PaneRow, index: number): void {
     acted = session.land(target, { kind: "entry", entry, from: { flowMap: row.row.id, index } });
   }
   if (acted || event.key === "Enter" || event.key === " ") event.preventDefault();
+}
+
+/** A press (a click, no drag) on a row's entry, or its Edit button: a hand-made row becomes the edited one. */
+function edit(row: PaneRow): void {
+  if (draft === null && !row.row.computed) session.edit(target, row.row.id);
 }
 
 /** The label an entry is announced by. */
@@ -416,7 +434,7 @@ function onwheel(event: WheelEvent): void {
     viewBox="{row.viewBox.x} {row.viewBox.y} {pane.width} {row.viewBox.height}"
     aria-hidden="true"
   >
-    {#each row.items as item (item.key)}
+    {#each row.items as item (item.index)}
       <svelte:element this={item.tag} {...item.attributes}>{item.text}</svelte:element>
     {/each}
   </svg>
@@ -450,6 +468,8 @@ function onwheel(event: WheelEvent): void {
             onclick={() => session.land(target, { kind: "row", flowMap: row.row.id })}
             >Insert</button
           >
+        {:else if !row.row.computed}
+          <button type="button" onclick={() => edit(row)}>Edit</button>
         {/if}
         <button type="button" onclick={() => placeBelow(row)}>Place as card</button>
       {/if}
@@ -478,6 +498,10 @@ function onwheel(event: WheelEvent): void {
             style:width="{Math.max(span.x2 - span.x1, 2) * s}px"
             style:height="{row.viewBox.height * s}px"
             onpointerdown={(event) => pressEntry(event, row, span.index)}
+            onclick={(event) => {
+              // Enter on a focused button also clicks it; the key has acted already.
+              if (event.detail > 0) edit(row);
+            }}
             onkeydown={(event) => entryKey(event, row, span.index)}
           ></button>
         {/if}
@@ -514,12 +538,10 @@ function onwheel(event: WheelEvent): void {
       {/if}
     </div>
     <ul style:width="{pane.width * s}px">
-      {#each others as row (row.row.id)}
-        {@render drawnRow(row, false)}
+      {#each pane.rows as row (row.row.id)}
+        {@render drawnRow(row, row === draftRow)}
       {/each}
-      {#if draftRow !== null}
-        {@render drawnRow(draftRow, true)}
-      {:else if draft !== null}
+      {#if draft !== null && draft.flowMap === null}
         <li
           class="row draft empty"
           aria-label="New FlowMap"
@@ -598,7 +620,7 @@ function onwheel(event: WheelEvent): void {
         height={lifted.viewBox.height * s * viewport.zoom}
         viewBox="{lifted.viewBox.x} {lifted.viewBox.y} {pane.width} {lifted.viewBox.height}"
       >
-        {#each lifted.items as item (item.key)}
+        {#each lifted.items as item (item.index)}
           <svelte:element this={item.tag} {...item.attributes}>{item.text}</svelte:element>
         {/each}
       </svg>
