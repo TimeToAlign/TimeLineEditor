@@ -138,6 +138,78 @@ describe("FlowMaps", () => {
     }
   });
 
+  it("replaces a computed FlowMap by a recomputation, with the lengths playing it", () => {
+    const computed = {
+      chunks: ["region_1", "region_2", "region_3"],
+      provenance: [{ method: "inferred" }],
+    };
+    const lengthOf = (view: View, id: string) =>
+      manifestOf(view).virtual_timelines?.find((item) => item.id === id)?.length;
+    const recomputed = changed(sonata(), set(at("flow_map_1"), { computed }));
+    const flowMap = valid(recomputed).flow_maps?.find((item) => item.id === "flow_map_1");
+    expect(flowMap).toMatchObject({ ...computed, convention: "default", name: null });
+    expect(lengthOf(recomputed, "virtual_1")).toEqual([24, 1]);
+
+    const twice = changed(
+      changed(sonata(), addFlowMap("score", { chunks: ["virtual_1", "virtual_1"] }, ["twice"])),
+      addVirtual({ map: "twice", timeline: "score" }, ["twice_card"]),
+    );
+    expect(lengthOf(twice, "twice_card")).toEqual([72, 1]);
+    const store = storeOf(twice);
+    expect(store.dispatch(set(at("flow_map_1"), { computed }))).toBeNull();
+    valid(store.view);
+    expect(lengthOf(store.view, "virtual_1")).toEqual([24, 1]);
+    expect(lengthOf(store.view, "twice_card")).toEqual([48, 1]);
+    store.undo();
+    expect(lengthOf(store.view, "virtual_1")).toEqual([36, 1]);
+    expect(lengthOf(store.view, "twice_card")).toEqual([72, 1]);
+
+    expect(refused(apply(recomputed, set(at("flow_map_1"), { computed })))).toEqual({
+      code: "invalid_value",
+      path: [key(at("flow_map_1")), "computed"],
+      message: "the command changes nothing",
+    });
+    const manual = { ...computed, provenance: [{ method: "manual" }] };
+    expect(refused(apply(sonata(), set(at("flow_map_1"), { computed: manual })))).toEqual({
+      code: "invalid_value",
+      path: [key(at("flow_map_1")), "computed", "provenance"],
+      message:
+        "a computed value of FlowMap 'flow_map_1' carries a provenance entry of method inferred",
+    });
+    const bare = { chunks: computed.chunks };
+    expect(refusal(apply(sonata(), set(at("flow_map_1"), { computed: bare })))).toEqual({
+      code: "invalid_value",
+      path: [key(at("flow_map_1")), "computed", "provenance"],
+    });
+    expect(refused(apply(byHand(), set(at("flow_map_1"), { computed })))).toEqual({
+      code: "invalid_value",
+      path: [key(at("flow_map_1")), "computed"],
+      message:
+        "FlowMap 'Encore order' is not computed from flow control: its chunks are set as chunks",
+    });
+  });
+
+  it("writes the length of a virtual timeline playing a hand-made FlowMap whose chunks change", () => {
+    const view = changed(
+      byHand(),
+      addVirtual({ map: "flow_map_1", timeline: "set" }, ["encore_card"]),
+    );
+    expect(manifestOf(view).virtual_timelines?.[0]?.length).toEqual([24, 1]);
+    const twice = changed(view, set(at("flow_map_1"), { chunks: ["first", "first"] }));
+    expect(valid(twice).virtual_timelines?.[0]?.length).toEqual([16, 1]);
+  });
+
+  it("admits a recomputation inside the flow editor of the root", () => {
+    const store = storeOf(sonata());
+    expect(store.open(at("score"), "flow")).toBeNull();
+    const computed = { chunks: ["region_1", "region_3"], provenance: [{ method: "inferred" }] };
+    expect(store.dispatch(set(at("flow_map_1"), { computed }))).toBeNull();
+    expect(
+      store.view.blocks[A]?.manifest.virtual_timelines?.find((item) => item.id === "virtual_1")
+        ?.length,
+    ).toEqual([20, 1]);
+  });
+
   it("refuses to remove a FlowMap a virtual timeline applies", () => {
     const view = sonata();
     expect(refused(apply(view, { type: "remove", targets: [at("flow_map_1")] }))).toEqual({

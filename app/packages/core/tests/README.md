@@ -6272,6 +6272,29 @@ never a spelled-out random literal.
    `schema_violation` at `[<address key of the FlowMap>, "chunks", k]`.
    Every `set` on a computed FlowMap (`flow_map_2`) is `computed_flow_map`
    at `[<its address key>, <property>]`.
+   **Recomputing.** A computed FlowMap takes only a new computation's
+   result, `set {computed: {chunks, provenance}}`, and a change of any
+   FlowMap's chunks writes, in the same command, the played length of
+   every virtual timeline that plays them; the validators refuse a stored
+   length that is not the played one, so a valid manifest after the
+   command proves the lengths, and the exact values below prove which
+   were written. On `sonata_exposition`, `computed: {chunks: [region_1,
+   region_2, region_3], provenance: [{method: inferred}]}` on
+   `flow_map_1` (`default`, applied by `virtual_1`, 36 quarters) stores
+   those chunks with `convention: default` and `name: null` kept, and
+   `virtual_1`'s length `[24, 1]` (12 + 4 + 8); with a FlowMap `twice`
+   (chunks `virtual_1, virtual_1`) and its virtual timeline `twice_card`
+   (72 quarters) added first, the same command also writes `twice_card`'s
+   length `[48, 1]`: the lengths follow through a chunk that is a virtual
+   timeline. Undo restores 36 and 72. The same value again is "the command
+   changes nothing"; a provenance without an `inferred` entry (`[{method:
+   manual}]`) is `invalid_value` at `[<key>, "computed", "provenance"]`; a
+   value without `provenance` `invalid_value` there too; `computed` on the
+   hand-made FlowMap of `flow_map_by_hand` is `invalid_value` at `[<key>,
+   "computed"]`. On `flow_map_by_hand`, with a virtual timeline `encore_card`
+   applying `flow_map_1` (24 quarters: 12 + 4 + 8) added first, `set
+   {chunks: [first, first]}` writes its length `[16, 1]`. Inside the flow
+   editor of `score`, `set {computed}` on `flow_map_1` is accepted.
 2. **Virtual timelines.** `add {into: <block>, virtual_timeline: {map:
    flow_map_2, timeline: score, name: "As played once"}}` with `ids:
    [single_card]` leaves the entry with unit `quarters`, number type

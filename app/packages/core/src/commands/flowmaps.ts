@@ -8,8 +8,11 @@
  * and the TimeToShare validators (`readInPlace`), so a chunk naming the root
  * itself or nothing of its tree is refused as the validators refuse it. A
  * FlowMap computed from the flow control of its timeline (a `convention`
- * and a provenance entry of method `inferred`) is read only:
- * `computed_flow_map`. The IDs a value leaves out are given by the
+ * and a provenance entry of method `inferred`) refuses a `set` of its
+ * members (`computed_flow_map`) and takes only a new computation's result,
+ * `set {computed: {chunks, provenance}}`. A change of a FlowMap's chunks
+ * writes the new length of every virtual timeline playing it in the same
+ * command. The IDs a value leaves out are given by the
  * command's `ids` (`ChangeSet.ids`): a FlowMap's of prefix `flow`, a
  * virtual timeline's of the prefix of its unit's timeline class.
  */
@@ -18,14 +21,14 @@ import { numberTypeOf } from "@timetoalign/timetoshare";
 import type { CommandError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
-import { compareCodePoints } from "../json.ts";
+import { compareCodePoints, isJsonObject } from "../json.ts";
 import { addressKey } from "../manifest/address.ts";
 import { isUnit, timelineClass } from "../manifest/elements.ts";
 import { FlowMapError, resolveFlowMap } from "../manifest/flowmaps.ts";
 import { readOnAxis } from "../manifest/invariants.ts";
 import { readInPlace } from "../manifest/io.ts";
 import { findTimeline } from "../manifest/tree.ts";
-import type { FlowMap, Manifest, VirtualTimeline } from "../manifest/types.ts";
+import type { FlowMap, Manifest, TimelineManifest, VirtualTimeline } from "../manifest/types.ts";
 import { resolveVirtualTimeline } from "../manifest/virtual.ts";
 import { compileMap } from "../maps/compile.ts";
 import type { Coordinate } from "../number/coordinate.ts";
@@ -200,7 +203,128 @@ function computedProblem(target: FlowMapTarget, path: readonly PathSegment[]) {
   );
 }
 
-/** A FlowMap's member set to `next`, read where it lies (`readListed`), unless it holds `next` already. */
+/**
+ * Whether `chunks`, a FlowMap's value given to a command for the root
+ * `root`, can be resolved for its played length: a list of IDs and gaps,
+ * each gap's length a value of the root's axis. Anything else the schema
+ * refuses when the manifest is read.
+ */
+function resolvable(chunks: unknown, root: TimelineManifest | undefined): boolean {
+  return (
+    root !== undefined &&
+    Array.isArray(chunks) &&
+    chunks.every(
+      (chunk) =>
+        typeof chunk === "string" ||
+        (isJsonObject(chunk) && !isCommandError(readOnAxis(chunk.gap, root, []))),
+    )
+  );
+}
+
+/**
+ * The virtual timelines of `manifest` with the length the FlowMap each
+ * applies now plays, `flowMap` being the FlowMap just given: every virtual
+ * timeline applying a FlowMap of its own root without `through` (the chunks
+ * that are virtual timelines resolved in turn) takes `resolveFlowMap`'s
+ * length; any other, or one whose FlowMap cannot be resolved (which
+ * reading the manifest then refuses), keeps its own. The second member
+ * lists the indices whose length changed.
+ */
+function withPlayedLengths(
+  manifest: Manifest,
+  flowMap: JsonObject,
+): readonly [NonNullable<Manifest["virtual_timelines"]>, readonly number[]] {
+  const root =
+    typeof flowMap.timeline === "string" ? findTimeline(manifest, flowMap.timeline) : undefined;
+  const virtual = manifest.virtual_timelines ?? [];
+  if (!resolvable(flowMap.chunks, root)) return [virtual, []];
+  const changed: number[] = [];
+  const items = virtual.map((item, index) => {
+    const applied = (manifest.flow_maps ?? []).find((found) => found.id === item.map);
+    if (applied === undefined || item.through !== undefined) return item;
+    if (item.timeline !== applied.timeline) return item;
+    let played: Coordinate;
+    try {
+      played = resolveFlowMap(manifest, applied.id).length;
+    } catch (error) {
+      if (error instanceof FlowMapError) return item;
+      throw error;
+    }
+    const stored = readOnAxis(item.length, item, []);
+    if (!isCommandError(stored) && toRational(stored.value).equals(toRational(played.value))) {
+      return item;
+    }
+    changed.push(index);
+    return { ...item, length: toAxisValue(played) };
+  });
+  return [items, changed];
+}
+
+/**
+ * The FlowMap at `target` replaced by `entry`, the length of every virtual
+ * timeline it changes with it (`withPlayedLengths`), and the manifest read
+ * whole (`readInPlace`); each length that changed recorded at
+ * `[<address key of the virtual timeline>, "length"]`. A problem inside the
+ * FlowMap lies below `path[0]`, any other at `[<block id>, "manifest", …]`.
+ */
+function withFlowMap(
+  view: View,
+  target: FlowMapTarget,
+  entry: JsonObject,
+  path: readonly PathSegment[],
+  changes: ChangeSet,
+): View | CommandError {
+  const { block, index } = target;
+  const { manifest } = block;
+  const flowMaps: unknown[] = [...(manifest.flow_maps ?? [])];
+  flowMaps[index] = entry;
+  const placed = { ...manifest, flow_maps: flowMaps } as Manifest;
+  const [virtual, changed] = withPlayedLengths(placed, entry);
+  const read = readInPlace({ ...placed, virtual_timelines: virtual });
+  if ("code" in read) {
+    const [member, at, ...below] = read.path;
+    const inside = member === "flow_maps" && at === index;
+    return {
+      ...read,
+      path: inside ? [path[0] ?? "", ...below] : [block.id, "manifest", ...read.path],
+    };
+  }
+  const id = target.flowMap.id;
+  const flowMap = (read.flow_maps ?? []).find((item) => item.id === id);
+  if (flowMap === undefined) throw new Error(`the manifest lists FlowMap ${id}`);
+  const lengths = new Map(
+    changed.map((at) => {
+      const item = virtual[at];
+      if (item === undefined) throw new Error(`no virtual timeline at ${at}`);
+      const written = (read.virtual_timelines ?? []).find((found) => found.id === item.id);
+      if (written === undefined) throw new Error(`the manifest lists virtual timeline ${item.id}`);
+      return [item.id, written] as const;
+    }),
+  );
+  for (const at of changed) {
+    const before = (manifest.virtual_timelines ?? [])[at];
+    const after = before === undefined ? undefined : lengths.get(before.id);
+    if (before === undefined || after === undefined)
+      throw new Error(`no virtual timeline at ${at}`);
+    const address = { block: block.id, id: before.id };
+    recordValue(
+      changes,
+      [addressKey(address), "length"],
+      block.id,
+      true,
+      before.length,
+      after.length,
+    );
+  }
+  const flows = (manifest.flow_maps ?? []).map((item, at) => (at === index ? flowMap : item));
+  const virtuals = (manifest.virtual_timelines ?? []).map((item) => lengths.get(item.id) ?? item);
+  return withBlock(view, {
+    ...block,
+    manifest: { ...manifest, flow_maps: flows, virtual_timelines: virtuals },
+  });
+}
+
+/** A FlowMap's member set to `next`, unless it holds `next` already (`withFlowMap`). */
 function flowMapChange(
   view: View,
   target: FlowMapTarget,
@@ -211,20 +335,75 @@ function flowMapChange(
 ): View | CommandError {
   const refused = computedProblem(target, path);
   if (refused !== undefined) return refused;
-  const { block, index, flowMap } = target;
+  const { block, flowMap } = target;
   const stored = flowMap[member];
   if (sameJson(stored, next)) return view;
-  const entry = { ...flowMap, [member]: next } as JsonObject;
-  const read = readListed(block, "flow_maps", entry, index, path.slice(0, 1));
-  if (isCommandError(read)) return read;
-  recordValue(changes, path, block.id, true, stored, next);
-  const items = (block.manifest.flow_maps ?? []).map((item, at) => (at === index ? read : item));
-  return withListed(view, block, "flow_maps", items);
+  const result = withFlowMap(
+    view,
+    target,
+    { ...flowMap, [member]: next } as JsonObject,
+    path,
+    changes,
+  );
+  if (!isCommandError(result)) recordValue(changes, path, block.id, true, stored, next);
+  return result;
+}
+
+/** The members of the value `set computed` gives a computed FlowMap, both required. */
+const COMPUTED_VALUE = ["chunks", "provenance"];
+
+/**
+ * A computed FlowMap's `chunks` and `provenance` replaced by those of a new
+ * computation, `{chunks, provenance}`, the provenance holding an entry of
+ * method `inferred` (`invalid_value` otherwise); its `convention`, `name`
+ * and `canonical` kept. Only a computed FlowMap takes it (`invalid_value`
+ * on one written by hand, whose `chunks` take a `set`).
+ */
+function setComputed(
+  view: View,
+  target: FlowMapTarget,
+  value: unknown,
+  path: readonly PathSegment[],
+  changes: ChangeSet,
+): View | CommandError {
+  const json = toJson(value, path);
+  if (isCommandError(json)) return json;
+  const object = readValue(json, path, COMPUTED_VALUE, COMPUTED_VALUE, "computed value");
+  if (isCommandError(object)) return object;
+  const { block, flowMap } = target;
+  const what = `FlowMap '${flowMap.name ?? flowMap.id}'`;
+  if (!isComputedFlowMap(flowMap)) {
+    return problem(
+      ErrorCode.invalidValue,
+      `${what} is not computed from flow control: its chunks are set as chunks`,
+      path,
+    );
+  }
+  const { provenance } = object;
+  const inferred =
+    Array.isArray(provenance) &&
+    provenance.some((entry) => isJsonObject(entry) && entry.method === "inferred");
+  if (!inferred) {
+    return problem(
+      ErrorCode.invalidValue,
+      `a computed value of ${what} carries a provenance entry of method inferred`,
+      [...path, "provenance"],
+    );
+  }
+  const stored = { chunks: flowMap.chunks, provenance: flowMap.provenance };
+  if (sameJson(stored, object)) return view;
+  const result = withFlowMap(view, target, { ...flowMap, ...object } as JsonObject, path, changes);
+  if (!isCommandError(result)) recordValue(changes, path, block.id, true, stored, object);
+  return result;
 }
 
 /**
  * What a `set` gives a FlowMap: its `chunks`, the whole list, and its
- * `name` (null for none). A computed FlowMap refuses both.
+ * `name` (null for none), which a computed FlowMap refuses
+ * (`computed_flow_map`); and `computed`, a new computation's `{chunks,
+ * provenance}`, which only a computed FlowMap takes. A change of the
+ * chunks changes the length of every virtual timeline playing them in the
+ * same command.
  */
 export const FLOW_MAP_SET = {
   chunks: (
@@ -249,6 +428,7 @@ export const FLOW_MAP_SET = {
     if (isCommandError(name)) return name;
     return flowMapChange(view, target, "name", name, path, changes);
   },
+  computed: setComputed,
 };
 
 /** The unit and number type of a timeline or virtual timeline of `manifest`, if `id` names one. */

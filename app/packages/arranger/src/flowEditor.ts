@@ -449,10 +449,10 @@ export function timelineIn(manifest: Manifest, id: string): TimelineManifest | u
  * `block`'s: each atomic section of `answer`'s root that `manifest` lacks
  * (by ID) added as a Region; for each computed FlowMap of `answer`'s root,
  * nothing where `manifest` holds a computed FlowMap of that convention with
- * the same entries, else that one removed (a computed FlowMap takes no
- * `set`) and `answer`'s added with its own ID, name, convention, canonical
- * and provenance. A FlowMap a virtual timeline applies is refused removal
- * by the store, which says so.
+ * the same chunks, else that one given `answer`'s chunks and provenance
+ * (`set {computed}`, which writes the length of every virtual timeline
+ * playing it), and where it holds none, `answer`'s added with its own ID,
+ * name, convention, canonical and provenance.
  */
 export function recomputeCommands(
   manifest: Manifest,
@@ -474,15 +474,24 @@ export function recomputeCommands(
     if (same !== undefined && JSON.stringify(same.chunks) === JSON.stringify(flowMap.chunks)) {
       continue;
     }
-    if (same !== undefined) {
-      commands.push({ type: "remove", targets: [inBlock(block, idAddress(same.id))] });
-    }
     const { id, chunks, name, convention, canonical, provenance } = flowMap;
+    if (same !== undefined) {
+      commands.push({
+        type: "set",
+        changes: [
+          {
+            target: inBlock(block, idAddress(same.id)),
+            values: { computed: { chunks, provenance } },
+          },
+        ],
+      });
+      continue;
+    }
     commands.push({
       type: "add",
       into,
       flow_map: {
-        id: held.some((item) => item.id === id && item !== same) ? undefined : id,
+        id: (manifest.flow_maps ?? []).some((item) => item.id === id) ? undefined : id,
         chunks,
         ...(name === undefined ? {} : { name }),
         ...(convention === undefined ? {} : { convention }),

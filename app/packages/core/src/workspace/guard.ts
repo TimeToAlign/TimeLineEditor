@@ -537,7 +537,7 @@ export function sideEffect(
 
 /** What a flow editor lets a `set` give a FlowMap of its root and a virtual timeline applying one. */
 const FLOW_EDITOR_SET: { readonly [kind in "flow_map" | "virtual_timeline"]: readonly string[] } = {
-  flow_map: ["chunks", "name"],
+  flow_map: ["chunks", "name", "computed"],
   virtual_timeline: ["name", "place"],
 };
 
@@ -547,7 +547,8 @@ const FLOW_EDITOR_SET: { readonly [kind in "flow_map" | "virtual_timeline"]: rea
  * `null` when it admits them all. It admits exactly: an `add` of a FlowMap
  * into the root, of a region into a timeline of the root's tree and of a
  * virtual timeline (into the block) applying a FlowMap of the root; a
- * `set` of a FlowMap of the root's `chunks` and `name` and of such a
+ * `set` of a FlowMap of the root's `chunks`, `name` and `computed` (a
+ * recomputation, with the lengths of the virtual timelines playing it) and of such a
  * virtual timeline's `name` and `place` (its card dropped on the canvas);
  * a `remove` of either. Never a `style`, and nothing in another block.
  */
