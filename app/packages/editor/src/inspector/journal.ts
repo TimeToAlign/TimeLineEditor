@@ -10,6 +10,7 @@ import type {
   AddCommand,
   AddKind,
   Command,
+  EditorKind,
   Entry,
   ListedEntry,
   Session,
@@ -74,6 +75,14 @@ const ADD_WORDS: { readonly [kind in AddKind]: string } = {
   elision: "elision",
   flow_map: "FlowMap",
   virtual_timeline: "virtual timeline",
+};
+
+/** What a session's row calls the kind of editor it was made in, before the name of its target. */
+const SESSION_WORDS: { readonly [kind in EditorKind]: string } = {
+  bundle: "bundle",
+  group: "group",
+  timeline: "timeline",
+  flow: "flow control of",
 };
 
 /** The string member `member` of an added value; `null` for a value without one. */
@@ -154,8 +163,10 @@ function commandText(command: Command, view: View): string {
 /**
  * One entry as a sentence: its command, or the session it closed with its
  * kind, name and count of changes (at every depth), and how many of them are
- * undone while some are applied. A target the view no longer holds has no
- * kind word: what it was is not read back from earlier views.
+ * undone while some are applied: "Edited timeline Score (2 changes)", a
+ * flow-control editor's "Edited flow control of Score (2 changes)". A target
+ * the view no longer holds has no kind word: what it was is not read back
+ * from earlier views.
  */
 function entryText(
   { entry, changes, applied }: ListedEntry,
@@ -169,7 +180,7 @@ function entryText(
   const partly = applied > 0 && applied < changes ? `, ${changes - applied} undone` : "";
   // A flow session states its kind; any other is the kind its target opens.
   const kind = editorKindOf(view, target, session.kind);
-  const word = isCommandError(kind) ? "" : `${kind} `;
+  const word = isCommandError(kind) ? "" : `${SESSION_WORDS[kind]} `;
   return `Edited ${word}${editorName(view, target)} (${count}${partly})`;
 }
 

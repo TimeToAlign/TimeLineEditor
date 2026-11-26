@@ -535,22 +535,33 @@ export function sideEffect(
   );
 }
 
-/** What a flow editor lets a `set` give a FlowMap of its root and a virtual timeline applying one. */
-const FLOW_EDITOR_SET: { readonly [kind in "flow_map" | "virtual_timeline"]: readonly string[] } = {
+/** What the flow-control editor of a root edits, by the kind of element an address names. */
+type FlowEdited = "flow_map" | "virtual_timeline" | "flow_control";
+
+/**
+ * The properties the flow-control editor lets a `set` give each kind of
+ * element: of a FlowMap of its root and of a virtual timeline applying one,
+ * those listed; of a flow-control element of the root's tree, every property
+ * a `set` gives it (`null`), which core's own setters bound.
+ */
+const FLOW_EDITOR_SET: { readonly [kind in FlowEdited]: readonly string[] | null } = {
   flow_map: ["chunks", "name", "computed"],
   virtual_timeline: ["name", "place"],
+  flow_control: null,
 };
 
 /**
- * The first address `command` aims at that the flow editor on the root
- * timeline `target` does not admit, with the property a `set` gives it;
- * `null` when it admits them all. It admits exactly: an `add` of a FlowMap
- * into the root, of a region into a timeline of the root's tree and of a
- * virtual timeline (into the block) applying a FlowMap of the root; a
- * `set` of a FlowMap of the root's `chunks`, `name` and `computed` (a
- * recomputation, with the lengths of the virtual timelines playing it) and of such a
- * virtual timeline's `name` and `place` (its card dropped on the canvas);
- * a `remove` of either. Never a `style`, and nothing in another block.
+ * The first address `command` aims at that the flow-control editor on the
+ * root timeline `target` does not admit, with the property a `set` gives
+ * it; `null` when it admits them all. It admits exactly: an `add` of a
+ * FlowMap into the root, of a Region or a flow-control element into a
+ * timeline of the root's tree and of a virtual timeline (into the block)
+ * applying a FlowMap of the root; a `set` of a FlowMap of the root's
+ * `chunks`, `name` and `computed` (a recomputation, with the lengths of the
+ * virtual timelines playing it), of such a virtual timeline's `name` and
+ * `place` (its card dropped on the canvas) and of any property of a
+ * flow-control element of a timeline of the root's tree; a `remove` of any
+ * of the three. Never a `style`, and nothing in another block.
  */
 function flowRefused(
   view: View,
@@ -562,16 +573,44 @@ function flowRefused(
   if (manifest === undefined || root === undefined) return { address: target, property: null };
   const ofRoot = (flowMap: string) =>
     (manifest.flow_maps ?? []).some((item) => item.id === flowMap && item.timeline === root);
-  /** The kind of a FlowMap of the root or of a virtual timeline applying one that `address` names. */
-  const flowKind = (address: Address): "flow_map" | "virtual_timeline" | null => {
+  const inTree = (timeline: string) => contains(manifest, root, idAddress(timeline));
+  /**
+   * The kind of what `address` names where the editor edits it: a FlowMap of the root, a
+   * virtual timeline applying one, a flow-control element of a timeline of the root's tree.
+   */
+  const flowKind = (address: Address): FlowEdited | null => {
     if (address.block !== block) return null;
     const resolved = resolveAddress(view, address);
     if (isCommandError(resolved)) return null;
-    if (resolved.kind === "flow_map") return ofRoot(resolved.flowMap.id) ? "flow_map" : null;
-    if (resolved.kind === "virtual_timeline") {
-      return ofRoot(resolved.virtual.map) ? "virtual_timeline" : null;
+    switch (resolved.kind) {
+      case "flow_map":
+        return ofRoot(resolved.flowMap.id) ? "flow_map" : null;
+      case "virtual_timeline":
+        return ofRoot(resolved.virtual.map) ? "virtual_timeline" : null;
+      case "entry":
+        return resolved.entry === "flow_control" && inTree(resolved.at.timeline.id)
+          ? "flow_control"
+          : null;
+      case "workspace":
+      case "block":
+      case "title":
+      case "frame":
+      case "timeline":
+      case "card":
+      case "band":
+      case "measure_map":
+      case "timestamp":
+      case "matchstamp":
+      case "anchor":
+      case "elision":
+      case "virtual_card":
+      case "virtual_band":
+      case "chunk":
+      case "part":
+        return null;
+      default:
+        return assertNever(resolved);
     }
-    return null;
   };
   switch (command.type) {
     case "add": {
@@ -580,13 +619,13 @@ function flowRefused(
       if (into.block !== block) return refused;
       if (command.flow_map !== undefined)
         return into.id === root && !into.part && !into.facet ? null : refused;
-      if (command.region !== undefined) {
+      if (command.region !== undefined || command.flow_control !== undefined) {
         const resolved = resolveAddress(view, into);
-        const inTree =
+        const admitted =
           !isCommandError(resolved) &&
           resolved.kind === "timeline" &&
-          contains(manifest, root, idAddress(resolved.at.timeline.id));
-        return inTree ? null : refused;
+          inTree(resolved.at.timeline.id);
+        return admitted ? null : refused;
       }
       if (command.virtual_timeline !== undefined) {
         const value = command.virtual_timeline;
@@ -599,8 +638,9 @@ function flowRefused(
     case "set":
       for (const { target: address, values } of command.changes) {
         const kind = flowKind(address);
+        const admitted = kind === null ? [] : FLOW_EDITOR_SET[kind];
         const property = Object.keys(values).find(
-          (item) => kind === null || !FLOW_EDITOR_SET[kind].includes(item),
+          (item) => admitted !== null && !admitted.includes(item),
         );
         if (property !== undefined) return { address, property };
       }
@@ -618,7 +658,7 @@ function flowRefused(
 
 /**
  * The refusal of `command`, which led from `before` to `after`, by the
- * innermost open editor `editor`: for a flow editor, a `side_effect` for
+ * innermost open editor `editor`: for a flow-control editor, a `side_effect` for
  * the first address it does not admit (`flowRefused`); for any other, the
  * first change outside its target (`sideEffect`).
  */
@@ -638,7 +678,7 @@ export function editorSideEffect(
   const what = property === null ? words(address) : `the ${property} of ${words(address)}`;
   return problem(
     ErrorCode.sideEffect,
-    `${what} lies outside the flow editor of ${words(editor.target)}: an editor changes only what it edits`,
+    `${what} lies outside the flow-control editor of ${words(editor.target)}: an editor changes only what it edits`,
     property === null ? [addressKey(address)] : [addressKey(address), property],
   );
 }

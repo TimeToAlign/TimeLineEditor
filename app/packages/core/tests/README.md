@@ -6429,7 +6429,7 @@ off core's output.
    and otherwise `unfold` of the written position contains the played
    one.
 
-## Commands over FlowMaps, virtual timelines and the flow editor (`flowmap-commands.test.ts`)
+## Commands over FlowMaps, virtual timelines and the flow-control editor (`flowmap-commands.test.ts`)
 
 What proves a command over FlowMaps and virtual timelines is the manifest it
 leaves, checked whole by TimeToShare's schema and validators (core's
@@ -6546,22 +6546,62 @@ never a spelled-out random literal.
    own `rules` and the manifest stays valid; `flow: region_1` is
    `schema_violation` (the validators' `flow_rule`), and `flow: null`
    removes the rule ("As written").
-6. **The flow editor.** `open(score, "flow")` opens an editor of kind
+6. **The flow-control editor.** `open(score, "flow")` opens an editor of kind
    `flow`; `open(first, "flow")` on a child is `no_editor`; inside it, an
    `add` of a FlowMap into `score`, of a Region into `score` and of a
    virtual timeline applying one of its FlowMaps, and a `set` of that
    virtual timeline's `place`, are accepted; a `set` of `score`'s name is
-   `side_effect` at `[<address key of score>, "name"]`, a `style` at the
+   `side_effect` at `[<address key of score>, "name"]`, "the name of
+   timeline 'Score' lies outside the flow-control editor of timeline
+   'Score': an editor changes only what it edits", a `style` at the
    key of `score`; opening any editor inside it is `not_inside`. Done
    journals one session entry whose session states `kind: "flow"`, the
    workspace file writes and reads it back equal, and the journal replays
    to the same view, the minted IDs carried. Reopening `score` as a
-   timeline editor starts a new session; reopening it as a flow editor
-   unfolds the flow session. A flow editor (the flow-control editor)
-   opens inside the timeline editor of its own root and inside the bundle
+   timeline editor starts a new session; reopening it as a flow-control
+   editor unfolds the flow session. A flow-control editor opens inside the timeline editor of its own root and inside the bundle
    editor of its block: on `flow/flow_map_by_hand.yaml` the root `set`'s
    opens inside the bundle editor, and inside the timeline editor of its
    child `first` it is `not_inside`, since `set` does not lie in `first`.
+   **It edits the flow-control elements of its root's tree**, and no
+   other: what proves it is that each command it admits is accepted inside
+   the editor and leaves exactly the stored value asked (the manifest
+   valid), while the same command aimed at another root's tree is refused
+   by the editor itself (`side_effect`), and a command core refuses
+   anywhere keeps core's refusal. On `sonata_exposition`, inside the
+   editor of `score`: `set {name: "Volta"}` on `jump_1`, then `set {belief:
+   {actor: "https://example.org/people/editor", belief: "false", date:
+   "2026-11-26"}}` on it, leave `jump_1` named `Volta` with the provenance
+   `[{beliefs: [that belief]}]` (it had none); `add {into: score,
+   flow_control: {id: "section_break_9", role: "section_break",
+   coordinate: [8, 1]}}` adds the element to `score`'s `flow_control`,
+   stored first by coordinate (`section_break_9, jump_1, break_1, jump_2,
+   jump_target_1`), the manifest valid; `set {coordinate: [4, 1]}` on
+   `jump_1` is core's own refusal of a property it does not give a
+   flow-control element, `wrong_target_kind` at `[<address key of jump_1>,
+   "coordinate"]`, "coordinate is a property of timestamp, not of
+   flow_control", not a `side_effect`; `remove` of `jump_1` is core's
+   `not_removable` at its address key, "Flow-control element 'jump_1' is
+   rejected, never removed" (a flow-control element goes only with its
+   timeline). Both refusals are the same outside any editor. Done journals the session with these three changes. On
+   `child_flow_control.yaml` (root `piece`, its child `verse` holding
+   `fine` and `da_capo_al_fine`), inside the editor of `piece`, `set
+   {name: "Fine"}` on `fine` and `add {into: verse, flow_control: {id:
+   "jump_x", role: "jump", coordinate: [6, 1], targets: [{}]}}` are
+   accepted, leaving `verse`'s elements `fine` (named `Fine`), `jump_x`,
+   `da_capo_al_fine`: a child's elements lie in the root's tree. On
+   `groups/switched_frame.yaml` (roots `allegro`, holding `volta_jump`,
+   and `recording`), inside the editor of `recording`, `set {name:
+   "Volta"}` on `volta_jump` is `side_effect` at `[<address key of
+   volta_jump>, "name"]`, "the name of jump 'volta_jump' lies outside the
+   flow-control editor of timeline 'Recording': an editor changes only
+   what it edits", and an `add` of a flow-control element into `allegro`
+   is `side_effect` at `[<address key of allegro>]`. A FlowMap computed
+   from flow control is not changed by these commands: it is recomputed
+   on request, `set {computed}`, which the editor admits (above). A
+   hand-made FlowMap's chunks name Regions, child timelines and virtual
+   timelines, never a flow-control element, so no change here reaches
+   one.
 7. **Named timestamps on a virtual timeline** (drawing.md §8.10: its
    named timestamps lie on its own axis, from 0 to its length). On
    `groups/virtual_member.yaml` (`allegro_default`, 4241/2 quarters, a
