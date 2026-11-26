@@ -8,15 +8,13 @@ import {
   FlowMapError,
   type FlowMapErrorCode,
   fold,
-  foldVirtual,
   type ResolvedFlowMap,
   resolveFlowMap,
-  resolveVirtualTimeline,
   type Stretch,
   unfold,
-  unfoldVirtual,
 } from "../src/manifest/flowmaps.ts";
 import type { Manifest } from "../src/manifest/types.ts";
+import { foldVirtual, resolveVirtualTimeline, unfoldVirtual } from "../src/manifest/virtual.ts";
 import { expressAs } from "../src/maps/express.ts";
 import {
   addCoordinates,
