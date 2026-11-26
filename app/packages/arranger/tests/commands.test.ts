@@ -225,15 +225,17 @@ describe("removeCommand", () => {
   it("never removes a flow-control element: it is left out, and alone it is refused with a hint", () => {
     const flow = viewOf({ id: A, fixture: "flow_control" });
     const hint = {
-      refused:
-        "A flow-control element is not deleted; state your belief in it in the Properties tab to reject it.",
+      refused: "A flow-control element is not deleted: reject it with a belief in Properties.",
     };
-    // A break, a jump, the label of either, and a jump target, which is selected by no drawing.
+    // A break, a jump, its label and symbol, a jump target, which is selected by no drawing, and
+    // a part of the jump that no drawing has, which core cannot resolve.
     for (const address of [
       at("break_1"),
       at("jump_1"),
       at("jump_1", "label"),
+      at("jump_1", "symbol"),
       at("jump_target_1"),
+      at("jump_1", "elision"),
     ]) {
       expect(removeCommand(flow, selectionOf([address]), null)).toEqual(hint);
     }
@@ -564,6 +566,52 @@ describe("deleteQuestion", () => {
     expect(asked(view, id("section_b"))).toBeNull();
     expect(asked(view, { block: A })).toBeNull();
     expect(asked(view, { block: A }, id("allegro"))).toBeNull();
+  });
+
+  /** `view` with `loop`, one more FlowMap of `allegro`, its one chunk `again`. */
+  const withLoop = (view: View) =>
+    changed(view, {
+      type: "add",
+      into: id("allegro"),
+      flow_map: { chunks: ["again"] },
+      ids: ["loop"],
+    });
+  const loopRefusal =
+    "virtual timeline 'again' is still named: the FlowMaps 'loop' name it as a chunk";
+
+  it("offers no Delete all where core refuses it, saying why, and hides instead", () => {
+    const view = withLoop(withAgain(virtualView(), "single"));
+    expect(apply(view, removing(id(DEFAULT), id("again")))).toEqual({
+      code: "not_removable",
+      path: [addressKey(id("again"))],
+      message: loopRefusal,
+    });
+    const question = asked(view, id(DEFAULT));
+    const hide = {
+      type: "set",
+      changes: [{ target: id(DEFAULT), values: { place: { x: null, y: null } } }],
+    };
+    expect(question).toEqual({
+      question:
+        "Deleting virtual timeline 'Allegro, default' also deletes what is made from it: virtual timeline 'again'. They cannot all be deleted. Virtual timeline 'again' is still named: the FlowMaps 'loop' name it as a chunk. Hide its card instead?",
+      remove: null,
+      hide,
+    });
+    if (question === null || question.hide === null) throw new Error("no question");
+    const hidden = blockIn(changed(view, question.hide), A);
+    expect(Object.hasOwn(hidden.places, DEFAULT)).toBe(false);
+  });
+
+  it("offers nothing but Cancel where core refuses Delete all and nothing can be hidden", () => {
+    const view = withLoop(
+      withAgain(viewOf({ id: A, fixture: "groups/virtual_member" }), "printed"),
+    );
+    expect(asked(view, id(DEFAULT))).toEqual({
+      question:
+        "Deleting virtual timeline 'Allegro, default' also deletes what is made from it: virtual timeline 'again'. They cannot all be deleted. Virtual timeline 'again' is still named: the FlowMaps 'loop' name it as a chunk.",
+      remove: null,
+      hide: null,
+    });
   });
 
   it("offers no hiding of a member's card in its frame", () => {
