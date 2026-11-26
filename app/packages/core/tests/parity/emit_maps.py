@@ -156,7 +156,34 @@ FINE = {
 with its number: neither its next, nor its nominal length, nor anything but
 the number links the two, which join."""
 
-MEASURE_MAPS = [BARS, SPLIT, REPEAT, METRE, FINE]
+FIT = {
+    "id": "fit",
+    "name": None,
+    "meta": {},
+    "rows": [
+        {"count": 1, "number": 1, "time_signature": "2/2", "actual_length": 4},
+        {
+            "count": 2,
+            "number": 2,
+            "actual_length": 3,
+            "end_repeat": True,
+            "next": [1, 3],
+        },
+        {
+            "count": 3,
+            "number": 3,
+            "actual_length": 1,
+            "start_repeat": True,
+            "offset_within_measure": 3,
+        },
+        {"count": 4, "number": 4, "actual_length": 4},
+    ],
+}
+"""A 2/2 bar split at a repeat sign whose parts carry two numbers: the first
+part ends three quarters in, the second states that offset and sounds the
+remaining quarter, so the two complete one bar and join."""
+
+MEASURE_MAPS = [BARS, SPLIT, REPEAT, METRE, FINE, FIT]
 
 
 def base(kind: str, map_id: str, source: str | None, target: str | None) -> dict[str, Any]:
@@ -321,6 +348,10 @@ QUARTERS = [
     (
         view("FloatingMeasureMap", "q_floating_fine", "floating_measures", "fine"),
         [F(0), F(3), F(6), F(7), F(9), F(11)],
+    ),
+    (
+        view("FloatingMeasureMap", "q_floating_fit", "floating_measures", "fit"),
+        [F(0), F(4), F(6), F(7), F(8), F(10), F(12)],
     ),
 ]
 

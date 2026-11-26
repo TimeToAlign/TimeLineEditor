@@ -319,35 +319,69 @@ function differentVoltas(row: MeasureKnot, following: MeasureKnot): boolean {
 }
 
 /**
- * Whether `following`, the row after `row`, joins its floating measure: it
- * has the number of `row` (not none), and the two do not state different
- * voltas. Nothing else is read: not `next`, not the nominal lengths, not
- * the offset within the measure.
+ * Whether `following`, the row after `row`, carries the number of `row`
+ * (not none) and the two do not state different voltas. Nothing else is
+ * read: not `next`, not the nominal lengths, not the offset within the
+ * measure.
  */
-function joins(row: MeasureKnot, following: MeasureKnot): boolean {
+function sameNumber(row: MeasureKnot, following: MeasureKnot): boolean {
   return row.number !== null && row.number === following.number && !differentVoltas(row, following);
 }
 
 /**
- * Floating measures. A floating measure is a run of adjacent rows that
- * carry one number (a single row is a run of one; see `joins`), so the rows
- * of a split bar read as that one bar, and the endings under different
- * volta brackets count through as separate floating measures. One knot per
- * run at its first row's nominal downbeat (its qstamp minus its offset
- * within the measure) carrying the run's ordinal, and one at the end of the
- * last row; the first run is ordinal 0 when it is an anacrusis. Linear
- * between and beyond the knots in exact arithmetic, truncated to three
- * decimals; knots that do not increase give no floating measures.
+ * Whether `following`, numbered apart from `row`, the last row of a run that
+ * reaches `end` into its bar (its first row's offset within the measure plus
+ * its rows' actual lengths), completes that bar: both rows carry a number,
+ * they do not state different voltas, `end` lies below the nominal length of
+ * `row`, `following` has that nominal length, its offset within the measure
+ * is `end`, and `end` plus its actual length is the nominal length. A split
+ * bar whose two parts carry two numbers.
+ */
+function fillsSplitBar(row: MeasureKnot, end: Rational, following: MeasureKnot): boolean {
+  if (row.number === null || following.number === null || differentVoltas(row, following)) {
+    return false;
+  }
+  if (row.nominal_length === null || following.nominal_length === null) return false;
+  if (following.actual_length === null) return false;
+  const nominal = exactPair(row.nominal_length);
+  return (
+    exactPair(following.nominal_length).equals(nominal) &&
+    end.compare(nominal) < 0 &&
+    exactPair(following.offset_within_measure).equals(end) &&
+    end.add(exactPair(following.actual_length)).equals(nominal)
+  );
+}
+
+/**
+ * Floating measures. A floating measure is a run of adjacent rows that make
+ * one notated bar (a single row is a run of one): a row joins the run before
+ * it when it carries the number of the run's last row (`sameNumber`) or,
+ * numbered apart, completes the bar the run leaves incomplete
+ * (`fillsSplitBar`). So the rows of a split bar read as that one bar, and
+ * the endings under different volta brackets count through as separate
+ * floating measures. One knot per run at its first row's nominal downbeat
+ * (its qstamp minus its offset within the measure) carrying the run's
+ * ordinal, and one at the end of the last row; the first run is ordinal 0
+ * when it is an anacrusis. Linear between and beyond the knots in exact
+ * arithmetic, truncated to three decimals; knots that do not increase give
+ * no floating measures. Rows that do not add up to their bars are read as
+ * stated, without a word.
  */
 function floatingMeasures(rows: readonly MeasureKnot[]): Evaluate {
   const xs: Rational[] = [];
   let firstExtent = Rational.of(0);
+  let end = Rational.of(0);
   let previous: MeasureKnot | undefined;
   for (const row of rows) {
     if (row.qstamp === null || row.actual_length === null) return NOTHING;
-    if (previous === undefined || !joins(previous, row)) {
+    if (
+      previous === undefined ||
+      !(sameNumber(previous, row) || fillsSplitBar(previous, end, row))
+    ) {
       xs.push(exactPair(row.qstamp).subtract(exactPair(row.offset_within_measure)));
+      end = exactPair(row.offset_within_measure);
     }
+    end = end.add(exactPair(row.actual_length));
     if (xs.length === 1) firstExtent = firstExtent.add(exactPair(row.actual_length));
     previous = row;
   }

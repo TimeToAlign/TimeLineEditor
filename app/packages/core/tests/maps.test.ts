@@ -430,10 +430,11 @@ describe("compound floating measures", () => {
     secondNominal: Pair = [2, 1],
     voltas: readonly [number | null, number | null] = [null, null],
     secondOffset: Pair = [1, 2],
+    secondActual: Pair = [3, 2],
   ) =>
     reader([
       row(1, first, [0, 1], [2, 1], [1, 2], [0, 1], voltas[0]),
-      row(2, second, [1, 2], secondNominal, [3, 2], secondOffset, voltas[1]),
+      row(2, second, [1, 2], secondNominal, secondActual, secondOffset, voltas[1]),
     ]);
 
   it("joins adjacent rows of one number whatever their nominal lengths and offsets", () => {
@@ -444,15 +445,28 @@ describe("compound floating measures", () => {
     ]);
   });
 
-  it("reads nothing where knots of rows that cannot join coincide", () => {
-    for (const read of [twoRows(5, 6), twoRows(null, null), twoRows(5, 5, [2, 1], [1, 2])]) {
-      expect([0n, 1n, 2n].map(read)).toEqual([undefined, undefined, undefined]);
-    }
+  it("joins two numbers whose rows complete one bar exactly", () => {
+    expect([0n, 1n, 2n].map(twoRows(5, 6))).toEqual([1, 1.5, 2]);
     const skeleton = reader([
       row(9, 9, [29, 1], four, [3, 1]),
       row(10, 10, [32, 1], four, [1, 1], [3, 1]),
       row(11, 11, [33, 1], four, four),
     ]);
-    expect([29n, 32n, 33n].map(skeleton)).toEqual([undefined, undefined, undefined]);
+    expect([29n, 32n, 33n, 37n].map(skeleton)).toEqual([1, 1.75, 2, 3]);
+  });
+
+  it("keeps two numbers apart where the second row's offset is not where the first ends", () => {
+    const read = twoRows(5, 6, [2, 1], [null, null], [0, 1]);
+    expect([q(1, 4), q(1, 2), 2n].map(read)).toEqual([1.5, 2, 3]);
+  });
+
+  it("reads nothing where knots of rows that cannot join coincide", () => {
+    for (const read of [
+      twoRows(5, 6, [2, 1], [null, null], [1, 2], [1, 1]),
+      twoRows(null, null),
+      twoRows(5, 5, [2, 1], [1, 2]),
+    ]) {
+      expect([0n, 1n, 2n].map(read)).toEqual([undefined, undefined, undefined]);
+    }
   });
 });

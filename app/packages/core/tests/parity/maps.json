@@ -323,6 +323,14 @@
             "source_unit": "quarters",
             "target_unit": "floating_measures",
             "measure_map": "fine"
+          },
+          {
+            "type": "FloatingMeasureMap",
+            "id": "q_floating_fit",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "floating_measures",
+            "measure_map": "fit"
           }
         ]
       },
@@ -537,6 +545,38 @@
           {
             "count": 4,
             "number": 3,
+            "actual_length": 4
+          }
+        ]
+      },
+      {
+        "id": "fit",
+        "name": null,
+        "meta": {},
+        "rows": [
+          {
+            "count": 1,
+            "number": 1,
+            "time_signature": "2/2",
+            "actual_length": 4
+          },
+          {
+            "count": 2,
+            "number": 2,
+            "actual_length": 3,
+            "end_repeat": true,
+            "next": [1, 3]
+          },
+          {
+            "count": 3,
+            "number": 3,
+            "actual_length": 1,
+            "start_repeat": true,
+            "offset_within_measure": 3
+          },
+          {
+            "count": 4,
+            "number": 4,
             "actual_length": 4
           }
         ]
@@ -888,6 +928,71 @@
           "qstamp": [7, 1],
           "number": 3,
           "name": "3",
+          "time_signature": "2/2",
+          "nominal_length": [4, 1],
+          "actual_length": [4, 1],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [],
+          "volta": null,
+          "offset_within_measure": [0, 1]
+        }
+      ]
+    },
+    {
+      "id": "fit",
+      "rows": [
+        {
+          "ID": "1",
+          "count": 1,
+          "qstamp": [0, 1],
+          "number": 1,
+          "name": "1",
+          "time_signature": "2/2",
+          "nominal_length": [4, 1],
+          "actual_length": [4, 1],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [2],
+          "volta": null,
+          "offset_within_measure": [0, 1]
+        },
+        {
+          "ID": "2",
+          "count": 2,
+          "qstamp": [4, 1],
+          "number": 2,
+          "name": "2",
+          "time_signature": "2/2",
+          "nominal_length": [4, 1],
+          "actual_length": [3, 1],
+          "start_repeat": false,
+          "end_repeat": true,
+          "next": [1, 3],
+          "volta": null,
+          "offset_within_measure": [0, 1]
+        },
+        {
+          "ID": "3",
+          "count": 3,
+          "qstamp": [7, 1],
+          "number": 3,
+          "name": "3",
+          "time_signature": "2/2",
+          "nominal_length": [4, 1],
+          "actual_length": [1, 1],
+          "start_repeat": true,
+          "end_repeat": false,
+          "next": [4],
+          "volta": null,
+          "offset_within_measure": [3, 1]
+        },
+        {
+          "ID": "4",
+          "count": 4,
+          "qstamp": [8, 1],
+          "number": 4,
+          "name": "4",
           "time_signature": "2/2",
           "nominal_length": [4, 1],
           "actual_length": [4, 1],
@@ -2446,6 +2551,81 @@
           "x": {
             "type": "fraction",
             "value": [11, 1]
+          },
+          "result": {
+            "type": "float",
+            "value": 4.0
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_floating_fit",
+      "points": [
+        {
+          "x": {
+            "type": "fraction",
+            "value": [0, 1]
+          },
+          "result": {
+            "type": "float",
+            "value": 1.0
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [4, 1]
+          },
+          "result": {
+            "type": "float",
+            "value": 2.0
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [6, 1]
+          },
+          "result": {
+            "type": "float",
+            "value": 2.5
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [7, 1]
+          },
+          "result": {
+            "type": "float",
+            "value": 2.75
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [8, 1]
+          },
+          "result": {
+            "type": "float",
+            "value": 3.0
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [10, 1]
+          },
+          "result": {
+            "type": "float",
+            "value": 3.5
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [12, 1]
           },
           "result": {
             "type": "float",
