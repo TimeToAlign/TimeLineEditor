@@ -633,9 +633,9 @@ def test_a_table_within_the_bounds_answers_as_locally(
     data = written(fixture_table())
     rows, group_rows, footer_size = footer_facts(data)
     size = decoded_size(data)
-    assert (rows, group_rows) == (15, 15)
+    assert (rows, group_rows) == (17, 17)
     assert footer_size < size
-    public = bounded_client(tmp_path, rows=15, size=size).post(
+    public = bounded_client(tmp_path, rows=17, size=size).post(
         route, content=table_body(route, data)
     )
     local = local_client(tmp_path).post(
@@ -653,36 +653,36 @@ def test_a_table_over_the_row_bound_is_refused_undecoded(
 ) -> None:
     data = written(fixture_table())
     forbid_decoding(monkeypatch)
-    response = bounded_client(tmp_path, rows=14).post(
+    response = bounded_client(tmp_path, rows=16).post(
         route, content=table_body(route, data)
     )
-    assert answer(response) == too_large("table of more than 14 rows")
+    assert answer(response) == too_large("table of more than 16 rows")
 
 
-FILE_ROWS = b"\x16\x1e"
-"""The footer's file-level row count of 15: the field header of an i64 one
-field after the schema, then 15 as a zigzag varint."""
+FILE_ROWS = b"\x16\x22"
+"""The footer's file-level row count of 17: the field header of an i64 one
+field after the schema, then 17 as a zigzag varint."""
 
 
-def with_file_rows_14(data: bytes) -> bytes:
-    """``data`` with its footer's file-level row count rewritten to 14."""
+def with_file_rows_16(data: bytes) -> bytes:
+    """``data`` with its footer's file-level row count rewritten to 16."""
     length = int.from_bytes(data[-8:-4], "little")
     footer = data[-8 - length : -8]
-    footer = footer.replace(FILE_ROWS, b"\x16\x1c", 1)
+    footer = footer.replace(FILE_ROWS, b"\x16\x20", 1)
     return data[: -8 - length] + footer + data[-8:]
 
 
 def test_a_footer_stating_fewer_rows_for_the_file_is_refused_by_its_row_groups(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    data = with_file_rows_14(written(fixture_table()))
-    assert footer_facts(data)[:2] == (14, 15)
+    data = with_file_rows_16(written(fixture_table()))
+    assert footer_facts(data)[:2] == (16, 17)
     forbid_decoding(monkeypatch)
     route = "/api/match-claims"
-    response = bounded_client(tmp_path, rows=14).post(
+    response = bounded_client(tmp_path, rows=16).post(
         route, content=table_body(route, data)
     )
-    assert answer(response) == too_large("table of more than 14 rows")
+    assert answer(response) == too_large("table of more than 16 rows")
 
 
 def test_a_table_over_the_size_bound_by_its_decoded_bytes_is_refused(
@@ -759,7 +759,7 @@ def test_the_read_stops_at_the_batch_passing_the_size_bound(
 
 LOCAL_TABLES = {
     "fixture": (lambda: written(fixture_table()), 200),
-    "file rows rewritten": (lambda: with_file_rows_14(written(fixture_table())), 200),
+    "file rows rewritten": (lambda: with_file_rows_16(written(fixture_table())), 200),
     "plain note": (
         lambda: written(
             with_note(fixture_table()), use_dictionary=False, compression="zstd"

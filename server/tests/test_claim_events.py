@@ -9,8 +9,6 @@ import struct
 from pathlib import Path
 from typing import Any
 
-import pyarrow as pa
-import pyarrow.parquet as pq
 import pytest
 from fastapi.testclient import TestClient
 from refusals import assert_refused_in_timetoshares_words
@@ -41,33 +39,16 @@ def prefixed(data: bytes) -> bytes:
     return struct.pack("<I", len(data)) + data
 
 
-def table_body(manifest: bytes | None = None, table: bytes | None = None) -> bytes:
+def table_body(manifest: bytes | None = None) -> bytes:
     """The table route's body: the manifest behind its length, the table."""
-    if table is None:
-        table = fixture_path("match_claims.parquet").read_bytes()
+    table = fixture_path("match_claims.parquet").read_bytes()
     posted = fixture_manifest() if manifest is None else manifest
     return prefixed(posted) + table
 
 
-def body(
-    parameters: Any, manifest: bytes | None = None, table: bytes | None = None
-) -> bytes:
+def body(parameters: Any, manifest: bytes | None = None) -> bytes:
     """A request: the parameters behind their length, the table route's body."""
-    text = json.dumps(parameters).encode("utf-8")
-    return prefixed(text) + table_body(manifest, table)
-
-
-def with_event(claim_id: str, column: str, event: str) -> bytes:
-    """The fixture's table, MatchClaim ``claim_id``'s ``column`` set to ``event``."""
-    table = pq.read_table(fixture_path("match_claims.parquet"))
-    ids = table.column("id").to_pylist()
-    cells = table.column(column).to_pylist()
-    cells[ids.index(claim_id)] = event
-    index = table.schema.get_field_index(column)
-    field = table.schema.field(index)
-    sink = pa.BufferOutputStream()
-    pq.write_table(table.set_column(index, field, pa.array(cells, field.type)), sink)
-    return sink.getvalue().to_pybytes()
+    return prefixed(json.dumps(parameters).encode("utf-8")) + table_body(manifest)
 
 
 def post(server: TestClient, content: bytes) -> Any:
@@ -77,8 +58,8 @@ def post(server: TestClient, content: bytes) -> Any:
 
 def claim(
     claim_id: str,
-    a: tuple[str, str | None, str | None],
-    b: tuple[str, str | None, str | None],
+    a: tuple[str, str, str | None],
+    b: tuple[str, str, str | None],
     synchronous: bool = True,
 ) -> dict[str, Any]:
     """An answered MatchClaim: each side's timeline, event and name."""
@@ -98,17 +79,22 @@ def claim(
 ASKED = ["claim_1", "claim_4", "claim_7", "claim_11", "claim_12", "claim_15"]
 """The MatchClaims of the README's table."""
 
+CHUNK = "CHUNK_SENTINEL"
+NOMATCH = "NOMATCH_SENTINEL"
+"""The table's reserved strings, written as the strings they are."""
+
+CLAIM_11 = claim("claim_11", ("dpt_1", CHUNK, None), ("cpt_1", CHUNK, None))
+CLAIM_12 = claim(
+    "claim_12", ("clt_1", "note_10", "E5"), ("dpt_1", NOMATCH, None), synchronous=False
+)
+CLAIM_16 = claim("claim_16", ("cpt_1", CHUNK, None), ("clt_1", "note_2", "D4"))
+
 ANSWERED = [
     claim("claim_1", ("clt_1", "note_1", "C4"), ("dpt_1", "projection_1", None)),
     claim("claim_4", ("dpt_1", "projection_4", None), ("clt_1", "note_4", "G4")),
     claim("claim_7", ("clt_1", "note_6", "A4"), ("cpt_1", "onset_2", None)),
-    claim("claim_11", ("dpt_1", "projection_6", None), ("cpt_1", "projection_7", None)),
-    claim(
-        "claim_12",
-        ("clt_1", "note_10", "E5"),
-        ("dpt_1", "NOMATCH_SENTINEL", None),
-        synchronous=False,
-    ),
+    CLAIM_11,
+    CLAIM_12,
     claim("claim_15", ("clt_2", "note_13", "A5"), ("dpt_1", "projection_9", None)),
 ]
 """The answer to :data:`ASKED`, written from the README's table."""
@@ -122,13 +108,10 @@ def test_the_events_of_the_claims_asked_for_in_their_order(server: TestClient) -
     assert [list(item) for item in answer["claims"]] == [list(ANSWERED[0])] * 6
 
 
-def test_a_chunk_side_is_answered_as_its_reserved_string(server: TestClient) -> None:
-    table = with_event("claim_11", "event_b_id", "CHUNK_SENTINEL")
-    response = post(server, body({"claims": ["claim_11"]}, table=table))
+def test_a_sentinel_side_is_answered_as_its_reserved_string(server: TestClient) -> None:
+    response = post(server, body({"claims": ["claim_16", "claim_11", "claim_12"]}))
     assert response.status_code == 200
-    chunk = ("cpt_1", "CHUNK_SENTINEL", None)
-    answered = claim("claim_11", ("dpt_1", "projection_6", None), chunk)
-    assert response.json() == {"claims": [answered]}
+    assert response.json() == {"claims": [CLAIM_16, CLAIM_11, CLAIM_12]}
 
 
 def test_no_claims_asked_for_answer_none(server: TestClient) -> None:

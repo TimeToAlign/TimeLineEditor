@@ -5957,9 +5957,9 @@ believer and for a `kept` holding all four states; a belief's word is its
 number in TimeToShare's `BELIEFS` (`true` 0, `false` 1, `unlikely` 2),
 which core re-exports. The case is the beliefs of TimeToShare's table fixture
 `tables/0.2.0` as the client decodes them from the server's recorded
-answer (the client's tests README pins those arrays): 15 rows, actors
+answer (the client's tests README pins those arrays): 17 rows, actors
 `[B, A]` (B `…0001-5109-3700`, A `…0002-1825-0097`), offsets `[0, 1, 1,
-1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 5, 6, 6]`, actor numbers `[1, 1, 1, 1, 0,
+1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 5, 6, 6, 6, 6]`, actor numbers `[1, 1, 1, 1, 0,
 0]`, words `[0, 2, 0, 1, 0, 0]`: A believes row 0 true, row 5 unlikely,
 row 10 true, row 12 false; B rows 12 and 13 true. So, by the rule: A by
 default every row but 12; A `["true"]` rows 0 and 10; A `["undecided"]`
@@ -6004,7 +6004,7 @@ believer (two actors of one IRI) states several; actors compare as
 critical belief among the rows stating an anchor, `undecided` for none.
 On the fixture's beliefs above: for A, row 0 `true`, row 5 `unlikely`,
 row 10 `true`, row 12 `false`, every other row `undecided` (numbers `[3,
-2, 2, 2, 2, 1, 2, 2, 2, 2, 3, 2, 0, 2, 2]`); for B rows 12 and 13 `true`,
+2, 2, 2, 2, 1, 2, 2, 2, 2, 3, 2, 0, 2, 2, 2, 2]`); for B rows 12 and 13 `true`,
 every other `undecided`; for an actor holding no belief every row
 `undecided`; A written compact under `{orcid: "https://orcid.org/"}` as
 A absolute; the two-actor case (row 0 false by A compact, true by A

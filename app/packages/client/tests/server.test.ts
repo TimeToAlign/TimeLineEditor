@@ -374,18 +374,26 @@ describe("matchClaims", () => {
         column.numerator[row],
         column.denominator[row],
       ]);
-    expect(columns.rows).toBe(15);
-    expect(columns.claimIds).toEqual(Array.from({ length: 15 }, (_, row) => `claim_${row + 1}`));
+    expect(columns.rows).toBe(17);
+    expect(columns.claimIds).toEqual(Array.from({ length: 17 }, (_, row) => `claim_${row + 1}`));
     expect(columns.timelines).toEqual([
       { id: "clt_1", numberType: "fraction" },
       { id: "clt_2", numberType: "fraction" },
       { id: "cpt_1", numberType: "float" },
       { id: "dpt_1", numberType: "int" },
     ]);
-    expect(Array.from(columns.a.timeline)).toEqual([0, 0, 0, 3, 0, 3, 0, 0, 0, 0, 3, 0, 0, 0, 1]);
-    expect(Array.from(columns.b.timeline)).toEqual([3, 3, 3, 0, 3, 2, 2, 2, 2, 2, 2, 3, 3, 2, 3]);
-    expect(Array.from(columns.startPresent)).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1]);
-    expect(Array.from(columns.endPresent)).toEqual([0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]);
+    expect(Array.from(columns.a.timeline)).toEqual([
+      0, 0, 0, 3, 0, 3, 0, 0, 0, 0, 3, 0, 0, 0, 1, 2, 0,
+    ]);
+    expect(Array.from(columns.b.timeline)).toEqual([
+      3, 3, 3, 0, 3, 2, 2, 2, 2, 2, 2, 3, 3, 2, 3, 0, 2,
+    ]);
+    expect(Array.from(columns.startPresent)).toEqual([
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1,
+    ]);
+    expect(Array.from(columns.endPresent)).toEqual([
+      0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+    ]);
     expect(cells(columns.a.start)).toEqual([
       exact(0),
       exact(1),
@@ -402,6 +410,8 @@ describe("matchClaims", () => {
       exact(10),
       none,
       exact(1),
+      real(1),
+      exact(45, 4),
     ]);
     expect(cells(columns.b.start)).toEqual([
       exact(0),
@@ -419,13 +429,17 @@ describe("matchClaims", () => {
       exact(441000),
       none,
       exact(396900),
+      exact(1),
+      real(11.25),
     ]);
     const ends = (row1: readonly unknown[], row8: readonly unknown[]) =>
-      Array.from({ length: 15 }, (_, row) => (row === 1 ? row1 : row === 8 ? row8 : none));
+      Array.from({ length: 17 }, (_, row) => (row === 1 ? row1 : row === 8 ? row8 : none));
     expect(cells(columns.a.end)).toEqual(ends(exact(2), exact(8)));
     expect(cells(columns.b.end)).toEqual(ends(exact(88200), real(8)));
     expect(beliefs.actors).toEqual([B, A]);
-    expect(Array.from(beliefs.offsets)).toEqual([0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 5, 6, 6]);
+    expect(Array.from(beliefs.offsets)).toEqual([
+      0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 5, 6, 6, 6, 6,
+    ]);
     expect(Array.from(beliefs.actor)).toEqual([1, 1, 1, 1, 0, 0]);
     expect(Array.from(beliefs.word)).toEqual([0, 2, 0, 1, 0, 0]);
 
@@ -449,8 +463,8 @@ describe("matchClaims", () => {
     const { columns, beliefs } = await call();
     // expected.yaml: [believer, belief states kept, unique anchors, potential MatchStamps]
     for (const [believer, kept, anchors, stamps] of [
-      [null, DEFAULT_BELIEFS, 14, 11],
-      [A, DEFAULT_BELIEFS, 13, 11],
+      [null, DEFAULT_BELIEFS, 16, 12],
+      [A, DEFAULT_BELIEFS, 15, 12],
       [A, ["true"], 2, 2],
       [B, ["true"], 1, 1],
     ] as const) {
@@ -527,12 +541,12 @@ describe("matchClaims", () => {
   }
 
   const placed = (header: Record<string, unknown>) => header.arrays as Record<string, number[]>;
-  /** The bytes of the first fourteen claim IDs joined by line feeds. */
-  const fourteenIds = Array.from({ length: 14 }, (_, row) => `claim_${row + 1}`).join("\n").length;
+  /** The bytes of the first sixteen claim IDs joined by line feeds. */
+  const sixteenIds = Array.from({ length: 16 }, (_, row) => `claim_${row + 1}`).join("\n").length;
 
   it("decodes the recording rebuilt unchanged", async () => {
     stubFetch(answering(withHeader(() => {})));
-    expect((await call()).columns.rows).toBe(15);
+    expect((await call()).columns.rows).toBe(17);
   });
 
   it.each([
@@ -579,19 +593,19 @@ describe("matchClaims", () => {
     [
       "an array misaligned",
       withHeader((h) => {
-        placed(h)["a.start.position"] = [260, 15];
+        placed(h)["a.start.position"] = [292, 17];
       }),
     ],
     [
-      "a.timeline of 14 entries",
+      "a.timeline of 16 entries",
       withHeader((h) => {
-        placed(h)["a.timeline"] = [128, 14];
+        placed(h)["a.timeline"] = [144, 16];
       }),
     ],
     [
-      "fourteen claim IDs",
+      "sixteen claim IDs",
       withHeader((h) => {
-        placed(h).claim_ids = [0, fourteenIds];
+        placed(h).claim_ids = [0, sixteenIds];
       }),
     ],
     [

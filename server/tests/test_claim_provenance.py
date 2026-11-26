@@ -144,6 +144,8 @@ FIXTURE_PROVENANCE: list[dict[str, Any] | None] = [
         beliefs=[held(B, "true", "2026-11-21")],
     ),
     None,
+    cell(),
+    cell(),
 ]
 """The fixture's provenance column, row by row (``README.md``)."""
 
@@ -433,7 +435,7 @@ def test_the_files_provenance_becomes_every_rows(server: TestClient) -> None:
     assert without_provenance(table) == without_provenance(fixture_table())
     beliefs = [held(A, "false", "2026-11-21"), held(B, "true", "2026-11-21")]
     common = cell(service=None, beliefs=beliefs)
-    provenance = [common] * 15
+    provenance = [common] * 17
     provenance[2] = cell(
         service=None,
         beliefs=[held(A, "false", "2026-11-21"), held(B, "false", DAY)],
@@ -620,8 +622,8 @@ def refusal_of(old: pa.Table, new: pa.Table) -> dict[str, Any] | None:
 
 def test_a_table_without_a_claim_does_not_succeed() -> None:
     old = fixture_table()
-    message = "the MatchClaim 'claim_15' is missing"
-    assert refusal_of(old, old.slice(0, 14)) == {
+    message = "the MatchClaim 'claim_17' is missing"
+    assert refusal_of(old, old.slice(0, 16)) == {
         "status": 422,
         "path": [],
         "message": message,
@@ -639,7 +641,7 @@ def test_a_table_without_a_claim_does_not_succeed() -> None:
 def test_a_table_changing_a_claim_does_not_succeed() -> None:
     old = fixture_table()
     index = old.schema.get_field_index("certainty")
-    certainty = [0.5] + [1.0] * 14
+    certainty = [0.5] + [1.0] * 16
     new = old.set_column(
         index, old.schema.field(index), pa.array(certainty, pa.float64())
     )

@@ -75,10 +75,10 @@ call or the exact result.
    characters), the manifest's bytes, then the file's bytes unchanged.
 
    The oracle of the answer is TimeToShare's table fixture `tables/0.2.0`,
-   fifteen MatchClaims read off by hand (the server's tests README,
+   seventeen MatchClaims read off by hand (the server's tests README,
    "MatchClaims", has the table): `data/match-claims.answer.bin` is the
-   server's recorded answer to it (item 9). Decoded, it resolves to `rows` 15, the claim IDs
-   `claim_1` to `claim_15`, the timelines `clt_1` (fraction), `clt_2`
+   server's recorded answer to it (item 9). Decoded, it resolves to `rows` 17, the claim IDs
+   `claim_1` to `claim_17`, the timelines `clt_1` (fraction), `clt_2`
    (fraction), `cpt_1` (float), `dpt_1` (int), and every array compared
    whole with the values written in the test: the timeline numbers, the
    presence flags, each value column's positions, numerators and
@@ -89,14 +89,14 @@ call or the exact result.
    copies: each one's `buffer` is the same object. The decoded columns
    are what core's anchor index takes: `anchorIndexOf` builds from them
    (it checks them against decision 0029 first) and gives the fixture's
-   `expected.yaml` count of unique anchors (14 with nothing filtered).
+   `expected.yaml` count of unique anchors (16 with nothing filtered).
 
    **The belief filter** is core's (`beliefMask`, tested there on these
    beliefs): for each of `expected.yaml`'s cases (nothing filtered, then
    `…0002-1825-0097` not false and true, `…0001-5109-3700` true) the
    anchor index built from the decoded columns under core's mask of the
    decoded beliefs has the case's count of unique anchors and potential
-   MatchStamps (14 and 11, 13 and 11, 2 and 2, 1 and 1).
+   MatchStamps (16 and 12, 15 and 12, 2 and 2, 1 and 1).
 
    **Refusals.** An answer outside 2xx rejects with code `status` and its
    status; a 422 whose body is `{"detail": {"path", "message",
@@ -108,8 +108,8 @@ call or the exact result.
    than four bytes, a header length beyond the answer, a header that is no
    JSON object, another `format` or `version` (2), other belief words, an
    array missing, out of bounds, at an offset that is not a multiple of
-   eight, or of another length than its name requires (`a.timeline` of 14
-   entries for 15 rows), claim IDs that are not `rows` lines, and a belief
+   eight, or of another length than its name requires (`a.timeline` of 16
+   entries for 17 rows), claim IDs that are not `rows` lines, and a belief
    naming no actor of the header.
 
 6. **Provenance and beliefs** (`decisions/0031-match-claim-provenance.md`).
@@ -165,7 +165,8 @@ call or the exact result.
    nine members `id`, the two sides' `timeline_*_id`, `event_*_id`,
    `event_*_name`, `certainty`, `is_synchronous`: `claim_1` `clt_1`
    `note_1` "C4" against `dpt_1` `projection_1` without a name,
-   `claim_11` `dpt_1` `projection_6` against `cpt_1` `projection_7`,
+   `claim_11` `dpt_1` `CHUNK_SENTINEL` against `cpt_1` `CHUNK_SENTINEL`
+   (the reserved string for the CHUNK sentinel on both sides), no names,
    `claim_12`'s side B `dpt_1` `NOMATCH_SENTINEL` (the MatchClaim table's
    reserved string for the NOMATCH sentinel), no name, and not
    synchronous. An event ID is always a string: a side naming no event

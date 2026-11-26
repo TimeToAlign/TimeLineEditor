@@ -140,7 +140,7 @@ NONE = (0.0, 0, 0)
 FIXTURE_HEADER = {
     "format": "tilie-match-claims",
     "version": 1,
-    "rows": 15,
+    "rows": 17,
     "timelines": [
         {"id": "clt_1", "number_type": "fraction"},
         {"id": "clt_2", "number_type": "fraction"},
@@ -152,12 +152,12 @@ FIXTURE_HEADER = {
 }
 
 FIXTURE_ARRAYS: dict[str, Any] = {
-    "claim_ids": "\n".join(f"claim_{row}" for row in range(1, 16)),
-    "a.timeline": [0, 0, 0, 3, 0, 3, 0, 0, 0, 0, 3, 0, 0, 0, 1],
-    "b.timeline": [3, 3, 3, 0, 3, 2, 2, 2, 2, 2, 2, 3, 3, 2, 3],
-    "start_present": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1],
-    "end_present": [0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-    "belief_offsets": [0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 5, 6, 6],
+    "claim_ids": "\n".join(f"claim_{row}" for row in range(1, 18)),
+    "a.timeline": [0, 0, 0, 3, 0, 3, 0, 0, 0, 0, 3, 0, 0, 0, 1, 2, 0],
+    "b.timeline": [3, 3, 3, 0, 3, 2, 2, 2, 2, 2, 2, 3, 3, 2, 3, 0, 2],
+    "start_present": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1],
+    "end_present": [0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    "belief_offsets": [0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 5, 6, 6, 6, 6],
     "belief_actors": [1, 1, 1, 1, 0, 0],
     "belief_words": [0, 2, 0, 1, 0, 0],
 }
@@ -179,6 +179,8 @@ FIXTURE_VALUES = {
         exact(10),
         NONE,
         exact(1),
+        real(1.0),
+        exact(45, 4),
     ],
     "b.start": [
         exact(0),
@@ -196,9 +198,11 @@ FIXTURE_VALUES = {
         exact(441000),
         NONE,
         exact(396900),
+        exact(1),
+        real(11.25),
     ],
-    "a.end": [NONE, exact(2), *[NONE] * 6, exact(8), *[NONE] * 6],
-    "b.end": [NONE, exact(88200), *[NONE] * 6, real(8.0), *[NONE] * 6],
+    "a.end": [NONE, exact(2), *[NONE] * 6, exact(8), *[NONE] * 8],
+    "b.end": [NONE, exact(88200), *[NONE] * 6, real(8.0), *[NONE] * 8],
 }
 
 
@@ -291,9 +295,9 @@ def test_the_files_provenance_gives_every_row_its_beliefs(server: TestClient) ->
     assert response.status_code == 200
     header, arrays = decoded(response.content)
     assert header == FIXTURE_HEADER
-    assert arrays["belief_offsets"] == list(range(0, 31, 2))
-    assert arrays["belief_actors"] == [1, 0] * 15
-    assert arrays["belief_words"] == [1, 0] * 15
+    assert arrays["belief_offsets"] == list(range(0, 35, 2))
+    assert arrays["belief_actors"] == [1, 0] * 17
+    assert arrays["belief_words"] == [1, 0] * 17
     assert values(arrays, "a.start") == FIXTURE_VALUES["a.start"]
 
 

@@ -237,7 +237,7 @@ async function changeTable(page: Page): Promise<void> {
   const yours = claim.getByRole("group", { name: "Your belief in claim_1" });
   await yours.getByRole("button", { name: "False" }).click();
   await expect(page.getByTestId("matchclaims-status")).toHaveText(
-    "match_claims.parquet: 15 MatchClaims, changed",
+    "match_claims.parquet: 17 MatchClaims, changed",
   );
 }
 
@@ -280,7 +280,7 @@ test("a MatchClaim's provenance is read for it, and the user's belief makes a ta
   const journal = await page.evaluate(() => window.__tilie.store().journal.length);
   await yours.getByRole("button", { name: "False" }).click();
   await expect(page.getByTestId("matchclaims-status")).toHaveText(
-    "match_claims.parquet: 15 MatchClaims, changed",
+    "match_claims.parquet: 17 MatchClaims, changed",
   );
   expect(seen.beliefs).toEqual([
     { claim: "claim_1", actor: ME, belief: "false", date: "2026-11-22" },
@@ -305,7 +305,7 @@ test("a MatchClaim's provenance is read for it, and the user's belief makes a ta
   expect(done.suggestedFilename()).toBe("match_claims.parquet");
   expect(readFileSync(await done.path()).equals(BELIEVED)).toBe(true);
   await expect(page.getByTestId("matchclaims-status")).toHaveText(
-    "match_claims.parquet: 15 MatchClaims",
+    "match_claims.parquet: 17 MatchClaims",
   );
   await expect(page.getByRole("button", { name: "Save MatchClaims…" })).toHaveCount(0);
 });
@@ -325,7 +325,7 @@ test("an expanded MatchClaim says once why nothing is read while the health chec
   const block = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks)[0] ?? "");
   await nameDownbeat(page, block);
   await expect(page.getByTestId("matchclaims-status")).toHaveText(
-    "match_claims.parquet: 15 MatchClaims",
+    "match_claims.parquet: 17 MatchClaims",
   );
 
   const claim = claims(page).locator("li[data-claim='claim_1']");
@@ -366,7 +366,7 @@ test("New asks to save a changed table with the unsaved workspace, and saves bot
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(await blockCount(page)).toBe(1);
   await expect(page.getByTestId("matchclaims-status")).toHaveText(
-    "match_claims.parquet: 15 MatchClaims, changed",
+    "match_claims.parquet: 17 MatchClaims, changed",
   );
 
   const workspace = await page.evaluate(() => window.__tilie.text());

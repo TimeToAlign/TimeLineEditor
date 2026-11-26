@@ -56,10 +56,10 @@ const CLAIM_1 = {
 const CLAIM_11 = {
   id: "claim_11",
   timeline_a_id: "dpt_1",
-  event_a_id: "projection_6",
+  event_a_id: "CHUNK_SENTINEL",
   event_a_name: null,
   timeline_b_id: "cpt_1",
-  event_b_id: "projection_7",
+  event_b_id: "CHUNK_SENTINEL",
   event_b_name: null,
   certainty: 1.0,
   is_synchronous: true,

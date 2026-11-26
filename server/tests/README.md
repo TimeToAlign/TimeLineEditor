@@ -229,7 +229,7 @@ and 1 byte, and the body limit's message names 1,234 bytes alike (`body
 larger than 1,234 bytes`).
 A local server has neither bound and reads the table as it always did.
 
-The cases post TimeToShare's MatchClaim table fixture (15 rows) and its
+The cases post TimeToShare's MatchClaim table fixture (17 rows) and its
 manifest, the table written by pyarrow in the test, with small bounds
 injected into the settings. The facts the cases rest on are read from the
 file by pyarrow in the test and asserted as preconditions, so each case
@@ -241,9 +241,9 @@ that fail the test when called.
 
 | Table | Bounds | Answer |
 | --- | --- | --- |
-| the fixture | 15 rows, the decoded size | 200, byte for byte the local answer, on each of the four routes (the events and provenance of `claim_1`, the belief `claim_6`, `false`) |
-| the fixture | 14 rows | 413 `table of more than 14 rows`, on each of the four routes; not decoded |
-| the fixture, its footer's file-level row count rewritten from 15 to 14 in the test (its row group still says 15) | 14 rows | 413 `table of more than 14 rows`; not decoded |
+| the fixture | 17 rows, the decoded size | 200, byte for byte the local answer, on each of the four routes (the events and provenance of `claim_1`, the belief `claim_6`, `false`) |
+| the fixture | 16 rows | 413 `table of more than 16 rows`, on each of the four routes; not decoded |
+| the fixture, its footer's file-level row count rewritten from 17 to 16 in the test (its row group still says 17) | 16 rows | 413 `table of more than 16 rows`; not decoded |
 | the fixture | the decoded size less one (the footer states less) | 413 `table larger than <n> bytes uncompressed` (`n` that bound), by the decoded count |
 | the fixture with a column `note` of 100,000 `a` per row, plain encoding, zstd: the file under 16 KiB, its footer stating more than 1 MiB | 1 MiB | 413 `table larger than 1 MiB uncompressed`; not decoded |
 | the same column dictionary-encoded: the footer states under 1 MiB, the decoded table holds more | 1 MiB | 413 `table larger than 1 MiB uncompressed`, by the decoded count |
@@ -661,25 +661,25 @@ zero.
 **The fixture.** Posted with its `manifest.yaml` as it is (canonical YAML,
 `#` IDs), the answer is 200 `application/octet-stream`, and its header,
 without `arrays`, is exactly `{"format": "tilie-match-claims", "version":
-1, "rows": 15, "timelines": [clt_1 fraction, clt_2 fraction, cpt_1 float,
+1, "rows": 17, "timelines": [clt_1 fraction, clt_2 fraction, cpt_1 float,
 dpt_1 int], "actors": ["https://orcid.org/0000-0001-5109-3700",
 "https://orcid.org/0000-0002-1825-0097"], "beliefs": ["true", "false",
 "unlikely"]}` (`clt_2` is a child of `clt_1`, found at its depth; the
 number types are the units' defaults the manifest leaves unstated). The
-arrays, row by row (`claim_1` to `claim_15`):
+arrays, row by row (`claim_1` to `claim_17`):
 
 | Array | Values |
 | --- | --- |
-| `claim_ids` | `claim_1` … `claim_15` joined by a line feed |
-| `a.timeline` | 0 0 0 3 0 3 0 0 0 0 3 0 0 0 1 |
-| `b.timeline` | 3 3 3 0 3 2 2 2 2 2 2 3 3 2 3 |
+| `claim_ids` | `claim_1` … `claim_17` joined by a line feed |
+| `a.timeline` | 0 0 0 3 0 3 0 0 0 0 3 0 0 0 1 2 0 |
+| `b.timeline` | 3 3 3 0 3 2 2 2 2 2 2 3 3 2 3 0 2 |
 | `start_present` | 1 everywhere but rows 11 (`claim_12`, a NOMATCH) and 13 (`claim_14`, conceptual) |
 | `end_present` | 1 in rows 1 (`claim_2`) and 8 (`claim_9`), the interval claims |
-| `a.start` | 0/1, 1, 3, 132300, 4, 176400, 5, 5, 6, 15/2, 441000, –, 10, –, 1 |
-| `b.start` | 0, 44100, 132300, 3, 176400, 4.0, 5.0, 5.25, 6.0, 7.5, 10.0, –, 441000, –, 396900 |
+| `a.start` | 0/1, 1, 3, 132300, 4, 176400, 5, 5, 6, 15/2, 441000, –, 10, –, 1, 1.0, 45/4 |
+| `b.start` | 0, 44100, 132300, 3, 176400, 4.0, 5.0, 5.25, 6.0, 7.5, 10.0, –, 441000, –, 396900, 1, 11.25 |
 | `a.end` | row 1: 2; row 8: 8 |
 | `b.end` | row 1: 88200; row 8: 8.0 |
-| `belief_offsets` | 0 1 1 1 1 1 2 2 2 2 2 3 3 5 6 6 |
+| `belief_offsets` | 0 1 1 1 1 1 2 2 2 2 2 3 3 5 6 6 6 6 |
 | `belief_actors` | 1 1 1 1 0 0 |
 | `belief_words` | 0 2 0 1 0 0 (row 0 true, row 5 unlikely, row 10 true, row 12 false and true, row 13 true) |
 
@@ -694,7 +694,7 @@ anchor are zero.
 | the fixture's table with one more column, `note` | the same bytes: a column the table type does not declare is kept by the checks and no part of a MatchClaim |
 | the fixture's table with one more column, `scope`, holding `bundle_1` in the even rows and `bundle_2` in the odd ones | the same bytes: a MatchClaim is its ID alone, so a `scope` column is a further column like `note`, kept and never checked |
 | the fixture's table with `claim_2`'s ID written `claim_1` and the same `scope` column, which gives the two rows two scopes | 422 at path `[]` with the one problem `duplicate_id` at row 1, column `["id"]`, whose message is the answer's and quotes `'claim_1'`: a scope tells no two MatchClaims apart, TimeToShare's check |
-| the fixture's table without row provenance, the file's metadata `timetoshare:provenance` stating `{"method": "imported", "date": "2026-11-20", "beliefs": [A false, B true]}` (A, B the two actors) | `actors` `[B, A]`, `belief_offsets` 0, 2, … 30, `belief_actors` `1 0` per row and `belief_words` `1 0` per row: every row holds the file's beliefs |
+| the fixture's table without row provenance, the file's metadata `timetoshare:provenance` stating `{"method": "imported", "date": "2026-11-20", "beliefs": [A false, B true]}` (A, B the two actors) | `actors` `[B, A]`, `belief_offsets` 0, 2, … 34, `belief_actors` `1 0` per row and `belief_words` `1 0` per row: every row holds the file's beliefs |
 | the fixture's table with A in `claim_1`'s belief written compactly, `orcid:0000-0002-1825-0097`, against the fixture's manifest, whose `@context` declares `orcid` as `https://orcid.org/`, a prefix no statement uses (timetoalign compares actors under every prefix a manifest declares) | the fixture's bytes: actors are answered as timetoalign compares them, expanded under the manifest's `@context`, so the compact and the full spelling are one actor, A |
 | the same table against the fixture's manifest with `orcid` left out of its `@context` | `actors` `[B, A, "orcid:0000-0002-1825-0097"]` and `belief_actors` `2 1 1 1 0 0`: a prefix the context does not declare expands to nothing, and the actor is compared as written |
 | a table built in the test on a samples, a quarters and a seconds timeline: 2^53 + 1 samples, the unreduced `[2, 4]` quarters, `[2^62 + 1, 3]` quarters and −0.0 seconds, each cell in the package form (its number once, in the member its number type names) | numerator 9007199254740993 with position 2^53 (the double nearest it, ties to even); the stated `[2, 4]` read by value and answered reduced as `1/2` with 0.5; the pair unchanged with Python's `float` of the fraction, the correctly rounded quotient; 0.0 with its sign bit clear |
@@ -746,7 +746,6 @@ compares actors (`stated_by` is answered as written).
 | Request | Answer |
 | --- | --- |
 | `claims` `["claim_6", "claim_15", "claim_1"]` | 200 `{"claims": [{"id": "claim_6", "provenance": {"date": "2026-11-20", "method": "imported", "service": "https://example.org/aligner", "beliefs": [{"actor": A, "belief": "unlikely", "date": "2026-11-21", "note": "the onset is blurred"}]}}, {"id": "claim_15", "provenance": null}, {"id": "claim_1", "provenance": {"stated_by": [A], "date": "2026-11-20", "method": "manual", "beliefs": [{"actor": A, "belief": "true", "date": "2026-11-20"}]}}]}`: in the order asked, never more than asked |
-| `claims` `["claim_11"]` of the fixture's table with `claim_11`'s `event_b_id` `CHUNK_SENTINEL` | 200, `claim_11` with side B `cpt_1` `CHUNK_SENTINEL` and no name, synchronous |
 | `claims` `[]` | 200 `{"claims": []}` |
 | the fixture's table without row provenance, the file stating `{"method": "imported", "date": "2026-11-20", "beliefs": [A false, B true]}`, both beliefs of 2026-11-21; `claims` `["claim_4"]` | the file's entry as `claim_4`'s |
 | `claims` `["claim_1", "claim_99"]` | 422 `{"detail": {"path": ["claims", 1], "message": "the MatchClaim table has no MatchClaim 'claim_99'"}}` |
@@ -815,7 +814,7 @@ record provenance` with `timetoalign.core.provenance` made unimportable.
 **The succession rule.** The belief route cannot make a table that breaks
 it, so the rule's check is proved on its own: written over the fixture, the
 fixture without its last row is refused 422 `{"path": [], "message": "the
-MatchClaim 'claim_15' is missing", "problems": [{"code":
+MatchClaim 'claim_17' is missing", "problems": [{"code":
 "succession_missing", "row": null, "column": ["id"], "message": …}]}`; the
 fixture with `claim_1`'s certainty 0.5 with `succession_changed` at row 0,
 column `["certainty"]`, `the MatchClaim 'claim_1' changed its
@@ -837,9 +836,10 @@ written out by hand in the test, never read off an answer:
 | `claim_1` | `clt_1` `note_1` `C4` | `dpt_1` `projection_1` – | yes |
 | `claim_4` | `dpt_1` `projection_4` – | `clt_1` `note_4` `G4` | yes |
 | `claim_7` | `clt_1` `note_6` `A4` | `cpt_1` `onset_2` – | yes |
-| `claim_11` | `dpt_1` `projection_6` – | `cpt_1` `projection_7` – | yes |
+| `claim_11` | `dpt_1` `CHUNK_SENTINEL` – | `cpt_1` `CHUNK_SENTINEL` – | yes |
 | `claim_12` | `clt_1` `note_10` `E5` | `dpt_1` `NOMATCH_SENTINEL` – | no |
 | `claim_15` | `clt_2` `note_13` `A5` | `dpt_1` `projection_9` – | yes |
+| `claim_16` | `cpt_1` `CHUNK_SENTINEL` – | `clt_1` `note_2` `D4` | yes |
 
 Every certainty is 1.0. Each answered MatchClaim has exactly the members
 `{"id", "timeline_a_id", "event_a_id", "event_a_name", "timeline_b_id",
@@ -847,10 +847,8 @@ Every certainty is 1.0. Each answered MatchClaim has exactly the members
 `null`. An event ID is never null: a side naming no event holds the
 table's reserved string, answered as written, `NOMATCH_SENTINEL` on a
 MatchClaim that is not synchronous (`claim_12`) and `CHUNK_SENTINEL` on a
-synchronous one; the fixture states no CHUNK, so the test writes one:
-the fixture's table with `claim_11`'s `event_b_id` `CHUNK_SENTINEL`
-answers `claim_11` as `dpt_1` `projection_6` – against `cpt_1`
-`CHUNK_SENTINEL` –, synchronous. The sentinels are written in the test as
+synchronous one, on both sides (`claim_11`) or on one (`claim_16`); the
+table is posted as the fixture has it, never edited for a sentinel. The sentinels are written in the test as
 the strings they are, never read from a package. The route reads no table but the MatchClaim table: the request
 leaves no place for another, so a body that once carried a second table
 between the parameters and the manifest's length is read as the
@@ -859,7 +857,7 @@ manifest's length and refused by the table route's own split.
 | Request | Answer |
 | --- | --- |
 | `claims` `["claim_1", "claim_4", "claim_7", "claim_11", "claim_12", "claim_15"]` | 200, the six rows above in that order, each of exactly the nine members |
-| `claims` `["claim_11"]` of the fixture's table with `claim_11`'s `event_b_id` `CHUNK_SENTINEL` | 200, `claim_11` with side B `cpt_1` `CHUNK_SENTINEL` and no name, synchronous |
+| `claims` `["claim_16", "claim_11", "claim_12"]` | 200, those three rows above in that order: a CHUNK on side A beside an event, a CHUNK on both sides, a NOMATCH |
 | `claims` `[]` | 200 `{"claims": []}` |
 | `claims` `["claim_1", "claim_99"]` | 422 `{"detail": {"path": ["claims", 1], "message": "the MatchClaim table has no MatchClaim 'claim_99'"}}` |
 | `claims` `"claim_1"` | 422 at `["claims"]`, `the parameter 'claims' is no list of MatchClaim IDs` |
