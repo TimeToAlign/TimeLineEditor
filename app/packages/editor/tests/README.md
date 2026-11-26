@@ -3105,19 +3105,24 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    route is never called. The answer written in the
    test: `claim_1` `clt_1` event `note_1` named "C4" ↔ `dpt_1` event
    `onset_1` without a name, certainty 0.75; `claim_2` `clt_1` `note_1`
-   "C4" ↔ `cpt_1` `CHUNK_SENTINEL`, no certainty. Shown, each side is one
+   "C4" ↔ `cpt_1` `CHUNK_SENTINEL` named "downbeat 3", no certainty.
+   Shown, each side is one
    row of a list headed by its timeline's name, else its ID (the fixture's
    timelines have no name), the ID as the title: `claim_1` `clt_1`
    "note_1 “C4”", `dpt_1` "onset_1", "certainty 0.75"; `claim_2` `clt_1`
-   "note_1 “C4”", `cpt_1` "CHUNK" with the title "a position on a timeline
-   that holds no event for it", no certainty row. A side with an event is
-   its timeline, event and name, nothing more (`claimDetails` gives
-   exactly `{timeline, timelineName, event, name}`). A side whose event ID
-   is one of the MatchClaim table's two reserved strings is that
-   sentinel, never an event, exactly `{timeline, timelineName, event:
-   null, sentinel}`: `CHUNK_SENTINEL` is `CHUNK` (the anchor states that
-   side's position), `NOMATCH_SENTINEL` is `NOMATCH` (a `claim_3` of
-   `clt_1` `note_1` against `dpt_1` `NOMATCH_SENTINEL`, not synchronous).
+   "note_1 “C4”", `cpt_1` "CHUNK “downbeat 3”", the sentinel with the
+   title "a position on a timeline that holds no event for it" and the
+   name behind it as an event's name stands behind its ID, no certainty
+   row. A side with an event is its timeline, event and name, nothing more
+   (`claimDetails` gives exactly `{timeline, timelineName, event, name}`).
+   A side whose event ID is one of the MatchClaim table's two reserved
+   strings is that sentinel, never an event, exactly `{timeline,
+   timelineName, event: null, sentinel, name}`, its name the table's (a
+   CHUNK side may name the position it states; the table's checks refuse a
+   name on a NOMATCH side): `CHUNK_SENTINEL` is `CHUNK` (the anchor states
+   that side's position; `claim_2`'s "downbeat 3"), `NOMATCH_SENTINEL` is
+   `NOMATCH` (a `claim_3` of `clt_1` `note_1` against `dpt_1`
+   `NOMATCH_SENTINEL`, not synchronous, name `null`).
    The sentinel is read from the string alone, never from
    `is_synchronous`. The sentinels' titles in the tab (`SENTINEL_TITLES`):
    `CHUNK` "a position on a timeline that holds no event for it",

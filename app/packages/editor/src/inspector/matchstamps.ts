@@ -601,16 +601,15 @@ export const SENTINEL_TITLES: Readonly<Record<Sentinel, string>> = {
 
 /**
  * One side of a MatchClaim as the tab shows it expanded: its timeline, its
- * ID and its name (else the ID), then its event (ID and name, `null` for
- * none), or the sentinel it is where it names no event.
+ * ID and its name (else the ID), then its event's ID, or the sentinel it is
+ * where it names no event, and the side's name (`null` for none; a CHUNK
+ * side may name the position it states, a NOMATCH side has none).
  */
 export type SideLine = {
   readonly timeline: string;
   readonly timelineName: string;
-} & (
-  | { readonly event: string; readonly name: string | null }
-  | { readonly event: null; readonly sentinel: Sentinel }
-);
+  readonly name: string | null;
+} & ({ readonly event: string } | { readonly event: null; readonly sentinel: Sentinel });
 
 /** What the tab shows of a MatchClaim expanded: its two sides and its certainty. */
 export interface ClaimDetails {
@@ -641,7 +640,7 @@ export function claimDetails(
     const sentinel = SENTINELS.get(event);
     return sentinel === undefined
       ? { timeline, timelineName, event, name }
-      : { timeline, timelineName, event: null, sentinel };
+      : { timeline, timelineName, event: null, sentinel, name };
   };
   return {
     sides: [

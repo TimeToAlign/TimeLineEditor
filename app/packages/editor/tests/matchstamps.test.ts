@@ -435,7 +435,7 @@ describe("a MatchClaim's events", () => {
       events(
         "claim_2",
         { event_a_id: "note_1", event_a_name: "C4" },
-        { timeline_b_id: "cpt_1", event_b_id: "CHUNK_SENTINEL" },
+        { timeline_b_id: "cpt_1", event_b_id: "CHUNK_SENTINEL", event_b_name: "downbeat 3" },
       ),
       events(
         "claim_3",
@@ -453,14 +453,20 @@ describe("a MatchClaim's events", () => {
     expect(claimDetails(read, "claim_2", manifest)).toEqual({
       sides: [
         { timeline: "clt_1", timelineName: "clt_1", event: "note_1", name: "C4" },
-        { timeline: "cpt_1", timelineName: "cpt_1", event: null, sentinel: "CHUNK" },
+        {
+          timeline: "cpt_1",
+          timelineName: "cpt_1",
+          event: null,
+          sentinel: "CHUNK",
+          name: "downbeat 3",
+        },
       ],
       certainty: null,
     });
     expect(claimDetails(read, "claim_3", manifest)).toEqual({
       sides: [
         { timeline: "clt_1", timelineName: "clt_1", event: "note_1", name: "C4" },
-        { timeline: "dpt_1", timelineName: "dpt_1", event: null, sentinel: "NOMATCH" },
+        { timeline: "dpt_1", timelineName: "dpt_1", event: null, sentinel: "NOMATCH", name: null },
       ],
       certainty: null,
     });

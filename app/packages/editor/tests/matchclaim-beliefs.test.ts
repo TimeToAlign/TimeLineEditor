@@ -93,7 +93,7 @@ const EVENTS: Readonly<Record<string, ClaimEvents>> = {
   claim_2: sides(
     "claim_2",
     { event_a_id: "note_1", event_a_name: "C4" },
-    { timeline_b_id: "cpt_1", event_b_id: "CHUNK_SENTINEL" },
+    { timeline_b_id: "cpt_1", event_b_id: "CHUNK_SENTINEL", event_b_name: "downbeat 3" },
     null,
   ),
 };
@@ -423,7 +423,7 @@ describe("events on demand", () => {
     expect(calls.events.length).toBe(1);
     expect(eventRows("claim_2")).toEqual([
       ["clt_1", "note_1 “C4”"],
-      ["cpt_1", "CHUNK"],
+      ["cpt_1", "CHUNK “downbeat 3”"],
     ]);
     expect(
       claimItem("claim_2")

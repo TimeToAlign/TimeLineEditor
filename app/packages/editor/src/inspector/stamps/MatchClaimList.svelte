@@ -2,8 +2,9 @@
 /**
  * The Matchstamp tab's MatchClaims: each MatchClaim behind the MatchStamp
  * shown, collapsed to its ID. Expanded, it shows what matters of it: the
- * events on both sides (each side's timeline, its event's ID and name, or
- * the sentinel CHUNK or NOMATCH where it names no event), read through the
+ * events on both sides (each side's timeline, its event's ID or the
+ * sentinel CHUNK or NOMATCH where it names no event, and the side's name, a
+ * CHUNK side's the position it states), read through the
  * server once a MatchClaim is expanded; its certainty; every actor's belief and the user's own (true, unlikely, false, recorded
  * through the server, which answers the new table); and a Provenance
  * button that alone opens how it was made (the paradata, as the Metadata
@@ -185,8 +186,8 @@ async function believe(claim: string, belief: Belief, mine: Belief | null): Prom
   {#if side.event === null}
     <span class="hint" title={SENTINEL_TITLES[side.sentinel]}>{side.sentinel}</span>
   {:else}
-    <code class="stamp-code">{side.event}</code>{side.name === null ? "" : ` “${side.name}”`}
-  {/if}
+    <code class="stamp-code">{side.event}</code>
+  {/if}{side.name === null ? "" : ` “${side.name}”`}
 {/snippet}
 
 {#snippet entry(claim: ClaimLine, read: ClaimProvenanceEntry | null | undefined, waiting: string)}
