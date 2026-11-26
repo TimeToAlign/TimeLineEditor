@@ -5253,23 +5253,31 @@ a Fraction, a `number` a float.
    - **A floating measure of several rows**, over a second MeasureMap,
      `split`: the opening of the fourth movement of Beethoven's Op. 106
      (4/4; bar 1 in two rows, bar 2 in three rows of ten quarters together,
-     bar 3), each row naming the next in its `next`. Each run of rows with
-     one number is one floating measure with one knot (item 7): 23/4 reads
-     1.657, 87/8 reads 2.212.
+     bar 3). Each run of rows with one number is one floating measure with
+     one knot (item 7): 23/4 reads 1.657, 87/8 reads 2.212.
    - **A bar split at a repeat sign**, over a third MeasureMap, `repeat`
      (6/8, nominal 3): bar 1 (count 1, actual 3); bar 2 in two rows, count 2
      (actual 3/2, end repeat, next naming count 1) and count 3 (actual 3/2,
      offset 3/2, at 9/2); bar 3 (count 4, at 6). Count 3 joins count 2 by
-     its offset alone (item 7): knots 0 → 1, 3 → 2, 6 → 3, 9 → 4, so 9/2
+     their one number (item 7): knots 0 → 1, 3 → 2, 6 → 3, 9 → 4, so 9/2
      reads 2.5 and 5 reads 2 + 2/3 → 2.666.
    - **A bar across a metre change**, over a fourth MeasureMap, `metre`:
      bar 1 (count 1, 2/4, actual 2); bar 2 in two rows, count 2 (2/4,
-     actual 1, its default next naming count 3) and count 3 (3/4, actual 2,
-     offset 1, at 3); bar 3 (count 4, 3/4, at 5). Count 3 joins count 2 by
-     the next although the nominal lengths are 2 and 3 (item 7): knots
-     0 → 1, 2 → 2, 5 → 3, 8 → 4, so 3 reads 2 + 1/3 → 2.333 and 4 reads
-     2 + 2/3 → 2.666. Split, count 3's knot 3 − 1 = 2 would coincide with
-     count 2's and nothing would be read.
+     actual 1) and count 3 (3/4, actual 2, offset 1, at 3); bar 3 (count 4,
+     3/4, at 5). Count 3 joins count 2 by their one number although the
+     nominal lengths are 2 and 3 (item 7): knots 0 → 1, 2 → 2, 5 → 3,
+     8 → 4, so 3 reads 2 + 1/3 → 2.333 and 4 reads 2 + 2/3 → 2.666. Split,
+     count 3's knot 3 − 1 = 2 would coincide with count 2's and nothing
+     would be read.
+   - **A bar before a fine and the pickup after it**, over a fifth
+     MeasureMap, `fine`: bar 1 (count 1, 3/4, actual 3); bar 2 in two rows,
+     count 2 (3/4, actual 3, end repeat, next naming count 1) and count 3
+     (2/2, actual 1, offset 3, at 6); bar 3 (count 4, 2/2, at 7). Nothing
+     but the number links counts 2 and 3: count 2 jumps back and the
+     nominal lengths are 3 and 4. They join (item 7): knots 0 → 1, 3 → 2,
+     7 → 3, 11 → 4, so 6 reads 2 + 3/4 = 2.75 and 9 reads 3.5. Split,
+     count 3's knot 6 − 3 = 3 would coincide with count 2's and nothing
+     would be read.
 2. **Hand values** (the parity table's arithmetic, stated without the
    library): the PiecewiseMap with breaks 0, 4, 16 and the pieces `1/2·x`
    and `3/5·x − 2/5` (both exact LinearMaps, quarters to seconds) gives at
@@ -5298,52 +5306,60 @@ a Fraction, a `number` a float.
    target unit, so each output can be expressed on its own axis.
 7. **Compound floating measures** (hand values, the same as timetoalign's
    `tests/maps/test_floating_measures.py`, whose README derives them). A
-   floating measure is a run of consecutive rows that represent one notated
-   bar. A row continues the run when it has the `number` (not null) of the
-   run's last row, the two do not state `volta`s naming different passes,
-   and either that row's `next` names its count (whatever the two rows'
-   `nominal_length`s: one number is one notated bar, also across a metre
-   change), or it has that row's `nominal_length` and its
-   `offset_within_measure` is where the run ends in the bar (the first
-   row's offset plus the rows' `actual_length`s). The run places one knot,
-   at its first row's nominal downbeat (qstamp minus offset), and ordinals
-   count runs, from 0 when the first run is an anacrusis (its first row
-   offset, its rows together shorter than that row's nominal length). The
-   rows are written out by hand, as the server answers them:
+   floating measure is a run of adjacent rows that carry one number. A row
+   joins the run when it has the `number` (not null) of the run's last row
+   and the two do not state `volta`s naming different passes; nothing else
+   is read, neither `next`, nor the `nominal_length`s, nor the
+   `offset_within_measure`. The run places one knot, at its first row's
+   nominal downbeat (qstamp minus offset), and ordinals count runs, from 0
+   when the first run is an anacrusis (its first row offset, its rows
+   together shorter than that row's nominal length). The rows are written
+   out by hand, as the server answers them:
    - Op. 106/II up to bar 47 (3/4): count 1 the anacrusis (number 0, qstamp
      0, actual 1, offset 2: ordinal 0); counts 2–46, numbers 1–45, at
      `1 + 3(count − 2)`; counts 47 (qstamp 136, actual 2) and 48 (qstamp
-     138, actual 1, offset 2) both number 46, 47 naming 48: one measure,
-     ordinal 46, knot 136; count 49, number 47, at 139. Readings: 0 → 0.666,
-     136 → 46.0, 137 → 46.333, 138 → 46.666, 139 → 47.0, 142 → 48.0. Before
-     runs joined, the knots 136 and 138 − 2 coincided and nothing was read.
+     138, actual 1, offset 2) both number 46: one measure, ordinal 46, knot
+     136; count 49, number 47, at 139. Readings: 0 → 0.666, 136 → 46.0,
+     137 → 46.333, 138 → 46.666, 139 → 47.0, 142 → 48.0. Before runs
+     joined, the knots 136 and 138 − 2 coincided and nothing was read.
    - Op. 106/IV rows 1–6 (4/4): bar 1 is rows 1 (actual 23/4) and 2
      (actual 3), bar 2 rows 3 (actual 17/8), 4 (actual 15/8, offset 17/8)
      and 5 (actual 6), bar 3 row 6: knots 0, 35/4, 75/4 and 91/4. Readings:
      0 → 1.0, 23/4 → 1.657, 35/4 → 2.0, 87/8 → 2.212, 51/4 → 2.4,
      75/4 → 3.0.
    - Fourteen 4/4 bars and the volta pair 15a, 15b (both number 15, volta 1
-     and volta 2): with 15a's next naming count 1, and also with its next
-     naming 15b, they are two measures (56 → 15.0, 60 → 16.0, 64 → 17.0):
-     the voltas differ, and 15b's offset 0 is not where 15a ends.
-   - Two rows at one nominal downbeat 0 (1/2 of a 2/4 bar, then 3/2 at
-     offset 1/2), both number 5: the first naming itself in its next (a
-     repeat sign) or naming the second, one 2/4 bar either way, the second
-     row's offset 1/2 being where the first ends: 0 → 1.0, 1 → 1.5,
-     2 → 2.0. With the second a 3/4 bar (nominal 3, so its downbeat is
-     still 0) and the first naming it, they are one bar across the metre
-     change and read the same. Numbered 5 and 6, without numbers, numbered
-     5 and 5 with the second a 3/4 bar and the first naming itself (only
-     the offset links them, and the nominal lengths differ), or numbered 5
-     and 5 under volta 1 and volta 2, the rows never join, the knots do not
-     increase and the map is `undefined` everywhere.
+     and volta 2): the endings under different volta brackets count through
+     as two measures (56 → 15.0, 60 → 16.0, 64 → 17.0).
+   - Two rows, the first 1/2 of a 2/4 bar at 0, the second 3/2 at 1/2:
+     numbered 5 and 5 with the second at offset 1/2 (both nominal
+     downbeats 0), one 2/4 bar: 0 → 1.0, 1 → 1.5, 2 → 2.0; the same with
+     the second a 3/4 bar (nominal 3, its downbeat still 0), one bar across
+     the metre change, read the same; the same with the second at offset 0
+     (its downbeat 1/2), still one bar, knots 0 → 1 and 2 → 2: 0 → 1.0,
+     1/2 → 1.25, 2 → 2.0 (apart, 1/2 would be a knot and read 2.0).
+     Numbered 5 and 6, without numbers, or numbered 5 and 5 under volta 1
+     and volta 2, both at the nominal downbeat 0, the rows never join, the
+     knots do not increase and the map is `undefined` everywhere.
    - The bar split at a repeat sign in the DCML Couperin musete
      (`c05n05_musete`, 6/8, nominal 3): rows 31 (number 28, qstamp 165/2,
-     actual 3/2, next 17 and 6) and 32 (number 28, qstamp 84, actual 3/2,
-     offset 3/2), then 33 (number 29, qstamp 171/2, actual 3). Read alone,
-     the excerpt counts from 1: knots 165/2 → 1, 171/2 → 2, 177/2 → 3.
-     Readings: 165/2 → 1.0, 84 → 1 + (3/2)/3 = 1.5, 85 → 1 + (5/2)/3 →
-     1.833, 171/2 → 2.0.
+     actual 3/2) and 32 (number 28, qstamp 84, actual 3/2, offset 3/2),
+     then 33 (number 29, qstamp 171/2, actual 3). Read alone, the excerpt
+     counts from 1: knots 165/2 → 1, 171/2 → 2, 177/2 → 3. Readings:
+     165/2 → 1.0, 84 → 1 + (3/2)/3 = 1.5, 85 → 1 + (5/2)/3 → 1.833,
+     171/2 → 2.0.
+   - The bar before the *fine* and the 2/2 pickup after it in OpenScore's
+     `sq8913219`: rows 582 (number 577, qstamp 3125/2, 3/4, actual 3), 583
+     (number 578, qstamp 3131/2, 3/4, actual 3), 584 (number 578, qstamp
+     3137/2, nominal 4, actual 1, offset 3) and 585 (number 579, qstamp
+     3139/2, nominal 4, actual 4). Rows 583 and 584 are one measure. Read
+     alone, the excerpt counts from 1: knots 3125/2 → 1, 3131/2 → 2,
+     3139/2 → 3, 3147/2 → 4. Readings: 3125/2 → 1.0, 3131/2 → 2.0,
+     3137/2 → 2 + 3/4 = 2.75, 3139/2 → 3.0, 3147/2 → 4.0.
+   - The `op18_no4_mov4_flow` skeleton (2/2, nominal 4): rows 9 (number 9,
+     qstamp 29, actual 3), 10 (number 10, qstamp 32, actual 1, offset 3)
+     and 11 (number 11, qstamp 33, actual 4). Rows 9 and 10 carry different
+     numbers and share the nominal downbeat 29, so the map is `undefined`
+     at 29, 32 and 33.
 
 ## Picking a value (`grid.test.ts`)
 

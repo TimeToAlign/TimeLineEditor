@@ -34,8 +34,6 @@ export interface MeasureKnot {
   readonly qstamp: QuarterPair | null;
   readonly nominal_length: QuarterPair | null;
   readonly actual_length: QuarterPair | null;
-  /** The counts of the rows that may follow this one (`[]` for none). */
-  readonly next: readonly number[];
   /** The pass or passes of the row's volta bracket, `null` under none. */
   readonly volta: number | readonly number[] | null;
   readonly offset_within_measure: QuarterPair;

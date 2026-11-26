@@ -124,7 +124,6 @@ function knotsOf(value: unknown): readonly MeasureKnots[] {
         qstamp: pair(member(row, "qstamp")),
         nominal_length: pair(member(row, "nominal_length")),
         actual_length: pair(member(row, "actual_length")),
-        next: list(member(row, "next")).map((count) => Number(integer(count))),
         volta: voltaOf(member(row, "volta")),
         offset_within_measure: offset,
       };
@@ -262,7 +261,6 @@ describe("express", () => {
         qstamp: [0, 1] as const,
         nominal_length: null,
         actual_length: null,
-        next: [],
         volta: null,
         offset_within_measure: [0, 1] as const,
       },
@@ -329,14 +327,13 @@ describe("outputs one by one", () => {
 
 describe("compound floating measures", () => {
   type Pair = readonly [number, number];
-  /** One expanded row; `number` null for a row without one, `next` counts. */
+  /** One expanded row; `number` null for a row without one. */
   const row = (
     count: number,
     number: number | null,
     qstamp: Pair,
     nominal: Pair,
     actual: Pair,
-    next: readonly number[],
     offset: Pair = [0, 1],
     volta: number | null = null,
   ): MeasureKnot => ({
@@ -347,7 +344,6 @@ describe("compound floating measures", () => {
     qstamp,
     nominal_length: nominal,
     actual_length: actual,
-    next,
     volta,
     offset_within_measure: offset,
   });
@@ -367,13 +363,13 @@ describe("compound floating measures", () => {
   const four: Pair = [4, 1];
 
   it("reads a split bar after an anacrusis as one bar (Op. 106/II)", () => {
-    const rows = [row(1, 0, [0, 1], three, [1, 1], [2], [2, 1])];
+    const rows = [row(1, 0, [0, 1], three, [1, 1], [2, 1])];
     for (let count = 2; count <= 46; count += 1) {
-      rows.push(row(count, count - 1, [1 + 3 * (count - 2), 1], three, three, [count + 1]));
+      rows.push(row(count, count - 1, [1 + 3 * (count - 2), 1], three, three));
     }
-    rows.push(row(47, 46, [136, 1], three, [2, 1], [48]));
-    rows.push(row(48, 46, [138, 1], three, [1, 1], [49], [2, 1]));
-    rows.push(row(49, 47, [139, 1], three, three, []));
+    rows.push(row(47, 46, [136, 1], three, [2, 1]));
+    rows.push(row(48, 46, [138, 1], three, [1, 1], [2, 1]));
+    rows.push(row(49, 47, [139, 1], three, three));
     const read = reader(rows);
     expect([0n, 136n, 137n, 138n, 139n, 142n].map(read)).toEqual([
       0.666, 46, 46.333, 46.666, 47, 48,
@@ -382,51 +378,50 @@ describe("compound floating measures", () => {
 
   it("reads three rows of one number as one measure of ten quarters (Op. 106/IV)", () => {
     const read = reader([
-      row(1, 1, [0, 1], four, [23, 4], [2]),
-      row(2, 1, [23, 4], four, [3, 1], [3]),
-      row(3, 2, [35, 4], four, [17, 8], [4]),
-      row(4, 2, [87, 8], four, [15, 8], [5], [17, 8]),
-      row(5, 2, [51, 4], four, [6, 1], [6]),
-      row(6, 3, [75, 4], four, four, []),
+      row(1, 1, [0, 1], four, [23, 4]),
+      row(2, 1, [23, 4], four, [3, 1]),
+      row(3, 2, [35, 4], four, [17, 8]),
+      row(4, 2, [87, 8], four, [15, 8], [17, 8]),
+      row(5, 2, [51, 4], four, [6, 1]),
+      row(6, 3, [75, 4], four, four),
     ]);
     expect([0n, q(23, 4), q(35, 4), q(87, 8), q(51, 4), q(75, 4)].map(read)).toEqual([
       1, 1.657, 2, 2.212, 2.4, 3,
     ]);
   });
 
-  it("keeps a volta pair apart, with or without a jump between the endings", () => {
-    const bars = (fifteenNext: readonly number[]) => {
-      const rows: MeasureKnot[] = [];
-      for (let count = 1; count <= 14; count += 1) {
-        rows.push(row(count, count, [4 * (count - 1), 1], four, four, [count + 1]));
-      }
-      rows.push(row(15, 15, [56, 1], four, four, fifteenNext, [0, 1], 1));
-      rows.push(row(16, 15, [60, 1], four, four, [], [0, 1], 2));
-      return reader(rows);
-    };
-    expect([56n, 60n, 64n].map(bars([1]))).toEqual([15, 16, 17]);
-    expect([56n, 60n, 64n].map(bars([16]))).toEqual([15, 16, 17]);
-  });
-
-  it("joins a bar split at a repeat sign by the offset its second part states", () => {
-    const pair = (firstNext: readonly number[]) =>
-      reader([
-        row(1, 5, [0, 1], [2, 1], [1, 2], firstNext),
-        row(2, 5, [1, 2], [2, 1], [3, 2], [], [1, 2]),
-      ]);
-    expect([0n, 1n, 2n].map(pair([1]))).toEqual([1, 1.5, 2]);
-    expect([0n, 1n, 2n].map(pair([2]))).toEqual([1, 1.5, 2]);
+  it("counts the endings under different volta brackets through as two measures", () => {
+    const rows: MeasureKnot[] = [];
+    for (let count = 1; count <= 14; count += 1) {
+      rows.push(row(count, count, [4 * (count - 1), 1], four, four));
+    }
+    rows.push(row(15, 15, [56, 1], four, four, [0, 1], 1));
+    rows.push(row(16, 15, [60, 1], four, four, [0, 1], 2));
+    expect([56n, 60n, 64n].map(reader(rows))).toEqual([15, 16, 17]);
   });
 
   it("reads a Couperin musete bar split at a repeat sign as one bar", () => {
     const sixEight: Pair = [3, 1];
     const half: Pair = [3, 2];
     const read = reader([
-      row(31, 28, [165, 2], sixEight, half, [17, 6]),
-      row(32, 28, [84, 1], sixEight, half, [33], half),
-      row(33, 29, [171, 2], sixEight, sixEight, []),
+      row(31, 28, [165, 2], sixEight, half),
+      row(32, 28, [84, 1], sixEight, half, half),
+      row(33, 29, [171, 2], sixEight, sixEight),
     ]);
     expect([q(165, 2), 84n, 85n, q(171, 2)].map(read)).toEqual([1, 1.5, 1.833, 2]);
+  });
+
+  it("reads a bar before a fine and the pickup after it as one bar (sq8913219)", () => {
+    const threeFour: Pair = [3, 1];
+    const read = reader([
+      row(582, 577, [3125, 2], threeFour, threeFour),
+      row(583, 578, [3131, 2], threeFour, threeFour),
+      row(584, 578, [3137, 2], four, [1, 1], [3, 1]),
+      row(585, 579, [3139, 2], four, four),
+    ]);
+    expect([q(3125, 2), q(3131, 2), q(3137, 2), q(3139, 2), q(3147, 2)].map(read)).toEqual([
+      1, 2, 2.75, 3, 4,
+    ]);
   });
 
   const twoRows = (
@@ -434,26 +429,30 @@ describe("compound floating measures", () => {
     second: number | null,
     secondNominal: Pair = [2, 1],
     voltas: readonly [number | null, number | null] = [null, null],
-    firstNext: readonly number[] = [2],
+    secondOffset: Pair = [1, 2],
   ) =>
     reader([
-      row(1, first, [0, 1], [2, 1], [1, 2], firstNext, [0, 1], voltas[0]),
-      row(2, second, [1, 2], secondNominal, [3, 2], [], [1, 2], voltas[1]),
+      row(1, first, [0, 1], [2, 1], [1, 2], [0, 1], voltas[0]),
+      row(2, second, [1, 2], secondNominal, [3, 2], secondOffset, voltas[1]),
     ]);
 
-  it("joins a row its next names across a metre change", () => {
+  it("joins adjacent rows of one number whatever their nominal lengths and offsets", () => {
+    expect([0n, 1n, 2n].map(twoRows(5, 5))).toEqual([1, 1.5, 2]);
     expect([0n, 1n, 2n].map(twoRows(5, 5, [3, 1]))).toEqual([1, 1.5, 2]);
+    expect([0n, q(1, 2), 2n].map(twoRows(5, 5, [2, 1], [null, null], [0, 1]))).toEqual([
+      1, 1.25, 2,
+    ]);
   });
 
   it("reads nothing where knots of rows that cannot join coincide", () => {
-    for (const read of [
-      twoRows(5, 6),
-      twoRows(null, null),
-      twoRows(5, 5, [3, 1], [null, null], [1]),
-      twoRows(5, 5, [2, 1], [1, 2]),
-    ]) {
+    for (const read of [twoRows(5, 6), twoRows(null, null), twoRows(5, 5, [2, 1], [1, 2])]) {
       expect([0n, 1n, 2n].map(read)).toEqual([undefined, undefined, undefined]);
     }
-    expect([0n, 1n, 2n].map(twoRows(5, 5))).toEqual([1, 1.5, 2]);
+    const skeleton = reader([
+      row(9, 9, [29, 1], four, [3, 1]),
+      row(10, 10, [32, 1], four, [1, 1], [3, 1]),
+      row(11, 11, [33, 1], four, four),
+    ]);
+    expect([29n, 32n, 33n].map(skeleton)).toEqual([undefined, undefined, undefined]);
   });
 });

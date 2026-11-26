@@ -318,60 +318,38 @@ function differentVoltas(row: MeasureKnot, following: MeasureKnot): boolean {
   );
 }
 
-/** Whether two rows state the same nominal length (both none counts as the same). */
-function sameNominal(row: MeasureKnot, following: MeasureKnot): boolean {
-  const nominal = row.nominal_length;
-  const followingNominal = following.nominal_length;
-  if (nominal === null || followingNominal === null) return nominal === followingNominal;
-  return exactPair(nominal).equals(exactPair(followingNominal));
-}
-
 /**
- * Whether `following`, the row after the run `run`, continues its floating
- * measure: it has the number of the run's last row, the two do not state
- * different voltas, and either that row's next names it (across a metre
- * change too: one number is one notated bar), or it has that row's nominal
- * length and its offset within the measure is where the run ends in the
- * notated bar (the first row's offset plus the rows' actual lengths).
+ * Whether `following`, the row after `row`, joins its floating measure: it
+ * has the number of `row` (not none), and the two do not state different
+ * voltas. Nothing else is read: not `next`, not the nominal lengths, not
+ * the offset within the measure.
  */
-function continues(run: readonly MeasureKnot[], following: MeasureKnot): boolean {
-  const row = nth(run, run.length - 1);
-  if (row.number === null || row.number !== following.number) return false;
-  if (differentVoltas(row, following)) return false;
-  if (row.next.includes(following.count)) return true;
-  if (!sameNominal(row, following)) return false;
-  let end = exactPair(nth(run, 0).offset_within_measure);
-  for (const part of run) {
-    if (part.actual_length === null) return false;
-    end = end.add(exactPair(part.actual_length));
-  }
-  return exactPair(following.offset_within_measure).equals(end);
+function joins(row: MeasureKnot, following: MeasureKnot): boolean {
+  return row.number !== null && row.number === following.number && !differentVoltas(row, following);
 }
 
 /**
- * Floating measures. A floating measure is a run of consecutive rows that
- * represent one notated bar (a single row is a run of one; see `continues`),
- * so the rows of a split bar read as that one bar. One knot per run at its
- * first row's nominal downbeat (its qstamp minus its offset within the
- * measure) carrying the run's ordinal, and one at the end of the last row;
- * the first run is ordinal 0 when it is an anacrusis. Linear between and
- * beyond the knots in exact arithmetic, truncated to three decimals; knots
- * that do not increase give no floating measures.
+ * Floating measures. A floating measure is a run of adjacent rows that
+ * carry one number (a single row is a run of one; see `joins`), so the rows
+ * of a split bar read as that one bar, and the endings under different
+ * volta brackets count through as separate floating measures. One knot per
+ * run at its first row's nominal downbeat (its qstamp minus its offset
+ * within the measure) carrying the run's ordinal, and one at the end of the
+ * last row; the first run is ordinal 0 when it is an anacrusis. Linear
+ * between and beyond the knots in exact arithmetic, truncated to three
+ * decimals; knots that do not increase give no floating measures.
  */
 function floatingMeasures(rows: readonly MeasureKnot[]): Evaluate {
-  const runs: MeasureKnot[][] = [];
   const xs: Rational[] = [];
   let firstExtent = Rational.of(0);
+  let previous: MeasureKnot | undefined;
   for (const row of rows) {
     if (row.qstamp === null || row.actual_length === null) return NOTHING;
-    const run = runs.at(-1);
-    if (run !== undefined && continues(run, row)) {
-      run.push(row);
-    } else {
-      runs.push([row]);
+    if (previous === undefined || !joins(previous, row)) {
       xs.push(exactPair(row.qstamp).subtract(exactPair(row.offset_within_measure)));
     }
-    if (runs.length === 1) firstExtent = firstExtent.add(exactPair(row.actual_length));
+    if (xs.length === 1) firstExtent = firstExtent.add(exactPair(row.actual_length));
+    previous = row;
   }
   const first = nth(rows, 0);
   const anacrusis =
