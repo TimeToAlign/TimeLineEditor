@@ -374,8 +374,8 @@ describe("matchClaims", () => {
         column.numerator[row],
         column.denominator[row],
       ]);
-    expect(columns.rows).toBe(17);
-    expect(columns.claimIds).toEqual(Array.from({ length: 17 }, (_, row) => `claim_${row + 1}`));
+    expect(columns.rows).toBe(18);
+    expect(columns.claimIds).toEqual(Array.from({ length: 18 }, (_, row) => `claim_${row + 1}`));
     expect(columns.timelines).toEqual([
       { id: "clt_1", numberType: "fraction" },
       { id: "clt_2", numberType: "fraction" },
@@ -383,16 +383,16 @@ describe("matchClaims", () => {
       { id: "dpt_1", numberType: "int" },
     ]);
     expect(Array.from(columns.a.timeline)).toEqual([
-      0, 0, 0, 3, 0, 3, 0, 0, 0, 0, 3, 0, 0, 0, 1, 2, 0,
+      0, 0, 0, 3, 0, 3, 0, 0, 0, 0, 3, 0, 0, 0, 1, 2, 0, 3,
     ]);
     expect(Array.from(columns.b.timeline)).toEqual([
-      3, 3, 3, 0, 3, 2, 2, 2, 2, 2, 2, 3, 3, 2, 3, 0, 2,
+      3, 3, 3, 0, 3, 2, 2, 2, 2, 2, 2, 3, 3, 2, 3, 0, 2, 0,
     ]);
     expect(Array.from(columns.startPresent)).toEqual([
-      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1,
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0,
     ]);
     expect(Array.from(columns.endPresent)).toEqual([
-      0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ]);
     expect(cells(columns.a.start)).toEqual([
       exact(0),
@@ -412,6 +412,7 @@ describe("matchClaims", () => {
       exact(1),
       real(1),
       exact(45, 4),
+      none,
     ]);
     expect(cells(columns.b.start)).toEqual([
       exact(0),
@@ -431,14 +432,15 @@ describe("matchClaims", () => {
       exact(396900),
       exact(1),
       real(11.25),
+      none,
     ]);
     const ends = (row1: readonly unknown[], row8: readonly unknown[]) =>
-      Array.from({ length: 17 }, (_, row) => (row === 1 ? row1 : row === 8 ? row8 : none));
+      Array.from({ length: 18 }, (_, row) => (row === 1 ? row1 : row === 8 ? row8 : none));
     expect(cells(columns.a.end)).toEqual(ends(exact(2), exact(8)));
     expect(cells(columns.b.end)).toEqual(ends(exact(88200), real(8)));
     expect(beliefs.actors).toEqual([B, A]);
     expect(Array.from(beliefs.offsets)).toEqual([
-      0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 5, 6, 6, 6, 6,
+      0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 5, 6, 6, 6, 6, 6,
     ]);
     expect(Array.from(beliefs.actor)).toEqual([1, 1, 1, 1, 0, 0]);
     expect(Array.from(beliefs.word)).toEqual([0, 2, 0, 1, 0, 0]);
@@ -541,12 +543,12 @@ describe("matchClaims", () => {
   }
 
   const placed = (header: Record<string, unknown>) => header.arrays as Record<string, number[]>;
-  /** The bytes of the first sixteen claim IDs joined by line feeds. */
-  const sixteenIds = Array.from({ length: 16 }, (_, row) => `claim_${row + 1}`).join("\n").length;
+  /** The bytes of the first seventeen claim IDs joined by line feeds. */
+  const seventeenIds = Array.from({ length: 17 }, (_, row) => `claim_${row + 1}`).join("\n").length;
 
   it("decodes the recording rebuilt unchanged", async () => {
     stubFetch(answering(withHeader(() => {})));
-    expect((await call()).columns.rows).toBe(17);
+    expect((await call()).columns.rows).toBe(18);
   });
 
   it.each([
@@ -593,19 +595,19 @@ describe("matchClaims", () => {
     [
       "an array misaligned",
       withHeader((h) => {
-        placed(h)["a.start.position"] = [292, 17];
+        placed(h)["a.start.position"] = [300, 18];
       }),
     ],
     [
-      "a.timeline of 16 entries",
+      "a.timeline of 17 entries",
       withHeader((h) => {
-        placed(h)["a.timeline"] = [144, 16];
+        placed(h)["a.timeline"] = [152, 17];
       }),
     ],
     [
-      "sixteen claim IDs",
+      "seventeen claim IDs",
       withHeader((h) => {
-        placed(h).claim_ids = [0, sixteenIds];
+        placed(h).claim_ids = [0, seventeenIds];
       }),
     ],
     [

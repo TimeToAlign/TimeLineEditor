@@ -779,13 +779,13 @@ describe("the belief filter", () => {
   // The beliefs of TimeToShare's table fixture as the client decodes them.
   const beliefs = {
     actors: [B, A],
-    offsets: Uint32Array.from([0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 5, 6, 6, 6, 6]),
+    offsets: Uint32Array.from([0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 5, 6, 6, 6, 6, 6]),
     actor: Uint32Array.from([1, 1, 1, 1, 0, 0]),
     word: Uint8Array.from([0, 2, 0, 1, 0, 0]),
   };
   const rows = (mask: Uint8Array | null) =>
     mask === null ? null : Array.from(mask.keys()).filter((row) => mask[row] === 1);
-  const every = Array.from({ length: 17 }, (_, row) => row);
+  const every = Array.from({ length: 18 }, (_, row) => row);
 
   it("numbers the words as TimeToShare does and reads four states", () => {
     expect(BELIEFS).toEqual(["true", "false", "unlikely"]);
@@ -847,7 +847,7 @@ describe("the belief filter", () => {
   it("gives the believer's belief per row, the most critical of several", () => {
     expect(ANCHOR_BELIEFS).toEqual(["false", "unlikely", "undecided", "true"]);
     const ofA = believedBy(beliefs, A);
-    expect(Array.from(ofA)).toEqual([3, 2, 2, 2, 2, 1, 2, 2, 2, 2, 3, 2, 0, 2, 2, 2, 2]);
+    expect(Array.from(ofA)).toEqual([3, 2, 2, 2, 2, 1, 2, 2, 2, 2, 3, 2, 0, 2, 2, 2, 2, 2]);
     expect(believedBy(beliefs, A)).toBe(ofA);
     const ofB = Array.from(believedBy(beliefs, B));
     expect(ofB).toEqual(every.map((row) => (row === 12 || row === 13 ? 3 : 2)));

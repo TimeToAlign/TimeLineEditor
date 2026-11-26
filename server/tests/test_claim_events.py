@@ -88,6 +88,12 @@ CLAIM_12 = claim(
     "claim_12", ("clt_1", "note_10", "E5"), ("dpt_1", NOMATCH, None), synchronous=False
 )
 CLAIM_16 = claim("claim_16", ("cpt_1", CHUNK, None), ("clt_1", "note_2", "D4"))
+CLAIM_18 = claim(
+    "claim_18",
+    ("dpt_1", "inserted_1", None),
+    ("clt_1", NOMATCH, None),
+    synchronous=False,
+)
 
 ANSWERED = [
     claim("claim_1", ("clt_1", "note_1", "C4"), ("dpt_1", "projection_1", None)),
@@ -109,9 +115,10 @@ def test_the_events_of_the_claims_asked_for_in_their_order(server: TestClient) -
 
 
 def test_a_sentinel_side_is_answered_as_its_reserved_string(server: TestClient) -> None:
-    response = post(server, body({"claims": ["claim_16", "claim_11", "claim_12"]}))
+    asked = ["claim_16", "claim_11", "claim_12", "claim_18"]
+    response = post(server, body({"claims": asked}))
     assert response.status_code == 200
-    assert response.json() == {"claims": [CLAIM_16, CLAIM_11, CLAIM_12]}
+    assert response.json() == {"claims": [CLAIM_16, CLAIM_11, CLAIM_12, CLAIM_18]}
 
 
 def test_no_claims_asked_for_answer_none(server: TestClient) -> None:

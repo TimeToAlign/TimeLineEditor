@@ -888,7 +888,7 @@ with `claim_1`'s belief `false`, as `matchclaim-beliefs.spec.ts` does;
 the provenance and events of `claim_1` as there; the belief route
 answered by Parquet bytes; the health check held until the import is
 done, as there): the block selected on the Matchstamp tab (status
-"match_claims.parquet: 17 MatchClaims", the hint, the filter's four
+"match_claims.parquet: 18 MatchClaims", the hint, the filter's four
 timeline checkboxes); the named MatchStamp "Downbeat" (`claim_1`)
 selected under Show matches, `claim_1` expanded (events "note_1 “C4”",
 "onset_1", "0.75"), its provenance open ("Ana", "manual",
@@ -2005,10 +2005,10 @@ tables in the built editor on TimeToShare's table fixture
 (`packages/client/tests/data/match-claims.answer.bin`, the server's answer
 for exactly this manifest and table, written by the server's
 `scripts/record_answers.py`) and counted; the number of MatchClaims
-is read from the recording's header (17), never restated. Importing the
+is read from the recording's header (18), never restated. Importing the
 manifest together with its table (Import manifest…, both files picked)
 makes one block and exactly one table request; with the block selected
-the Matchstamp tab's status reads "match_claims.parquet: 17 MatchClaims",
+the Matchstamp tab's status reads "match_claims.parquet: 18 MatchClaims",
 no MatchStamp is shown (the hint), and the filter lists the manifest's
 four timelines as checkboxes. The workspace file never holds the table:
 its text has no `claim_1`. Unchecking `cpt_1` stores the block's filter
@@ -2132,7 +2132,7 @@ leaves a Blob body out.
 2. **A belief.** False sends exactly one belief `{claim: "claim_1",
    actor: ME, belief: "false", date: "2026-11-22"}` and reads the answered
    file through the table route (two table requests in all); the status
-   reads "match_claims.parquet: 17 MatchClaims, changed", False is pressed,
+   reads "match_claims.parquet: 18 MatchClaims, changed", False is pressed,
    the journal keeps its length, and the workspace's text has no
    `claim_2`. The index is rebuilt under the block's filter, so the named
    MatchStamp now rests on a MatchClaim the filter leaves out: the

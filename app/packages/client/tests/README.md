@@ -75,10 +75,10 @@ call or the exact result.
    characters), the manifest's bytes, then the file's bytes unchanged.
 
    The oracle of the answer is TimeToShare's table fixture `tables/0.2.0`,
-   seventeen MatchClaims read off by hand (the server's tests README,
+   eighteen MatchClaims read off by hand (the server's tests README,
    "MatchClaims", has the table): `data/match-claims.answer.bin` is the
-   server's recorded answer to it (item 9). Decoded, it resolves to `rows` 17, the claim IDs
-   `claim_1` to `claim_17`, the timelines `clt_1` (fraction), `clt_2`
+   server's recorded answer to it (item 9). Decoded, it resolves to `rows` 18, the claim IDs
+   `claim_1` to `claim_18`, the timelines `clt_1` (fraction), `clt_2`
    (fraction), `cpt_1` (float), `dpt_1` (int), and every array compared
    whole with the values written in the test: the timeline numbers, the
    presence flags, each value column's positions, numerators and
@@ -108,8 +108,8 @@ call or the exact result.
    than four bytes, a header length beyond the answer, a header that is no
    JSON object, another `format` or `version` (2), other belief words, an
    array missing, out of bounds, at an offset that is not a multiple of
-   eight, or of another length than its name requires (`a.timeline` of 16
-   entries for 17 rows), claim IDs that are not `rows` lines, and a belief
+   eight, or of another length than its name requires (`a.timeline` of 17
+   entries for 18 rows), claim IDs that are not `rows` lines, and a belief
    naming no actor of the header.
 
 6. **Provenance and beliefs** (`decisions/0031-match-claim-provenance.md`).

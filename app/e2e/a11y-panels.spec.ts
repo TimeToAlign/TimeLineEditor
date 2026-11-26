@@ -239,7 +239,7 @@ test.describe("the Matchstamp tab and the MatchClaim controls", () => {
     await openInspector(page);
     await tab(page, "Matchstamp").click();
     await expect(page.getByTestId("matchclaims-status")).toHaveText(
-      "match_claims.parquet: 17 MatchClaims",
+      "match_claims.parquet: 18 MatchClaims",
     );
     await expect(page.getByTestId("matchstamp-hint")).toBeVisible();
     await expect(page.getByRole("group", { name: "Timelines" }).getByRole("checkbox")).toHaveCount(
@@ -298,7 +298,7 @@ test.describe("the Matchstamp tab and the MatchClaim controls", () => {
 
     await yours.getByRole("button", { name: "False" }).click();
     await expect(page.getByTestId("matchclaims-status")).toHaveText(
-      "match_claims.parquet: 17 MatchClaims, changed",
+      "match_claims.parquet: 18 MatchClaims, changed",
     );
     await expect(page.getByTestId("matchstamp-differences")).toContainText(
       "MatchClaims the belief filter leaves out",
