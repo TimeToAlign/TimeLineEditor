@@ -9,6 +9,7 @@ import { addressParts } from "../packages/arranger/src/editing.ts";
 import type { Address, Manifest } from "../packages/core/src/index.ts";
 import { addressKey, cardAddress } from "../packages/core/src/index.ts";
 import {
+  bandMarks,
   blockOrder,
   byKey,
   cardPoint,
@@ -493,7 +494,7 @@ test.describe("click", () => {
     expect(await selection(page)).toEqual([{ block: SMALL.map, id: "melody", part: ["card"] }]);
     // The card glows on its own rectangle, not on its shadow, in the selection's colour
     // although the pointer is over it: one selection mark copying that rectangle, and no
-    // hover mark; its timeline goes with it on Delete.
+    // hover mark but the band's under the pointer; its timeline goes with it on Delete.
     const rects = element(page, SMALL.map, cardAddress("melody"));
     await expect(rects).toHaveCount(2);
     const glows = node(page, SMALL.map).locator('rect.tilie-mark[data-mark="selection"]');
@@ -503,7 +504,12 @@ test.describe("click", () => {
       rect.evaluate((item) => ["x", "y", "width", "height"].map((name) => item.getAttribute(name)));
     expect(await outline(glows)).toEqual(await outline(rects.nth(1)));
     expect(await outline(glows)).not.toEqual(await outline(rects.nth(0)));
-    await expect(page.locator('.tilie-mark[data-mark="hover"]')).toHaveCount(0);
+    await expect(page.locator('.tilie-mark[data-mark="hover"]:not([data-box="band"])')).toHaveCount(
+      0,
+    );
+    await expect
+      .poll(() => bandMarks(page, SMALL.map))
+      .toEqual(keysOf([{ id: "melody", facet: "children" }]));
     expect(await selectedAddresses(page)).toEqual(keysOf([cardAddress("melody")]));
     const glow = await glows.evaluate((rect) => getComputedStyle(rect).filter);
     expect(glow).toContain("rgb(10, 132, 255)");

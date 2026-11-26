@@ -1,7 +1,8 @@
 /**
  * The Regions tab and the band list in a browser: the tab after
  * Properties; the rows of a timeline and its descendant, a row's head
- * selecting its region on the canvas, a name journalled, a start refused
+ * selecting its region on the canvas while the list stays, a name
+ * journalled in place, a start refused
  * with core's words and dropped by Escape, a removal; the band list's
  * Visible checkboxes in the band order, a change journalling the band's
  * own rule and hiding the band. The expected values are derived in
@@ -79,9 +80,9 @@ test("the Regions tab lists, selects, edits and removes regions", async ({ page 
     "aria-pressed",
     "true",
   );
-  await expect(shown.getByTestId("region-row")).toHaveCount(1);
+  await expect(shown.getByRole("heading")).toHaveText(["b"]);
+  await expect(shown.getByTestId("region-row")).toHaveCount(2);
 
-  await select(page, [{ block, id: "score", part: ["card"] }]);
   const entries = await journalLength(page);
   const name = (await row(page, "intro")).locator('input[name="name"]');
   await name.fill("Intro");
@@ -91,6 +92,8 @@ test("the Regions tab lists, selects, edits and removes regions", async ({ page 
     type: "set",
     changes: [{ target: { block, id: "intro" }, values: { name: "Intro" } }],
   });
+  expect(await selection(page)).toEqual([{ block, id: "motif" }] satisfies Address[]);
+  await expect(shown.getByTestId("region-row")).toHaveCount(2);
 
   const startField = (await row(page, "intro")).locator('input[name="start"]');
   await startField.fill("3");
