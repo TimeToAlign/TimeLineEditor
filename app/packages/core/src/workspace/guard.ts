@@ -591,8 +591,25 @@ function flowRefused(
         return resolved.entry === "flow_control" && inTree(resolved.at.timeline.id)
           ? "flow_control"
           : null;
-      default:
+      case "workspace":
+      case "block":
+      case "title":
+      case "frame":
+      case "timeline":
+      case "card":
+      case "band":
+      case "measure_map":
+      case "timestamp":
+      case "matchstamp":
+      case "anchor":
+      case "elision":
+      case "virtual_card":
+      case "virtual_band":
+      case "chunk":
+      case "part":
         return null;
+      default:
+        return assertNever(resolved);
     }
   };
   switch (command.type) {
