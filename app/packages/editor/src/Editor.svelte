@@ -20,7 +20,7 @@ import { Canvas, isTextInput, Pane, selectionOf, within } from "@timetoalign/til
 import type { Health, Server } from "@timetoalign/tilie-client";
 import { connect } from "@timetoalign/tilie-client";
 import type { Address, FlowReading, LoadError, Problem, Store } from "@timetoalign/tilie-core";
-import { emptyWorkspace, isCommandError, readAddress } from "@timetoalign/tilie-core";
+import { emptyWorkspace, isCommandError, readAddress, sameView } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Snippet } from "svelte";
 import { onMount, tick, untrack } from "svelte";
@@ -268,7 +268,7 @@ session.listen(followEditing);
 session.listen(() =>
   onchange?.({
     fileName: session.fileName,
-    dirty: session.store.view !== session.savedView,
+    dirty: !sameView(session.store.view, session.savedView),
   }),
 );
 

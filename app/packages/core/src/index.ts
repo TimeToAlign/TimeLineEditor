@@ -336,7 +336,7 @@ export type {
 } from "./workspace/sessions.ts";
 export { editorKindOf, isSessionEntry, listEntries } from "./workspace/sessions.ts";
 export type { SettingsChange, Store, StoreOptions, Workspace } from "./workspace/store.ts";
-export { createStore } from "./workspace/store.ts";
+export { createStore, sameView } from "./workspace/store.ts";
 export type { User } from "./workspace/user.ts";
 export { DEFAULT_USER, readOrcid, statedBy, TILIE_AGENT, USER_TAG } from "./workspace/user.ts";
 export type {

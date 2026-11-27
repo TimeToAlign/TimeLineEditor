@@ -673,6 +673,11 @@ made and no IndexedDB opened (no `server` and no `storage` given),
 level-1 heading, and About says "no server". `text()` gives back the given `workspace` byte for
 byte. `onchange` reports `{fileName: "untitled.tle.json", dirty: false}`
 for it and exactly one `{…, dirty: true}` after a Delete on the canvas.
+Unsaved means a view other in content than the one opened, not another
+object: the store keeps only the views near its current one and replays
+the others, so after 70 ArrowRight moves of `A` on the canvas, 69 Ctrl+Z
+report `dirty: true` and the 70th, back at the opened content though
+another object, `dirty: false`.
 Ctrl+S on a host input or the body is not prevented; on the canvas it is.
 Two editors on one page share no id, and a `select` of `[{block: A}]` in
 one leaves the other's `selection` empty and reaches only the first's
@@ -2200,6 +2205,24 @@ core's message, so the oracle is core's own nesting rule written out:
    journal as it was, the box unchecked, and the status line holds exactly
    the message of the store's refusal of that command; another selection
    clears it.
+5. **Each verdict read once** (`inspector-groups-verdicts.test.ts`). A
+   membership `set` and a group `add` read and change their block alone,
+   so core's verdict on one holds while that block is the same object and
+   the minter mints the same IDs; the panel derives the rows again on every
+   change of what it reads, and must not apply a command for a verdict it
+   holds. The proof counts the calls of core's `apply` (wrapped, never
+   replaced, so every verdict is still core's own) on one store of the
+   `bundles` workspace, the minter of seed 7 copied for every read as the
+   panel copies the store's: `groupsOf` for `score`'s card applies 2
+   commands (its two rows), then 0 when read again on the same view; a
+   move of another block (`bshared000`, minting nothing) gives a new view
+   in which `M` is the same object, and the rows are read with 0 more;
+   `newGroupOf` for `recording` and `excerpt` applies 1, again 0; with a
+   minter of seed 8 it applies 1 more, and its message names the ID that
+   minter mints for `group`, not the one of seed 7; a move of `M` itself
+   (to `x` 16) makes `M` a new object, and `groupsOf` applies 2 again.
+   Every verdict read from what is held equals the one first read, and the
+   one of a direct `apply` of the same command on the same view.
 
 ## The tabs and panels (`Inspector.test.ts`, `inspector-tabs.test.ts`)
 

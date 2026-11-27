@@ -122,9 +122,27 @@
   display: none;
 }
 
-/* An element below a selected one: quieter than the selection itself. */
-.tilie-canvas .tilie-block [data-affected] {
-  filter: drop-shadow(0 0 1px #9cc8ff);
+/*
+ * An element below a selected one: quieter than the selection itself.
+ * Glows are drawn without a `filter`: a filter is rastered again over every
+ * element it is on at each zoom step, which made a deep zoom over a selected
+ * root twice as slow. A filled shape or a text takes a halo of the glow's
+ * colour behind its fill (`paint-order`); a stroked rectangle, a box, takes
+ * an outline of that colour around it. A stroked line, path or polygon has
+ * one stroke, its look, and CSS draws no second one under it: below a
+ * selection it stays as it is, selected it takes the selection's colour
+ * (below), so its glow follows the stroke and never shows a box.
+ */
+.tilie-canvas .tilie-block [data-affected]:is(:not([stroke]), [stroke="none"]) {
+  paint-order: stroke;
+  stroke: #9cc8ff;
+  stroke-opacity: 0.5;
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+}
+
+.tilie-canvas .tilie-block rect[data-affected][stroke]:not([stroke="none"]) {
+  outline: 0.75px solid rgb(156 200 255 / 60%);
 }
 
 /*
@@ -151,7 +169,8 @@
 /* The card, the group's frame or the band under the pointer: quieter than a selection. */
 .tilie-canvas .tilie-block rect.tilie-mark[data-mark="hover"] {
   stroke: #9cc8ff;
-  filter: drop-shadow(0 0 2px #9cc8ff) drop-shadow(0 0 2px #9cc8ff);
+  stroke-opacity: 0.7;
+  stroke-width: calc(2px / var(--tilie-zoom, 1));
 }
 
 /* A boundary under the pointer takes the accent. */
@@ -183,14 +202,27 @@
   fill: #595959;
 }
 
-/* A selected element, box or band. */
-.tilie-canvas .tilie-block [data-selected],
-.tilie-canvas .tilie-block rect.tilie-mark[data-mark="selection"] {
-  filter: drop-shadow(0 0 1.5px #0a84ff) drop-shadow(0 0 1.5px #0a84ff);
+/* A selected element, box or band: its glow drawn as an affected element's is. */
+.tilie-canvas .tilie-block [data-selected]:is(:not([stroke]), [stroke="none"]) {
+  paint-order: stroke;
+  stroke: #0a84ff;
+  stroke-opacity: 0.5;
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
+}
+
+.tilie-canvas .tilie-block rect[data-selected][stroke]:not([stroke="none"]) {
+  outline: 1.5px solid rgb(10 132 255 / 60%);
+}
+
+/* A selected stroked line, path or polygon: its stroke in the selection's colour, its width and dashes kept. */
+.tilie-canvas .tilie-block [data-selected][stroke]:not(rect, [stroke="none"]) {
+  stroke: #0a84ff;
 }
 
 .tilie-canvas .tilie-block rect.tilie-mark[data-mark="selection"] {
   stroke: #0a84ff;
+  stroke-width: calc(2px / var(--tilie-zoom, 1));
 }
 
 /*
@@ -219,7 +251,7 @@
 }
 
 .tilie-canvas .tilie-block .tilie-mark[data-mark="holding"][data-box="card"] {
-  stroke-width: calc(3px / var(--tilie-zoom, 1));
+  stroke-width: calc(2px / var(--tilie-zoom, 1));
 }
 
 .tilie-canvas .tilie-block .tilie-mark[data-mark="holding"][data-box="frame"] {
