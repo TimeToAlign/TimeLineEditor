@@ -226,3 +226,23 @@ describe("a refused horizontal arrangement", () => {
     expect(rest).toEqual(drawn("bundle_arranged_conflict"));
   });
 });
+
+describe("horizontal, nothing hanging on a root", () => {
+  it("stands the items side by side at the first item's default top", () => {
+    const row = drawn("bundle_ungrouped", {
+      arrangement: { direction: "horizontal", order: ["score", "pages"] },
+    });
+    expect(row.arrangement).toEqual({
+      direction: "horizontal",
+      row: ["score", "pages", "recording"],
+      roots: [],
+    });
+    expect(itemBoxes(row).map((box) => [box.key, box.x, box.y, box.width])).toEqual([
+      [{ item: "score" }, 8, 28.8046875, 509.3271484375],
+      [{ item: "pages" }, 565.3271484375, 28.8046875, 509.3271484375],
+      [{ item: "recording" }, 1122.654296875, 28.8046875, 509.3271484375],
+    ]);
+    expect(row.boxes.filter((box) => box.ancestor !== undefined)).toEqual([]);
+    expect([row.width, row.height]).toEqual([1641.9814453125, 120.7265625]);
+  });
+});

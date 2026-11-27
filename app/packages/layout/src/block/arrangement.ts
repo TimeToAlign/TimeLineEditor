@@ -253,7 +253,7 @@ export function rowLayout(
 
   // The tops: a group at its first anchor's, a once card at its line less its reach above it,
   // every item hanging on nothing at the highest of them; then all moved so that the highest lies
-  // at `top`.
+  // at `top`. Where no group hangs on a root there is no such top, and every item lies at `top`.
   const tops = new Map<string, number>();
   for (const group of groups) {
     const [head] = inGroup(group);
@@ -263,7 +263,8 @@ export function rowLayout(
   const onceTops = once.map(
     (card, index) => known(ordinate, nth(row.roots, index)) - extentAbove(card),
   );
-  const T0 = Math.min(...tops.values(), ...onceTops);
+  const highest = [...tops.values(), ...onceTops];
+  const T0 = highest.length === 0 ? top : Math.min(...highest);
   const shift = top - T0;
   const final = padded.map((item, index): Item => {
     const id = item.key.item;
