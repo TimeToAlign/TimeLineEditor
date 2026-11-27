@@ -325,9 +325,9 @@ test.describe("a frame on the arranger", () => {
       ),
     ).toEqual({
       group_1: { scale: 2294 / 2048 },
-      group_2: { x: 8, y: 203.53125 },
-      // 8 below `recording`'s ancestor card behind `group_2`, which ends at 373.265625.
-      annotations: { x: 8, y: 381.265625 },
+      group_2: { x: 8, y: 28.8046875 },
+      // 8 below `group_1`'s frame, which ends at 361.2890625 (`group_2` first, in name order).
+      annotations: { x: 8, y: 369.2890625 },
     });
   });
 });
@@ -355,9 +355,9 @@ test.describe("a frame stretched vertically", () => {
       ),
     ).toEqual({
       group_1: { spacing: 52 },
-      group_2: { x: 8, y: 203.53125 },
-      // 8 below `recording`'s ancestor card behind `group_2`, which ends at 373.265625.
-      annotations: { x: 8, y: 381.265625 },
+      group_2: { x: 8, y: 28.8046875 },
+      // 8 below `group_1`'s frame, which ends at 361.2890625 (`group_2` first, in name order).
+      annotations: { x: 8, y: 369.2890625 },
     });
   });
 });
@@ -443,8 +443,9 @@ test.describe("the card of a member of two groups", () => {
         block,
       ),
     ).toEqual({ g2: { cards: { t: { width: 609.83056640625 } } } });
+    // `g2` "Page" is drawn before `g1` "Performance" (name order): its card first.
     const cards = element(page, block, cardAddress("t"));
-    expect(await cards.first().getAttribute("width")).toBe("509.8306");
-    expect(await cards.last().getAttribute("width")).toBe("609.8306");
+    expect(await cards.first().getAttribute("width")).toBe("609.8306");
+    expect(await cards.last().getAttribute("width")).toBe("509.8306");
   });
 });

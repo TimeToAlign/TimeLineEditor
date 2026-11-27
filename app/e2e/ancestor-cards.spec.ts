@@ -28,6 +28,7 @@ import { FONT_METRICS } from "./schema.ts";
 import {
   addressSelector,
   arranger,
+  dispatch,
   done,
   editing,
   element,
@@ -182,11 +183,11 @@ test("an ancestor card is drawn by default, hidden from its root and shown from 
   await select(page, [{ block, id: "piece" }]);
   await elisionsTab(page);
   await expect(page.getByTestId("elisions-expand")).toHaveAccessibleName(
-    `Timeline ${TITLE} Proportional`,
+    `Timeline ${TITLE} Custom, 0 elisions`,
   );
   await expand(page, "elisions");
   await expect(titleOf(page, "elisions")).toHaveText(TITLE);
-  await expect(mode(page, "Proportional")).toBeChecked();
+  await expect(mode(page, "Custom")).toBeChecked();
   await expect(shownBox(page)).toBeChecked();
   await expect(shownBox(page)).toBeEnabled();
 
@@ -211,7 +212,7 @@ test("an ancestor card is drawn by default, hidden from its root and shown from 
   expect(await attributes(box(page, block, PIECE_CARD))).toEqual(CARD);
   expect(await heldBoxes(page, block)).toEqual(HELD_BESIDE_CARD);
   expect(await nodeTransform(page, block)).toBe(await placedAt(page, x - SHIFT, y));
-  await expect(mode(page, "Proportional")).toBeChecked();
+  await expect(mode(page, "Custom")).toBeChecked();
 });
 
 /** The stored elisions of block `block`, as the store holds them. */
@@ -245,12 +246,22 @@ function rowsOf(section: Locator): Promise<(string | null)[][]> {
 const WIDE_CANVAS = 1112;
 
 /**
- * Import `group_elided_inside`, select `excerpt`, open the Elisions tab and
- * the root's block, the canvas checked to be wide enough with the drawer
- * open; the block's ID.
+ * Import `group_elided_inside`, give its ancestor cards the mode `auto` (one
+ * `style`, the journal's second entry; the initial `custom` derives no
+ * elision), select `excerpt`, open the Elisions tab and the root's block,
+ * the canvas checked to be wide enough with the drawer open; the block's ID.
  */
 async function elidedInside(page: Page): Promise<string> {
   const block = await importFixture(page, "groups/group_elided_inside");
+  expect(
+    await dispatch(page, {
+      type: "style",
+      select: { element: "ancestor_card" },
+      set: { "elision-mode": "auto" },
+      blocks: [block],
+    }),
+  ).toBeNull();
+  expect(await journalLength(page)).toBe(2);
   await select(page, [{ block, id: "excerpt" }]);
   await elisionsTab(page);
   expect(await arranger(page).evaluate((canvas) => canvas.clientWidth)).toBeGreaterThan(
@@ -291,7 +302,7 @@ test("the root's elisions switch to Full and back by the arrow keys", async ({ p
   await expect(element(page, block, SECOND)).toHaveCount(3);
 
   await mode(page, "Full").click();
-  await expect.poll(() => journalLength(page)).toBe(2);
+  await expect.poll(() => journalLength(page)).toBe(3);
   expect(await newestCommand(page)).toEqual(rootRule(block, { "elision-mode": "full" }));
   await expect(element(page, block, SECOND)).toHaveCount(0);
   await expect(mode(page, "Full")).toBeChecked();
@@ -299,7 +310,7 @@ test("the root's elisions switch to Full and back by the arrow keys", async ({ p
   // The arrow keys move between the options, choosing each as a click does.
   await mode(page, "Full").focus();
   await page.keyboard.press("ArrowRight");
-  await expect.poll(() => journalLength(page)).toBe(3);
+  await expect.poll(() => journalLength(page)).toBe(4);
   expect(await newestCommand(page)).toEqual(rootRule(block, { "elision-mode": "proportional" }));
   await expect(mode(page, "Proportional")).toBeChecked();
   await expect(element(page, block, SECOND)).toHaveCount(3);
@@ -324,7 +335,7 @@ test("Custom stores the drawn defaults, Add elision adds one and Remove all remo
   ).toHaveCount(3);
 
   await section.getByRole("button", { name: "Add elision" }).click();
-  await expect.poll(() => journalLength(page)).toBe(3);
+  await expect.poll(() => journalLength(page)).toBe(4);
   const added = await newestMinted(page);
   expect([added.command, added.ids.length]).toEqual([
     { type: "add", into: { block, id: "piece" }, elision: { start: [32, 1], end: [48, 1] } },
@@ -334,7 +345,7 @@ test("Custom stores the drawn defaults, Add elision adds one and Remove all remo
   await expect(section.locator(".count")).toHaveText("4 elisions");
 
   await section.getByRole("button", { name: "Remove all" }).click();
-  await expect.poll(() => journalLength(page)).toBe(4);
+  await expect.poll(() => journalLength(page)).toBe(5);
   expect(await newestCommand(page)).toEqual({
     type: "remove",
     // In canonical order: by timeline, then start.
@@ -394,7 +405,7 @@ test("a selected elision shows its handles and mode menu, and a key moves its en
   await arranger(page).focus();
   await page.keyboard.press("]");
   await page.keyboard.press("ArrowRight");
-  await expect.poll(() => journalLength(page)).toBe(3);
+  await expect.poll(() => journalLength(page)).toBe(4);
   expect(await newestCommand(page)).toEqual({
     type: "set",
     changes: [{ target: { block, id: second1 }, values: { end: [156, 5] } }],

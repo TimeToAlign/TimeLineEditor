@@ -16,6 +16,7 @@ import { attributeText } from "../packages/writers/src/svg.ts";
 import {
   arranger,
   boxesOf,
+  dispatch,
   element,
   enter,
   entriesLength,
@@ -40,7 +41,11 @@ test.use({
   reducedMotion: "reduce",
 });
 
+/** The groups in core's row, their stretches' order on the root (README). */
 const GROUPS = ["group_1", "group_2", "group_3", "group_4"] as const;
+
+/** The groups in drawing order, their names' order (README): Clair de Lune, Menuet, Passepied, Prelude. */
+const DRAWN = ["group_3", "group_2", "group_4", "group_1"] as const;
 
 /** The root every group of the LayerIt bundle hangs on: its card is the ancestor card. */
 const ROOT = "clt_1";
@@ -48,6 +53,26 @@ const ROOT = "clt_1";
 /** Import `name` and open its block's bundle editor; the block's ID. */
 async function inBundleEditor(page: Page, name: string): Promise<string> {
   const block = await importFixture(page, name);
+  await enter(page, { block }, await viewportOf(page));
+  return block;
+}
+
+/**
+ * Import `bundle_elided_layerit`, give its ancestor cards the mode `auto` as
+ * the schema package's drawing of it does (one `style`; the initial
+ * `custom` derives no elision), and open its block's bundle editor; the
+ * block's ID.
+ */
+async function elidedLayerIt(page: Page): Promise<string> {
+  const block = await importFixture(page, "bundles/bundle_elided_layerit");
+  expect(
+    await dispatch(page, {
+      type: "style",
+      select: { element: "ancestor_card" },
+      set: { "elision-mode": "auto" },
+      blocks: [block],
+    }),
+  ).toBeNull();
   await enter(page, { block }, await viewportOf(page));
   return block;
 }
@@ -131,8 +156,14 @@ async function cardsBehind(page: Page, block: string): Promise<string[]> {
   );
 }
 
-/** The frames' tops one under another in the drawing order (README). */
-const TOPS = [28.8046875, 228.34375, 427.8828125, 627.421875];
+/**
+ * The frames' tops one under another in the drawing order (README): `group_4`,
+ * third, is 202.015625 high, every other frame 191.5390625.
+ */
+const TOPS = [28.8046875, 228.34375, 427.8828125, 637.8984375];
+
+/** The tops with `group_4` second (README). */
+const STEPPED_TOPS = [28.8046875, 228.34375, 438.359375, 637.8984375];
 
 /** The frames side by side, in row order (README): `x`, `y` as the writer prints them. */
 const SIDE_BY_SIDE = [183.8974609375, 854.701171875, 1525.5048828125, 2196.30859375].map((x) => [
@@ -177,7 +208,7 @@ function places(page: Page, blocks: readonly string[]): Promise<number[][]> {
 test("a bundle's items are put side by side and back through the Arrange menu", async ({
   page,
 }) => {
-  const block = await inBundleEditor(page, "bundles/bundle_elided_layerit");
+  const block = await elidedLayerIt(page);
   const { x, y } = await placement(page, block);
   const menu = await arrangeMenu(page);
   await expect(menu.getByRole("toolbar").getByRole("button")).toHaveText([
@@ -188,11 +219,16 @@ test("a bundle's items are put side by side and back through the Arrange menu", 
   await expect(choice(page, "matrix")).toHaveCount(0);
   await expect(choice(page, "free")).toHaveAttribute("aria-pressed", "true");
   await expect(choice(page, "horizontal")).toBeEnabled();
-  await expectUnderOneAnother(page, block, GROUPS, TOPS);
+  await expectUnderOneAnother(page, block, DRAWN, TOPS);
 
-  const sideBySide = { direction: "horizontal", order: [...GROUPS] };
-  expect(await choose(page, "horizontal")).toEqual(arrangementSet(block, sideBySide));
-  expect(await storedArrangement(page, block)).toEqual(sideBySide);
+  // The items as shown are sent; core stores its row, the stretches' order on `clt_1`.
+  expect(await choose(page, "horizontal")).toEqual(
+    arrangementSet(block, { direction: "horizontal", order: [...DRAWN] }),
+  );
+  expect(await storedArrangement(page, block)).toEqual({
+    direction: "horizontal",
+    order: [...GROUPS],
+  });
   await expect(choice(page, "free")).toHaveAttribute("aria-pressed", "false");
   await expectSideBySide(page, block);
   expect(await nodeTransform(page, block)).toBe(await placedAt(page, x, y));
@@ -200,46 +236,46 @@ test("a bundle's items are put side by side and back through the Arrange menu", 
 
   expect(await choose(page, "free")).toEqual(arrangementSet(block, null));
   expect(await storedArrangement(page, block)).toBeNull();
-  await expectUnderOneAnother(page, block, GROUPS, TOPS);
+  await expectUnderOneAnother(page, block, DRAWN, TOPS);
   expect(await places(page, [block])).toEqual([[x, y]]);
 });
 
 test("arranged items are reordered by a drag and by a key, and side by side stores the row", async ({
   page,
 }) => {
-  const block = await inBundleEditor(page, "bundles/bundle_elided_layerit");
+  const block = await elidedLayerIt(page);
   await arrangeMenu(page);
   expect(await choose(page, "vertical")).toEqual(
-    arrangementSet(block, { direction: "vertical", order: [...GROUPS] }),
+    arrangementSet(block, { direction: "vertical", order: [...DRAWN] }),
   );
-  await expectUnderOneAnother(page, block, GROUPS, TOPS);
+  await expectUnderOneAnother(page, block, DRAWN, TOPS);
 
   // The node's top left corner at (40, 40), zoom 1: a drawing ordinate is a screen pixel.
   await nodeAt(page, block, 40, 40);
   const top = (await node(page, block).boundingBox())?.y;
   if (top === undefined) throw new Error("the block is not displayed");
-  const from = await framePoint(page, block, idAddress("group_1"));
+  const from = await framePoint(page, block, idAddress("group_3"));
   const before = await entriesLength(page);
   await page.mouse.move(from.x, from.y);
   await page.mouse.down();
   await page.mouse.move(from.x, top + 440, { steps: 12 });
   await page.mouse.up();
   await expect.poll(() => entriesLength(page)).toBe(before + 1);
-  const dragged = ["group_2", "group_1", "group_3", "group_4"];
+  const dragged = ["group_2", "group_3", "group_4", "group_1"];
   expect(await newestCommand(page)).toEqual(
     arrangementSet(block, { direction: "vertical", order: dragged }),
   );
-  expect(await selection(page)).toEqual([{ block, id: "group_1" }]);
+  expect(await selection(page)).toEqual([{ block, id: "group_3" }]);
   await expectUnderOneAnother(page, block, dragged, TOPS);
 
   await arranger(page).focus();
   await page.keyboard.press("ArrowDown");
   await expect.poll(() => entriesLength(page)).toBe(before + 2);
-  const stepped = ["group_2", "group_3", "group_1", "group_4"];
+  const stepped = ["group_2", "group_4", "group_3", "group_1"];
   expect(await newestCommand(page)).toEqual(
     arrangementSet(block, { direction: "vertical", order: stepped }),
   );
-  await expectUnderOneAnother(page, block, stepped, TOPS);
+  await expectUnderOneAnother(page, block, stepped, STEPPED_TOPS);
 
   expect(await choose(page, "horizontal")).toEqual(
     arrangementSet(block, { direction: "horizontal", order: stepped }),

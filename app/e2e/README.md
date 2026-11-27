@@ -307,16 +307,20 @@ before, all at `x = 8`.
   (one map, `y_root = 8 + 6.5`, then `recording`'s ancestor row below
   it) `14.5 + 52.9765625 = 67.4765625`; `annotations` (both regions in one
   row, a regions band `6 + 2 + h(9) + 4 − 4 = 18.4765625` wide, 4 beyond
-  the wedges) 71.85546875. So `group_1` is 166.7265625 high at `y`
-  28.8046875 and `group_2` 157.7578125 at 203.53125. `recording`'s
-  ancestor card behind `group_2` lies from 285.8125 and is 87.453125
-  high (the arranger's tests README, "`bundle_mixed`'s `score`", With
-  `recording`'s ancestor card: its markers band holds the name labels of
-  its derived gaps), ending at 373.265625, below `group_2`'s frame
-  (361.2890625); an item lies 8 below every item before it and their
+  the wedges) 71.85546875. The items lie in name order (drawing.md
+  section 8.1: `group_2` "Facsimile" before `group_1` "Performance", then
+  the ungrouped root), so `group_2` is 157.7578125 high at `y` 28.8046875,
+  ending at 186.5625, and `group_1` 166.7265625 high at 194.5625, ending
+  at 361.2890625. `recording`'s ancestor card behind `group_2`, drawn
+  whole under the initial `elision-mode` `custom` (drawing.md section
+  8.9: it derives no elision and holds no stored one), lies from
+  `excerpt`'s card's top 111.0859375 and is 66.87890625 high (the
+  arranger's tests README, "`bundle_mixed`'s `score`", With
+  `recording`'s ancestor card), ending at 177.96484375, inside
+  `group_2`'s frame; an item lies 8 below every item before it and their
   ancestor cards (drawing.md sections 8.6 and 8.8, No room), so
-  `annotations`' card lies at 381.265625 and the block is `8 +
-  (381.265625 + 71.85546875 + 2) = 463.12109375` high.
+  `annotations`' card lies at `361.2890625 + 8 = 369.2890625` and the
+  block is `8 + (369.2890625 + 71.85546875 + 2) = 451.14453125` high.
 - `bshared000`: `exposition` (two maps, its own `cmap_2` and then its
   segment `exposition_second`'s `cmap_3`, and the boundary of
   `exposition_second`: its line reaches `11.5 + 2 + h(9) = 23.9765625`
@@ -468,8 +472,10 @@ box drag of its right handle by 100 takes it from its drawn width
 every card of the block being as wide) to `609.83056640625`, one `set`
 entry of the editor's session, the journal unchanged until Done,
 stating `places.g2.cards.t.width` alone (the group editor lays no item out
-freely), and the card of `t` in `g1` keeps its drawn width: the first
-rectangle with the address writes `509.8306`, the last `609.8306`.
+freely), and the card of `t` in `g1` keeps its drawn width: `g2` "Page"
+is drawn before `g1` "Performance" (name order, drawing.md section 8.1),
+so the first rectangle with the address, `g2`'s, writes `609.8306`, the
+last, `g1`'s, `509.8306`.
 
 **`touch.spec.ts`** (the touch project, Chromium on a Pixel 7) drives real
 touch points through the DevTools Protocol, one finger or two, on `small` at
@@ -1451,12 +1457,11 @@ since WebKit spells one specified transform `translate(0px)` or
 `translate(0px, 0px)` depending on how it was set). The card lies
 behind the frame: its rectangle precedes the frame's in the DOM.
 Selecting `piece` and choosing the Elisions tab offers the root's block,
-its button named `Timeline Parent timeline "Piece" Proportional`,
+its button named `Timeline Parent timeline "Piece" Custom, 0 elisions`,
 collapsed; opened, its title `Parent timeline "Piece"`,
-the mode Proportional checked (the mode `auto` with no stored card
-elision draws as `proportional`, and at `r = 1` it derives no gap: the
-member's span 4 to 12 leaves 4 on each side, `λ / E = 1`, and the view
-bounds none), the checkbox "Draw behind its groups" ticked and enabled.
+the mode Custom checked (the initial `elision-mode` is `custom`,
+drawing.md section 2.5, and with no stored card elision it draws the
+card whole, section 8.9), the checkbox "Draw behind its groups" ticked and enabled.
 Unticking it journals exactly one entry, `{type: "style", select: {addresses: [{id: "piece", part:
 ["card"]}]}, set: {display: "none"}, blocks: [<block>]}`, the root's one
 rule (every card of `piece`), and the card is gone: nothing is addressed
@@ -1470,13 +1475,17 @@ block, still open (the open state is the root's block's, whichever of
 its timelines is selected), the checkbox unticked; ticking it journals
 exactly one entry, the same rule with `set: {display: null}` (the block's
 own rule hid the card, so showing it unstates that value), and the card
-and every box are drawn as before, Proportional checked.
+and every box are drawn as before, Custom checked.
 
 *Full and back by the arrow keys.* On `groups/group_elided_inside`
 imported the same way (the root `piece` of 64 quarters with `first`, 32
 at 0, and `second`, 32 at 32; the member `excerpt` of 8 at 8 in
 `first`, a member of `group_1` "Excerpt" beside `recording`), the
-canvas is first checked to be wider than 1112 pixels with the drawer
+block's ancestor cards are first given the mode `auto` by one `style`
+of `{element: ancestor_card}` into the block, as the schema package's
+drawing `group__group_elided_inside` does (the initial `custom` derives
+no elision), so the journal holds two entries before the case's first
+press; the canvas is then checked to be wider than 1112 pixels with the drawer
 open: the automatic proportion is the least of (a) `λ / E × (L' / L)` =
 8 / 56 = 1/7 and (b) the view's two bounds, of which the right one,
 `(B − dr) / (L × uR)` with `B = 0.8 × VW / (2 × 5/7)` = 0.56 × VW, `dr`
@@ -1655,20 +1664,26 @@ behind which group each card is recorded. A value that depends on the pane
 the canvas fits drawings to (an ancestor card's automatic proportion,
 section 8.9: the abscissas of the groups drawn one under another) is never
 compared; every value below is the same at every pane wider than 1300 px,
-and the one that is not at a narrower pane (the fourth frame's top, below)
-says so. With the bundle editor open the inspector drawer takes its share
+but `group_4`'s frame height, which is that of this page's pane and of the
+specification's default view (below), and the tops it moves. With the bundle editor open the inspector drawer takes its share
 of the page (32 % of 1920), and the pane the canvas measures is 1304.609375
 wide.
 
 The bundle is the schema package's `bundles/bundle_elided_layerit`,
 imported through Import manifest… (no fixture workspace holds it, so none
-was added): the root `clt_1` "Suite bergamasque" (1616 quarters) holds four
+was added), and its ancestor cards are then given the mode `auto` by one
+`style` of `{element: ancestor_card}` into the block, as the schema
+package's drawing `bundle__bundle_elided_layerit` does (the initial
+`custom` derives no elision): the root `clt_1` "Suite bergamasque" (1616 quarters) holds four
 movements, each holding the excerpt that is its group's first member, so
 each group anchors on `clt_1` with the stretch of its excerpt, offsets
 summed: `group_1` 0–16, `group_2` 476–488 (356 + 120), `group_3` 668–695,
-`group_4` 1600–1616; the four stretches follow the drawing order without
+`group_4` 1600–1616; the four stretches follow one another without
 overlapping, so core's row is `[group_1, group_2, group_3, group_4]`
 whatever order is asked, and `clt_1` is the one root any group hangs on.
+The groups are drawn in name order (section 8.1): `group_3` "Clair de
+Lune mm. 1–6", `group_2` "Menuet mm. 41–44", `group_4` "Passepied mm.
+153–156", `group_1` "Prelude mm. 1–4".
 Each group's frame holds its excerpt's card (a grandchild: 81.37890625
 high laid out alone) and its recording's (49.37890625). One under another,
 each group draws its own ancestor card of `clt_1`, whose derived elisions
@@ -1692,11 +1707,13 @@ card's top lies 8 below too (sections 8.6 and 8.8, No room). Behind every
 frame the card lies 28.20703125 below the frame's top and ends at
 `28.20703125 + 97.35546875 = 125.5625`, inside its frame: no card rises
 above its frame or reaches below it, so each frame lies 8 below the one
-before it: 28.8046875 (its title gap below the place origin), 228.34375,
-427.8828125 and 627.421875 (`+ 191.5390625 + 8` each). At the
-specification's default view `group_4`'s card draws the name "Clair de
-Lune" in a second tier and its frame is 202.015625 high (section 8.9);
-that moves no top, since `group_4` is the last item. Each group draws its
+before it. At this page's pane, as at the specification's default view,
+`group_4`'s card draws the name "Clair de Lune" in a second tier and its
+frame is `191.5390625 + 10.4765625 = 202.015625` high (section 8.9), so in
+the drawing order the tops are 28.8046875 (`group_3`, its title gap below
+the place origin), 228.34375 (`group_2`, `+ 191.5390625 + 8`),
+427.8828125 (`group_4`) and 637.8984375 (`group_1`, `+ 202.015625 + 8`).
+Each group draws its
 own ancestor card of `clt_1` behind it, recorded in item order, so `{id:
 clt_1, part: ["card"]}` is drawn four times (eight parts, each a
 rectangle after its shadow). Side by side (section 8.8, Drawn once) the
@@ -1714,28 +1731,31 @@ drawing's origin is `(0, 0)`, so the node lies at the block's stated place.
 1. **Side by side and back.** In the block's bundle editor the menu offers
    Free (pressed), Vertical and Horizontal, no Matrix; Horizontal is
    enabled. Horizontal sends `set {block} {arrangement: {direction:
-   horizontal, order: [group_1, group_2, group_3, group_4]}}` (the items
-   as shown), the store holds it and Horizontal is pressed; the frames,
+   horizontal, order: [group_3, group_2, group_4, group_1]}}` (the items
+   as shown), the store holds core's row `[group_1, group_2, group_3,
+   group_4]` and Horizontal is pressed; the frames,
    the once card and the node are as stated above; the block's stated `x`
    and `y` are unchanged. Free sends `{arrangement: null}`: the block holds
    no arrangement, Free is pressed, the four ancestor cards and the four
    tops one under another return, the place still unchanged.
 2. **Reordered by a drag and by a key.** Vertical sends `{direction:
-   vertical, order: [group_1, …, group_4]}` and draws as without one.
+   vertical, order: [group_3, group_2, group_4, group_1]}` (the drawing
+   order) and draws as without one.
    The viewport puts the node's top left corner at (40, 40) of the pane,
-   zoom 1, so a drawing ordinate is a screen pixel. `group_1`'s frame is
+   zoom 1, so a drawing ordinate is a screen pixel. `group_3`'s frame is
    pressed (`framePoint`) and dragged straight down to the drawing ordinate
    440, below `group_2`'s middle (`228.34375 + 191.5390625 / 2 =
-   324.11328125`) and above `group_3`'s (`427.8828125 + 191.5390625 / 2 =
-   523.65234375`), and released: one
-   `set` of `{direction: vertical, order: [group_2, group_1, group_3,
-   group_4]}` (`orderAt`, the middles along the direction), the dragged
-   frame selected; every frame being as high and no card rising, the tops
-   are those of the drawing order, 28.8046875, 228.34375, 427.8828125 and
-   627.421875, and the ancestor cards are recorded in that order. With the
-   arranger focused, ArrowDown moves the selected frame one place on
-   (`arrangedStep`): one `set` of `[group_2, group_3, group_1, group_4]`,
-   at the same four tops. Horizontal then
+   324.11328125`) and above `group_4`'s (`427.8828125 + 202.015625 / 2 =
+   528.890625`), and released: one
+   `set` of `{direction: vertical, order: [group_2, group_3, group_4,
+   group_1]}` (`orderAt`, the middles along the direction), the dragged
+   frame selected; `group_2` and `group_3` being as high and no card
+   rising, the tops are those of case 1, 28.8046875, 228.34375,
+   427.8828125 and 637.8984375, and the ancestor cards are recorded in
+   that order. With the arranger focused, ArrowDown moves the selected
+   frame one place on (`arrangedStep`): one `set` of `[group_2, group_4,
+   group_3, group_1]`, at the tops 28.8046875, 228.34375, 438.359375
+   (`228.34375 + 202.015625 + 8`) and 637.8984375. Horizontal then
    sends that order as shown, and core stores its row: the store holds
    `[group_1, group_2, group_3, group_4]` and the frames lie as in case 1.
 3. **Side by side refused.** `bundles/bundle_arranged_conflict`: Theme A
@@ -2623,7 +2643,9 @@ ADR 0030, with no beliefs, so every claim is undecided). The page is 1600 ×
 1000, the block's place origin at (80, 80), zoom 1. Every place is taken
 from the page's own drawing (its workspace text read back, drawn by
 `drawingOf`, placed by `nodePosition`), never from a screenshot: `score`
-is drawn on two lines, in `group_1`'s and in `group_2`'s card, both at the
+is drawn on two lines, in `group_2`'s card and below it in `group_1`'s
+(`group_2` "Page" before `group_1` "Performance", name order, drawing.md
+section 8.1), both at the
 same abscissa for 6 (layout's `abscissaOf`), and `page` on one, in
 `group_2`'s; a frame's span runs from the top of its topmost member card
 to the bottom of its lowest (the drawing's card records). The overlay

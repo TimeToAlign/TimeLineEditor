@@ -392,18 +392,19 @@ test("a potential MatchStamp on a group member, hovered and pinned, draws its li
   // `score` is a member of both groups, `page` of `group_2`: score 6 ↔ page 400.
   const score = linesOf("score");
   const pageLines = linesOf("page");
-  expect(score.map(([, axis]) => axis.card.item)).toEqual(["group_1", "group_2"]);
+  // `group_2` "Page" is drawn above `group_1` "Performance" (name order).
+  expect(score.map(([, axis]) => axis.card.item)).toEqual(["group_2", "group_1"]);
   expect(pageLines.map(([, axis]) => axis.card.item)).toEqual(["group_2"]);
   // Hovered on `group_2`'s line: on `group_1`'s, MatchStamp performance 3.0 ↔ second-half 2 runs its
   // connector down the same abscissa over the line, and the nearer of the two would be hovered.
-  const [, scoreAxis] = score[1] as (typeof score)[number];
+  const [, scoreAxis] = score[0] as (typeof score)[number];
   const atScore = abscissaOf(scoreAxis, Rational.of([6, 1]));
   const atPage = abscissaOf((pageLines[0] as (typeof pageLines)[number])[1], Rational.of([400, 1]));
   const scoreX = attributeText(atScore);
   const pageX = attributeText(atPage);
   for (const [, axis] of score) expect(abscissaOf(axis, Rational.of([6, 1]))).toBe(atScore);
   const across = {
-    score: [written(frameSpan("group_1")), written(frameSpan("group_2"))],
+    score: [written(frameSpan("group_2")), written(frameSpan("group_1"))],
     page: [written(frameSpan("group_2"))],
   };
 
