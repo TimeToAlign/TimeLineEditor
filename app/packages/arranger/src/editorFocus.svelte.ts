@@ -7,10 +7,11 @@
  */
 
 import type { Address, OpenEditor, Store } from "@timetoalign/tilie-core";
+import { sameAddress } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { tick, untrack } from "svelte";
 import type { Viewport } from "./focus.ts";
-import { elidedReach, FOCUS_DURATION, focusViewport, targetBounds } from "./focus.ts";
+import { elidedReach, FOCUS_DURATION, focusedOf, focusViewport, targetBounds } from "./focus.ts";
 import type { BlockNode } from "./node.ts";
 import type { PaneSource } from "./pane.ts";
 import { blockOf } from "./selection.ts";
@@ -130,11 +131,18 @@ export class EditorFocus {
    * frame has elided ancestor cards behind it is zoomed out until they fit
    * on both sides of the frame's centre (`elidedReach`); in the Full view
    * the frame alone decides and the cards may run past the edges. The flow
-   * editor's card is centred with its pane below it (`FocusHost.below`). A target
-   * that is not drawn (a hidden element) leaves the view where it is.
+   * editor's card is centred with its pane below it (`FocusHost.below`), a
+   * children editor's timeline by its children band (`focusedOf`), whoever
+   * asks for its target. A target that is not drawn (a hidden element)
+   * leaves the view where it is.
    */
-  async focusOn(target: Address): Promise<void> {
+  async focusOn(edited: Address): Promise<void> {
     const asked = ++this.#focusing;
+    const innermost = this.#host.store().editing.at(-1);
+    const target =
+      innermost !== undefined && sameAddress(innermost.target, edited)
+        ? focusedOf(edited, innermost.kind)
+        : edited;
     await tick();
     const node = this.#host.nodes().get(blockOf(target));
     const root = this.#host.root();

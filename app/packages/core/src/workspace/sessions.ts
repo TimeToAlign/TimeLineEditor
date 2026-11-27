@@ -1,11 +1,12 @@
 /**
  * Editor sessions: the commands made in one editor (the bundle editor on a
  * block, the group editor on a group, the timeline editor on a root or a
- * child timeline, the flow-control editor on a root timeline's flow
- * control and FlowMaps) between opening it and Done or Cancel. A closed session is journalled as one entry
- * on the level it was opened on; its target is stored once, with the
- * session, never in that entry, and so is its kind where the target alone
- * does not tell it (a flow-control editor's).
+ * child timeline, the children editor on a timeline's children, the
+ * flow-control editor on a root timeline's flow control and FlowMaps)
+ * between opening it and Done or Cancel. A closed session is journalled as
+ * one entry on the level it was opened on; its target is stored once, with
+ * the session, never in that entry, and so is its kind where the target
+ * alone does not tell it (a children editor's and a flow-control editor's).
  */
 
 import type { Command } from "../commands/types.ts";
@@ -27,15 +28,21 @@ export const SESSION_ID = BLOCK_ID;
 
 /**
  * The editor of an element: of a block, of a group, of a root or child
- * timeline, and the flow-control editor (kind `flow`) of a root timeline,
+ * timeline, the children editor (kind `children`) of a root or child
+ * timeline, which edits the timeline's children with its children band in
+ * view, and the flow-control editor (kind `flow`) of a root timeline,
  * which edits the flow control of its tree, its FlowMaps and the virtual
  * timelines applying them, and is the one editor whose canvas folds the
  * FlowMaps out.
  */
-export type EditorKind = "bundle" | "group" | "timeline" | "flow";
+export type EditorKind = "bundle" | "group" | "timeline" | "children" | "flow";
 
-/** The kind of editor a session's target does not tell: the flow-control editor, on a root timeline's address. */
-export type StatedEditorKind = Extract<EditorKind, "flow">;
+/**
+ * The kinds of editor a session's target does not tell, both on a
+ * timeline's address, which alone opens the timeline editor: the children
+ * editor and the flow-control editor.
+ */
+export type StatedEditorKind = Extract<EditorKind, "children" | "flow">;
 
 /** One command as it was applied: by whom and when (ISO 8601 UTC with milliseconds). */
 export interface CommandEntry {
@@ -56,8 +63,8 @@ export type Entry = CommandEntry | SessionEntry;
 
 /**
  * One closed session: the element it edited, its entries in order, and,
- * for a flow-control editor's, its `kind` (every other kind follows from the
- * target, `editorKindOf`).
+ * for a children editor's or a flow-control editor's, its `kind` (every
+ * other kind follows from the target, `editorKindOf`).
  */
 export interface Session {
   readonly target: Address;
@@ -216,9 +223,9 @@ export function keepChanges(
  * editor, a group the group editor, a root or child timeline the timeline
  * editor; `no_editor` for the workspace and any other element or part;
  * `unknown_target` for an address naming nothing. Asked for `kind`, the
- * editor of that kind: the flow-control editor opens on a root timeline only
- * (`no_editor` for any other address), any other kind where the address
- * opens it.
+ * editor of that kind: the children editor opens on a root or child
+ * timeline, the flow-control editor on a root timeline only (`no_editor`
+ * for any other address), any other kind where the address opens it.
  */
 export function editorKindOf(
   view: View,
@@ -228,13 +235,18 @@ export function editorKindOf(
   const opened = defaultKindOf(view, address);
   if (kind === undefined || isCommandError(opened)) return opened;
   const resolved = resolveAddress(view, address);
-  const root = !isCommandError(resolved) && resolved.kind === "timeline" && !resolved.at.parent;
-  if (kind === opened || (kind === "flow" && root)) return kind;
+  const timeline = !isCommandError(resolved) && resolved.kind === "timeline";
+  const root = timeline && !resolved.at.parent;
+  if (kind === opened || (kind === "flow" && root) || (kind === "children" && timeline)) {
+    return kind;
+  }
   return problem(
     ErrorCode.noEditor,
     kind === "flow"
       ? `${addressWords(view, address)} has no flow-control editor: only a root timeline has one`
-      : `${addressWords(view, address)} has no ${kind} editor`,
+      : kind === "children"
+        ? `${addressWords(view, address)} has no children editor: only a timeline has one`
+        : `${addressWords(view, address)} has no ${kind} editor`,
     [addressKey(address)],
   );
 }
@@ -276,22 +288,36 @@ function defaultKindOf(view: View, address: Address): EditorKind | CommandError 
 
 /**
  * Whether the editor of `kind` on `target` opens inside the open editor
- * `outer`: never inside a flow-control editor; a flow-control editor
- * inside the timeline editor of its own root too; else where `target` lies
- * inside `outer`'s target (`opensInside`), so a root's flow-control editor
- * opens inside the bundle editor of its block and the group editor of a
- * group holding the root.
+ * `outer`: never inside a flow-control editor; a children or flow-control
+ * editor inside the timeline editor of its own timeline too; else where
+ * `target` lies inside `outer`'s target (`opensInside`), so a root's
+ * flow-control editor opens inside the bundle editor of its block and the
+ * group editor of a group holding the root, and a child's editors inside
+ * the children editor of its parent.
  */
 export function opensIn(view: View, outer: OpenEditor, target: Address, kind: EditorKind): boolean {
   if (outer.kind === "flow") return false;
-  if (kind === "flow" && outer.kind === "timeline" && sameAddress(outer.target, target))
-    return true;
+  const stated = statedKind(kind) !== undefined;
+  if (stated && outer.kind === "timeline" && sameAddress(outer.target, target)) return true;
   return opensInside(view, outer.target, target);
 }
 
-/** The kind a session states: `flow` for a flow-control editor's, none for another's (`Session.kind`). */
+/**
+ * The kind a session states: `children` for a children editor's, `flow` for
+ * a flow-control editor's, none for another's (`Session.kind`).
+ */
 export function statedKind(kind: EditorKind): StatedEditorKind | undefined {
-  return kind === "flow" ? kind : undefined;
+  switch (kind) {
+    case "children":
+    case "flow":
+      return kind;
+    case "bundle":
+    case "group":
+    case "timeline":
+      return undefined;
+    default:
+      return assertNever(kind);
+  }
 }
 
 /**

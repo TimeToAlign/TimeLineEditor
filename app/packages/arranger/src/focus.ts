@@ -1,11 +1,18 @@
 /** The viewport of an editor: the edited element centred in the canvas area left of the drawer. */
 
-import type { Address } from "@timetoalign/tilie-core";
-import { addressKey, contains, resolveElement, samePlaceKey } from "@timetoalign/tilie-core";
+import type { Address, EditorKind } from "@timetoalign/tilie-core";
+import {
+  addressKey,
+  contains,
+  idAddress,
+  inBlock,
+  resolveElement,
+  samePlaceKey,
+} from "@timetoalign/tilie-core";
 import { boundsOf, TextMeasure } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
-import { isDisplayed, keyedBox, raisedRoot, stackingOf } from "./boxes.ts";
+import { boxOf, isDisplayed, keyedBox, raisedRoot, stackingOf } from "./boxes.ts";
 import { addressParts } from "./editing.ts";
 import { isContainerAddress, type Rect, rectOnCanvas } from "./marquee.ts";
 import type { BlockNode } from "./node.ts";
@@ -23,8 +30,19 @@ export const FOCUS_MAX_ZOOM = 4;
 export type { Viewport };
 
 /**
+ * What the view centres on for the editor of `kind` on `target`: a children
+ * editor's timeline's children band `{block, id: T, facet: "children"}`,
+ * every other editor its target itself.
+ */
+export function focusedOf(target: Address, kind: EditorKind): Address {
+  return kind === "children" && target.id !== undefined ? { ...target, facet: "children" } : target;
+}
+
+/**
  * The canvas rectangle of the editor target `target` in `node`'s block: the
- * block's box for the block itself, the displayed frame of a group or card
+ * block's box for the block itself, the first drawn record of a band (a
+ * timeline's band `{block, id: T, facet}`; a band not drawn, or drawn with
+ * no extent, stands for its timeline), the displayed frame of a group or card
  * of a timeline (its first, for a member of several groups), and for a
  * timeline drawn in no displayed card of its own (a
  * child, or a hidden card) the rectangle spanning every element drawn inside
@@ -40,6 +58,11 @@ export function targetBounds(node: BlockNode, target: Address, metrics: FontMetr
   }
   if (element === null) {
     return rectOnCanvas(node, { x: 0, y: 0, width: drawing.width, height: drawing.height });
+  }
+  if (element.id !== undefined && element.facet !== undefined && element.part === undefined) {
+    const band = boxOf(drawing, element);
+    if (band?.kind === "band" && band.width > 0 && band.height > 0) return rectOnCanvas(node, band);
+    return targetBounds(node, inBlock(id, idAddress(element.id)), metrics);
   }
   const resolved = resolveElement(block.manifest, element);
   const [container] =

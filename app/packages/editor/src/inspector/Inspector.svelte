@@ -1,7 +1,8 @@
 <script lang="ts">
 /**
  * The inspector: the editing bar, then a tab list over nine panels: the
- * level tab (named by the level: Arranger, Bundle, Group or Timeline, its
+ * level tab (named by the level: Arranger, Bundle, Group, Timeline,
+ * Children or Flow control, its
  * panel the level's title line and settings, `LevelPanel`), Properties,
  * Regions, Metadata, Manifest, Journal, Timestamp, Matchstamp and Elisions. The tabs that do
  * not fit the inspector's width start another row, so the tab list never
@@ -147,6 +148,11 @@ const registered =
     return () => delete tabButtons[tab];
   };
 
+/** Move the focus to the button of tab `tab`, the tab shown or about to be. */
+export function focusTab(tab: Tab): void {
+  tabButtons[tab]?.focus();
+}
+
 function onTabKey(event: KeyboardEvent, from: Tab): void {
   const next = nextTab(from, event);
   if (next === undefined) return;
@@ -198,7 +204,7 @@ const hinted = $derived(block === null && !manifest.dirty);
         {#if tab !== item}
           <!-- A hidden panel renders nothing. -->
         {:else if item === "level"}
-          <LevelPanel {live} {manifest} {locked} />
+          <LevelPanel {live} {manifest} {locked} {selection} {onselect} />
         {:else if item === "journal"}
           <JournalPanel rows={journalRows(live, view)} />
         {:else if item === "timestamp"}

@@ -12,6 +12,7 @@ import type { JournalSource } from "../src/inspector/journal.ts";
 import type { Held, HeldMatch, Shown, Tab } from "../src/inspector/tabs.ts";
 import {
   elisionSelected,
+  entered,
   initialPick,
   matchPinned,
   namesElision,
@@ -187,7 +188,7 @@ describe("the tab rule", () => {
       "Elisions",
     ];
     expect(
-      (["arranger", "bundle", "group", "timeline"] as const).map((level) =>
+      (["arranger", "bundle", "group", "timeline", "children", "flow"] as const).map((level) =>
         TABS.map((tab) => tabLabel(tab, level)),
       ),
     ).toEqual([
@@ -195,6 +196,8 @@ describe("the tab rule", () => {
       ["Bundle", ...OTHERS],
       ["Group", ...OTHERS],
       ["Timeline", ...OTHERS],
+      ["Children", ...OTHERS],
+      ["Flow control", ...OTHERS],
     ]);
     expect([initialPick(0, 3), initialPick(1, 3), initialPick(2, 0)]).toEqual([
       { tab: "properties", openings: 3 },
@@ -221,6 +224,17 @@ describe("the tab rule", () => {
         toggled({ tab, openings: recorded }, openings, shown),
       ),
     ).toEqual(cases.map(([, , , , tab, openings]) => ({ tab, openings })));
+  });
+
+  it("shows the level tab on entering a children or flow-control editor, else keeps the pick", () => {
+    const journal = { tab: "journal", openings: 1 } as const;
+    expect([entered(journal, "children", 2), entered(journal, "flow", 2)]).toEqual([
+      { tab: "level", openings: 2 },
+      { tab: "level", openings: 2 },
+    ]);
+    for (const kind of ["bundle", "group", "timeline"] as const) {
+      expect(entered(journal, kind, 2)).toBe(journal);
+    }
   });
 
   it("keeps the chosen tab over editors opened while shown: hiding records them", () => {

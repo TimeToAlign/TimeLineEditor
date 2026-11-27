@@ -10,7 +10,7 @@ import type { Store } from "../src/workspace/store.ts";
 import { createStore, replay } from "../src/workspace/store.ts";
 import type { View } from "../src/workspace/view.ts";
 import { createView } from "../src/workspace/view.ts";
-import { A, addBlock, refusal, testClock, viewOf } from "./support.ts";
+import { A, addBlock, refusal, storeOf, testClock, viewOf } from "./support.ts";
 
 const BUNDLE = "bundle0001";
 /** The addresses of block `bundle0001`, of an element of its manifest, and of its two groups. */
@@ -943,5 +943,85 @@ describe("the side-effect guard through the store", () => {
     });
     expect(store.editing).toBe(editing);
     expect(store.entries).toEqual([]);
+  });
+});
+
+describe("the children editor", () => {
+  const NESTED = () => storeOf(viewOf([A, "nested.yaml"]));
+  const root: Address = { block: A, id: "clt_1" };
+  const child: Address = { block: A, id: "clt_3" };
+  const kinds = (store: Store) => store.editing.map((editor) => editor.kind);
+
+  it("opens on any timeline when asked for by kind", () => {
+    const view = viewOf([A, "nested.yaml"]);
+    expect([
+      editorKindOf(view, root, "children"),
+      editorKindOf(view, child, "children"),
+      editorKindOf(view, root),
+    ]).toEqual(["children", "children", "timeline"]);
+    const refused = editorKindOf(view, { block: A }, "children");
+    expect(refused).toEqual({
+      code: "no_editor",
+      message: "the anonymous bundle has no children editor: only a timeline has one",
+      path: [addressKey({ block: A })],
+    });
+  });
+
+  it("changes what its timeline's editor changes and opens its children's editors", () => {
+    const store = NESTED();
+    expect(store.open(root, "children")).toBeNull();
+    expect(store.dispatch(set(child, { name: "Inner" }))).toBeNull();
+    expect(
+      refusal(store.dispatch({ type: "set", changes: [{ target: {}, values: { name: "x" } }] }))
+        .code,
+    ).toBe("side_effect");
+    expect(store.open(child)).toBeNull();
+    expect(kinds(store)).toEqual(["children", "timeline"]);
+    store.cancel();
+    expect(store.open(child, "children")).toBeNull();
+    expect(kinds(store)).toEqual(["children", "children"]);
+    store.cancel();
+    expect(refusal(store.open(root, "children")).code).toBe("not_inside");
+    store.cancel();
+    expect(store.open(root)).toBeNull();
+    expect(store.open(root, "children")).toBeNull();
+    expect(kinds(store)).toEqual(["timeline", "children"]);
+  });
+
+  it("states its kind in its session, written, read and replayed, and reopens its own", () => {
+    const store = NESTED();
+    expect(store.open(root, "children")).toBeNull();
+    expect(store.dispatch(set(child, { name: "Inner" }))).toBeNull();
+    store.done();
+    const [entry] = store.journal.slice(-1);
+    const session =
+      entry !== undefined && "session" in entry ? store.sessions[entry.session] : null;
+    expect([session?.kind, session?.entries.length]).toEqual(["children", 1]);
+    const workspace = store.snapshot();
+    expect(readWorkspace(writeWorkspace(workspace))).toEqual(workspace);
+    expect(replay(workspace.journal, workspace.sessions).at(-1)?.blocks).toEqual(store.view.blocks);
+    expect(store.open(root)).toBeNull();
+    expect(store.entries.length).toBe(0);
+    store.cancel();
+    expect(store.open(root, "children")).toBeNull();
+    expect(store.entries.length).toBe(1);
+  });
+
+  it("is the one kind but flow a session states", () => {
+    const store = NESTED();
+    expect(store.open(root, "children")).toBeNull();
+    expect(store.dispatch(set(child, { name: "Inner" }))).toBeNull();
+    store.done();
+    const workspace = store.snapshot();
+    const [id] = Object.keys(workspace.sessions);
+    const text = writeWorkspace(workspace).replace('"kind": "children"', '"kind": "timeline"');
+    const read = readWorkspace(text);
+    expect(isLoadError(read) ? read.problems : null).toEqual([
+      {
+        code: "invalid_value",
+        message: "a session states only the kind children or flow",
+        path: ["sessions", id, "kind"],
+      },
+    ]);
   });
 });

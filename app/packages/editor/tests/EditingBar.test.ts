@@ -166,6 +166,16 @@ describe("the editing bar", () => {
     expect(path()).toEqual(["Score", "Flow control of Score"]);
   });
 
+  it("names a children editor as the children of its timeline", () => {
+    const store = mixedNested();
+    show(store);
+    open(store, address(A, "score"));
+    const error = store.open(address(A, "score"), "children");
+    if (error !== null) throw new Error(error.message);
+    flushSync();
+    expect(path()).toEqual(["Score", "Children of Score"]);
+  });
+
   it("closes the innermost editor with Done", () => {
     const store = mixedNested();
     show(store);

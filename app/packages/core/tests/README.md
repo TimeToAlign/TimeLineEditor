@@ -4915,6 +4915,26 @@ that holds a member without being one.
 33. **The bundle editor.** In the editor of `bundle0001`, `set bundle0001
     scale 2` → nothing: the bundle itself resizes.
 
+**The children editor** (kind `children`, on `nested.yaml`: root `clt_1`,
+its child `clt_3`, whose child is `clt_2`). It opens on any timeline, root
+or child, only when asked for by kind: `editorKindOf` of `clt_1` and of
+`clt_3` with `children` is `children`, of the block (`nested` has no name and no ID) `no_editor` with
+"the anonymous bundle has no children editor: only a timeline has one", and `clt_1` without a kind still opens the timeline
+editor. It changes what its timeline's editor changes: inside the children
+editor of `clt_1`, a `set` of `clt_3`'s name is accepted and one of the
+workspace's name is `side_effect`; the timeline editor of `clt_3` opens
+inside it (`["children", "timeline"]`), and so does the children editor of
+`clt_3`; the children editor of `clt_1` opens inside `clt_1`'s timeline
+editor (`["timeline", "children"]`), never inside its own children editor
+(`not_inside`). Done journals one session entry whose session states
+`kind: "children"`; the workspace file writes it and reads it back equal,
+and the journal replays to the same view. Reopening `clt_1` as a timeline
+editor starts a new session (no changes unfolded); reopening it as a
+children editor unfolds the children session (its one change back in the
+open editor's entries). A file whose session states another kind
+(`timeline`) is refused with `invalid_value` at `["sessions", <id>,
+"kind"]`, "a session states only the kind children or flow".
+
 ## The workspace file (`file.test.ts`)
 
 `writeWorkspace(workspace)` is TimeToShare's `dumps` in pretty JSON (keys sorted) of

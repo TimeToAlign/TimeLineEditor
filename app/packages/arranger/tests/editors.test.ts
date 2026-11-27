@@ -18,7 +18,7 @@ import { fieldsOf, LEVELS, resizeModes, resizes, resizingOf, rulesOf } from "../
 import { drawingOf } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
 import { addressParts, sameEditing } from "../src/editing.ts";
-import { editorTargetOf } from "../src/editors.ts";
+import { editorOf, editorTargetOf, editorWords } from "../src/editors.ts";
 import { A, B, blockIn, changed, load, metrics, mixedView } from "./support.ts";
 
 const view = changed(mixedView(), {
@@ -138,9 +138,28 @@ describe("editorTargetOf", () => {
   });
 
   it("opens a band's timeline, never inside that timeline's own editor", () => {
-    const band = hit("band", at(bandAddress("excerpt", "children")));
+    const band = hit("band", at(bandAddress("excerpt", "conversion_maps")));
     expect(editorTargetOf(view, band, timeline("excerpt"))).toBeNull();
     expect(editorTargetOf(view, band, null)).toEqual(id("excerpt"));
+  });
+
+  it("opens a children band's children editor, in every view and on its timeline's editor", () => {
+    const address = at(bandAddress("excerpt", "children"));
+    const band = hit("band", address);
+    const groupTwo: Editing = { target: id("group_2"), kind: "group" };
+    for (const editing of [null, bundle, groupTwo, timeline("excerpt")]) {
+      expect(editorTargetOf(view, band, editing)).toEqual(address);
+    }
+    expect(editorOf(address)).toEqual({ target: id("excerpt"), kind: "children" });
+    expect(editorWords(view, address)).toBe("Children of timeline 'Excerpt' in bundle 'Mixed'");
+  });
+
+  it("opens inside a children editor its timeline's children, never itself", () => {
+    const children: Editing = { target: id("excerpt"), kind: "children" };
+    const band = hit("band", at(bandAddress("excerpt", "children")));
+    expect(editorTargetOf(view, band, children)).toBeNull();
+    expect(editorTargetOf(view, hit("element", id("excerpt")), children)).toBeNull();
+    expect(editorTargetOf(view, hit("element", id("dlt_1")), children)).toEqual(id("dlt_1"));
   });
 
   it("opens nothing in a block that does not exist", () => {
@@ -192,6 +211,7 @@ describe("LEVELS and rulesOf", () => {
       bundle: row(true, false, false, false, "elements", true, false, false),
       group: row(false, false, true, false, "elements", false, true, false),
       timeline: row(false, false, false, true, "elements", false, false, false),
+      children: row(false, false, false, false, "elements", false, false, false),
       flow: { ...row(false, false, false, false, "elements", false, false, false), open: false },
     });
   });

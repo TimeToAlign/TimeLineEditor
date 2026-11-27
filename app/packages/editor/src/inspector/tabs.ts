@@ -1,8 +1,8 @@
 /**
  * The inspector's tab rule: which tabs there are, which one is shown and
- * where the keys move, how a pinned timestamp selects the Timestamp tab, a
- * pinned or selected MatchStamp the Matchstamp tab and a selected elision
- * the Elisions tab.
+ * where the keys move, which editors show their level tab when entered, how
+ * a pinned timestamp selects the Timestamp tab, a pinned or selected
+ * MatchStamp the Matchstamp tab and a selected elision the Elisions tab.
  * Pure: the component holds the tab last chosen and the pin, the drawer
  * tells the rule when the inspector is shown or hidden, when a timestamp
  * is pinned and when the selection changes, and both read the store's
@@ -10,8 +10,15 @@
  */
 
 import type { Level } from "@timetoalign/tilie-arranger";
-import type { Address, AnchorIndex, Manifest, Pin, View } from "@timetoalign/tilie-core";
-import { resolveAddress } from "@timetoalign/tilie-core";
+import type {
+  Address,
+  AnchorIndex,
+  EditorKind,
+  Manifest,
+  Pin,
+  View,
+} from "@timetoalign/tilie-core";
+import { assertNever, resolveAddress } from "@timetoalign/tilie-core";
 import { levelWord } from "./words.ts";
 
 /** The inspector's sections, in tab order: the level tab first, then Properties and Regions, then the six others, Elisions last. */
@@ -65,12 +72,34 @@ export function initialPick(depth: number, openings: number): Picked {
  * records the count of openings; showing it again shows the level tab when
  * an editor was opened while it was hidden (the count differs, as it does
  * for a store replaced meanwhile), else the tab chosen. While the inspector
- * is shown nothing but a choice changes the pick, so entering or leaving an
- * editor never changes the tab shown.
+ * is shown nothing but a choice and entering an editor whose level tab holds
+ * its work (`entered`) changes the pick, so leaving an editor never
+ * changes the tab shown.
  */
 export function toggled(picked: Picked, openings: number, shown: boolean): Picked {
   const tab = shown && openings !== picked.openings ? "level" : picked.tab;
   return { tab, openings };
+}
+
+/**
+ * The pick once an editor of `kind` is entered, the store having opened
+ * `openings` editors: a children editor and a flow-control editor show their
+ * level tab, which holds what they edit (the timeline's children, the
+ * flow-control elements of the root's tree); entering any other editor
+ * leaves the pick as it is.
+ */
+export function entered(picked: Picked, kind: EditorKind, openings: number): Picked {
+  switch (kind) {
+    case "children":
+    case "flow":
+      return { tab: "level", openings };
+    case "bundle":
+    case "group":
+    case "timeline":
+      return picked;
+    default:
+      return assertNever(kind);
+  }
 }
 
 /**

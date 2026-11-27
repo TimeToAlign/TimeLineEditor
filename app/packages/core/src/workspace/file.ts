@@ -167,17 +167,20 @@ function readEntries(problems: Problem[]): Reader {
 }
 
 /**
- * A session: `{target, entries}`, and `kind: "flow"` for a flow-control editor's,
- * whose target, a root timeline, would open the timeline editor; the kind
- * is written only there.
+ * A session: `{target, entries}`, and `kind: "children"` for a children
+ * editor's or `kind: "flow"` for a flow-control editor's, whose target, a
+ * timeline, would open the timeline editor; the kind is written only there.
  */
 function readSessions(problems: Problem[]): Reader {
   const session: Reader = (value, path) => {
     if (!isJsonObject(value) || !Object.hasOwn(value, "kind")) return exact(value, path);
     const { kind, ...rest } = value;
-    if (kind !== "flow") {
+    if (kind !== "flow" && kind !== "children") {
       problems.push(
-        problem(ErrorCode.invalidValue, "a session states only the kind flow", [...path, "kind"]),
+        problem(ErrorCode.invalidValue, "a session states only the kind children or flow", [
+          ...path,
+          "kind",
+        ]),
       );
       return undefined;
     }

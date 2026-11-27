@@ -88,7 +88,10 @@ three editors, `["Anonymous bundle", "clt_1", "clt_3"]` for block `B`'s,
 flow-control editor (kind `flow`) is named as the flow control of its
 timeline (`editorTitle`): `score`'s timeline editor with its flow-control
 editor open inside it reads `["Score", "Flow control of Score"]` for block
-`A` (the editors opened directly on `score`, no group editor around them).
+`A` (the editors opened directly on `score`, no group editor around them);
+a children editor (kind `children`) as the children of its timeline:
+`score`'s children editor inside its timeline editor reads `["Score",
+"Children of Score"]`.
 
 **The Edit button** (`EditButton.test.ts`) opens, for a single selected
 address, the editor a double-click on it would open (the arranger's
@@ -2204,8 +2207,8 @@ core's message, so the oracle is core's own nesting rule written out:
 always present, in this order: the level tab, Properties, Regions,
 Metadata, Manifest, Journal, Timestamp, Matchstamp, Elisions (last, so End
 reaches it and ArrowRight from it wraps to the level tab). The level tab is labelled by the level's word: "Arranger" with no
-editor open, else "Bundle", "Group" or "Timeline" for the innermost
-editor's kind. The tab chosen is recorded with the store's count of editor
+editor open, else "Bundle", "Group", "Timeline", "Children" or "Flow
+control" for the innermost editor's kind. The tab chosen is recorded with the store's count of editor
 openings when it was chosen or when the inspector was last shown or
 hidden. While the inspector is shown the tab shown is the tab chosen,
 whatever editors open or close. Hiding the inspector records the count;
@@ -2215,7 +2218,14 @@ chosen. At mount the
 level tab is chosen while an editor is open, else Properties. On a focused
 tab the arrows move to the next or previous tab, wrapping, Home and End to
 the first and last; a key held with Alt, Ctrl or Meta is the browser's and
-is not prevented.
+is not prevented. **Entering an editor** (`entered`, the drawer's
+`editorEntered`): entering a children editor or a flow-control editor
+chooses the level tab, recorded with the openings given, whatever was
+chosen (Journal at 1 opening, entered at 2, gives the level tab at 2);
+entering a bundle, group or timeline editor gives the pick passed in, the
+same object, so those editors keep the tab shown. That the drawer applies
+it, opening itself and giving the "Flow control" tab's button the focus,
+is proven in the real app (`e2e/editors-flow.spec.ts`).
 
 **A selected elision selects the Elisions tab** (`inspector-tabs.test.ts`,
 "a selected elision"), on `bundle_elisions_stored`, whose stored
@@ -2392,7 +2402,7 @@ real store (`storeOf`), its editors opened through the store.
    switch".
 3. **Group and Timeline**: in the group editor of `group_1` and the
    timeline editor of `score` of `bundle_mixed` the panel holds the title
-   line alone.
+   line alone; the Children and Flow control tabs are 6 and 7.
 4. **The canvas lock.** The panel's arrangement follows the canvas's lock,
    as the canvas's Arrange menu does: one setting, two controls, one rule.
    Mounted with `locked` true over `bundles/bundle_arranged_roots` with
@@ -2414,6 +2424,50 @@ real store (`storeOf`), its editors opened through the store.
    then posts the second refusal beside the first. Mounted without the
    message context the panel throws "no component above this one provides
    post".
+6. **Children** (the children editor of `clt_1` of `nested`, whose one
+   child `clt_3` lies at offset 4 on its quarter axis, 8 quarters long): the
+   title line "Children" with the name `clt_1` goes by, then the area
+   "Children" (`level-children`) with one row: `clt_3`, "at 4 ♩, 8 ♩ long"
+   (the offset on the parent's axis and the length on the child's, as Copy
+   writes them, each with its pretty unit). A press on the row calls
+   `onselect` with `[{block, id: "clt_3"}]`; mounted with that address
+   selected, the row's button is pressed (`aria-pressed` "true"). The
+   children editor of `clt_2`, which has none, shows "No children.". The
+   area is absent at every other level (Arranger, Bundle, Group, Timeline:
+   the cases above).
+7. **Flow control** (the flow-control editor of `allegro` of
+   `flow/virtual_cards`, a root with no children, whose flow control is
+   `volta_jump` at 953/2, `repeat_end` at 500, `second_ending` and
+   `volta_break` at 500, in the manifest's order): the title line, the area
+   "Add flow control" (`flow-control-add`) with the select "Element"
+   offering the fourteen kinds in order (Repeat start, Repeat end, Volta
+   bracket start, Segno, Coda, Da capo, Fine, Section break, Double
+   barline, Final barline, Jump, Jump target, Break, Barline), no
+   "Timeline" select (the tree is one timeline), the field "Position"
+   empty with nothing selected, and Add; then the area "Flow-control
+   elements" with the four rows in the manifest's order, the first "Jump
+   (volta, volta)", the second "Jump (repeat end)", each with its ID as its
+   name (none is named or labelled) and its coordinate ("953/2 ♩", "500
+   ♩"). Selecting `repeat_end` proposes "500" in Position; selecting
+   `section_a` (a region from 0) proposes "0". Adding "Repeat start" at
+   "100" stores one `add` into `allegro` of `{role: "jump_target",
+   coordinate: [100, 1], manifestation: "repeat_start"}` (read back from
+   the manifest: one more element, a JumpTarget at 100 with that
+   manifestation, its ID core's), and `onselect` is called with exactly
+   that element's address; adding "Da capo" at "1000" stores a Jump at
+   1000 whose one destination is `{to: allegro, manifestation: "da_capo",
+   repeat_count: 1}` (with `determined` and `reset` true, `label` null, as
+   the complete form writes them). Add with an empty Position, and with
+   "x", stores nothing (the journal keeps its length) and shows a
+   refusal in the status line ("type the position of the new element";
+   core's reading of "x", `"x" is no fraction value; write an integer, n/d,
+   a b/c or a decimal`); a second "Repeat end" at 500, where a Jump already
+   stands, is refused by the store, its message in the status line (`'repeat_end'
+   is a second jump at coordinate [500, 1] of 'allegro', after '<J>':
+   several signs at one place are destinations of one jump`, `<J>` the ID the
+   store's minter gives the refused element first, `storeMints("jump")`),
+   the snapshot unchanged. A row's press calls `onselect` with its
+   element's address.
 
 ## The Timestamp tab (`timestamp.test.ts`, `shell.test.ts`)
 
@@ -4557,7 +4611,10 @@ name, and `timestamp_3` "Take 2, bar 2"; the ordinary timestamp
    of `score` in block `A` opened, `jump_1` named "Volta" in it and Done,
    the newest row reads "Edited flow control of Score (1 change)", and the
    session, unfolded, holds the one row "Set name of jump 'Volta' in
-   bundle 'Mixed'" (the element by its new name).
+   bundle 'Mixed'" (the element by its new name). A children editor's
+   session is worded as the children of its timeline: the children editor
+   of `score` opened, `score` renamed "Partitur" in it and Done, the newest
+   row reads "Edited children of Partitur (1 change)".
 4. **Order.** Rows run newest first at every depth, undone ones at the top;
    in an editor its own rows, then the earlier session of the same target
    read only; with two editors open, the inner level only; a session's rows
