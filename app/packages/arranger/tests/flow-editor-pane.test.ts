@@ -15,7 +15,7 @@ import { drawingOf } from "../src/drawing.ts";
 import type { FlowServer } from "../src/flowEditor.svelte.ts";
 import { flowRows } from "../src/flowEditor.ts";
 import type { FlowPane } from "../src/flowEditorRows.ts";
-import { flowPaneOf, ROW_HEAD, rowPlace } from "../src/flowEditorRows.ts";
+import { flowPaneOf, PLACE_GAP, ROW_HEAD, rowPlace } from "../src/flowEditorRows.ts";
 import { GRID_FREE, quantize } from "../src/numbers.ts";
 import { type Selection, selectionOf } from "../src/selection.ts";
 import Harness from "./CanvasHarness.svelte";
@@ -28,9 +28,10 @@ const allegro = inBlock(A, idAddress(ROOT));
 let mounted: ReturnType<typeof mount> | undefined;
 let store: Store;
 let refused: string[] = [];
+let resize: ReturnType<typeof stubCanvasGlobals>["resize"];
 
 beforeEach(() => {
-  stubCanvasGlobals(() => true);
+  ({ resize } = stubCanvasGlobals(() => true));
 });
 
 afterEach(() => {
@@ -74,10 +75,19 @@ function paneNow(): FlowPane {
   return pane;
 }
 
-/** Where "Place as card" puts the card of the row `id`: `rowPlace` less the drawing's origin. */
+/** The pane's width as drawn, in drawing units (block A's scale is 1). */
+const drawnPaneWidth = (): number =>
+  Number.parseFloat(one('[data-testid="flow-pane"]').style.width);
+
+/**
+ * Where "Place as card" puts the card of the row `id`: `rowPlace` less the
+ * drawing's origin, right of the pane as drawn, `PLACE_GAP` screen pixels
+ * apart at the viewport's zoom.
+ */
 function placeOfRow(id: string): { x: number; y: number } {
   const pane = paneNow();
-  const at = rowPlace(pane, pane.rows, id);
+  const gap = PLACE_GAP / harness().current().viewport.zoom;
+  const at = rowPlace(pane, pane.rows, id, { width: drawnPaneWidth(), gap });
   if (at === null) throw new Error(`no row ${id}`);
   const { origin } = drawingOf(blockIn(store.view, A), store.view.graphical, metrics);
   return { x: quantize(at.x - origin.x, GRID_FREE), y: quantize(at.y - origin.y, GRID_FREE) };
@@ -324,8 +334,14 @@ describe("the flow editor's pane", () => {
     expect(blockIn(store.view, A).places[V]).toEqual({ x: 760, y: 240 });
   });
 
-  it("places each row's card at the height of its row, one under another", async () => {
+  it("places each row's card at the height of its row, right of the pane, one under another", async () => {
     await show();
+    // A canvas 700 wide: the pane, its left edge at 40 + 8, has 700 − 48 − 16 = 636 of room.
+    resize(one(".tilie-canvas"), 700, 600);
+    await settle();
+    harness().showAt({ x: 0, y: 0, zoom: 1 });
+    await settle();
+    expect(drawnPaneWidth()).toBe(636);
     const before = (manifest().virtual_timelines ?? []).map((item) => item.id);
     const printed = placeOfRow("printed");
     const mark = store.entries.length;
@@ -340,7 +356,8 @@ describe("the flow editor's pane", () => {
     await settle();
     expect(store.entries.length).toBe(mark + 2);
     expect(blockIn(store.view, A).places.allegro_single).toEqual(single);
-    expect([printed.x, single.x]).toEqual([56, 56]);
+    // The pane's left edge 8, its width as drawn 636, then 4 screen pixels at zoom 1.
+    expect([drawnPaneWidth(), printed.x, single.x]).toEqual([636, 648, 648]);
     const row = paneNow().rows.find((item) => item.row.id === "printed");
     expect(single.y).toBe(quantize(printed.y + ROW_HEAD + (row?.viewBox.height ?? 0), GRID_FREE));
     store.done();

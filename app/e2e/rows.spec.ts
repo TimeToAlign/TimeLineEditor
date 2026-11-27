@@ -1,7 +1,8 @@
 /**
  * The FlowMap rows of the flow editor in the app, on TimeToShare's
  * `flow/virtual_cards`: the wheel over the pane pans the canvas as anywhere
- * else, "Place as card" puts each card at the height of its row, "+ Gap"
+ * else, "Place as card" puts each card at the height of its row right of
+ * the pane, the drawer open or closed, "+ Gap"
  * adds a gap at once whose handle sets its length in one change, and a row
  * dragged out becomes a card once the middle of its twin, not the pointer,
  * has crossed the editor's border. The expected values are derived in
@@ -11,8 +12,10 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import {
+  arranger,
   bandPoint,
   done,
+  drawer,
   editing,
   entriesLength,
   entryCommands,
@@ -118,47 +121,62 @@ test("the wheel over the pane pans the canvas, plain and with Shift", async ({ p
   await expect.poll(() => viewportOf(page)).toEqual({ x: view.x - 20, y: view.y - 20, zoom: 1 });
 });
 
-test("Place as card puts each card at the height of its row, one under another", async ({
-  page,
-}) => {
-  const { block, view, pane } = await opened(page);
-  const from = await entriesLength(page);
-  await rowOf(pane, "printed").getByRole("button", { name: "Place as card" }).click();
-  await expect.poll(() => entriesLength(page)).toBe(from + 1);
-  const [printed] = await virtualsOf(page, block, "printed");
-  if (printed === undefined) throw new Error("no virtual timeline of printed");
-  await rowOf(pane, "single").getByRole("button", { name: "Place as card" }).click();
-  await expect.poll(() => entriesLength(page)).toBe(from + 2);
-  expect(await stepTypes(page, from)).toEqual([["add", "set"], ["set"]]);
+for (const drawerOpen of [true, false]) {
+  test(`Place as card puts each card right of the pane, at its row's height, the drawer ${
+    drawerOpen ? "open" : "closed"
+  }`, async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    const { block, view, pane } = await opened(page);
+    if (!drawerOpen) {
+      await page.getByRole("button", { name: "Close inspector" }).click();
+      await expect(drawer(page)).toBeHidden();
+      await settledDrawing(page, block);
+    }
+    await expect(drawer(page)).toBeVisible({ visible: drawerOpen });
+    const from = await entriesLength(page);
+    await rowOf(pane, "printed").getByRole("button", { name: "Place as card" }).click();
+    await expect.poll(() => entriesLength(page)).toBe(from + 1);
+    const [printed] = await virtualsOf(page, block, "printed");
+    if (printed === undefined) throw new Error("no virtual timeline of printed");
+    await rowOf(pane, "single").getByRole("button", { name: "Place as card" }).click();
+    await expect.poll(() => entriesLength(page)).toBe(from + 2);
+    expect(await stepTypes(page, from)).toEqual([["add", "set"], ["set"]]);
 
-  const places = await placesOf(page, block);
-  const first = places[printed];
-  const second = places.allegro_single;
-  if (first === undefined || second === undefined) throw new Error("a card is not placed");
-  expect(second.x).toBe(first.x);
-  const height = Number(
-    await rowOf(pane, "printed").locator(".drawing svg").getAttribute("height"),
-  );
-  // One row's head (16) and the height of `printed`'s row drawing, at scale 1, apart.
-  expect(second.y - first.y).toBe(16 + height);
+    const places = await placesOf(page, block);
+    const first = places[printed];
+    const second = places.allegro_single;
+    if (first === undefined || second === undefined) throw new Error("a card is not placed");
+    expect(second.x).toBe(first.x);
+    const height = Number(
+      await rowOf(pane, "printed").locator(".drawing svg").getAttribute("height"),
+    );
+    // One row's head (16) and the height of `printed`'s row drawing, at scale 1, apart.
+    expect(second.y - first.y).toBe(16 + height);
 
-  // While the editor is open the card's line runs on right of the pane, at the height of its row.
-  const paneRect = await rectOf(pane);
-  const line = await rectOf(part(page, block, { id: printed }));
-  expect(line.x + line.width > paneRect.x + paneRect.width).toBe(true);
-  expect(line.y > paneRect.y && line.y < paneRect.y + paneRect.height).toBe(true);
+    // While the editor is open each card's left edge lies right of the pane's right edge (the
+    // canvas's room less 16 px here), left of the canvas's, at the height of its row.
+    const paneRect = await rectOf(pane);
+    const canvas = await rectOf(arranger(page));
+    const paneRight = paneRect.x + paneRect.width;
+    for (const id of [printed, "allegro_single"]) {
+      const card = await rectOf(part(page, block, { id, part: ["card"] }));
+      expect(card.x > paneRight).toBe(true);
+      expect(card.x < canvas.x + canvas.width).toBe(true);
+      expect(card.y > paneRect.y && card.y < paneRect.y + paneRect.height).toBe(true);
+    }
 
-  // Closed, the cards stand under the root's card, indented, `single`'s under `printed`'s.
-  await done(page, view);
-  const root = await rectOf(part(page, block, { id: "allegro" }));
-  const shownPrinted = await rectOf(part(page, block, { id: printed }));
-  const shownSingle = await rectOf(part(page, block, { id: "allegro_single" }));
-  expect(shownPrinted.y > root.y).toBe(true);
-  expect(shownSingle.y > shownPrinted.y).toBe(true);
-  expect(shownPrinted.x > root.x).toBe(true);
-  expect(shownSingle.x).toBe(shownPrinted.x);
-  expect(await placesOf(page, block)).toEqual(places);
-});
+    // Closed, the cards stand under the root's card, indented, `single`'s under `printed`'s.
+    await done(page, view);
+    const root = await rectOf(part(page, block, { id: "allegro" }));
+    const shownPrinted = await rectOf(part(page, block, { id: printed }));
+    const shownSingle = await rectOf(part(page, block, { id: "allegro_single" }));
+    expect(shownPrinted.y > root.y).toBe(true);
+    expect(shownSingle.y > shownPrinted.y).toBe(true);
+    expect(shownPrinted.x > root.x).toBe(true);
+    expect(shownSingle.x).toBe(shownPrinted.x);
+    expect(await placesOf(page, block)).toEqual(places);
+  });
+}
 
 test("+ Gap adds a gap at once, and its handle sets the length in one change", async ({ page }) => {
   const { block, pane } = await opened(page);

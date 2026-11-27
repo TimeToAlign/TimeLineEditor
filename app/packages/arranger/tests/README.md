@@ -2654,14 +2654,24 @@ units on every row (scale 1, item length 400), the scale a gap's handle
 is dragged on (layout draws the rows at it, section "The pane as drawn"
 above). **Where "Place as
 card" puts a row's card** (`rowPlace`, the rows in the pane's order):
-its left edge `PLACE_INDENT` (48) right of the root card's, `8 + 48 =
-56`, for every row; its top at the top of its row's drawing,
+its left edge a gap right of the pane's right edge as shown, so no
+placed card lies under the pane while the editor is open, whatever the
+canvas's room and zoom: the pane's x (8) plus its width as shown plus the
+gap, `8 + 600.5 + 2 = 610.5` for every row with the width 600.5 and the
+gap 2 given, `8 + 822.7053418681569 + 4` with the pane's whole width and
+the gap 4; its top at the top of its row's drawing,
 the pane's y plus the pane's head (18) plus, for every row above it, its
 head (16) and its drawing's height, plus its own head (16): `default` at
 `pane.y + 34`, `printed` at `pane.y + 34 + 16 + h(default)`, `single`
 below `printed` by `16 + h(printed)` (`h` each row's drawing height, from
 layout's drawing of the row), so the cards stand one under another in the
-rows' order and never on one another; a row not shown has none.
+rows' order and never on one another; a row not shown has none. **The
+pane's width as shown** (`shownWidth`, in drawing units): the width its
+widest row needs, 822.7053418681569 here (that row's box as layout draws
+it plus the padding 8), or the room the canvas leaves right of its left
+edge where that is less, never narrower than the root's card
+(471.6396484375): `shownWidth` gives 471.6396484375 for a room of 100,
+600.5 for 600.5 and 822.7053418681569 for 2000.
 
 **The rows' names** (`PaneRow.name`, drawing.md section 6.6: an overlay
 drawing member drawings cuts its names as a row's name is cut, in a name
@@ -2871,8 +2881,12 @@ each: for `printed` its virtual timeline's `add` and its place's `set` as
 one step, for `single` (which `allegro_single` applies) the `set` alone; their places
 are `rowPlace`'s points less the drawing's origin, each held to the
 canvas's finest step (`GRID_FREE`, never the grid's 8, so each card stands
-exactly at its row): x `56 − origin.x = 56` for both (the drawing's
-origin is (0, 0) here), y as `rowPlace` gives
+exactly at its row). The canvas is made 700 wide and the viewport the
+identity, so the pane (its left edge at the block's 40 plus 8) is drawn
+`700 − 48 − 16 = 636` wide, less than its rows need: x `8 + 636 + 4 =
+648` for both (the gap `PLACE_GAP`, 4 screen pixels at zoom 1; the
+drawing's origin is (0, 0) here), the same for the second card although
+the first one's long name widened the root's card, y as `rowPlace` gives
 for each row, so `single`'s card stands below `printed`'s by `16 +
 h(printed)`; the editor closed, the places stay as stored. A hand-made row's Edit button makes it the edited row (class
 `draft`, its Done and Cancel shown, no Edit button left on any row);

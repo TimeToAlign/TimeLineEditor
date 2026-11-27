@@ -18,7 +18,8 @@
  * rows scroll inside it. Drags carry the card's elements, a row's entries
  * and whole rows into the edited row, within it, or (a row) onto the
  * canvas as a card of its own (`gestures/flowDrag.ts`); "Place as card"
- * places a row's card at the height of its row (`rowPlace`).
+ * places a row's card at the height of its row, right of the pane as
+ * shown (`rowPlace`).
  * An overlay of the canvas: nothing in it is part of the drawing.
  */
 import type { Block, Granularity } from "@timetoalign/tilie-core";
@@ -46,8 +47,11 @@ import {
   PANE_FONT_SIZE,
   PANE_GAP,
   PANE_HEAD,
+  PANE_MARGIN,
+  PLACE_GAP,
   ROW_HEAD,
   rowPlace,
+  shownWidth,
 } from "./flowEditorRows.ts";
 import type { GestureSlot, Point } from "./gesture.ts";
 import { drawingPoint, sourceAt } from "./gesture.ts";
@@ -163,14 +167,13 @@ const draftRow = $derived(
 );
 
 /**
- * The widest the pane is shown, in canvas pixels: the canvas right of the
- * card's left edge, less a margin, never narrower than the card; wider
- * rows scroll inside it.
+ * The pane's width as shown, in drawing units (`shownWidth`): its rows',
+ * or the canvas's room right of the card's left edge less a margin.
  */
-const maxWidth = $derived.by(() => {
+const paneWidth = $derived.by(() => {
+  const k = s * viewport.zoom;
   const left = viewport.x + (origin.x + pane.x * s) * viewport.zoom;
-  const room = (canvasWidth - left - 16) / viewport.zoom;
-  return Math.max(pane.card.width * s, room);
+  return shownWidth(pane, (canvasWidth - left - PANE_MARGIN) / k);
 });
 
 /** The pane's element, read by the drags as they measure it: no reaction follows it. */
@@ -450,12 +453,13 @@ function pressRow(event: PointerEvent, row: PaneRow): void {
 }
 
 /**
- * "Place as card": the row's card at the height of its row, indented
- * (`rowPlace`), exactly where its row lies rather than on the grid, so the
- * placed cards stand one under another as their rows do.
+ * "Place as card": the row's card at the height of its row, right of the
+ * pane as shown (`rowPlace`), exactly where its row lies rather than on
+ * the grid, so the placed cards stand one under another as their rows do.
  */
 function placeAtRow(row: PaneRow): void {
-  const at = rowPlace(pane, rows, row.row.id);
+  const gap = PLACE_GAP / (s * viewport.zoom);
+  const at = rowPlace(pane, rows, row.row.id, { width: paneWidth, gap });
   if (at === null) return;
   const x = quantize(at.x - drawing.origin.x, GRID_FREE);
   const y = quantize(at.y - drawing.origin.y, GRID_FREE);
@@ -756,7 +760,7 @@ function focusInput(element: HTMLInputElement): void {
     {@attach holdPane}
     style:left="{origin.x + pane.x * s}px"
     style:top="{origin.y + pane.y * s}px"
-    style:width="{Math.min(pane.width * s, maxWidth)}px"
+    style:width="{paneWidth * s}px"
     style:font-size="{PANE_FONT_SIZE * s}px"
   >
     <div class="pane-head" style:height="{PANE_HEAD * s}px">

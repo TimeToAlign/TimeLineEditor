@@ -50,8 +50,21 @@ export const PANE_HEAD = 18;
 /** The height of the new FlowMap's row before its first entry, below its head. */
 export const EMPTY_DRAFT = 34;
 
-/** How far right of the root's card "Place as card" puts a row's card, in the block's drawing units. */
-export const PLACE_INDENT = 48;
+/** The room the pane leaves between its right edge and the canvas's, in screen pixels. */
+export const PANE_MARGIN = 16;
+
+/** How far right of the pane's right edge "Place as card" puts a row's card, in screen pixels. */
+export const PLACE_GAP = 4;
+
+/**
+ * The pane's width as shown, in the block's drawing units: the width its
+ * longest row needs, or `room`, what the canvas leaves right of the pane's
+ * left edge, where that is less, never narrower than the card; wider rows
+ * scroll inside it.
+ */
+export function shownWidth(pane: FlowPane, room: number): number {
+  return Math.min(pane.width, Math.max(pane.card.width, room));
+}
 
 /**
  * The pane's height in the block's drawing units: its head, each row's head
@@ -68,19 +81,22 @@ export function paneHeight(pane: FlowPane, emptyDraft: boolean): number {
  * shown in the order `rows`, in the block's drawing units from the
  * drawing's top left corner: its top at the top of the row's drawing, so
  * each card stands at the height of its row, one under another in the
- * rows' order and never on another, and its left edge `PLACE_INDENT` right
- * of the root card's, so its right end stands out of the pane while the
- * editor is open and, once it is closed, the cards stand indented under
- * the root's card. `null` for a row not shown.
+ * rows' order and never on another, and its left edge `gap` right of the
+ * pane's right edge as shown (`width`, `shownWidth`), so no card lies
+ * under the pane while the editor is open, whatever the pane's width at
+ * the canvas's zoom and room, and, once it is closed, the cards stand
+ * indented under the root's card, each at the same indent. `null` for a
+ * row not shown.
  */
 export function rowPlace(
   pane: FlowPane,
   rows: readonly PaneRow[],
   id: string,
+  shown: { readonly width: number; readonly gap: number },
 ): { readonly x: number; readonly y: number } | null {
   let y = pane.y + PANE_HEAD;
   for (const row of rows) {
-    if (row.row.id === id) return { x: pane.x + PLACE_INDENT, y: y + ROW_HEAD };
+    if (row.row.id === id) return { x: pane.x + shown.width + shown.gap, y: y + ROW_HEAD };
     y += ROW_HEAD + row.viewBox.height;
   }
   return null;

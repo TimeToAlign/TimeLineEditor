@@ -832,6 +832,17 @@ and the inspector opened on Properties.
   `region_1` no longer drawn); one Ctrl+Z (Cmd+Z) on the arranger then
   leaves one entry and the very view after the first press (its JSON
   text), the tree's box checked and `region_1` drawn again.
+- Inside the open flow-control editor of `score` (opened through the
+  hook, `open({block, id: score}, "flow")`, the shape of Op. 106 with its
+  root's flow-control editor open, where Properties still lists the
+  root's bands), with the same atomic `region_1`: the tree's Regions box
+  is enabled and not checked, `region_1` not drawn. One click adds one
+  entry to the editor's session, the rules then exactly the two of the
+  first case, the box checked, `region_1` drawn and no message "… lies
+  outside the flow-control editor …" shown; one Ctrl+Z (Cmd+Z) on the
+  arranger leaves the editor's session as long as before the click and
+  the very view before it (its JSON text), the box unchecked, `region_1`
+  not drawn, the flow-control editor of `score` still the one open.
 - On `map_row_moved` (root `piece` holding no map, its children `ante`
   with two maps and `cons` with one), `piece`'s "Conversion maps visible"
   is enabled and not checked (its empty band is absent) and its tree's box
@@ -2413,18 +2424,25 @@ the canvas up by Svelte Flow's `0.5 × 40 = 20` and a wheel with Shift held
 pans it left by 20 (the canvas's own Shift wheel, whichever axis the
 engine reports its travel on: WebKit, whose user agent names macOS, reports
 it as vertical travel, which Svelte Flow would pan up), the viewport read
-back exactly; the pane does not keep the wheel. **Place as card**: the button
+back exactly; the pane does not keep the wheel. **Place as card**, run twice in a
+window of 1600 × 1000, once with the drawer open as the editor leaves it
+and once with it closed by its Close inspector button (the canvas then
+1087 and 1600 wide, the pane as wide as the canvas leaves it less 16 px,
+narrower than its rows): the button
 of `printed`, then of `single`, stores one entry each: for `printed` its
 virtual timeline's `add` and its place's `set` as one step (a session of
 the two), for `single` (which `allegro_single` applies) the `set` alone;
 both cards share one x, and
 `single`'s card lies below `printed`'s by exactly `16 + h` (the row's head
 and `h`, the `height` of `printed`'s row drawing, at scale 1), the
-distance between their rows; while the editor is open `printed`'s card's
-line lies at a height inside the pane and runs on past the pane's right
-edge, so the pane does not cover all of it (a hit test cannot show it: in
-an open editor what lies outside the edited element takes no pointer);
-after
+distance between their rows; while the editor is open each card's
+rectangle (its `card` part) starts right of the pane's right edge and left
+of the canvas's right edge, its top at a height inside the pane, so the
+pane covers none of it (a hit test cannot show it: in an open editor what
+lies outside the edited element takes no pointer; the exact place, the
+pane's left edge plus its width as drawn plus 4 screen pixels, is proved
+in the arranger's tests, a drawn card's rectangle lying a fraction of a
+pixel off its place on the page); after
 Done the two cards stand below the root's card, their left edges right of
 its left edge, `single`'s below `printed`'s. **+ Gap**: `by_hand` edited,
 "+ Gap" stores at once one `set` of its chunks, `[section_a ×4, {gap: [4,

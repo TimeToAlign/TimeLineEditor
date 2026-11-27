@@ -24,7 +24,7 @@ import {
   recomputeCommands,
   sameEntries,
 } from "../src/flowEditor.ts";
-import { flowPaneOf, PANE_HEAD, ROW_HEAD, rowPlace } from "../src/flowEditorRows.ts";
+import { flowPaneOf, PANE_HEAD, ROW_HEAD, rowPlace, shownWidth } from "../src/flowEditorRows.ts";
 import {
   dropAt,
   dropIndex,
@@ -285,6 +285,9 @@ describe("the order of the rows", () => {
 });
 
 describe("the pane as drawn", () => {
+  /** The root card's width; the pane's, its widest row's drawn box (layout's) plus the padding 8. */
+  const CARD_WIDTH = 471.6396484375;
+  const PANE_WIDTH = 822.7053418681569;
   const pane = flowPaneOf(
     block,
     drawing,
@@ -297,7 +300,7 @@ describe("the pane as drawn", () => {
   it("folds out under the card, its rows' lines starting where the card's does", () => {
     expect(pane).not.toBeNull();
     expect(pane?.x).toBe(8);
-    expect(pane?.card.width).toBe(471.6396484375);
+    expect(pane?.card.width).toBe(CARD_WIDTH);
     expect(pane?.lineStart).toBe(54.6396484375);
     expect(pane?.rows.map((row) => row.row.id)).toEqual([
       "default",
@@ -383,27 +386,41 @@ describe("the pane as drawn", () => {
     expect(long?.rows[0]?.lineEnd).toBe(start + (400 * 2120.5) / 1644);
   });
 
-  it("places each row's card at the height of its row, indented by the line start", () => {
+  it("shows the pane as wide as its rows, or the room right of it, never narrower than the card", () => {
+    if (pane === null) throw new Error("no pane");
+    expect([pane.card.width, pane.width]).toEqual([CARD_WIDTH, PANE_WIDTH]);
+    expect(shownWidth(pane, 100)).toBe(CARD_WIDTH);
+    expect(shownWidth(pane, 600.5)).toBe(600.5);
+    expect(shownWidth(pane, 2000)).toBe(PANE_WIDTH);
+  });
+
+  it("places each row's card at the height of its row, its left edge right of the pane as shown", () => {
     if (pane === null) throw new Error("no pane");
     const [first, second, third] = pane.rows;
     if (first === undefined || second === undefined || third === undefined) {
       throw new Error("fewer than three rows");
     }
+    const shown = { width: 450.5, gap: 2 };
+    const x = 8 + 450.5 + 2;
     const top = pane.y + PANE_HEAD + ROW_HEAD;
-    expect(rowPlace(pane, pane.rows, "default")).toEqual({ x: 56, y: top });
-    expect(rowPlace(pane, pane.rows, "printed")).toEqual({
-      x: 56,
+    expect(rowPlace(pane, pane.rows, "default", shown)).toEqual({ x, y: top });
+    expect(rowPlace(pane, pane.rows, "printed", shown)).toEqual({
+      x,
       y: top + first.viewBox.height + ROW_HEAD,
     });
-    expect(rowPlace(pane, pane.rows, "single")).toEqual({
-      x: 56,
+    expect(rowPlace(pane, pane.rows, "single", shown)).toEqual({
+      x,
       y: top + first.viewBox.height + ROW_HEAD + second.viewBox.height + ROW_HEAD,
     });
-    expect(rowPlace(pane, [second, first], "default")).toEqual({
-      x: 56,
+    expect(rowPlace(pane, [second, first], "default", shown)).toEqual({
+      x,
       y: top + second.viewBox.height + ROW_HEAD,
     });
-    expect(rowPlace(pane, [first], "printed")).toBeNull();
+    expect(rowPlace(pane, pane.rows, "default", { width: PANE_WIDTH, gap: 4 })).toEqual({
+      x: 8 + PANE_WIDTH + 4,
+      y: top,
+    });
+    expect(rowPlace(pane, [first], "printed", shown)).toBeNull();
   });
 });
 
