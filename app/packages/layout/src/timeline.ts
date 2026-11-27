@@ -19,6 +19,7 @@ import {
   bandSides,
   bandStart,
   type Centred,
+  emptyBandWidth,
   fillSide,
   type JointSpans,
   type LaidBand,
@@ -69,7 +70,10 @@ export interface PreparedTimeline {
   readonly order: readonly string[];
   /** The side of its line each of its bands lies on, by its band order (section 6.4, The band order). */
   readonly sides: Readonly<Record<Facet, Side>>;
-  /** Its five bands, present or not; the children and conversion maps bands without their widths. */
+  /**
+   * Its five bands, present or not; the children and conversion maps bands without their widths
+   * but an empty band's least width `Wb` (section 6.4, Empty bands).
+   */
   readonly bands: Readonly<Record<Facet, PreparedBand>>;
   /** Its markers band, `bands.markers`, with the cross-section lines it holds. */
   readonly markers: MarkersBand;
@@ -80,14 +84,14 @@ export interface PreparedTimeline {
    * 6.4, Children and Segments without a line): its own displayed children with a line of their
    * own (every child of a timeline that is no segment line; every segment that is a segment line)
    * in canonical order, then the displayed children of each joined segment, segment after segment
-   * in traversal order, each one's in canonical order. Its children band is present exactly when
-   * this is not empty.
+   * in traversal order, each one's in canonical order. Its children band is present when this is
+   * not empty or the band is shown explicitly (section 6.4, Empty bands).
    */
   readonly children: readonly Entry[];
   /**
    * The maps of its conversion maps band in the order they are taken (section 6.4, Conversion
-   * maps): its own, then those of each joined segment. Its band is present exactly when this is
-   * not empty.
+   * maps): its own, then those of each joined segment. Its band is present when this is not
+   * empty or the band is shown explicitly (section 6.4, Empty bands).
    */
   readonly maps: readonly MapMember[];
   /** Its line, its segments' boundaries and labels. */
@@ -178,7 +182,7 @@ export interface TimelineDrawing {
    * (sections 6.5 and 8.3).
    */
   readonly edges: Readonly<Record<Side, number>>;
-  /** Its children band laid out, `undefined` when it is absent. */
+  /** Its children band laid out, `undefined` when it is absent or places no child (an empty band). */
   readonly children: LaidChildren | undefined;
   /** How far its line reaches on each side (section 6.4, Level 0; `reachOf`). */
   readonly reach: Readonly<Record<Side, number>>;
@@ -288,6 +292,33 @@ export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
   );
 }
 
+/**
+ * The facets of the bands of the line `line` that are present though they
+ * may draw nothing (section 6.4, Empty bands): those shown explicitly
+ * (`Entry.explicit`), none when its line is not displayed, which hides its
+ * timeline's whole drawing, and its flow control band only on the root of
+ * the member drawing, no other timeline's being ever present.
+ */
+function explicitOf(scope: Scope, line: Entry): ReadonlySet<Facet> {
+  if (!line.drawn) return new Set();
+  return new Set(
+    FACETS.filter(
+      (facet) => line.explicit.has(facet) && (facet !== "flow_control" || line === scope.rootEntry),
+    ),
+  );
+}
+
+/**
+ * `band` as it lies when `explicit` holds its facet (section 6.4, Empty
+ * bands): drawing nothing, it is an empty band, the larger of `Wb` and its
+ * own width wide; any other band as it is.
+ */
+function emptied(scope: Scope, band: PreparedBand, explicit: ReadonlySet<Facet>): PreparedBand {
+  return band.elements === 0 && explicit.has(band.facet)
+    ? { ...band, width: Math.max(emptyBandWidth(scope.h), band.width) }
+    : band;
+}
+
 /** What a line's preparation keeps before its first fits are placed. */
 interface Unfitted {
   readonly scope: Scope;
@@ -300,8 +331,9 @@ interface Unfitted {
 
 /**
  * A line prepared from `base` with its markers band, regions band and level 0
- * placed: its present bands' levels (those drawing an element, or the facets
- * `present` lists in a row of one band order), its extent and its centred
+ * placed: its present bands' levels (those drawing an element or shown
+ * explicitly, or the facets `present` lists in a row of one band order), an
+ * empty band at least `Wb` wide (`emptied`), its extent and its centred
  * labels.
  */
 function assembled(
@@ -311,17 +343,20 @@ function assembled(
   zero: LevelZero,
   present?: ReadonlySet<Facet>,
 ): PreparedTimeline {
-  const { stages, order } = base;
+  const { scope, stages, order } = base;
+  const explicit = explicitOf(scope, base.line);
+  const empty = (band: PreparedBand) => emptied(scope, band, explicit);
+  const markersBand: MarkersBand = { ...markers, width: empty(markers).width };
   const bands: Record<Facet, PreparedBand> = {
-    children: stages.children,
-    conversion_maps: stages.conversion_maps,
-    markers,
-    regions,
-    flow_control: stages.flow_control,
+    children: empty(stages.children),
+    conversion_maps: empty(stages.conversion_maps),
+    markers: markersBand,
+    regions: empty(regions),
+    flow_control: empty(stages.flow_control),
   };
   const levels = levelsOf(
     order,
-    present ?? new Set(FACETS.filter((facet) => bands[facet].elements > 0)),
+    present ?? new Set(FACETS.filter((facet) => bands[facet].elements > 0 || explicit.has(facet))),
   );
   const own = [...zero.extents, ...FACETS.flatMap((facet) => bands[facet].extents)];
   const [firstExtent, ...otherExtents] = own;
@@ -330,7 +365,7 @@ function assembled(
     ...base,
     sides: bandSides(order),
     bands,
-    markers,
+    markers: markersBand,
     levels,
     levelZero: zero,
     lineExtent: stages.zero.lineExtent,
@@ -399,15 +434,21 @@ export function prepareRow(lines: readonly PreparedTimeline[]): PreparedTimeline
     };
   });
   const present = new Set(
-    fitted.flatMap(({ line, markers: band, regions: band2 }) =>
-      FACETS.filter((facet) => {
+    fitted.flatMap(({ line, markers: band, regions: band2 }) => {
+      const explicit = explicitOf(line.scope, line.line);
+      return FACETS.filter((facet) => {
         const own = facet === "markers" ? band : facet === "regions" ? band2 : line.bands[facet];
-        return own.elements > 0;
-      }),
-    ),
+        return own.elements > 0 || explicit.has(facet);
+      });
+    }),
   );
   const widest = (facet: "markers" | "regions") =>
-    Math.max(...fitted.map((each) => each[facet].width));
+    Math.max(
+      ...fitted.map(
+        (each) =>
+          emptied(each.line.scope, each[facet], explicitOf(each.line.scope, each.line.line)).width,
+      ),
+    );
   const [markersWidth, regionsWidth] = [widest("markers"), widest("regions")];
   return fitted.map(({ line, markers: band, regions: band2, zero }) =>
     assembled(
@@ -519,25 +560,27 @@ function markersStart(
 /**
  * The second pass for one timeline, once its children band and its
  * conversion maps band are laid out with those of the other lines of its row
- * (`children` and `maps`, each `undefined` exactly when its band is absent):
- * its reach by its slots (`reachOf`), each side filled by `fillSide` from
- * its present bands in level order, the children band at `children.start`
- * and `children.width` wide, the conversion maps band at `maps.start` and as
- * wide as its slots make it, or every band where `aligned` gives the spans
- * of a row of one band order; its outer edges; and its elements once its
- * line's place is known.
+ * (`children`, `undefined` exactly when its band places no child, and
+ * `maps`, exactly when it has no slots): its reach by its slots
+ * (`reachOf`), each side filled by `fillSide` from its present bands in
+ * level order, the children band at `children.start` and `children.width`
+ * wide, the conversion maps band at `maps.start` and as wide as its slots
+ * make it, or every band where `joint` gives the spans its row found (an
+ * empty band's included, section 6.4, Empty bands; in a row of one band
+ * order every band's); its outer edges; and its elements once its line's
+ * place is known.
  */
 export function layoutTimeline(
   prepared: PreparedTimeline,
   children: LaidChildren | undefined,
   maps: LaidMaps | undefined,
-  aligned?: JointSpans,
+  joint?: JointSpans,
 ): TimelineDrawing {
   const { scope, line, levels, bands } = prepared;
   const slots = maps?.slots;
   const reach = reachOf(prepared, slots);
   const w = line.style["stroke-width"];
-  const spans: JointSpans = aligned ?? {
+  const spans: JointSpans = joint ?? {
     ...(children === undefined
       ? {}
       : { children: { start: children.start, width: children.width } }),

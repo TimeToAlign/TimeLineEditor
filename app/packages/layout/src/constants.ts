@@ -36,6 +36,11 @@ export const LABEL_GAP = 2;
 export const BRACE = 6;
 /** The flow label offset, from a flow-control element's `x` to its stack. */
 export const FLOW_LINE_LABEL_OFFSET = 3;
+/**
+ * The font size of the one label tier the empty band width `Wb = 6 + 2 + h(9)` leaves room for
+ * (section 6.4, Empty bands): the width of a regions band of one row with one label tier.
+ */
+export const EMPTY_BAND_LABEL_SIZE = 9;
 /** The fixed part of the row pitch `p = max(10 + S, h(s))`. */
 export const ROW_PITCH = 10;
 /** The fixed part of the first jump depth `4 + S`. */

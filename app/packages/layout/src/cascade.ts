@@ -350,7 +350,48 @@ export class Cascade {
     return this.#resolve(element, parent, false);
   }
 
+  /**
+   * The cascaded style of one of a timeline's bands, as `resolve` gives it,
+   * and whether the band is **shown explicitly** (section 6.4, Empty bands):
+   * the rule that sets its `display` (section 2.5, step 1), the last in rank
+   * order matching it and stating `display`, sets `inline` and its selector
+   * names `addresses` or `within`. A band `inline` by the initial value
+   * alone, or by a rule naming neither, is not. Each rule is tested once.
+   */
+  resolveBand(
+    band: ElementKey,
+    parent: Style | undefined,
+  ): { readonly style: Style; readonly explicit: boolean } {
+    const rules = this.#applied(band, true);
+    const rule = rules.findLast((candidate) => candidate.set.display !== undefined);
+    return {
+      style: this.#styled(rules, parent),
+      explicit:
+        rule !== undefined &&
+        rule.set.display === "inline" &&
+        (rule.select.addresses !== undefined || rule.select.within !== undefined),
+    };
+  }
+
   #resolve(element: ElementKey, parent: Style | undefined, addressed: boolean): Style {
+    return this.#styled(this.#applied(element, addressed), parent);
+  }
+
+  /** The style `rules` give, lowest rank first, over what `parent` passes on. */
+  #styled(rules: readonly Ranked[], parent: Style | undefined): Style {
+    const values: StyleValues = {};
+    if (parent !== undefined) for (const property of INHERITED) property.set(values, parent);
+    for (const rule of rules) {
+      for (const property of PROPERTIES) property.set(values, rule.set);
+    }
+    return { ...INITIAL_STYLE, ...values };
+  }
+
+  /**
+   * The rules matching `element`, lowest rank first; without those naming
+   * `addresses` when `addressed` is false.
+   */
+  #applied(element: ElementKey, addressed: boolean): Ranked[] {
     const candidates = new Set(this.#general);
     if (element.type !== null) {
       for (const rule of this.#byElement.get(element.type) ?? []) candidates.add(rule);
@@ -369,13 +410,11 @@ export class Cascade {
         candidates.add(rule);
       }
     }
-    const values: StyleValues = {};
-    if (parent !== undefined) for (const property of INHERITED) property.set(values, parent);
-    for (const rule of [...candidates].sort((left, right) => left.order - right.order)) {
-      if (!addressed && rule.select.addresses !== undefined) continue;
-      if (!this.matches(rule.select, element)) continue;
-      for (const property of PROPERTIES) property.set(values, rule.set);
-    }
-    return { ...INITIAL_STYLE, ...values };
+    return [...candidates]
+      .sort((left, right) => left.order - right.order)
+      .filter(
+        (rule) =>
+          (addressed || rule.select.addresses === undefined) && this.matches(rule.select, element),
+      );
   }
 }
