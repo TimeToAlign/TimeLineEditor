@@ -378,7 +378,6 @@ test.describe("budgets on virtual cards imported twice", { tag: "@budget" }, () 
     const first = blocks[0] as string;
     const label = await partCentre(page, first, {
       id: "allegro_default",
-      facet: "regions",
       part: [0, "label"],
     });
     await page.mouse.move(label.x, label.y);
