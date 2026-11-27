@@ -38,6 +38,7 @@ describe("App", () => {
 
   beforeEach(() => {
     window.history.replaceState({}, "", "/");
+    sessionStorage.clear();
     stubEditor();
   });
 
@@ -97,6 +98,63 @@ describe("App", () => {
     });
     expect(addresses).toEqual(["/?token=abc"]);
     expect(address()).toBe("/?token=abc");
+  });
+
+  /** The `Authorization` header of every request `fetchStub` was called with. */
+  function authorizations(fetchStub: ReturnType<typeof stubFetch>["fetchStub"]): unknown[] {
+    return fetchStub.mock.calls.map(
+      ([, init]) => (init.headers as { Authorization: string }).Authorization,
+    );
+  }
+
+  /** Mount the page afresh at `at`, as a reload of the tab does; the health requests' headers. */
+  async function reloadAt(at: string): Promise<unknown[]> {
+    unmount(app);
+    document.body.innerHTML = "";
+    window.history.replaceState({}, "", at);
+    const { fetchStub } = stubFetch(Response.json(health));
+    app = mount(App, { target: document.body });
+    await vi.waitFor(() => {
+      expect(fetchStub.mock.calls.length).toBe(1);
+    });
+    return authorizations(fetchStub);
+  }
+
+  it("keeps the token in the tab's session storage across a reload", async () => {
+    window.history.replaceState({}, "", "/#token=abc");
+    const { fetchStub } = stubFetch(Response.json(health));
+    app = mount(App, { target: document.body });
+    await vi.waitFor(() => {
+      expect(fetchStub.mock.calls.length).toBe(1);
+    });
+    expect([sessionStorage.getItem("tilie.token"), localStorage.getItem("tilie.token")]).toEqual([
+      "abc",
+      null,
+    ]);
+
+    expect(await reloadAt("/?view=a")).toEqual(["Bearer abc"]);
+    expect(address()).toBe("/?view=a");
+    expect(await reloadAt("/#token=def")).toEqual(["Bearer def"]);
+    expect([address(), sessionStorage.getItem("tilie.token")]).toEqual(["/", "def"]);
+  });
+
+  it("uses the fragment's token and keeps none when session storage throws", async () => {
+    vi.stubGlobal("sessionStorage", {
+      getItem() {
+        throw new Error("storage is blocked");
+      },
+      setItem() {
+        throw new Error("storage is blocked");
+      },
+    });
+    window.history.replaceState({}, "", "/#token=abc");
+    const { fetchStub } = stubFetch(Response.json(health));
+    app = mount(App, { target: document.body });
+    await vi.waitFor(() => {
+      expect(authorizations(fetchStub)).toEqual(["Bearer abc"]);
+    });
+    expect(address()).toBe("/");
+    expect(await reloadAt("/")).toEqual(["Bearer "]);
   });
 
   it("shows nothing while the server is healthy and keeps the health", async () => {
