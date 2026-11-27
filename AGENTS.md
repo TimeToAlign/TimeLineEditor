@@ -68,7 +68,7 @@ Run each command from the stated directory.
 | `app/` | `pnpm dev` | Start the editor development server. |
 | `app/` | `pnpm e2e` | Run the Playwright suite in Chromium only, inside the pinned Playwright image through rootless podman (directly when already inside the image); `pnpm e2e <spec file>` runs one spec. |
 | `app/` | `pnpm e2e:all` | Run the Playwright suite in Chromium, Firefox, WebKit and the touch project, as CI does, inside the image through podman; `pnpm e2e:all <spec file>` runs one spec in all four. |
-| `app/` | `pnpm e2e:budget` | Run the canvas timing budgets in Chromium, inside the image through podman. |
+| `app/` | `pnpm e2e:budget` | Run the canvas budgets in Chromium, inside the image through podman: script time per gesture, command and redraw, and a long session's heap, DOM nodes and listeners. |
 | `app/` | `pnpm e2e:visual` | Compare the zero-tolerance screenshots with their baselines; only inside the image through podman, never in CI. |
 | `app/` | `pnpm e2e:visual:update` | Re-create the screenshot baselines inside the image through podman; review every changed image before committing it. |
 | `app/` | `pnpm e2e:fixtures` | Write the end-to-end workspaces in `e2e/fixtures/` from the schema package's manifest fixtures, and the Examples menu's workspaces in `packages/editor/examples/`, through the store's commands; never edit them by hand. |

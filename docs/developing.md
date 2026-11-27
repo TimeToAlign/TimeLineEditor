@@ -175,10 +175,11 @@ timeline, named timestamp (its wedge), named MatchStamp, alignment anchor
 card derives on `T`, which have no ID; `{block, id: T,
 facet: F}` the band drawing facet `F` of timeline `T`; `{block, id: T,
 part: ["card"]}` every card of `T`, a virtual timeline's too; `{block,
-id: V, facet: "regions", part: [k]}` the chunk `k` (from 0) that the
-virtual card of `V` draws, or the switched card of `T` with `T` in place
-of `V`, the one address where `facet` stands with `part`, its part
-beginning with the chunk index; `{block, part: ["name"]}` the manifest's
+id: V, part: [k]}` the chunk `k` (from 0) that the virtual card of `V`
+draws, or the switched card of `T` with `T` in place of `V`; `{block, id:
+V, facet: F, part: [k]}` the band of facet `F` of that chunk's window on
+a virtual card, the one address where `facet` stands with `part`, its
+part beginning with the chunk index; `{block, part: ["name"]}` the manifest's
 title; and a part of an element its address with `start`,
 `name`, `label`, `id`, `coordinate`, `line` or `ellipsis` appended to `part`
 (a named timestamp's line, a groupstamp's across every frame drawing it
@@ -191,7 +192,7 @@ or a Svelte keyed block takes for it. Core's `resolveAddress(view,
 address)` is the one place that decides what an address names, returning
 a discriminated record (workspace, block, title, frame, timeline, card,
 band, entry, measure map, timestamp, elision, MatchStamp, anchor, FlowMap,
-virtual timeline, virtual card, virtual band, chunk, part); a part
+virtual timeline, virtual card, virtual band, chunk, chunk band, part); a part
 names something only where it is drawn. Nothing reads an ID or an address out of
 a string. A statement has neither an ID nor an address: it is changed
 through the element holding it, by one `set` of that element's whole
@@ -202,11 +203,11 @@ through the element holding it, by one `set` of that element's whole
 1. **A gesture or a form edit** in the arranger or the inspector builds one
    command: `add`, `set`, `remove` or `style`, aimed at addresses. One
    completed gesture is one command; a press that needs several (a band
-   list's Visible control reaching a timeline's whole tree) goes, while no
-   editor is open, through `Store.edit`, which makes them in the editor of
-   their target as one closed session, so one undo step; inside an open
-   editor its commands are still dispatched one by one, each its own step,
-   and a refused one leaves those before it applied. A preview shows
+   list's Visible control reaching a timeline's whole tree, an Add of a dal
+   segno with its segno, Place as card) goes through `Store.edit`, which
+   makes them in one editor as one closed session, so one undo step, all
+   or nothing, inside an open editor too, a later command naming what an
+   earlier one created by the ID the store gave it. A preview shows
    `drawingOf(preview(view, command))`, the command applied without the
    schema check, so a preview can never differ from what the release stores.
 2. **The store** parses the command, applies it through the pure reducer
@@ -215,7 +216,10 @@ through the element holding it, by one `set` of that element's whole
    fault, an added value's problems under the address it goes into, never
    with a bare block id), runs the side-effect guard when an editor is open, and
    journals it with its author and time. Undo and redo move by steps over
-   the journal; a closed editor session undoes by runs.
+   the journal; a closed editor session undoes by runs. The store keeps
+   the views of the latest 64 changes on either side of the current one
+   and of every 16th change beyond, and replays the few changes between
+   to reach any other, so a long session holds one view in sixteen.
 3. **The view** is an immutable value; every component reads it through the
    arranger's `liveStore` adapter, never through a copy.
 4. **The projection** turns the view into one Svelte Flow node per block;
