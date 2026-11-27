@@ -1895,8 +1895,9 @@ open). The row
 editor's border, stores two entries: the `add` of its virtual timeline
 `{map: "printed", timeline: "allegro", name: "printed"}` (named as its
 row) and a `set` placing it. Back at that viewport, the pointer over the
-first row's drawing, a plain wheel (`deltaY` 40) leaves the viewport as
-it was; with Control held a wheel of `deltaY` −100 zooms the canvas as
+first row's drawing, a plain wheel (`deltaY` 40) pans the canvas up by
+`0.5 × 40 = 20`, as anywhere else on it; with Control held a wheel of
+`deltaY` −100 zooms the canvas as
 anywhere else on it (Svelte Flow's zoom on scroll with the activation key
 held, `2 ^ (100 × 0.002)`), to zoom exactly `2 ^ 0.2`. Done twice
 closes both editors and the journal gains exactly one entry, the timeline
@@ -1915,6 +1916,47 @@ Cancel in it, no Edit button left, none on the computed rows); Delete on
 its entry 4 (the gap) stores one entry, `{type: "set", changes: [{target:
 {block, id: "by_hand"}, values: {chunks: [section_a ×4, section_c]}}]}`;
 the row's Done keeps it and leaves no edited row.
+
+**`rows.spec.ts`** (Chromium, Firefox, WebKit) proves the FlowMap rows of
+the flow editor in the app, on TimeToShare's `flow/virtual_cards`
+imported as one block, the flow editor of `allegro` opened on the
+arranger by a double-click in its flow control band (`bandPoint`), at a
+viewport of zoom 1 that shows the block's place at canvas pixel (300, 40),
+so that the card, the pane and the points the drags reach left and right
+of the pane lie inside the 1280 × 800 window. **The wheel**: with the
+pointer over the first row's drawing, a plain wheel (`deltaY` 40) pans
+the canvas up by Svelte Flow's `0.5 × 40 = 20` and a wheel with Shift held
+pans it left by 20 (Svelte Flow's Shift wheel, or the canvas's own where
+the browser reports it as horizontal travel), the viewport read back
+exactly; the pane does not keep the wheel. **Place as card**: the button
+of `printed`, then of `single`, stores for `printed` its virtual
+timeline's `add` and its place's `set`, for `single` (which
+`allegro_single` applies) the `set` alone; both cards share one x, and
+`single`'s card lies below `printed`'s by exactly `16 + h` (the row's head
+and `h`, the `height` of `printed`'s row drawing, at scale 1), the
+distance between their rows; while the editor is open `printed`'s card's
+line lies at a height inside the pane and runs on past the pane's right
+edge, so the pane does not cover all of it (a hit test cannot show it: in
+an open editor what lies outside the edited element takes no pointer);
+after
+Done the two cards stand below the root's card, their left edges right of
+its left edge, `single`'s below `printed`'s. **+ Gap**: `by_hand` edited,
+"+ Gap" stores at once one `set` of its chunks, `[section_a ×4, {gap: [4,
+1]}, section_c, {gap: [1144, 1]}]` (the last chunk C plays 1144), and
+the gap's length input shows `1144`, focused; the handle of the gap of 4
+(entry 4, near the row's start, so inside the pane however narrow the
+canvas leaves it) pressed at a whole pixel and moved 40 px right shows the
+flag `gap 168` (`4 + 40 × 1644 / 400 = 168.4`, rounded to whole quarters,
+the pixel being 4.11 quarters) and stores nothing until released;
+released, exactly one more entry, the `set` with entry 4 `{gap: [168,
+1]}` and every other entry as before. **Dragging a row out**: the twin of
+`printed` lifted by its name, the pointer carried to 40 px left of the
+pane's left border while the twin's middle (the middle of the timeline it
+draws, `(54.6396484375 + 454.6396484375) / 2` px right of the pane's left
+edge) is still inside, flies back and stores nothing; carried to 60 px
+inside the pane's right edge, the pointer still inside the pane and the
+twin's middle past its right border, it stores two entries, the virtual
+timeline's `add` and the `set` placing it.
 
 **`embed.spec.ts`** (Chromium, Firefox, WebKit) proves the embed build in a
 host page it does not own. A route serves the host page at
