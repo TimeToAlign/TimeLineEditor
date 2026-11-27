@@ -2195,7 +2195,19 @@ to the page took about 18 of the test's 30 seconds; the store then holds
 the same manifest either way), turns Show coordinates on, and moves the pointer 200 times along `melody`'s line,
 each move followed by two frames, so every move is read once: the flag
 shows the map's row before and after, and the script time per move is at
-most one frame at 60 Hz, 16.7 ms. These `≤` comparisons are budgets by
+most one frame at 60 Hz, 16.7 ms. The workspace of virtual cards imports
+TimeToShare's `flow/virtual_cards` twice, places the cards of its three
+virtual timelines in both blocks, switches the second block's root card
+to "Allegro, practice", hides that root and shows it again, with the
+`style` Delete's "Hide instead" and the bundle's Timelines list write
+(the root's card, its line and its bands): seven commands in the journal,
+viewport (20, 20), zoom 0.5. Its budgets are 1 ms of script per pointer
+move over a grid of 12 × 5 points inside each block's box on screen, each
+move followed by two frames, and 1 ms per Ctrl+wheel zoom (60 events over
+the first block, as above); afterwards the pointer on the label of chunk 0
+of `allegro_default` in the first block draws exactly one ribbon (to the
+first root's line, which is not switched), so the moves reached the
+drawing. These `≤` comparisons are budgets by
 definition.
 
 **`visual.spec.ts`** (`@visual`, the pinned container only) compares

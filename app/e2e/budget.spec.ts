@@ -3,23 +3,31 @@
  * flag's over a PiecewiseMap of 10^5 breaks, measured in Chromium through
  * the DevTools Protocol's `Performance.getMetrics` (script time, the number
  * the frame rate cap cannot hide). Each test prints what it measured.
- * Derivation in `README.md` ("budget.spec.ts").
+ * The same budgets hold for pointer moves and zoom over a workspace of
+ * virtual cards. Derivation in `README.md` ("budget.spec.ts").
  */
 
 import type { CDPSession, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import type { CommandError } from "../packages/core/src/index.ts";
+import { FACETS } from "../packages/core/src/index.ts";
 import { GRID_PITCH } from "./fixtures/generate.ts";
+import { manifestFixture } from "./schema.ts";
 import {
   cardPoint,
+  dispatch,
   drag,
   emptyPoint,
   frames,
+  journalLength,
   node,
   open,
+  partCentre,
+  pick,
   SMALL,
   setViewport,
   viewportOf,
+  withoutPickers,
 } from "./support.ts";
 
 const MOVES = 60;
@@ -252,5 +260,143 @@ test.describe("the coordinate flag over a PiecewiseMap of 10^5 breaks", { tag: "
     console.log(`coordinate flag: ${ms.toFixed(3)} ms of script per pointer move`);
     await expect(flag.locator('[data-map="pieces"]')).toHaveCount(1);
     expect(ms).toBeLessThanOrEqual(FRAME_MS);
+  });
+});
+
+/**
+ * The `style` hiding (`display: "none"`) or showing again (`null`) the root
+ * `root` of `block`, as Delete's "Hide instead" and the bundle's Timelines
+ * list write it: its card, its line and each of its bands.
+ */
+function rootDisplay(block: string, root: string, display: "none" | null) {
+  return {
+    type: "style",
+    select: {
+      addresses: [
+        { id: root, part: ["card"] },
+        { id: root },
+        ...FACETS.map((facet) => ({ id: root, facet })),
+      ],
+    },
+    set: { display },
+    blocks: [block],
+  };
+}
+
+/** The virtual timelines of TimeToShare's fixture `flow/virtual_cards`, in its order. */
+const VIRTUALS = ["allegro_by_hand", "allegro_default", "allegro_single"] as const;
+
+/**
+ * Import `flow/virtual_cards` twice, place the cards of its three virtual
+ * timelines in both blocks, switch the second block's root card to
+ * "Allegro, practice", hide that root and show it again; the blocks' IDs,
+ * in import order.
+ */
+async function virtualCardsWorkspace(page: Page): Promise<string[]> {
+  await withoutPickers(page);
+  await page.goto("/");
+  await page.waitForFunction(() => window.__tilie !== undefined);
+  const text = manifestFixture("flow/virtual_cards");
+  for (const imports of [1, 2]) {
+    await pick(page, "Import manifest…", "virtual_cards.yaml", text);
+    await expect.poll(() => journalLength(page)).toBe(imports);
+  }
+  const blocks = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks));
+  expect(blocks).toHaveLength(2);
+  for (const block of blocks) {
+    const changes = VIRTUALS.map((id, k) => ({
+      target: { block, id },
+      values: { place: { x: 0, y: 300 + 150 * k } },
+    }));
+    expect(await dispatch(page, { type: "set", changes })).toBeNull();
+  }
+  const second = blocks[1] as string;
+  expect(
+    await dispatch(page, {
+      type: "style",
+      select: { addresses: [{ id: "allegro", part: ["card"] }] },
+      set: { flow: "allegro_by_hand" },
+      blocks: [second],
+    }),
+  ).toBeNull();
+  expect(await dispatch(page, rootDisplay(second, "allegro", "none"))).toBeNull();
+  expect(await dispatch(page, rootDisplay(second, "allegro", null))).toBeNull();
+  await expect.poll(() => journalLength(page)).toBe(7);
+  await setViewport(page, { x: 20, y: 20, zoom: 0.5 });
+  return blocks;
+}
+
+/** The pointer moves over the drawn blocks: a grid of 12 × 5 points inside each node's box on screen. */
+async function pointsOver(page: Page, blocks: readonly string[]) {
+  const size = page.viewportSize();
+  if (size === null) throw new Error("the page has no viewport size");
+  const points: { x: number; y: number }[] = [];
+  for (const block of blocks) {
+    const box = await node(page, block).boundingBox();
+    if (box === null) throw new Error(`block ${block} is not displayed`);
+    for (let row = 0; row < 5; row += 1) {
+      for (let column = 0; column < 12; column += 1) {
+        const x = box.x + (box.width * (column + 0.5)) / 12;
+        const y = box.y + (box.height * (row + 0.5)) / 5;
+        if (x < size.width && y < size.height) points.push({ x, y });
+      }
+    }
+  }
+  return points;
+}
+
+test.describe("budgets on virtual cards imported twice", { tag: "@budget" }, () => {
+  test.beforeEach(async ({ browserName }) => {
+    test.skip(browserName !== "chromium", "script time is read through Chromium's protocol");
+  });
+
+  test("a pointer move over the blocks costs at most 1 ms of script", async ({ page }) => {
+    const blocks = await virtualCardsWorkspace(page);
+    const points = await pointsOver(page, blocks);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Performance.enable");
+    const ms = await perMove(
+      page,
+      cdp,
+      async () => {
+        for (const point of points) {
+          await page.mouse.move(point.x, point.y);
+          await frames(page);
+        }
+      },
+      points.length,
+    );
+    console.log(
+      `virtual cards: ${ms.toFixed(3)} ms of script per pointer move (${points.length} moves)`,
+    );
+    // The moves reached the drawing: the label of a chunk draws its ribbon to the root's line.
+    const first = blocks[0] as string;
+    const label = await partCentre(page, first, {
+      id: "allegro_default",
+      facet: "regions",
+      part: [0, "label"],
+    });
+    await page.mouse.move(label.x, label.y);
+    await expect(node(page, first).locator("path.tilie-ribbon")).toHaveCount(1);
+    expect(ms).toBeLessThanOrEqual(1);
+  });
+
+  test("Ctrl+wheel zoom costs at most 1 ms of script per wheel event", async ({ page }) => {
+    const blocks = await virtualCardsWorkspace(page);
+    const box = await node(page, blocks[0] as string).boundingBox();
+    if (box === null) throw new Error("the first block is not displayed");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Performance.enable");
+    await page.keyboard.down("Control");
+    const ms = await perMove(page, cdp, async () => {
+      for (let n = 0; n < MOVES; n += 1) {
+        await page.mouse.wheel(0, n < MOVES / 2 ? -40 : 40);
+        await frames(page);
+      }
+    });
+    await page.keyboard.up("Control");
+    console.log(`virtual cards: ${ms.toFixed(3)} ms of script per wheel event`);
+    expect(ms).toBeLessThanOrEqual(1);
   });
 });
