@@ -31,11 +31,11 @@ const SCORE_CARD = { item: "group_1", member: "score" } as const;
 
 describe("memberOrderAt", () => {
   it.each([
-    ["group_1", "score", 100, ["score", "performance"]],
-    ["group_1", "score", 170, ["performance", "score"]],
-    ["group_1", "score", 162.79296875, ["performance", "score"]],
-    ["group_1", "performance", 50, ["performance", "score"]],
-    ["group_1", "performance", 91.83203125, ["score", "performance"]],
+    ["group_1", "score", 265.7578125, ["score", "performance"]],
+    ["group_1", "score", 335.7578125, ["performance", "score"]],
+    ["group_1", "score", 328.55078125, ["performance", "score"]],
+    ["group_1", "performance", 215.7578125, ["performance", "score"]],
+    ["group_1", "performance", 257.58984375, ["score", "performance"]],
     ["group_2", "page", 440, ["excerpt", "page"]],
   ] as const)("%s, %s dropped at %d", (group, dragged, y, order) => {
     expect(memberOrderAt(block.manifest, drawing, group, dragged, y)).toEqual(order);
@@ -93,9 +93,10 @@ describe("a reorder's preview", () => {
     const cards = drawingOf(shown, previewed.graphical, metrics).elements.flatMap((element) =>
       element.type === "card" ? [[element.address, element.y]] : [],
     );
-    expect(cards.slice(0, 2)).toEqual([
-      [cardAddress("performance"), 53.609375],
-      [cardAddress("score"), 111.0859375],
+    // `group_2` ("Facsimile") is drawn first, its cards `page` and `excerpt`; then `group_1`'s.
+    expect(cards.slice(2, 4)).toEqual([
+      [cardAddress("performance"), 219.3671875],
+      [cardAddress("score"), 276.84375],
     ]);
   });
 });

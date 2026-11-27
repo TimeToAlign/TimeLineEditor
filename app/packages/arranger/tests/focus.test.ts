@@ -19,6 +19,7 @@ import {
   metrics,
   mixedView,
   viewOf,
+  withAutoElisions,
   withFullCards,
   withoutAncestorCards,
 } from "./support.ts";
@@ -51,7 +52,7 @@ describe("targetBounds", () => {
     });
     expect(targetBounds(node, at("group_1"), metrics)).toEqual({
       x: 48,
-      y: 108.8046875,
+      y: 292.5625,
       width: 561.052001953125,
       height: 166.7265625,
     });
@@ -87,7 +88,7 @@ describe("targetBounds", () => {
   it("spans a child's drawn elements, its line and its name", () => {
     expect(targetBounds(node, at("dlt_1"), metrics)).toEqual({
       x: 64,
-      y: 374.41015625,
+      y: 199.68359375,
       width: 306.79150390625,
       height: 12.8046875,
     });
@@ -99,7 +100,7 @@ describe("targetBounds", () => {
     if (shown === undefined) throw new Error("no node");
     expect(targetBounds(shown, at("dlt_1"), metrics)).toEqual({
       x: 64,
-      y: 374.41015625,
+      y: 199.68359375,
       width: 306.79150390625,
       height: 12.8046875,
     });
@@ -111,7 +112,7 @@ describe("targetBounds", () => {
     if (raised === undefined) throw new Error("no node");
     expect(targetBounds(raised, recording, metrics)).toEqual({
       x: -215.70361328125,
-      y: 308.3359375,
+      y: 133.609375,
       width: 2233.755615234375,
       height: 142.953125,
     });
@@ -120,7 +121,7 @@ describe("targetBounds", () => {
   it("scales with the block", () => {
     expect(targetBounds(nodeOf(2), at("group_1"), metrics)).toEqual({
       x: 56,
-      y: 137.609375,
+      y: 505.125,
       width: 1122.10400390625,
       height: 333.453125,
     });
@@ -168,14 +169,17 @@ describe("a group's frame with elided ancestor cards", () => {
   const PANE = { width: 1280, height: 720 };
   const group = (id: string): Address => inBlock(A, idAddress(id));
 
-  /** The node of `fixture` in block A at (0, 0), the editor of `editing` open, Full when `full`. */
+  /**
+   * The node of `fixture` in block A at (0, 0), its ancestor cards deriving their elisions
+   * (`elision-mode` `auto`), the editor of `editing` open, Full when `full`.
+   */
   function opened(
     fixture: string,
     editing: Address,
     kind: "group" | "timeline" | "bundle",
     full = false,
   ) {
-    const view = viewOf({ id: A, fixture });
+    const view = withAutoElisions(viewOf({ id: A, fixture }));
     const [node] = project(full ? withFullCards(view) : view, NOTHING_SELECTED, [], metrics, {
       target: editing,
       kind,

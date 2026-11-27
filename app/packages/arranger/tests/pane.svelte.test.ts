@@ -12,7 +12,7 @@ import { flushSync } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { drawingOf, styleLayers } from "../src/drawing.ts";
 import { PANE_SETTLE, Pane } from "../src/pane.ts";
-import { A, blockIn, metrics, viewOf } from "./support.ts";
+import { A, blockIn, metrics, viewOf, withAutoElisions } from "./support.ts";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -78,7 +78,8 @@ describe("the pane", () => {
 
 describe("a drawing at a pane", () => {
   it("draws a manifest with an ancestor card for the pane, as layout draws that view", () => {
-    const view = viewOf({ id: A, fixture: "groups/group_grandchild" });
+    // Only derived elisions read the pane: the ancestor cards under `elision-mode` `auto`.
+    const view = withAutoElisions(viewOf({ id: A, fixture: "groups/group_grandchild" }));
     const block = blockIn(view, A);
     const pane = new Pane();
     pane.measure(640, 360);

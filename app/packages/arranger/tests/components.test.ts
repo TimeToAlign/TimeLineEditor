@@ -170,9 +170,15 @@ function render(
   return svg;
 }
 
-/** The drawing's elements as the node renders them: the children of `svg` but the marks. */
+/**
+ * The drawing's elements as the node renders them: the children of `svg` but the marks and the
+ * selected strokes' halos, which an export never draws.
+ */
 function drawn(svg: SVGSVGElement): Element[] {
-  return Array.from(svg.children).filter((element) => !element.classList.contains("tilie-mark"));
+  return Array.from(svg.children).filter(
+    (element) =>
+      !element.classList.contains("tilie-mark") && !element.classList.contains("tilie-halo"),
+  );
 }
 
 /** The holding marks inside `svg`, as `<data-box> <data-marks>`. */

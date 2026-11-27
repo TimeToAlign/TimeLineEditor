@@ -206,6 +206,24 @@ export function withFullCards(view: View): View {
   return withRule(view, FULL_CARDS);
 }
 
+/**
+ * The rule letting every ancestor card derive its elisions (section 8.9, Modes):
+ * `{select: {element: "ancestor_card"}, set: {"elision-mode": "auto"}}`, the initial mode
+ * `custom` deriving none.
+ */
+export const AUTO_ELISIONS = {
+  select: { element: "ancestor_card" },
+  set: { "elision-mode": "auto" },
+} as const;
+
+/**
+ * `view` with `AUTO_ELISIONS` appended to the workspace's rules: for a test of derived
+ * elisions, whose values the initial `custom` would not draw.
+ */
+export function withAutoElisions(view: View): View {
+  return withRule(view, AUTO_ELISIONS);
+}
+
 /** The fixture paths of the manifests with groups the tests use. */
 export const NUMBERS = "groups/group_number_types";
 export const CHILD_MEMBER = "groups/group_child_member";

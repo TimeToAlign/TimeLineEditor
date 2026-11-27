@@ -45,11 +45,12 @@ import { pickable } from "../src/picking.ts";
 import { project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
 import { pressedIn } from "../src/selectionRules.ts";
-import { A, blockIn, changed, metrics, storeOf, viewOf } from "./support.ts";
+import { A, blockIn, changed, metrics, storeOf, viewOf, withAutoElisions } from "./support.ts";
 
 const STORED = viewOf({ id: A, fixture: "bundles/bundle_elisions_stored" });
-const MEMBERS = viewOf({ id: A, fixture: "groups/group_elided_members" });
-const INSIDE = viewOf({ id: A, fixture: "groups/group_elided_inside" });
+/** The two fixtures whose ancestor cards derive their elisions, under `elision-mode` `auto`. */
+const MEMBERS = withAutoElisions(viewOf({ id: A, fixture: "groups/group_elided_members" }));
+const INSIDE = withAutoElisions(viewOf({ id: A, fixture: "groups/group_elided_inside" }));
 
 const drawingIn = (view: View): Drawing => drawingOf(blockIn(view, A), view.graphical, metrics);
 

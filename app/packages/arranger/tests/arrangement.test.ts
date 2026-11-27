@@ -624,7 +624,7 @@ describe("dragging an arranged item", () => {
           values: {
             arrangement: {
               direction: "vertical",
-              order: ["page", "group_1", "group_2", "group_3"],
+              order: ["page", "group_2", "group_1", "group_3"],
             },
           },
         },

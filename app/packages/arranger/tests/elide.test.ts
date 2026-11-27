@@ -22,6 +22,7 @@ import {
   changed,
   metrics,
   viewOf,
+  withAutoElisions,
   withFullCards,
   withoutAncestorCards,
 } from "./support.ts";
@@ -42,9 +43,12 @@ function drawnOf(view: View): Drawn {
   return { manifest: block.manifest, drawing, descriptors: descriptorsOf(drawing) };
 }
 
-/** A `groups/` fixture in block A drawn Elided (the defaults), Full and with its ancestor cards hidden. */
+/**
+ * A `groups/` fixture in block A drawn Elided (its ancestor cards deriving their elisions under
+ * `elision-mode` `auto`), Full and with its ancestor cards hidden.
+ */
 function views(fixture: string) {
-  const view = viewOf({ id: A, fixture: `groups/${fixture}` });
+  const view = withAutoElisions(viewOf({ id: A, fixture: `groups/${fixture}` }));
   return {
     elided: drawnOf(view),
     full: drawnOf(withFullCards(view)),
@@ -432,7 +436,7 @@ describe("a group elision changed", () => {
 });
 
 describe("elision labels shown", () => {
-  const view = viewOf({ id: A, fixture: "groups/group_elided_inside" });
+  const view = withAutoElisions(viewOf({ id: A, fixture: "groups/group_elided_inside" }));
   const before = drawnOf(view);
   const after = drawnOf(
     changed(view, {
