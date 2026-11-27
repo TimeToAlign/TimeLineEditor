@@ -24,6 +24,8 @@ Use FastAPI and uvicorn[standard]; the audited versions are fastapi 0.141.1 and 
 
 `timetoalign>=1.2.0` is required, locked at 1.2.0 for development, and is queried only through `importlib.metadata`; no model code is imported. Health contains exactly three fields. The CLI self-check verifies both health and the built app.
 
+**Superseded in part (2026-11-27).** The editor keeps the token in the tab's `sessionStorage` (key `tilie.token`), so a reload of that tab stays connected; it never keeps it in `localStorage`, a path or a query, and still removes it from the address bar (the architecture guide, "The server").
+
 ## Maintenance and dependencies
 
 Sebastián Ramírez and the FastAPI team maintain FastAPI. Marcelo Trylesinski and contributors maintain Starlette/uvicorn, originally authored by Tom Christie. Multiple contributors exist, with substantial lead-maintainer concentration. They release frequent fixes and occasional API changes. Johannes Hentschel and TimeToAlign! contributors maintain timetoalign; its smaller maintainer pool is a concentration risk, and releases follow library changes.

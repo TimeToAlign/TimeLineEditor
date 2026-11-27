@@ -116,6 +116,15 @@ reader refuses any other `kind` (`invalid_value`, "a session states only
 the kind flow"). A session reopens, unfolded, and an earlier session is
 listed, only where both target and kind match.
 
+**Amended (2026-11-27): the children editor states its kind too.** A
+fifth editor, the children editor of a timeline, also targets the
+timeline's address; a session closed in it is written `{target, kind:
+"children", entries}`. A reader accepts the kinds `children` and `flow`
+and refuses any other (`invalid_value`, "a session states only the kind
+children or flow"). Every file written before reads as it did, and the
+version stays 8; an editor older than this amendment refuses a file
+holding a children editor's session.
+
 ## Consequences
 
 Undo reaches back across sessions, and the file says who changed what and

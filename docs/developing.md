@@ -93,8 +93,8 @@ the root is in no group or is a member drawing an ancestor card itself
 (`raisedRoot`, the one decision that the drawn order, the pointer, the
 places of coordinates, the marquee and the focus all read, through one
 stacking, `stackingOf`). The Elisions tab's timeline block hides it
-(the mode Hidden, a `display` of `none` on the root's cards) or chooses
-which elisions it draws.
+(its checkbox "Draw behind its groups", a `display` of `none` on the
+root's cards) and chooses which elisions it draws.
 
 Elisions follow the containers. A **card elision**, on a timeline in no
 group, is drawn by the cards that draw its root whole, the root's own card
@@ -113,9 +113,10 @@ Arrangements are placement, never part of the manifest
 ([`decisions/0036`](../decisions/0036-arrangements-are-placement.md)). A
 block's `arrangement` takes its items, frames and ungrouped roots' cards,
 in an order: one under another, or side by side in one row, where every
-root that a group hangs on (a member of the group lying inside it) is
-drawn once, by one ancestor card, the **once card**, behind every group
-hanging on it. Core owns the rules (`manifest/arrangement.ts`: the
+root that two or more groups hang on (a member of each group lying inside
+it), a **shared root**, is drawn once, by one ancestor card, the **once
+card**, behind every group hanging on it, while a root one group hangs on
+keeps its ancestor card behind that group's frame. Core owns the rules (`manifest/arrangement.ts`: the
 anchors, `rowOf`, the refusal and its reason), layout places what they
 give (`block/arrangement.ts`, and `packed`, the one packing function),
 and the arranger reorders: the workspace's `arrangement` packs the
@@ -200,9 +201,12 @@ through the element holding it, by one `set` of that element's whole
 
 1. **A gesture or a form edit** in the arranger or the inspector builds one
    command: `add`, `set`, `remove` or `style`, aimed at addresses. One
-   completed gesture is one command; a choice that needs several (a
-   frame's flow switch) goes through `Store.edit`, which makes them in the
-   editor of their target as one closed session, so one undo step. A preview shows
+   completed gesture is one command; a press that needs several (a band
+   list's Visible control reaching a timeline's whole tree) goes, while no
+   editor is open, through `Store.edit`, which makes them in the editor of
+   their target as one closed session, so one undo step; inside an open
+   editor its commands are still dispatched one by one, each its own step,
+   and a refused one leaves those before it applied. A preview shows
    `drawingOf(preview(view, command))`, the command applied without the
    schema check, so a preview can never differ from what the release stores.
 2. **The store** parses the command, applies it through the pure reducer
@@ -311,7 +315,8 @@ up (`lookup`), the shortcut scope (`"editor"` or `"window"`), the notices
 URL, and `onchange` and `onselect` callbacks. It styles only its own root, names its ids per instance and
 reaches the page only through those options. `App.svelte` is the one page
 that owns a document: it writes the title, styles `html` and `body`, takes
-the server's token from the URL fragment and binds the window shortcuts.
+the server's token from the URL fragment, keeping it in the tab's session
+storage across a reload, and binds the window shortcuts.
 `embed.ts` exports `mount(element, options)`, a framework-free entry over
 Svelte's `mount`/`unmount`, built by `pnpm build:embed` into `dist-embed/`
 (`tilie.js`, `tilie.css`, the fonts). A host page loads the stylesheet,
