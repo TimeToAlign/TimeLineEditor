@@ -304,7 +304,16 @@ manifest held already" there): still two blocks and a journal of two
 entries (the load and the add), the block added before selected and one
 warning shown, "bare.yaml was not imported: the workspace holds it
 already, in the block "Anonymous bundle", which is now selected."
-(`bare` has neither `name` nor `id`). New workspace on a saved workspace replaces it at once by a
+(`bare` has neither `name` nor `id`). A refused import leaves every open
+editor open, since it is decided before any editor is left: with the added
+block's bundle editor open and nothing selected, the same file refused
+leaves that editor the one open (`{block, kind: "bundle"}`), the added
+block selected, two blocks and two journal entries, and the same warning;
+with the other block's bundle editor open instead, the editor stays open,
+its block stays selected (the editor does not keep a block it does not
+edit, so the holder is not selected) and the warning ends at the block's
+name, "… in the block "Anonymous bundle"." A manifest that is added leaves
+the open editors first, as before. New workspace on a saved workspace replaces it at once by a
 new one holding the manifest's block alone, named `untitled`, under
 `untitled.tle.json`; on an unsaved one it first saves it (the download
 of exactly its text under its file name, as Save writes without a

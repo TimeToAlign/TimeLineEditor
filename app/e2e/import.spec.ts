@@ -1,6 +1,7 @@
 /**
  * A manifest is imported once: importing one a block holds already is
- * refused with a warning naming that block, which is selected. A reload
+ * refused with a warning naming that block, which is selected where the
+ * open editor keeps it, and every open editor stays open. A reload
  * keeps the server connection: the token handed over in the fragment is
  * kept in the tab's session storage. Derivation in `README.md`
  * ("import.spec.ts").
@@ -9,7 +10,15 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { manifestFixture } from "./schema.ts";
-import { importFixture, journalLength, pick, selection } from "./support.ts";
+import {
+  editing,
+  enter,
+  importFixture,
+  journalLength,
+  pick,
+  selection,
+  viewportOf,
+} from "./support.ts";
 
 function blockCount(page: Page): Promise<number> {
   return page.evaluate(() => Object.keys(window.__tilie.store().view.blocks).length);
@@ -55,6 +64,40 @@ test("a manifest a block holds already is refused, its block selected", async ({
   );
   expect([await journalLength(page), await blockCount(page)]).toEqual([3, 3]);
   expect(await selection(page)).toEqual([{ block: op106.block }]);
+});
+
+test("a refused import leaves the open editors open", async ({ page }) => {
+  const cards = manifestFixture("flow/virtual_cards");
+  const block = await importFixture(page, "flow/virtual_cards");
+  const bundleEditor = [{ target: { block }, kind: "bundle" }];
+  await enter(page, { block }, await viewportOf(page));
+  expect(await refusedImport(page, "virtual_cards.yaml", cards)).toBe(
+    'virtual_cards.yaml was not imported: the workspace holds it already, in the block "Virtual cards", which is now selected.',
+  );
+  expect([await editing(page), await journalLength(page), await blockCount(page)]).toEqual([
+    bundleEditor,
+    1,
+    1,
+  ]);
+  expect(await selection(page)).toEqual([{ block }]);
+
+  // A manifest that is added leaves the open editors first.
+  const bare = manifestFixture("bare");
+  await pick(page, "Import manifest…", "bare.yaml", bare);
+  await expect.poll(() => journalLength(page)).toBe(2);
+  expect([await editing(page), await blockCount(page)]).toEqual([[], 2]);
+
+  // Held by a block the open editor does not edit: refused, nothing selected, the editor open.
+  await enter(page, { block }, await viewportOf(page));
+  expect(await refusedImport(page, "bare.yaml", bare)).toBe(
+    'bare.yaml was not imported: the workspace holds it already, in the block "Anonymous bundle".',
+  );
+  expect([await editing(page), await journalLength(page), await blockCount(page)]).toEqual([
+    bundleEditor,
+    2,
+    2,
+  ]);
+  expect(await selection(page)).toEqual([]);
 });
 
 const TOKEN = "e2e-token";

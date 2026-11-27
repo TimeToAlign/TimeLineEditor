@@ -25,6 +25,7 @@ import {
   editing,
   enter,
   entriesLength,
+  entryCommands,
   importFixture,
   journalLength,
   partCentre,
@@ -48,29 +49,6 @@ async function viewAtBlock(page: Page, block: string): Promise<typeof VIEW> {
   }, block);
   if (place === null) throw new Error(`block ${block} is missing`);
   return { x: 40 - place.x, y: 40 - place.y, zoom: 1 };
-}
-
-/**
- * The commands of the open editor's session from entry `from` on, as JSON
- * (a `bigint` written as its digits); a closed session's entry is `null`.
- */
-function entryCommands(page: Page, from: number): Promise<unknown[]> {
-  return page.evaluate(
-    (start) =>
-      window.__tilie
-        .store()
-        .entries.slice(start)
-        .map((entry) =>
-          "command" in entry
-            ? JSON.parse(
-                JSON.stringify(entry.command, (_key, value) =>
-                  typeof value === "bigint" ? value.toString() : value,
-                ),
-              )
-            : null,
-        ),
-    from,
-  );
 }
 
 test("the flow editor opens from the flow control band, lands, places and folds", async ({

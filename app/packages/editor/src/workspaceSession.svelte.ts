@@ -748,13 +748,14 @@ export class WorkspaceSession {
    * manifest (its form, its styling, its serialization) becomes the block's
    * manifest file in the settings, so Export writes it back as it came. A
    * manifest without a `graphical` object is given its roots' default
-   * timestamps (`importedManifest`). An editor changes only what it edits,
-   * so every open editor is left first (Done), once the manifest is read;
-   * the view the block is placed in is the one shown before, since leaving
-   * moves the view back over a while. A manifest a block holds already
+   * timestamps (`importedManifest`). A manifest a block holds already
    * (`blockHolding`: the same `id`, or for one without an `id` the same
    * content) is not added again: a warning names that block, which is
-   * selected instead.
+   * selected instead where the innermost open editor keeps it (`existing`),
+   * and every open editor stays open. An editor changes only what it edits,
+   * so for a manifest that is added every open editor is left first (Done);
+   * the view the block is placed in is the one shown before, since leaving
+   * moves the view back over a while.
    */
   #add(name: string, text: string, canvas: ImportTarget, metrics: FontMetrics): string | null {
     const read = readManifestFile(text);
@@ -766,19 +767,25 @@ export class WorkspaceSession {
       );
       return null;
     }
-    const visible = canvas.visible();
-    while (this.store.editing.length > 0) this.store.done();
     const held = blockHolding(this.store.view, read.manifest);
     if (held !== null) {
-      const holder = editorName(this.store.view, { block: held });
+      const { view } = this.store;
+      const holder = editorName(view, { block: held });
+      const shown = existing(
+        view,
+        selectionOf([{ block: held }]),
+        this.store.editing.at(-1) ?? null,
+      );
+      if (shown.size > 0) this.selection = shown;
       this.#options.post(
         "warning",
-        `${name} was not imported: the workspace holds it already, in the block "${holder}", which is now selected.`,
+        `${name} was not imported: the workspace holds it already, in the block "${holder}"${shown.size > 0 ? ", which is now selected" : ""}.`,
       );
-      this.selection = selectionOf([{ block: held }]);
       canvas.focus();
       return null;
     }
+    const visible = canvas.visible();
+    while (this.store.editing.length > 0) this.store.done();
     const id = mintBlockId();
     const manifest = importedManifest(read.manifest);
     const refusal = this.store.dispatch(

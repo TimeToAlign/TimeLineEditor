@@ -589,7 +589,17 @@ manifest without an `id`, is then imported (two entries). By `id`:
 `statements/op106_work.yaml` imported (three entries), then the same file
 with its `name` changed to "Op. 106, revised", which is still the manifest
 `op106`: refused (three entries), its block selected, the warning naming
-the block by its name, "Beethoven, Piano Sonata No. 29, Op. 106". The
+the block by its name, "Beethoven, Piano Sonata No. 29, Op. 106". A
+refused import leaves the open editors open: `flow/virtual_cards.yaml`
+imported and its bundle editor entered, the same file refused leaves that
+editor the one open, one journal entry and one block, the block selected
+and the same warning; `bare.yaml` then imported is added (two entries, two
+blocks) and leaves the editor first (none open); the bundle editor of
+`virtual_cards` entered again and `bare.yaml` imported once more, it is
+refused with the warning `bare.yaml was not imported: the workspace holds
+it already, in the block "Anonymous bundle".` (an editor keeps no
+address of another block, so the holder is not selected and nothing is),
+the editor still open, two entries and two blocks. The
 connection: the server stubbed in the page's routes answers the health
 check only with `Authorization: Bearer e2e-token`, else 401. Opened at
 `/#token=e2e-token`, the health arrives (the hook's `health()` is the
@@ -1713,27 +1723,43 @@ once) on `beethoven/op2_no1/manifest.json` of the musical themes dataset:
 and scores. The dataset is not part of this repository: the variable
 `MUSICAL_THEMES_DATASET` names its directory, `run.ts` passes it into the
 container and mounts the directory read-only at its own path
-(`container.ts`), and without it the spec does not run. The page is 1920 ×
-1080 at device scale 1, with full motion, every check polling until the
-drawing is at rest. The manifest is imported through File › Import
+(`container.ts`), and without it the spec is skipped. A run of every spec
+must therefore set it to a checkout of the dataset, for example
+`MUSICAL_THEMES_DATASET=../../musical_themes_dataset pnpm e2e bundle.spec.ts`
+from `app/` with the dataset checked out beside the repository. The page is
+1920 × 1080 at device scale 1, with full motion, every check polling until
+the drawing is at rest. The manifest is imported through File › Import
 manifest…, its bundle editor entered and Horizontal chosen in the Arrange
 menu (one entry more, shown pressed, the block's arrangement
-`horizontal`). The expectations are read from the manifest itself:
+`horizontal`). The groups and roots are read from the manifest itself, the
+positions are exact, as the writer prints them (four decimals):
 
 - the groups are taken in name order (title, then ID, by code point,
-  section 8.1), and their frames' drawn `x` increase in that order;
-- tracks 1, 3 and 4 (`cpt_3856xdsl3z3hd`, `cpt_3p04tgywxp05z`,
-  `cpt_323f74gjyd6li`) each hold the excerpts of two groups, the six
-  EDM-alig groups of B689, B690, B692 to B695, so each is a shared root,
-  drawn once; their stretches lie apart along the row, so all three take
-  the first line: every horizontal part of their lines, each once card's
-  pieces and the ancestor line of the track in each hanging group's card,
-  lies at one ordinate, below the row's top;
-- track 2 (`cpt_18o5vli1d8q4n`) holds the excerpt of B691's EDM-alig group
-  alone: no shared root, its ancestor card stays behind that frame;
-- every group hanging on no shared track, B691's EDM-alig group among
-  them, has its frame at one `y`, the row's top, the smallest frame `y`;
-  each hanging group lies there or lower, as its anchor's line asks.
+  section 8.1); tracks 1, 3 and 4 (`cpt_3856xdsl3z3hd`,
+  `cpt_3p04tgywxp05z`, `cpt_323f74gjyd6li`) each hold the excerpts of two
+  groups, the six EDM-alig groups of B689, B690, B692 to B695, so each is a
+  shared root, drawn once; track 2 (`cpt_18o5vli1d8q4n`) holds the excerpt
+  of B691's EDM-alig group alone: no shared root, its ancestor card stays
+  behind that frame;
+- the 28 frames' drawn `x`, in name order: 209.966, 934.4763, 1634.5461,
+  2506.8127, 3446.4016, 4168.101, 4868.1708, 5740.4374, 6664.4732,
+  14201.543, 14901.6129, 15773.8795, 16725.6906, 17447.6053, 18147.6752,
+  19019.9418, 19942.864, 20664.4628, 21364.5326, 22064.6024, 22937.1913,
+  23657.2373, 24357.3071, 25229.5737, 26155.5262, 26875.4499, 27575.5198,
+  28447.7864. They are the row the layout packs, every item's row extent
+  (its frame, and an ancestor card where it reaches beyond the frame)
+  starting the row gap 48 right of where the previous one ends, the rule
+  the layout's own test proves with exact positions on a manifest of the
+  same shape (`packages/layout/tests/README.md`, "Shared roots on one
+  line"). The step of 7537.0698 from B691's EDM-alig frame to the next is
+  track 2's ancestor card behind that frame, which runs far beyond it;
+- every frame's drawn `y` is 28.8047, the first item's default top: an
+  item hanging on a shared root stands at the row's top as one hanging on
+  none, as in the layout's test (28.8046875);
+- the three tracks' stretches lie apart along the row, so all three take
+  the first line: each track's drawn element has four horizontal line
+  parts, its once card's and the ancestor lines in the frames hanging on
+  it, every one at `y` 82.0117, the layout test's 82.01171875.
 
 **`segments.spec.ts`** (Chromium, Firefox, WebKit) proves in a browser the
 refusal to delete a segment: with the schema package's `segment_line`
