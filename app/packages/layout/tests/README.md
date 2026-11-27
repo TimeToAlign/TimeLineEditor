@@ -510,6 +510,70 @@ from `100 − 26.453125 = 73.546875` to `200 − 8 = 192`; only the root of a
 member drawing has a flow control band, so `child_flow_control`'s `verse`
 lays out none of its own.
 
+## Empty bands (`empty-bands.test.ts`)
+
+A band laid out at its own timeline's line is **shown explicitly** when the
+rule that sets its `display` sets `inline` and its selector names
+`addresses` or `within` (section 6.4, Empty bands). Shown explicitly and
+drawing nothing, it is an **empty band**: present, at its level, and the
+larger of `Wb = 6 + 2 + h(9) = 18.4765625` and its facet's own width wide.
+What proves it: the drawing's band records (records, below), read as
+timeline, facet, level, elements held, start `c` from the line (`yl + c`
+below it, `yl − E` above it with `E` its outer edge) and width (the
+rectangle's height), each against the rules of section 6.4 alone, so that
+the band is seen where the pointer will find it, and its neighbours seen to
+move by exactly `Wb + S`:
+
+1. **The worked example of the specification**, the shape of Op. 106:
+   `child_flow_control` with its root's two named timestamps removed (the
+   root `piece` then holds no region, map, flow-control element or named
+   timestamp; its child `verse` holds a break and a jump, which the root's
+   flow control band gathers). Without a rule `piece` has its children band
+   (level 1, 1 element, `c = 7`, 14 wide) and its flow control band (−1, 2
+   elements, `c = 5.5`, 28.4453125 wide). With the rule `{facet: regions,
+   within: piece}` `display: inline` its regions band is present and empty:
+   level −1, 0 elements, `c = S + max(0, w / 2) = 4 + 1.5 = 5.5`, `Wb` wide,
+   its outer edge `23.9765625`; the flow control band moves to level −2 at
+   `23.9765625 + 4 = 27.9765625`, `Wb + S = 22.4765625` further out, as wide
+   as before. The same rule shows `verse`'s regions band (−1, 0, 5.5, `Wb`),
+   so `verse`'s line reaches `23.9765625` below and `piece`'s children band,
+   the inner half of its row that edge and the outer half `p / 2 = 7`, is
+   `7 + 23.9765625 = 30.9765625` wide. `verse`'s flow control band, shown
+   by the same rule, is never present. The same numbers hold on Op. 106
+   itself (`data/op106.manifest.json`, below), whose root `clt_1` holds no
+   region, map, flow-control element or named timestamp: without a rule its
+   flow control band, gathering its movements', lies at −1 from `c = 5.5`;
+   with `{facet: regions, within: clt_1}` its regions band lies at −1, 0
+   elements, `c = 5.5`, `Wb` wide, and the flow control band at −2 from
+   `27.9765625`, holding as many elements and as wide as before.
+2. **Not shown explicitly**: the rule `{facet: regions}` (`inline`, naming
+   neither) draws every band as no rule does; so does `bare`'s own regions
+   rule (point 3) when a later layer states `{facet: regions}` `inline`,
+   which then sets the band's `display`.
+3. **Each facet on `bare`** (its markers band −1, 4 elements, `c = 0`,
+   `26.9765625` wide), by the band's own rule `{element: band, addresses:
+   [{id: bare, facet: F}]}`: regions at −2, `c = 26.9765625 + 4 =
+   30.9765625`, `Wb` wide; the root's flow control band likewise; the
+   conversion maps band at level 1 against the line, `c = 0`, `Wb` wide
+   (the larger of `Wb` and `e = w / 2 = 1.5` of no slot); the children
+   band at level 1 from its own start `max(4 + 1.5, p0 / 2) = 7`, `Wb` wide.
+   The markers band, which draws, keeps its width 26.9765625.
+4. **A drawn band is never widened**: `bare` with both named timestamps
+   showing their wedge alone has a markers band `w / 2 + 13 = 14.5` wide,
+   less than `Wb`; shown explicitly it stays 14.5.
+5. **No other timeline's flow control band**: on `nested` the rule
+   `{element: band, facet: flow_control, within: clt_1}` shows the root's
+   empty flow control band at −2 (`c = 30.9765625`, `Wb`), and none for
+   `clt_3` or `clt_2`.
+6. **A row of one band order**: `map_row_siblings`' `ante` and `cons` lie
+   in one row of one band order. `ante`'s own rule shows its regions band;
+   in such a row a band of a facet is present for every line where it is for
+   one, so both are present and empty, at −1, `c = 5.5`, `Wb` wide, and
+   `piece`'s children band grows from `7 + 11.5 = 18.5` (inner half `p / 2`,
+   outer half the maps' edge 11.5) to `23.9765625 + 11.5 = 35.4765625`.
+7. **A hidden line**: `piece` hidden by `{addresses: [{id: piece}]}`
+   `display: none` with the rule of point 1 records no band at all.
+
 ## Stacks, band orders and rows (`stacks.test.ts`, `order.test.ts`, `rows.test.ts`)
 
 Drawings of fixtures and of manifests built by command, each value summed

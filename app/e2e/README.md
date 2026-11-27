@@ -818,6 +818,36 @@ and the inspector opened on Properties.
   the box unchecked and still enabled; checking it journals the same
   selector with `{display: null}`, the box checked.
 
+**`empty-band.spec.ts`** (Chromium) proves that a band shown explicitly
+that draws nothing, an empty band (TimeToShare's `docs/drawing.md`, section
+6.4, Empty bands), is drawn where the pointer finds it, on
+`unknown_length_child` as `controls.spec.ts` imports it, the shape of Op.
+106: the root `score` holds no region, its child `movement` holds
+`region_1`. The view is `{x: 40, y: 40, zoom: 1}`, so the hook's client
+rectangles are the drawing's units. Before any rule the hook records no
+regions band of `score`; its markers band (two wedges and their coordinate
+labels, 4 elements) lies at level −1 from its line to `w / 2 + 13 + 2 +
+h(9) = 26.9765625`.
+- The rule the band's Visible box writes to show it, `{element: "band",
+  addresses: [{id: "score", facet: "regions"}]}` `{display: "inline"}`,
+  sent as one `style`: the hook records `score`'s regions band at level
+  −2 holding 0 elements, its rectangle from `30.9765625` (`26.9765625 +
+  S`) below the line, `Wb = 6 + 2 + h(9) = 18.4765625` high. The pointer
+  moved to a point inside it (`bandPoint`, clear of every drawn element)
+  marks that band alone on hover; a double-click there opens the timeline
+  editor of `score` (`[{target: {block, id: "score"}, kind: "timeline"}]`).
+  In it, the Regions tab's Add region adds one region into `score` (the
+  editor's session, journalled when it closes): the root then holds one
+  region, which is drawn (one element carries its address), and the band
+  holds 1 element and keeps its place and width (`30.9765625`, `Wb`): the
+  first region, its label in tier 1, makes a regions band of one row and
+  one label tier, which is `Wb` wide.
+- The press: `score`'s own "Regions visible" box reads
+  unchecked and enabled while the band is absent (displayed by the initial
+  value alone, drawing nothing); one click journals that same rule with
+  `{display: "inline"}`, the box is then checked, and the hook records the
+  empty band as above.
+
 **`elisions.spec.ts`** (Chromium, Firefox, WebKit) proves that an
 elision added through the Elisions tab, as a viewer adds it, is drawn on
 the timeline, on a virtual timeline's placed card and on a virtual group

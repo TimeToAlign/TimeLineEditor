@@ -10,6 +10,7 @@
 import { type Facet, isFacet, LINE } from "@timetoalign/tilie-core";
 import type { Real } from "@timetoalign/tilie-core/numbers";
 import type { AxisMarker, AxisTimestamp } from "./boxes.ts";
+import { BRACE, EMPTY_BAND_LABEL_SIZE, LABEL_GAP } from "./constants.ts";
 import type {
   Cut,
   ForkElement,
@@ -206,8 +207,9 @@ export interface PreparedBand {
    * it included (section 6.4, What a band holds and Segments without a line): wedges and the labels
    * of named timestamps, maps, child lines, regions, breaks, section breaks, barlines and the
    * jumps that draw an arc. Any other label is
-   * held by its element and not counted; a segment without a line is no element. The band is present when this is positive (section 6.4,
-   * Levels), and a band record's `band.elements` is this number.
+   * held by its element and not counted; a segment without a line is no element. The band is
+   * present when this is positive or it is shown explicitly (section 6.4, Levels and Empty bands),
+   * and a band record's `band.elements` is this number.
    */
   readonly elements: number;
   /**
@@ -217,7 +219,9 @@ export interface PreparedBand {
    * control band `T × h(9) + (4 + S) + (K − 1) × pj + 2 + h(9)`, or `T × h(9)` without jumps (Flow
    * control). 0 for an absent band, for the children band, whose width its children's layout
    * gives, and for the conversion maps band, `e = w / 2 + J × (g + d)` by its slots (Conversion
-   * maps).
+   * maps). An empty band, shown explicitly and drawing nothing, is at least `Wb` wide
+   * (`emptyBandWidth`), the children and conversion maps bands included: their spans take the
+   * larger of this and the width their layout gives.
    */
   readonly width: number;
   /**
@@ -280,6 +284,17 @@ export interface BandSpan {
  * a row of one band order every band (section 6.4, Rows of one band order).
  */
 export type JointSpans = Readonly<Partial<Record<Facet, BandSpan>>>;
+
+/**
+ * The empty band width `Wb = 6 + 2 + h(9)` (sections 6.2 and 6.4, Empty
+ * bands), `h` the line height of a font size: the least width of a band
+ * shown explicitly that draws nothing, that of a regions band of one row
+ * with one label tier, so the first region added to an empty regions band
+ * moves nothing around it.
+ */
+export function emptyBandWidth(h: (size: number) => number): number {
+  return BRACE + LABEL_GAP + h(EMPTY_BAND_LABEL_SIZE);
+}
 
 /**
  * The side each band of a timeline lies on (section 6.4, The band order):

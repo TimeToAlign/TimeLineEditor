@@ -107,6 +107,12 @@ export interface Entry extends Holder {
   /** Its five bands (sections 2.1 and 2.2): each band's key, held by this timeline, and its style. */
   readonly bands: Readonly<Record<Facet, Holder>>;
   /**
+   * The facets of its bands **shown explicitly** (section 6.4, Empty bands; `Cascade.resolveBand`):
+   * each such band is present at its own line though it draws nothing. Empty for a window, whose
+   * bands join its virtual timeline's line and are never present on their own.
+   */
+  readonly explicit: ReadonlySet<Facet>;
+  /**
    * Its drawing may be drawn (sections 2.4 and 6.4): it is displayed (its own `display` and that
    * of every band holding it, at any depth, are `inline`) and, for any timeline but the root, its
    * parent's drawing may be drawn. A line that is not displayed hides its timeline's whole
@@ -574,9 +580,12 @@ export function traverse(
     const outer = parent?.bands.children ?? holder;
     const key = elementKey(type, idAddress(timeline.id), timeline, outer.key);
     const style = cascade.resolve(key, outer.style);
+    const explicit = new Set<Facet>();
     const band = (facet: Facet): Holder => {
       const own = bandKey(timeline.id, facet, key);
-      return { key: own, style: cascade.resolve(own, style) };
+      const resolved = cascade.resolveBand(own, style);
+      if (resolved.explicit) explicit.add(facet);
+      return { key: own, style: resolved.style };
     };
     const bands = {
       children: band("children"),
@@ -599,6 +608,7 @@ export function traverse(
       first,
       line,
       bands,
+      explicit,
       drawn:
         shown(style) &&
         (parent === undefined || (shown(parent.bands.children.style) && parent.drawn)),
@@ -699,6 +709,7 @@ export function traverse(
           first: false,
           line: false,
           bands,
+          explicit: new Set(),
           drawn: shown(style) && top.drawn,
           window: chunk.index,
         };

@@ -291,10 +291,12 @@ function alignStarts(
       const start = bandStart(facet, level === 0 ? undefined : before.edge, reach, w, S);
       return facet === "children" ? Math.max(start, row.pitch / 2) : start;
     });
+    // An empty band is at least as wide as it is prepared (section 6.4, Empty bands).
     const widthOf = (line: Entry): number => {
-      if (facet === "children") return widths?.get(line) ?? 0;
-      if (facet === "conversion_maps") return slots.get(line)?.width ?? 0;
-      return known(fitted, line).prepared.bands[facet].width;
+      const { width } = known(fitted, line).prepared.bands[facet];
+      if (facet === "children") return Math.max(widths?.get(line) ?? 0, width);
+      if (facet === "conversion_maps") return Math.max(slots.get(line)?.width ?? 0, width);
+      return width;
     };
     const start = Math.max(...starts);
     const width = Math.max(...row.lines.map(widthOf));
@@ -309,9 +311,10 @@ function alignStarts(
  * layout of its lines' children bands, each laid out first; their halves
  * (`childrenHalves`); the common start of each set of bands laid out
  * together, the children bands and the conversion maps bands sharing slots
- * (`resolveStarts`); the children placed (`placeChildren`); then each line
- * of `row` laid out by `layoutTimeline`. Keyed by the row's lines, each
- * drawing holding its subtree.
+ * (`resolveStarts`), an empty children band alone (section 6.4, Empty
+ * bands); the children placed (`placeChildren`); then each line of `row`
+ * laid out by `layoutTimeline` with the spans found. Keyed by the row's
+ * lines, each drawing holding its subtree.
  */
 export function layoutRow(
   row: Row,
@@ -346,8 +349,21 @@ export function layoutRow(
         return each !== undefined && each.side === side ? [each] : [];
       }),
     );
+    // An empty band, shown explicitly, is at least as wide as it is prepared (section 6.4, Empty
+    // bands): a conversion maps band holding no map takes the larger of that and its slots' width.
     for (const each of shared) {
-      sets.push({ facet: "conversion_maps", lines: each.lines, width: () => each.width });
+      sets.push({
+        facet: "conversion_maps",
+        lines: each.lines,
+        width: (line) =>
+          Math.max(each.width, known(fitted, line).prepared.bands.conversion_maps.width),
+      });
+    }
+    // An empty children band, placing no child, is laid out alone from its own start.
+    for (const line of row.lines) {
+      const { prepared } = known(fitted, line);
+      if (prepared.children.length > 0 || !prepared.levels[side].includes("children")) continue;
+      sets.push({ facet: "children", lines: [line], width: () => prepared.bands.children.width });
     }
     if (row.aligned && row.lines.length > 1) {
       alignStarts(row, side, fitted, slots, halves?.widths, spans);
@@ -366,8 +382,10 @@ export function layoutRow(
       const start = spans.get(line)?.conversion_maps?.start;
       const maps =
         lineSlots === undefined || start === undefined ? undefined : { slots: lineSlots, start };
-      const aligned = row.aligned && row.lines.length > 1 ? spans.get(line) : undefined;
-      return [line, layoutTimeline(known(fitted, line).prepared, laid.get(line), maps, aligned)];
+      return [
+        line,
+        layoutTimeline(known(fitted, line).prepared, laid.get(line), maps, spans.get(line) ?? {}),
+      ];
     }),
   );
 }
