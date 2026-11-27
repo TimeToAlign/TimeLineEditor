@@ -111,8 +111,9 @@ test("an opened workspace is fitted; an import into it leaves the view", async (
   await frames(page);
   const fitted = await viewportOf(page);
 
-  const bare = manifestFixture("bare");
-  await pick(page, "Import manifest…", "bare.yaml", bare);
+  // `small` holds `bare` already, which an import refuses.
+  const region = manifestFixture("with_region");
+  await pick(page, "Import manifest…", "with_region.yaml", region);
   await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.small + 1);
   await frames(page);
   expect(await viewportOf(page)).toEqual(fitted);

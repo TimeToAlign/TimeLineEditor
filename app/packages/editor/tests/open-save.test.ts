@@ -125,6 +125,14 @@ async function openBare(): Promise<HTMLInputElement> {
   return input;
 }
 
+/** The messages shown, as [level, text]. */
+function shownMessages(): [string | null, string | undefined][] {
+  return Array.from(document.querySelectorAll('[data-testid="message"]'), (card) => [
+    card.getAttribute("data-level"),
+    card.querySelector("p")?.textContent,
+  ]);
+}
+
 const QUESTION = {
   question: "Add bare.yaml to the open workspace, or open it in a new, empty workspace?",
   answers: ["Add", "New workspace", "Cancel"],
@@ -141,7 +149,7 @@ describe("Open… with a manifest", () => {
 
   it("asks whether to add it, or to open it in a new, empty workspace", async () => {
     start();
-    hook().load(workspaceOf("bare"));
+    hook().load(workspaceOf("nested"));
     const saved = hook().store();
     await openBare();
     await vi.waitFor(() => expect(openDialog()).toEqual(QUESTION));
@@ -154,6 +162,23 @@ describe("Open… with a manifest", () => {
     await vi.waitFor(() => expect(openDialog()).toEqual(QUESTION));
     answer("Add");
     await vi.waitFor(() => expect(blocks()).toBe(2));
+    const [, added] = Object.keys(hook().store().view.blocks);
+
+    hook().select([]);
+    await openBare();
+    await vi.waitFor(() => expect(openDialog()).toEqual(QUESTION));
+    answer("Add");
+    await vi.waitFor(() => expect(hook().selection()).toEqual([{ block: added }]));
+    expect([blocks(), hook().store().journal.length, shownMessages()]).toEqual([
+      2,
+      2,
+      [
+        [
+          "warning",
+          'bare.yaml was not imported: the workspace holds it already, in the block "Anonymous bundle", which is now selected.',
+        ],
+      ],
+    ]);
 
     const downloads = interceptDownloads();
     const unsaved = written();
@@ -424,14 +449,6 @@ describe("MatchClaim tables through a server that offers no files", () => {
     await vi.waitFor(() => expect(hook().health()).toEqual(HEALTH));
     flushSync();
     return { asked, bodies };
-  }
-
-  /** The messages shown, as [level, text]. */
-  function shownMessages(): [string | null, string | undefined][] {
-    return Array.from(document.querySelectorAll('[data-testid="message"]'), (card) => [
-      card.getAttribute("data-level"),
-      card.querySelector("p")?.textContent,
-    ]);
   }
 
   /** The last four bytes of `body`, as text. */

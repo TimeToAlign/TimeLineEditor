@@ -21,7 +21,7 @@ import { DEFAULTS, SCHEMA_VERSION, TIMESTAMP_DISPLAY } from "@timetoalign/timeto
 import type { CommandError, LoadError, Problem } from "../errors.ts";
 import { assertNever, ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { Json, JsonObject, PathSegment } from "../json.ts";
-import { compareCodePoints, isJsonObject, withValueAt } from "../json.ts";
+import { compareCodePoints, isJsonObject, jsonEqual, withValueAt } from "../json.ts";
 import { addressKey, idAddress, sameAddress } from "../manifest/address.ts";
 import type { EntryKind } from "../manifest/files.ts";
 import { ENTRY_KINDS, entriesOf, virtualDrawing } from "../manifest/files.ts";
@@ -40,7 +40,7 @@ import { findTimeline } from "../manifest/tree.ts";
 import type { Elision, Group, Manifest, TimelineManifest } from "../manifest/types.ts";
 import { readName, readObject, readPlaces, toJson, unknownMember } from "../values.ts";
 import { idPath, inBlock, manifestIds, WORKSPACE } from "../workspace/address.ts";
-import type { Block } from "../workspace/blocks.ts";
+import type { Block, BlockId } from "../workspace/blocks.ts";
 import { BLOCK_ID } from "../workspace/blocks.ts";
 import type { Mint } from "../workspace/ids.ts";
 import {
@@ -179,6 +179,40 @@ function addBlock(view: View, value: unknown, changes: ChangeSet): View | Comman
   }
   record(changes, path, id);
   return current;
+}
+
+/** `manifest` without its `graphical` object. */
+function withoutGraphical(manifest: Manifest): Omit<Manifest, "graphical"> {
+  const { graphical: _graphical, ...rest } = manifest;
+  return rest;
+}
+
+/**
+ * The block of `view` that holds `manifest` already, a manifest read from a
+ * file to import; `null` when none does. A manifest with an `id` is held by
+ * the block whose manifest has the same `id`, whatever else differs; one
+ * without an `id` by a block whose manifest has none either and is equal to
+ * it as JSON (`jsonEqual`), the block's `graphical` left out where
+ * `manifest` states none, since importing such a manifest gives it its
+ * roots' default timestamps (`importedManifest`), which are the block's
+ * own. Where several blocks hold it, the first in `view.blocks`.
+ *
+ * Importing refuses a manifest a block holds; the `add` of a block does
+ * not, since a workspace may hold one manifest in several blocks and its
+ * journal replays them.
+ */
+export function blockHolding(view: View, manifest: Manifest): BlockId | null {
+  const compared = (held: Manifest) =>
+    manifest.graphical === undefined ? withoutGraphical(held) : held;
+  for (const { id, manifest: held } of Object.values(view.blocks)) {
+    if (
+      manifest.id !== undefined
+        ? held.id === manifest.id
+        : held.id === undefined && jsonEqual(compared(held), compared(manifest))
+    )
+      return id;
+  }
+  return null;
 }
 
 /**

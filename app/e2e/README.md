@@ -498,7 +498,8 @@ unsaved mark of the header's title ("• untitled" → "untitled", the
 workspace's name) and of the page's title ("untitled.tle.json –
 TimeLineEditor"), Open of that file, which restores the journal
 and the same text, and Save again, which writes the same bytes. Further cases prove that an
-opened workspace is fitted while an import leaves the view, that a refused
+opened workspace is fitted while an import (`with_region.yaml`, a manifest
+`small` does not hold) leaves the view, that a refused
 file is shown with its problem code and leaves the open workspace, and that
 the About pane names the editor, the bundled packages and the server
 (offline in the test build, where no server answers the health check) and
@@ -506,10 +507,11 @@ links a notices file the build serves.
 
 **`open-save.spec.ts`** (Chromium, Firefox, WebKit) proves Open… with a
 manifest and Save in place. With the pickers deleted (the fallback path):
-`bare.yaml` opened into the new, empty workspace is imported without a
-question (one block); opened again, the question "Add bare.yaml to the
-open workspace, or open it in a new, empty workspace?" is asked: Add makes
-two blocks; New workspace downloads the unsaved workspace under
+`nested.yaml` opened into the new, empty workspace is imported without a
+question (one block); `bare.yaml` opened then, the question "Add bare.yaml
+to the open workspace, or open it in a new, empty workspace?" is asked:
+Add makes two blocks (opening a manifest a block holds already is refused,
+`import.spec.ts`); New workspace downloads the unsaved workspace under
 `untitled.tle.json` with exactly the hook's `text()` of before, then
 leaves one block. With pickers stubbed in the page (an open picker handing
 over one in-page file handle holding a workspace file, whose writes are
@@ -574,6 +576,32 @@ option the list holds no item, and the dialog's one status, the note
 list's frame where its first entry would stand, its box 1 px right of and
 below the list's top left corner and within the list's box. In the
 document the note follows the list box, which owns options only.
+
+**`import.spec.ts`** (Chromium) proves that a manifest is imported once and
+that a reload keeps the server connection. With the pickers deleted:
+`flow/virtual_cards.yaml` imported (it has no `id` and no `graphical`, as
+the fixtures imported by hand have none), the selection emptied and the
+same file imported again, the journal stays at one entry and one block,
+the imported block is selected again and one warning reads exactly
+`virtual_cards.yaml was not imported: the workspace holds it already, in
+the block "Virtual cards", which is now selected.`; `bare.yaml`, another
+manifest without an `id`, is then imported (two entries). By `id`:
+`statements/op106_work.yaml` imported (three entries), then the same file
+with its `name` changed to "Op. 106, revised", which is still the manifest
+`op106`: refused (three entries), its block selected, the warning naming
+the block by its name, "Beethoven, Piano Sonata No. 29, Op. 106". The
+connection: the server stubbed in the page's routes answers the health
+check only with `Authorization: Bearer e2e-token`, else 401. Opened at
+`/#token=e2e-token`, the health arrives (the hook's `health()` is the
+answer), the address is the page's root without a fragment, the tab's
+session storage holds the token under `tilie.token` and its local storage
+nothing under that key; reloaded, the health arrives again, no "offline"
+mark is shown, the address is still the root and every health request
+carried `Bearer e2e-token`. A second tab of the same browser context,
+opened at the root, has no token (its health request carries `Bearer`,
+the empty token's header as the browser trims it)
+and shows the "offline" mark: the token belongs to the tab it was handed
+to.
 
 **`matchclaim-loading.spec.ts`** (Chromium) proves that Show matches loads
 the MatchClaim table a manifest names while a server answers, and asks

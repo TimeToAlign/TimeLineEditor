@@ -1397,6 +1397,38 @@ no kind; a band order is no placement but the manifest's.
    its four published vectors, refusal of invalid keys and unordered
    bounds, and generated keys strictly between their bounds.
 
+## A manifest held already (`held.test.ts`)
+
+Importing a manifest a block of the workspace holds already is refused
+(the editor's import says which block); `blockHolding(view, manifest)` is
+the one rule saying which block that is. What would prove it wrong: a rule
+on `id` alone misses the schema fixtures, which have none; a rule on the
+whole value misses every manifest without `graphical`, since its import
+gives its roots default timestamps of minted, different IDs (two imports
+of `flow/virtual_cards` differ in nothing else); a rule that ignores
+`graphical` always refuses two manifests that differ in their styling. So
+the cases import through what an import does (`importedManifest`, two
+minters of different seeds where two imports are compared) and pin the
+answer, a block ID or `null`:
+
+1. **No block**: an empty view holds nothing (`null`).
+2. **Without `id`, with `graphical`**, compared whole: in a view of `A`
+   `bare` and `B` `nested`, `bare` is held by `A` and `nested` by `B`;
+   `with_region` by none. `A` holding `bare` renamed "Edited" (a `set`)
+   holds `bare` no more: an edited manifest is another one.
+3. **Without `id`, without `graphical`**: `A` holding `flow/virtual_cards`
+   as imported (seed 1) holds the file's manifest (`A`), the block's
+   default timestamps left out; the file's manifest renamed "Other cards"
+   is held by none. Imported once more (seed 2), now with a `graphical` of
+   its own, it is compared whole and held by none.
+4. **With `id`**, compared by `id` alone: `A` holding `bare` with `id`
+   `work` holds `bare` with `id` `work` renamed "Edited" (`A`); `bare`
+   with `id` `other` and `bare` without `id` are held by none; and `B`
+   holding `bare` without `id` does not hold `bare` with `id` `bare`.
+5. **Several blocks**: with `A` and `B` both holding `bare` (a workspace
+   may; the `add` of a block refuses nothing for it), the answer is `A`,
+   the first in `view.blocks`.
+
 ## Minted IDs (`minting.test.ts`)
 
 Every element a command creates without an ID of its own (a named
