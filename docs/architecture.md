@@ -437,7 +437,7 @@ The canvas reads its keys before Svelte Flow does, from one table (`keys.ts`) wh
 | M | Show matches on or off, likewise; it and Show coordinates take turns |
 | Escape | Cancel a gesture; otherwise clear the selection; otherwise close the innermost editor |
 
-Svelte Flow pans on the wheel and zooms only with Ctrl or Cmd held; a touchpad pinch, reported as a wheel event with Ctrl, zooms too. Outside macOS, Chromium and Firefox already report a Shift wheel as horizontal travel, which Svelte Flow would discard, so the canvas pans it itself at Svelte Flow's speed (`gestures/wheel.ts`).
+Svelte Flow pans on the wheel and zooms only with Ctrl or Cmd held; a touchpad pinch, reported as a wheel event with Ctrl, zooms too. Svelte Flow decides a Shift wheel by the user agent; the canvas pans every Shift wheel travelling along one axis itself, horizontally, whatever the platform, at Svelte Flow's speed (`gestures/wheel.ts`).
 
 The Lock button, or L, locks the canvas: a drag on a block pans instead of moving it, an arranged block or item is not dragged, the arrow keys move nothing, the Arrange menu is disabled (and with it the inspector's level tab's arrangement, [The inspector](#the-inspector)), a drag on a band pans and the band keys move nothing, and the resize handles are hidden with the mode buttons disabled. Selecting, deleting, reordering, panning and zooming stay available. A read-only canvas offers no lock button.
 
