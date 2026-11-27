@@ -85,7 +85,7 @@ export const INITIAL_STYLE: Style = {
   content: "none",
   "max-width": "none",
   rotation: null,
-  "elision-mode": "auto",
+  "elision-mode": "custom",
   "elision-proportion": "auto",
   "elision-depths": "auto",
   "elision-display": "ellipsis name",

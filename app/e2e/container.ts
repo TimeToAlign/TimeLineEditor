@@ -17,6 +17,11 @@ export interface ContainerOptions {
   readonly linkedPackage: string | null;
   /** The Playwright image. */
   readonly image: string;
+  /**
+   * A directory of data some specs read that lies outside `app/` (the musical themes dataset,
+   * `MUSICAL_THEMES_DATASET`), mounted read-only at its own path; `null` for none.
+   */
+  readonly dataset?: string | null;
   /** The names of the host variables passed into the container, with their host values. */
   readonly env: readonly string[];
   /** The `playwright test` arguments. */
@@ -42,9 +47,11 @@ function isInside(root: string, directory: string): boolean {
  * sibling checkout is reached through a symbolic link, again at the path the
  * links in `node_modules` name, which the container resolves lexically; each
  * is relabelled (`z`) as the app's volume is, for hosts that enforce SELinux.
+ * A data directory outside `app/` is mounted read-only at its own path after
+ * them, so a spec reading it finds it where the host's variable names it.
  */
 export function podmanArguments(options: ContainerOptions): string[] {
-  const { appRoot, schemaPackage, linkedPackage, image, env, args } = options;
+  const { appRoot, schemaPackage, linkedPackage, image, env, args, dataset = null } = options;
   const targets = new Set([schemaPackage, linkedPackage ?? schemaPackage]);
   return [
     "run",
@@ -56,6 +63,9 @@ export function podmanArguments(options: ContainerOptions): string[] {
     ...[...targets]
       .filter((target) => !isInside(appRoot, target))
       .map((target) => `--volume=${schemaPackage}:${target}:ro,z`),
+    ...(dataset === null || isInside(appRoot, dataset)
+      ? []
+      : [`--volume=${dataset}:${dataset}:ro,z`]),
     `--workdir=${appRoot}`,
     ...env.map((name) => `--env=${name}`),
     image,

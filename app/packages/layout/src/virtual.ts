@@ -14,7 +14,6 @@
 
 import type { Places } from "@timetoalign/tilie-core";
 import {
-  compareCodePoints,
   FlowMapError,
   type Manifest,
   placeAt,
@@ -26,6 +25,7 @@ import {
   type GroupFrame,
   type MemberDrawing,
   memberDrawings,
+  ungroupedVirtuals,
   virtualDrawing,
   withVirtualMembers,
 } from "@timetoalign/tilie-core/drawing";
@@ -150,7 +150,7 @@ export function isVirtualMember(manifest: Manifest, member: MemberDrawing): bool
  * What the block of `manifest` draws as roots (section 8.1), `places` its
  * placement's places: every group's frame with its members, virtual ones
  * included, in display order; the ungrouped roots; and the placed virtual
- * timelines, in canonical order.
+ * timelines; each in core's name order (`compareByName`).
  */
 export function drawnRoots(manifest: Manifest, places: Places): DrawnRoots {
   const core = memberDrawings(manifest);
@@ -168,10 +168,8 @@ export function drawnRoots(manifest: Manifest, places: Places): DrawnRoots {
       }),
     };
   });
-  const grouped = new Set(manifest.groups.flatMap((group) => group.members));
-  const placed = [...virtual]
-    .filter((item) => !grouped.has(item.id) && placeAt(places, { item: item.id }) !== undefined)
-    .sort((left, right) => compareCodePoints(left.id, right.id))
+  const placed = ungroupedVirtuals(manifest)
+    .filter((item) => placeAt(places, { item: item.id }) !== undefined)
     .map((item) => virtualMember(manifest, item));
   return { frames, ungrouped: core.ungrouped, placed };
 }

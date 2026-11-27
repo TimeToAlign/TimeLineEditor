@@ -32,7 +32,13 @@ import {
 } from "./address.ts";
 import { ELISION_LABELS, elisionsOn, elisionsUnder, groupElisions } from "./elisions.ts";
 import type { GroupFrame, MemberDrawing } from "./files.ts";
-import { isNamed, memberDrawings, virtualDrawing, withVirtualMembers } from "./files.ts";
+import {
+  isNamed,
+  memberDrawings,
+  ungroupedVirtuals,
+  virtualDrawing,
+  withVirtualMembers,
+} from "./files.ts";
 import { FLOW_LINE_ROLES, type FlowLineRole, flowSymbols } from "./flow.ts";
 import { FlowMapError, resolveFlowMap } from "./flowmaps.ts";
 import type { Unfolding } from "./switched.ts";
@@ -984,11 +990,7 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
   for (const member of ungrouped) {
     memberElements(ordered, member, BLOCK_KEY, keys, "card", null, true, rootFlow(ordered, member));
   }
-  const grouped = new Set(ordered.groups.flatMap((group) => group.members));
-  const placeable = (ordered.virtual_timelines ?? [])
-    .map((virtual) => virtual.id)
-    .filter((id) => !grouped.has(id))
-    .sort(compareCodePoints);
+  const placeable = ungroupedVirtuals(ordered).map((virtual) => virtual.id);
   for (const id of placeable) {
     const member = virtualDrawing(ordered, id);
     if (member === undefined) throw new Error(`'${id}' is a virtual timeline`);

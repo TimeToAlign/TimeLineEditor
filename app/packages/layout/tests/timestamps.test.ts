@@ -592,7 +592,7 @@ describe("the marks at any position", () => {
     content: "none",
     "max-width": "none",
     rotation: 0,
-    "elision-mode": "auto",
+    "elision-mode": "custom",
     "elision-proportion": "auto",
     "elision-depths": "auto",
     "elision-display": "ellipsis name",

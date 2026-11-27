@@ -26,6 +26,7 @@ import {
   widthAs,
 } from "../src/index.ts";
 import {
+  AUTO_ELISIONS,
   at,
   build,
   edit,
@@ -60,6 +61,9 @@ const elisionOn = (timeline: string, elision: object, id: string): object => ({
   elision,
   ids: [id],
 });
+
+/** The layer letting every ancestor card derive its elisions, as a list of layers. */
+const AUTO: Graphical[] = [AUTO_ELISIONS];
 
 /** A layer of one rule hiding the element `id`. */
 const hiding = (id: string): Graphical[] => [
@@ -209,7 +213,7 @@ const cardAt = (drawing: Drawing, root: string) =>
   );
 
 describe("derived elisions with their middles left out", () => {
-  const drawing = drawn("groups/group_elided_inside");
+  const drawing = drawn("groups/group_elided_inside", AUTO);
   const card = exposureOf(drawing, { item: "group_1", member: "piece" });
 
   it("take r = 1/7 on depths 1 and 2", () => {
@@ -285,7 +289,7 @@ describe("derived elisions with their middles left out", () => {
 
 describe("derived elisions on a fraction axis", () => {
   it("leave out each movement's middle", () => {
-    const card = exposureOf(drawn("bundles/bundle_elided_layerit"), {
+    const card = exposureOf(drawn("bundles/bundle_elided_layerit", AUTO), {
       item: "group_3",
       member: "clt_1",
     });
@@ -302,11 +306,11 @@ describe("derived elisions on a fraction axis", () => {
 });
 
 describe("group elisions", () => {
-  const drawing = drawn("groups/group_elided_members");
+  const drawing = drawn("groups/group_elided_members", AUTO);
   const frame = exposureOf(drawing, { item: "group_1" });
 
   it("are drawn across the frame, which shortens by their shrinks", () => {
-    expect([frame.kind, frame.mode, frame.drawn]).toEqual(["frame", "auto", "custom"]);
+    expect([frame.kind, frame.mode, frame.drawn]).toEqual(["frame", "custom", "custom"]);
     expect(frame.gaps.map(gapShape)).toEqual([
       [at("elision_1"), "stored", "excerpt", "2", "8", 150, 32],
       [at("elision_2"), "stored", "phrase", "2", "6", 66.66666666666666, 33.33333333333333],
@@ -416,7 +420,7 @@ describe("group elisions", () => {
     }
     const manifest = loadManifest(dumps(value));
     if (isLoadError(manifest)) throw new Error(manifest.problems[0]?.message);
-    const floated = drawnManifest(manifest);
+    const floated = drawnManifest(manifest, AUTO);
     const runs = floated.axes.filter(
       (axis) => axis.address.id === "piece" && axis.ancestor !== undefined,
     );
@@ -453,6 +457,7 @@ describe("group elisions", () => {
 
   it("are left out under the frame's mode full", () => {
     const full = drawn("groups/group_elided_members", [
+      ...AUTO,
       { rules: [{ select: { addresses: [{ id: "group_1" }] }, set: { "elision-mode": "full" } }] },
     ]);
     expect(exposureOf(full, { item: "group_1" }).gaps).toEqual([]);
@@ -615,13 +620,14 @@ describe("the ancestor-row distance at a stated proportion", () => {
     "bundles/bundle_elided_layerit",
     onCards("clt_1", { "elision-mode": "proportional", "elision-proportion": 0.125 }),
   );
-  const groups = ["group_1", "group_2", "group_3", "group_4"];
+  // The groups in drawing order, by their titles: Clair de Lune, Menuet, Passepied, Prelude.
+  const groups = ["group_3", "group_2", "group_4", "group_1"];
   // Each group's excerpt and the movement holding it.
   const members = [
-    ["clt_6", "clt_2"],
-    ["clt_7", "clt_3"],
     ["clt_8", "clt_4"],
+    ["clt_7", "clt_3"],
     ["clt_9", "clt_5"],
+    ["clt_6", "clt_2"],
   ] as const;
 
   it("derives every movement's gap, named, at r = 0.125", () => {
@@ -739,7 +745,10 @@ describe("a cut piece", () => {
 
 describe("modes", () => {
   const card = (extra: Graphical[]) =>
-    exposureOf(drawn("groups/group_elided_inside", extra), { item: "group_1", member: "piece" });
+    exposureOf(drawn("groups/group_elided_inside", [...AUTO, ...extra]), {
+      item: "group_1",
+      member: "piece",
+    });
 
   it("full and custom draw no gap where nothing is stored", () => {
     for (const mode of ["full", "custom"]) {
@@ -772,10 +781,10 @@ describe("modes", () => {
   });
 
   it("labels on the derived elisions", () => {
-    const drawing = drawn(
-      "groups/group_elided_inside",
-      onCards("piece", { "elision-display": "ellipsis name coordinate" }),
-    );
+    const drawing = drawn("groups/group_elided_inside", [
+      ...AUTO,
+      ...onCards("piece", { "elision-display": "ellipsis name coordinate" }),
+    ]);
     expect(labelTexts(drawing, derived("first"))).toEqual(["First", "0–8 ♩", "First", "16–32 ♩"]);
     expect(labelTexts(drawing, derived("second"))).toEqual(["Second", "1–31 ♩"]);
   });
@@ -820,7 +829,7 @@ describe("ellipses", () => {
   });
 
   it("is none on a crossing row but the gap's middle", () => {
-    const drawing = drawn("bundles/bundle_shared_parent", [ROOT_ARCS_ALONE]);
+    const drawing = drawn("bundles/bundle_shared_parent", [...AUTO, ROOT_ARCS_ALONE]);
     const gaps = drawing.elements.filter((element) => element.type === "elision");
     // Each of `score`'s two ancestor cards derives one gap cutting `score`'s line and its map
     // `cmap_1`; the gap keeps one ellipsis, at the middle of its card, and the name `Score` below.
@@ -913,7 +922,7 @@ describe("the label stacks of neighbouring gaps", () => {
   });
 
   it("are tiered on LayerIt's ancestor cards", () => {
-    const shown = drawn("bundles/bundle_elided_layerit");
+    const shown = drawn("bundles/bundle_elided_layerit", AUTO);
     expect(["group_1", "group_2", "group_3", "group_4"].map((g) => linesBehind(shown, g))).toEqual([
       [
         ["Prelude", 1],
@@ -959,7 +968,8 @@ describe("the label stacks of neighbouring gaps", () => {
 
   it("never cover one another", () => {
     const drawings = [
-      ...manifestNames().map((name) => drawn(name)),
+      // Under `auto` every card draws its stored elisions or derives its own.
+      ...manifestNames().map((name) => drawn(name, AUTO)),
       layerItAt({ width: 1024, height: 640 }),
     ];
     for (const drawing of drawings) {
@@ -986,14 +996,14 @@ function layerItAt(view: { width: number; height: number }): Drawing {
   return draw(
     manifest,
     { ...DEFAULT_PLACEMENT, view },
-    [DEFAULT_LAYER, manifestLayer(manifest)],
+    [DEFAULT_LAYER, ...AUTO, manifestLayer(manifest)],
     metrics,
   );
 }
 
 describe("the frame's room", () => {
   it("puts what lies outside the member's span outside the frame", () => {
-    const drawing = drawn("groups/group_elided_inside");
+    const drawing = drawn("groups/group_elided_inside", AUTO);
     const frame = drawing.boxes.find((box) => box.kind === "frame");
     if (frame === undefined) throw new Error("no frame");
     const gaps = of(drawing, "elision", derived("first"));
@@ -1048,7 +1058,7 @@ describe("an ancestor card of length 0", () => {
     const { manifest: value } = loads(readFileSync(file, "utf8")) as { manifest: unknown };
     const manifest = loadManifest(dumps(value));
     if (isLoadError(manifest)) throw new Error(manifest.problems[0]?.message);
-    const drawing = drawnManifest(manifest);
+    const drawing = drawnManifest(manifest, AUTO);
     const card = drawing.elisions.filter((exposure) => exposure.kind === "ancestor_card");
     expect(card.map((exposure) => [exposure.mode, exposure.proportion])).toEqual([["auto", 0]]);
     expect(

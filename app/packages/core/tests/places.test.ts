@@ -192,7 +192,8 @@ describe("places, display orders and band orders, accepted", () => {
     const deleted = after(start, set("group_1", { order: null }));
     const { manifest } = block(deleted, ID);
     expect(manifest.graphical?.order).toEqual({ group_2: ["page", "excerpt"] });
-    const [frame] = memberDrawings(manifest).frames;
+    // `group_1` ("Performance") is the second frame in name order, after "Facsimile".
+    const frame = memberDrawings(manifest).frames.find((each) => each.group.id === "group_1");
     expect(frame?.members.map((member) => member.timeline.id)).toEqual(["performance", "score"]);
   });
 

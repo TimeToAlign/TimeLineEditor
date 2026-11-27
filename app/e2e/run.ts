@@ -8,8 +8,9 @@
  * is started directly; elsewhere the same command is re-run through rootless
  * podman with the app directory mounted at its own path, the host network
  * (the preview server and the browsers share it) and the host IPC namespace
- * (Chromium's shared memory), and `CI` and `TILIE_E2E_WORKERS` passed in
- * when set. A schema package linked from a sibling checkout lies outside the
+ * (Chromium's shared memory), and `CI`, `TILIE_E2E_WORKERS` and
+ * `MUSICAL_THEMES_DATASET` passed in when set, the dataset's directory
+ * mounted read-only at its own path. A schema package linked from a sibling checkout lies outside the
  * app directory; it is mounted read-only at its own path as well, and at the
  * path the links name when the sibling checkout is reached through a
  * symbolic link (`container.ts`).
@@ -31,7 +32,14 @@ const { version } = JSON.parse(
 const image = `mcr.microsoft.com/playwright:v${version}-noble`;
 const args = process.argv.slice(2);
 /** The variables the configuration reads, passed into the container when set. */
-const env = ["CI", "TILIE_E2E_WORKERS"].filter((name) => process.env[name]);
+const env = ["CI", "TILIE_E2E_WORKERS", "MUSICAL_THEMES_DATASET"].filter(
+  (name) => process.env[name],
+);
+/** The musical themes dataset's directory, which `bundle.spec.ts` reads; `null` when not named. */
+const dataset =
+  process.env.MUSICAL_THEMES_DATASET === undefined
+    ? null
+    : path.resolve(process.env.MUSICAL_THEMES_DATASET);
 
 /** The real directory of the `@timetoalign/timetoshare` the packages resolve. */
 const schemaPackage = realpathSync(
@@ -57,7 +65,7 @@ const run = inImage
   ? spawnSync(process.execPath, [cli, "test", ...args], { cwd: appRoot, stdio: "inherit" })
   : spawnSync(
       "podman",
-      podmanArguments({ appRoot, schemaPackage, linkedPackage, image, env, args }),
+      podmanArguments({ appRoot, schemaPackage, linkedPackage, image, env, args, dataset }),
       {
         stdio: "inherit",
       },

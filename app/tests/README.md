@@ -74,8 +74,9 @@ container only if it is mounted. `podmanArguments` (`e2e/container.ts`)
 builds the `podman run` arguments from the app directory, that real
 directory, the linked path (the link's target resolved lexically from the
 link's directory, or none when the package is not a symbolic link), the
-image, the names of the host variables to pass into the container (`CI` and
-`TILIE_E2E_WORKERS`, each only when set) and the Playwright arguments; it is
+image, the names of the host variables to pass into the container (`CI`,
+`TILIE_E2E_WORKERS` and `MUSICAL_THEMES_DATASET`, each only when set), a data
+directory to mount (the dataset's, or none) and the Playwright arguments; it is
 a pure function, so every case is pinned without starting a container.
 
 What proves it, with app directory `/w/app` and image `img`:
@@ -109,3 +110,10 @@ What proves it, with app directory `/w/app` and image `img`:
    --volume=/w/TimeToShare/js:/w/link/TimeToShare/js:ro,z`. Mounted at its
    real path alone, the links in `node_modules` would name a directory the
    container does not have.
+5. **A data directory outside `app/`** (`/data/themes`, the musical themes
+   dataset `bundle.spec.ts` reads, its variable `MUSICAL_THEMES_DATASET`
+   passed): exactly one more volume, `--volume=/data/themes:/data/themes:ro,z`,
+   after the app's (and any schema package's) and before `--workdir`, and
+   `--env=MUSICAL_THEMES_DATASET` after it, so the spec finds the directory
+   where the host's variable names it; a data directory inside `app/`
+   (`/w/app/data`) or none adds nothing.

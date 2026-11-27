@@ -777,11 +777,12 @@ describe("the secondary coordinates of a card", () => {
       expect(card.secondaries.size).toBe(0);
       expect(card.stamps.filter((stamp) => stamp.timestamp.id === "timestamp_1").length).toBe(1);
     }
+    // The frames in name order: "Page" `g2` (holding `v`) before "Performance" `g1` (`u`).
     expect(secondaryKeys(manifest)).toEqual([
-      ["wedge", id("timestamp_1"), "u", "block frame timeline band"],
-      ["label", id("timestamp_1", "name"), "u", "block frame timeline band"],
       ["wedge", id("timestamp_1"), "v", "block frame timeline band"],
       ["label", id("timestamp_1", "name"), "v", "block frame timeline band"],
+      ["wedge", id("timestamp_1"), "u", "block frame timeline band"],
+      ["label", id("timestamp_1", "name"), "u", "block frame timeline band"],
     ]);
   });
 

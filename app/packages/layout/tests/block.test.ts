@@ -224,40 +224,42 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
       anchor: "start",
       text: "Mixed",
     });
-    expect(rect(drawing, at("group_1"))).toEqual({
+    // The frames in name order: "Facsimile" (`group_2`) first, 157.7578125 high, then
+    // "Performance" (`group_1`) the spacing 8 below it, at 28.8046875 + 157.7578125 + 8.
+    expect(rect(drawing, at("group_2"))).toEqual({
       x: 8,
       y: 28.8046875,
       width: 561.052001953125,
-      height: 169.234375,
-    });
-    expect(rect(drawing, at("group_2"))).toEqual({
-      x: 8,
-      y: 206.0390625,
-      width: 561.052001953125,
       height: 157.7578125,
     });
-    expect([title(drawing, at("group_1", "name")), title(drawing, at("group_2", "name"))]).toEqual([
-      { x: 16, baseline: 47.01513671875, anchor: "start", text: "Performance" },
-      { x: 16, baseline: 224.24951171875, anchor: "start", text: "Facsimile" },
+    expect(rect(drawing, at("group_1"))).toEqual({
+      x: 8,
+      y: 194.5625,
+      width: 561.052001953125,
+      height: 169.234375,
+    });
+    expect([title(drawing, at("group_2", "name")), title(drawing, at("group_1", "name"))]).toEqual([
+      { x: 16, baseline: 47.01513671875, anchor: "start", text: "Facsimile" },
+      { x: 16, baseline: 212.77294921875, anchor: "start", text: "Performance" },
     ]);
     expect(
-      ["score", "performance", "page", "excerpt", "annotations"].map((id) =>
+      ["page", "excerpt", "score", "performance", "annotations"].map((id) =>
         rect(drawing, at(id, "card")),
       ),
     ).toEqual([
-      { x: 16, y: 53.609375, width: 545.052001953125, height: 78.953125 },
-      { x: 16, y: 140.5625, width: 545.052001953125, height: 49.4765625 },
-      { x: 16, y: 230.84375, width: 545.052001953125, height: 49.4765625 },
-      { x: 16, y: 288.3203125, width: 545.052001953125, height: 67.4765625 },
+      { x: 16, y: 53.609375, width: 545.052001953125, height: 49.4765625 },
+      { x: 16, y: 111.0859375, width: 545.052001953125, height: 67.4765625 },
+      { x: 16, y: 219.3671875, width: 545.052001953125, height: 78.953125 },
+      { x: 16, y: 306.3203125, width: 545.052001953125, height: 49.4765625 },
       { x: 8, y: 371.796875, width: 561.052001953125, height: 71.85546875 },
     ]);
     expect(
-      ["score", "performance", "page", "excerpt", "annotations"].map((id) => line(drawing, id)),
+      ["page", "excerpt", "score", "performance", "annotations"].map((id) => line(drawing, id)),
     ).toEqual([
-      { xs: 126.29150390625, y: 73.109375 },
-      { xs: 126.29150390625, y: 155.0625 },
-      { xs: 126.29150390625, y: 245.34375 },
-      { xs: 126.29150390625, y: 302.8203125 },
+      { xs: 126.29150390625, y: 68.109375 },
+      { xs: 126.29150390625, y: 125.5859375 },
+      { xs: 126.29150390625, y: 238.8671875 },
+      { xs: 126.29150390625, y: 320.8203125 },
       { xs: 126.29150390625, y: 386.19921875 },
     ]);
   });
@@ -269,14 +271,14 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
     expect(boxes).toEqual([
       BUNDLE_ADDRESS,
       TITLE_ADDRESS,
-      at("group_1"),
-      at("group_1", "name"),
-      at("score", "card"),
-      at("performance", "card"),
       at("group_2"),
       at("group_2", "name"),
       at("page", "card"),
       at("excerpt", "card"),
+      at("group_1"),
+      at("group_1", "name"),
+      at("score", "card"),
+      at("performance", "card"),
       at("annotations", "card"),
     ]);
     // Each card comes right before its member drawing, which opens with its maps, regions and
@@ -295,8 +297,9 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
       const next = indexOf(at(member, "card")) + 1;
       expect(addresses.slice(next, next + first.length), member).toEqual(first);
     }
-    // The last member's name lies in the first frame's range, 2 up to 23; the second frame opens at 23.
-    expect([indexOf(at("performance", "name")), indexOf(at("group_2"))]).toEqual([20, 23]);
+    // The last member's name lies in its frame's range, 26 up to 47, 18 after the frame opens, as
+    // it lay in the range 2 up to 23 when that frame came first.
+    expect([indexOf(at("performance", "name")), indexOf(at("group_1"))]).toEqual([44, 26]);
   });
 
   it("records the block, then each frame and card in drawing order, each with its holder", () => {
@@ -311,35 +314,35 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
       ]),
     ).toEqual([
       ["block", null, BUNDLE_ADDRESS, null, { start: 0, end: 60 }],
-      ["frame", { item: "group_1" }, at("group_1"), null, { start: 2, end: 23 }],
-      [
-        "card",
-        { item: "group_1", member: "score" },
-        at("score", "card"),
-        { item: "group_1" },
-        { start: 4, end: 15 },
-      ],
-      [
-        "card",
-        { item: "group_1", member: "performance" },
-        at("performance", "card"),
-        { item: "group_1" },
-        { start: 15, end: 23 },
-      ],
-      ["frame", { item: "group_2" }, at("group_2"), null, { start: 23, end: 47 }],
+      ["frame", { item: "group_2" }, at("group_2"), null, { start: 2, end: 26 }],
       [
         "card",
         { item: "group_2", member: "page" },
         at("page", "card"),
         { item: "group_2" },
-        { start: 25, end: 33 },
+        { start: 4, end: 12 },
       ],
       [
         "card",
         { item: "group_2", member: "excerpt" },
         at("excerpt", "card"),
         { item: "group_2" },
-        { start: 33, end: 47 },
+        { start: 12, end: 26 },
+      ],
+      ["frame", { item: "group_1" }, at("group_1"), null, { start: 26, end: 47 }],
+      [
+        "card",
+        { item: "group_1", member: "score" },
+        at("score", "card"),
+        { item: "group_1" },
+        { start: 28, end: 39 },
+      ],
+      [
+        "card",
+        { item: "group_1", member: "performance" },
+        at("performance", "card"),
+        { item: "group_1" },
+        { start: 39, end: 47 },
       ],
       ["card", { item: "annotations" }, at("annotations", "card"), null, { start: 47, end: 58 }],
     ]);
@@ -350,8 +353,8 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
       ["cross_section", at("timestamp_4", "line")],
     ]);
     expect(itemsOf(drawing).map((box) => box.key)).toEqual([
-      { item: "group_1" },
       { item: "group_2" },
+      { item: "group_1" },
       { item: "annotations" },
     ]);
   });
@@ -366,10 +369,10 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
     });
     const members = boxesOf(drawing, "card").filter((box) => box.holder !== null);
     expect(members.map(({ contentCount, card }) => ({ contentCount, ...card }))).toEqual([
-      sized(78.953125, 4),
-      sized(49.4765625, 3),
       sized(49.4765625, 3),
       sized(67.4765625, 4),
+      sized(78.953125, 4),
+      sized(49.4765625, 3),
     ]);
     for (const box of members) {
       expect([box.x, box.y, box.width, box.height]).toEqual(
@@ -383,10 +386,10 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
       facets.map((facet) => [bandAddress(timeline, facet), card]);
     const member = (item: string, member: string): PlaceKey => ({ item, member });
     expect(boxesOf(drawing, "band").map((box) => [box.address, box.holder])).toEqual([
-      ...held("score", member("group_1", "score"), ["conversion_maps", "markers", "flow_control"]),
-      ...held("performance", member("group_1", "performance"), ["conversion_maps", "markers"]),
       ...held("page", member("group_2", "page"), ["conversion_maps", "markers"]),
       ...held("excerpt", member("group_2", "excerpt"), ["conversion_maps", "markers"]),
+      ...held("score", member("group_1", "score"), ["conversion_maps", "markers", "flow_control"]),
+      ...held("performance", member("group_1", "performance"), ["conversion_maps", "markers"]),
       ...held("annotations", { item: "annotations" }, ["markers", "regions"]),
     ]);
     for (const box of boxesOf(drawing, "band")) {
@@ -420,7 +423,7 @@ describe("hidden titles", () => {
       hide({ part: ["name"] }),
     ]);
     expect(drawing.elements.some((item) => sameAddress(item.address, TITLE_ADDRESS))).toBe(false);
-    expect(rect(drawing, at("group_1"))).toMatchObject({ y: 8 });
+    expect(rect(drawing, at("group_2"))).toMatchObject({ y: 8 });
     expect(rect(drawing, at("annotations", "card"))).toMatchObject({ y: 350.9921875 });
     expect(drawing.height).toBe(432.84765625);
   });

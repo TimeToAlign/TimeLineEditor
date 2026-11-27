@@ -351,7 +351,8 @@ describe("anchors in drawings of their own", () => {
       ],
     );
     const drawing = drawn(manifest);
-    // `t`'s cards in `g1`'s and `g2`'s frames; `u`'s below the first, `v`'s below the second.
+    // `t`'s cards in the frames of "Page" `g2` and "Performance" `g1`, in name order; `v`'s below
+    // the first, `u`'s below the second.
     const [first, second] = cards(drawing, "t");
     if (first === undefined || second === undefined) throw new Error("t is drawn twice");
     const x = 302.29150390625;
@@ -360,8 +361,8 @@ describe("anchors in drawings of their own", () => {
       span(x, second.top, second.bottom),
     ]);
     expect(anchorsOf(drawing)).toEqual([
-      { address: { id: "anchor_1" }, x1: x, y1: first.bottom, x2: x, y2: card(drawing, "u").top },
-      { address: { id: "anchor_2" }, x1: x, y1: card(drawing, "v").top, x2: x, y2: second.bottom },
+      { address: { id: "anchor_1" }, x1: x, y1: second.bottom, x2: x, y2: card(drawing, "u").top },
+      { address: { id: "anchor_2" }, x1: x, y1: card(drawing, "v").top, x2: x, y2: first.bottom },
     ]);
   });
 
@@ -393,7 +394,8 @@ describe("anchors in drawings of their own", () => {
       {
         address: { id: "anchor_1", part: ["name"] },
         x: 302.29150390625,
-        baseline: centredOn(((cards(drawing, "t")[0]?.bottom ?? 0) + card(drawing, "u").top) / 2),
+        // `t`'s card nearest `u`'s: the second, in the frame of "Performance" `g1`.
+        baseline: centredOn(((cards(drawing, "t")[1]?.bottom ?? 0) + card(drawing, "u").top) / 2),
         anchor: "middle",
         text: "Half",
       },

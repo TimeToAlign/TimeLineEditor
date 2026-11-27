@@ -181,6 +181,15 @@ export const ROOT_ARCS_ALONE: Graphical = {
 };
 
 /**
+ * An application layer letting every ancestor card derive its elisions: `elision-mode` `auto`
+ * (section 8.9), the layer the specification's worked examples of derived elisions name, the
+ * initial mode `custom` deriving none.
+ */
+export const AUTO_ELISIONS: Graphical = {
+  rules: [{ select: { element: "ancestor_card" }, set: { "elision-mode": "auto" } }],
+};
+
+/**
  * An application layer hiding the regions band of every timeline held by a
  * band, which the defaults show (section 4): the drawings of a test whose
  * subject is not a child's regions keep the derivations made without them.

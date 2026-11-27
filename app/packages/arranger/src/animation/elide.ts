@@ -535,15 +535,25 @@ const FADES: Motion = { across: null, dy: 0, enters: true };
 
 /**
  * How every item of `after` (a group's frame, an ungrouped root's card)
- * whose place on the canvas `before` drew elsewhere moves: each element of
- * its range translated, from where `before` drew the item (its place less
- * the place origin's, so a moved origin is no move) to where `after` draws
- * it; an item drawn at the same place moves nothing.
+ * whose place on the canvas `before` drew elsewhere moves, and with it every
+ * ancestor card lying behind one frame alone, which moves with its frame
+ * (a root drawn once behind a row lies behind several and moves by
+ * `blockMotion`): each element of its range translated, from where `before`
+ * drew it (its place less the place origin's, so a moved origin is no move)
+ * to where `after` draws it; one drawn at the same place moves nothing.
  */
 export function itemMotions(before: Drawing, after: Drawing): CardMotion[] {
   return after.boxes.flatMap((box): CardMotion[] => {
-    if (!isItem(box)) return [];
-    const was = keyedBox(before, box.key);
+    const { key } = box;
+    if (key === null) return [];
+    const behindOne = box.ancestor !== undefined && box.ancestor.groups.length === 1;
+    if (!isItem(box) && !behindOne) return [];
+    const was = behindOne
+      ? before.boxes.find(
+          (other) =>
+            other.ancestor !== undefined && other.key !== null && samePlaceKey(other.key, key),
+        )
+      : keyedBox(before, key);
     if (was === undefined) return [];
     const dx = box.x - after.origin.x - (was.x - before.origin.x);
     const dy = box.y - after.origin.y - (was.y - before.origin.y);
@@ -556,7 +566,7 @@ export function itemMotions(before: Drawing, after: Drawing): CardMotion[] {
     const { start, end } = box.range;
     return [
       {
-        key: placeKeyText(box.key),
+        key: placeKeyText(key),
         holds: (index) => index >= start && index < end,
         motionOf: () => motion,
       },

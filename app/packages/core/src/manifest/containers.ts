@@ -18,7 +18,6 @@
  */
 
 import type { ElementType } from "@timetoalign/timetoshare";
-import { compareCodePoints } from "../json.ts";
 import type { ElementAddress, Facet } from "./address.ts";
 import {
   BUNDLE_ADDRESS,
@@ -30,7 +29,7 @@ import {
 } from "./address.ts";
 import { orderedChildren } from "./elements.ts";
 import type { AncestorCard } from "./files.ts";
-import { memberDrawings } from "./files.ts";
+import { memberDrawings, ungroupedVirtuals } from "./files.ts";
 import { displayOrder } from "./order.ts";
 import type { Manifest, TimelineManifest } from "./types.ts";
 
@@ -285,7 +284,7 @@ const BLOCK: ContainerRef = {
  * List every container of `manifest`, memoised by manifest identity, in
  * drawing order: the ancestor cards behind the frames (`memberDrawings`),
  * each held by the block, keyed `{item: G, member: R}` and holding no band;
- * then per group in canonical order its frame, then per member in
+ * then per group in name order (`compareByName`) its frame, then per member in
  * display order the member's card followed by the bands of the timelines the
  * card holds; then the same for every ungrouped root's card. A timeline that
  * several groups have as a member has a card in each of their frames, each
@@ -298,7 +297,7 @@ const BLOCK: ContainerRef = {
  * bands here: nothing draws them. A virtual timeline a group has as a member
  * has its card in the frame at its place in the display order; every
  * virtual timeline in no group has a block-held card after the ungrouped
- * roots', by ID, keyed by its ID: the block draws it where its `places`
+ * roots', in name order (`ungroupedVirtuals`), keyed by its ID: the block draws it where its `places`
  * states that key, and a `set` of its place states it. A virtual card holds
  * its markers and regions bands (`VIRTUAL_FACETS`).
  */
@@ -404,10 +403,7 @@ export function containersOf(manifest: Manifest): Containers {
   for (const member of drawn.ungrouped) {
     card(member.timeline, BLOCK, { item: member.timeline.id });
   }
-  const grouped = new Set(manifest.groups.flatMap((group) => group.members));
-  for (const id of [...virtualIds].filter((item) => !grouped.has(item)).sort(compareCodePoints)) {
-    virtualCard(id, BLOCK, { item: id });
-  }
+  for (const { id } of ungroupedVirtuals(manifest)) virtualCard(id, BLOCK, { item: id });
   const containers: Containers = {
     block: BLOCK,
     all,

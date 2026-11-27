@@ -94,15 +94,16 @@ function chunksOf(drawing: Drawing, id: string) {
 }
 
 describe("placed virtual timelines", () => {
-  it("are drawn only where places holds their IDs, after the ungrouped roots, by ID", () => {
+  it("are drawn only where places holds their IDs, after the ungrouped roots, in name order", () => {
     const plain = drawFixture("flow/virtual_cards");
     expect(boxesOf(plain, "card").map((card) => card.address)).toEqual([
       { id: "allegro", part: ["card"] },
     ]);
     expect(plain.elements.filter((item) => item.address.id?.startsWith("allegro_"))).toEqual([]);
     const placed = drawFixture("flow/virtual_cards", [], PLACED);
+    // "Allegro, default", "Allegro, practice" (`allegro_by_hand`), "Allegro, single".
     expect(boxesOf(placed, "card").map((card) => card.address)).toEqual(
-      ["allegro", "allegro_by_hand", "allegro_default", "allegro_single"].map((id) => ({
+      ["allegro", "allegro_default", "allegro_by_hand", "allegro_single"].map((id) => ({
         id,
         part: ["card"],
       })),

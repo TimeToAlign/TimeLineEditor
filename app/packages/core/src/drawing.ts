@@ -54,8 +54,14 @@ export {
   elisionsUnder,
   groupElisions,
 } from "./manifest/elisions.ts";
-export type { Ancestor, AncestorCard, GroupFrame, MemberDrawing } from "./manifest/files.ts";
-export { memberDrawings, virtualDrawing, withVirtualMembers } from "./manifest/files.ts";
+export type { Ancestor, AncestorCard, GroupFrame, MemberDrawing, Named } from "./manifest/files.ts";
+export {
+  compareByName,
+  memberDrawings,
+  ungroupedVirtuals,
+  virtualDrawing,
+  withVirtualMembers,
+} from "./manifest/files.ts";
 export { flowSymbols, passesText } from "./manifest/flow.ts";
 export type { Piece, PlayedSpan, Switch, Unfolding } from "./manifest/switched.ts";
 export { playedAt, playedSpan, switchOf, unfoldingOf } from "./manifest/switched.ts";

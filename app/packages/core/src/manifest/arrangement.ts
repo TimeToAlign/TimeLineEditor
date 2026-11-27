@@ -1,8 +1,10 @@
 /**
  * The arrangement of a bundle's items side by side (`docs/drawing.md` in
- * TimeToShare, "Drawn once"): its groups and ungrouped roots in one row,
- * and every root that groups hang on drawn once behind the row, the roots one
- * under another.
+ * TimeToShare, "Drawn once"): its groups, ungrouped roots and placed virtual
+ * timelines in one row, and every **shared root**, one that two or more
+ * groups hang on, drawn once behind the row on a line, several roots side by
+ * side on one line where they do not overlap along the row (the lines are
+ * the layout's, which knows the widths).
  *
  * A group **hangs on** a root when one of its members lies inside that root
  * (a child, a grandchild, …; a member that is the root itself does not). Its
@@ -11,22 +13,23 @@
  * (the offsets down to it summed) to its end as drawn (section 3.4: its
  * length, else the end the drawing gives a timeline of unknown length), is
  * its **stretch** there. An ungrouped root is an item that hangs on nothing.
+ * A root that one group hangs on is no shared root: its ancestor card stays
+ * behind that group's frame, and no rule binds it.
  *
- * The rules: along every root the stretches of the groups hanging on it
- * follow the row from left to right without overlapping (touching is
- * allowed), and in every group the anchors lie in the same top-to-bottom
- * order as their roots. The row and the roots are ordered when neither
- * relation has a cycle; otherwise the arrangement is refused, naming the
- * groups and roots in conflict.
+ * The rules: along every shared root the stretches of the groups hanging on
+ * it follow the row from left to right without overlapping (touching is
+ * allowed), and in every group the anchors on shared roots lie in the same
+ * top-to-bottom order as the lines of their roots. The row and the roots are
+ * ordered when neither relation has a cycle; otherwise the arrangement is
+ * refused, naming the groups and roots in conflict.
  */
 
 import type { TimeUnit } from "@timetoalign/timetoshare";
-import { compareCodePoints } from "../json.ts";
 import { prettyText, prettyUnit } from "../number/display.ts";
 import type { Real } from "../number/real.ts";
 import { compareReal, exactCoordinate } from "../number/real.ts";
 import { cardStamps } from "./elements.ts";
-import { memberDrawings } from "./files.ts";
+import { compareByName, memberDrawings, ungroupedVirtuals } from "./files.ts";
 import { displayOrder } from "./order.ts";
 import type { Group, Manifest, TimelineManifest } from "./types.ts";
 
@@ -46,11 +49,23 @@ export interface Anchor {
 
 /** A bundle's items arranged side by side. */
 export interface Row {
-  /** The IDs of every group and ungrouped root, left to right. */
+  /** The IDs of every item, left to right. */
   readonly row: readonly string[];
-  /** The IDs of the roots the groups hang on, top to bottom, each drawn once. */
+  /**
+   * The IDs of the shared roots, each drawn once, in the order they take their lines: sorted by
+   * `above`, starting from the place in the row of the first group hanging on each, roots of one
+   * first group in name order.
+   */
   readonly roots: readonly string[];
-  /** Every anchor, by its group's place in the row, then in the group's display order. */
+  /**
+   * The pairs of shared roots that some group's anchors order, `[upper, lower]`: the upper root's
+   * line lies above the lower's. Each pair once, in the order the groups give them.
+   */
+  readonly above: readonly (readonly [string, string])[];
+  /**
+   * Every anchor on a shared root, by its group's place in the row, then in the group's display
+   * order.
+   */
   readonly anchors: readonly Anchor[];
 }
 
@@ -82,22 +97,18 @@ const quoted = (element: Group | TimelineManifest): string => `"${element.name ?
 
 /**
  * The IDs of a bundle's items in drawing order (sections 8.1 and 8.10): its
- * groups by ID, its ungrouped roots by ID, then its virtual timelines in no
- * group by ID, each the item of its block-held card, which the block draws
- * where its `places` holds the ID (core's `containersOf` lists those cards
- * alike); a drawing passes over the items it does not draw.
+ * groups, its ungrouped roots, then its virtual timelines in no group, each
+ * in name order (`compareByName`), a virtual timeline the item of its
+ * block-held card, which the block draws where its `places` holds the ID
+ * (core's `containersOf` lists those cards alike); a drawing passes over the
+ * items it does not draw.
  */
 function itemsOf(manifest: Manifest): readonly string[] {
   const drawn = memberDrawings(manifest);
-  const grouped = new Set(manifest.groups.flatMap((group) => group.members));
-  const virtual = (manifest.virtual_timelines ?? [])
-    .map((item) => item.id)
-    .filter((id) => !grouped.has(id))
-    .sort(compareCodePoints);
   return [
     ...drawn.frames.map((frame) => frame.group.id),
     ...drawn.ungrouped.map((member) => member.timeline.id),
-    ...virtual,
+    ...ungroupedVirtuals(manifest).map((item) => item.id),
   ];
 }
 
@@ -116,9 +127,9 @@ export function itemOrder(manifest: Manifest, order: readonly string[]): readonl
 const foundAnchors = new WeakMap<Manifest, readonly Anchor[]>();
 
 /**
- * Every anchor of a bundle, memoised by manifest: per group by ID, per root
- * in the order of the group's display order. A group has at most one anchor
- * on each root.
+ * Every anchor of a bundle, memoised by manifest: per group in drawing order
+ * (name order), per root in the order of the group's display order. A group
+ * has at most one anchor on each root.
  */
 export function anchorsOf(manifest: Manifest): readonly Anchor[] {
   const known = foundAnchors.get(manifest);
@@ -251,12 +262,12 @@ const foundRows = new WeakMap<Manifest, Map<string, Row | ArrangementConflict>>(
 /**
  * A bundle's items side by side, starting from the stored order `order`
  * (`itemOrder`): the row, which keeps that order wherever the stretches
- * leave it free, the roots drawn once, top to bottom, ordered by the groups
- * and else by their IDs, and the anchors; or the conflict that makes it
- * impossible, the first found of: two stretches overlapping on a root (the
- * first root by ID, the first pair in the stored order), the stretches
- * ordering the groups in a cycle, the groups ordering the roots in a cycle.
- * Memoised by manifest and order.
+ * leave it free, the shared roots drawn once in the order they take their
+ * lines, the pairs of them the groups order, and the anchors on them; or the
+ * conflict that makes it impossible, the first found of: two stretches
+ * overlapping on a shared root (the first root in name order, the first pair
+ * in the item order), the stretches ordering the groups in a cycle, the
+ * groups ordering the roots in a cycle. Memoised by manifest and order.
  */
 export function rowOf(manifest: Manifest, order: readonly string[]): Row | ArrangementConflict {
   let byOrder = foundRows.get(manifest);
@@ -273,17 +284,20 @@ export function rowOf(manifest: Manifest, order: readonly string[]): Row | Arran
 }
 
 function arranged(manifest: Manifest, items: readonly string[]): Row | ArrangementConflict {
-  const anchors = anchorsOf(manifest);
   const groups = new Map(manifest.groups.map((group) => [group.id, group]));
   const roots = new Map(manifest.timelines.map((root) => [root.id, root]));
   const groupOf = (id: string) => present(groups.get(id), `group '${id}'`);
   const rootOf = (id: string) => present(roots.get(id), `root '${id}'`);
+  const anchors = sharedAnchors(manifest);
   const place = new Map(items.map((id, index) => [id, index]));
   const byPlace = (a: Anchor, b: Anchor) => (place.get(a.group) ?? 0) - (place.get(b.group) ?? 0);
-  const anchored = [...new Set(anchors.map((anchor) => anchor.root))].sort(compareCodePoints);
-  // Along each root: an overlap refuses; otherwise each pair of stretches orders its groups.
+  const shared = [...new Set(anchors.map((anchor) => anchor.root))]
+    .map(rootOf)
+    .sort(compareByName)
+    .map((root) => root.id);
+  // Along each shared root: an overlap refuses; otherwise each pair of stretches orders its groups.
   const precedes: Edge[] = [];
-  for (const root of anchored) {
+  for (const root of shared) {
     const on = anchors.filter((anchor) => anchor.root === root).sort(byPlace);
     for (const [index, left] of on.entries()) {
       for (const right of on.slice(index + 1)) {
@@ -322,21 +336,36 @@ function arranged(manifest: Manifest, items: readonly string[]): Row | Arrangeme
       reason: steps.join(", "),
     };
   }
-  // In each group, the anchors in display order give the roots' order, top to bottom.
+  // In each group, in drawing order, its anchors on shared roots in display order give the roots'
+  // order, top to bottom.
   const above: Edge[] = [];
-  for (const group of [...groups.keys()].sort(compareCodePoints)) {
-    const members = displayOrder(manifest, group);
+  for (const { group } of memberDrawings(manifest).frames) {
+    const members = displayOrder(manifest, group.id);
     const own = anchors
-      .filter((anchor) => anchor.group === group)
+      .filter((anchor) => anchor.group === group.id)
       .sort((a, b) => members.indexOf(a.member) - members.indexOf(b.member));
     for (const [index, upper] of own.entries()) {
       const lower = own[index + 1];
-      if (lower !== undefined) above.push({ from: upper.root, to: lower.root, by: group });
+      if (lower !== undefined) above.push({ from: upper.root, to: lower.root, by: group.id });
     }
   }
-  const stacked = sorted(anchored, above);
+  // The roots start from the place of their first group in the row, roots of one first group in
+  // name order; a cycle is found among them in name order.
+  const inRow = new Map(row.order.map((id, index) => [id, index]));
+  const firstAt = (root: string) =>
+    Math.min(
+      ...anchors
+        .filter((anchor) => anchor.root === root)
+        .map((anchor) => inRow.get(anchor.group) ?? 0),
+    );
+  const byFirst = shared
+    .map((root, index) => ({ root, index, first: firstAt(root) }))
+    .sort((a, b) => a.first - b.first || a.index - b.index)
+    .map(({ root }) => root);
+  const stacked = sorted(byFirst, above);
   if ("cycle" in stacked) {
-    const { cycle } = stacked;
+    const found = sorted(shared, above);
+    const cycle = "cycle" in found ? found.cycle : stacked.cycle;
     return {
       groups: cycle.map((edge) => edge.by),
       roots: cycle.map((edge) => edge.from),
@@ -348,7 +377,10 @@ function arranged(manifest: Manifest, items: readonly string[]): Row | Arrangeme
         .join(", "),
     };
   }
-  const inRow = new Map(row.order.map((id, index) => [id, index]));
+  const pairs: (readonly [string, string])[] = [];
+  for (const { from, to } of above) {
+    if (!pairs.some(([upper, lower]) => upper === from && lower === to)) pairs.push([from, to]);
+  }
   const ordered = anchors
     .map((anchor, index) => ({ anchor, index }))
     .sort(
@@ -356,15 +388,29 @@ function arranged(manifest: Manifest, items: readonly string[]): Row | Arrangeme
         (inRow.get(a.anchor.group) ?? 0) - (inRow.get(b.anchor.group) ?? 0) || a.index - b.index,
     )
     .map(({ anchor }) => anchor);
-  return { row: row.order, roots: stacked.order, anchors: ordered };
+  return { row: row.order, roots: stacked.order, above: pairs, anchors: ordered };
+}
+
+/** The anchors of `manifest` on its shared roots, the roots two or more groups hang on. */
+function sharedAnchors(manifest: Manifest): readonly Anchor[] {
+  const all = anchorsOf(manifest);
+  const groupsOn = new Map<string, Set<string>>();
+  for (const { root, group } of all) {
+    const known = groupsOn.get(root) ?? new Set<string>();
+    known.add(group);
+    groupsOn.set(root, known);
+  }
+  return all.filter((anchor) => (groupsOn.get(anchor.root)?.size ?? 0) > 1);
 }
 
 /**
  * Why giving group `group` the display order `order` would change one of
- * its anchors: `would anchor "<member>" on "<root>" instead of "<anchor>"`
- * for the first root, in the group's present display order of its anchors,
- * whose anchor would change; `null` when every anchor stays. A drop that
- * changes an anchor is refused while the bundle is arranged side by side.
+ * its anchors on a shared root: `would anchor "<member>" on "<root>" instead
+ * of "<anchor>"` for the first root, in the group's present display order of
+ * its anchors, whose anchor would change; `null` when every such anchor
+ * stays. A drop that changes an anchor on a shared root is refused while the
+ * bundle is arranged side by side; an anchor on a root that one group hangs
+ * on is bound by no rule.
  */
 export function anchorChange(
   manifest: Manifest,
@@ -372,7 +418,7 @@ export function anchorChange(
   order: readonly string[],
 ): string | null {
   const shown = displayOrder(manifest, group);
-  const own = anchorsOf(manifest)
+  const own = sharedAnchors(manifest)
     .filter((anchor) => anchor.group === group)
     .sort((a, b) => shown.indexOf(a.member) - shown.indexOf(b.member));
   const drawn = memberDrawings(manifest).frames.find((frame) => frame.group.id === group);

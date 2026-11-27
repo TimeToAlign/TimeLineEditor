@@ -188,6 +188,7 @@ describe("the rules of items side by side", () => {
     expect(row(manifest, order)).toEqual({
       row: ["allegro_single", "allegro", "performance", "allegro_by_hand"],
       roots: [],
+      above: [],
       anchors: [],
     });
   });
@@ -195,7 +196,12 @@ describe("the rules of items side by side", () => {
   it("anchors a group on a root by its first member inside it", () => {
     const expected: Anchor[] = [anchor("G1", "R", "r1", 0, 10), anchor("G2", "R", "r3", 20, 30)];
     expect(anchorsOf(FIRST_INSIDE)).toEqual(expected);
-    expect(row(FIRST_INSIDE, [])).toEqual({ row: ["G1", "G2"], roots: ["R"], anchors: expected });
+    expect(row(FIRST_INSIDE, [])).toEqual({
+      row: ["G1", "G2"],
+      roots: ["R"],
+      above: [],
+      anchors: expected,
+    });
   });
 
   it("sums the offsets down to a grandchild", () => {
@@ -245,6 +251,7 @@ describe("the rules of items side by side", () => {
     expect(row(manifest, [])).toEqual({
       row: ["G2", "G1"],
       roots: ["R"],
+      above: [],
       anchors: [anchor("G2", "R", "r2", 50, 60), anchor("G1", "R", "m", 105, 115)],
     });
   });
@@ -252,11 +259,8 @@ describe("the rules of items side by side", () => {
   it("takes no root member as an anchor", () => {
     const manifest = built({ roots: { R: [["r1", 0, 10]] }, groups: { G1: ["R"], G2: ["r1"] } });
     expect(anchorsOf(manifest)).toEqual([anchor("G2", "R", "r1", 0, 10)]);
-    expect(row(manifest, [])).toEqual({
-      row: ["G1", "G2"],
-      roots: ["R"],
-      anchors: [anchor("G2", "R", "r1", 0, 10)],
-    });
+    // One group hangs on R, so it is no shared root and is not drawn once.
+    expect(row(manifest, [])).toEqual({ row: ["G1", "G2"], roots: [], above: [], anchors: [] });
   });
 
   it("ends a member of unknown length where it is drawn", () => {
@@ -272,6 +276,7 @@ describe("the rules of items side by side", () => {
     expect(row(manifest, ["G2", "G1"])).toEqual({
       row: ["G1", "G2"],
       roots: ["R"],
+      above: [],
       anchors: [anchor("G1", "R", "r1", 0, 10), anchor("G2", "R", "r2", 10, 20)],
     });
   });
@@ -280,6 +285,7 @@ describe("the rules of items side by side", () => {
     expect(row(SPREAD, ["G3", "G1", "G2"])).toEqual({
       row: ["G1", "G2", "G3"],
       roots: ["R"],
+      above: [],
       anchors: [
         anchor("G1", "R", "r1", 0, 10),
         anchor("G2", "R", "r2", 40, 50),
@@ -305,6 +311,7 @@ describe("the rules of items side by side", () => {
     expect(row(TWO_ROOTS, ["G2", "G1"])).toEqual({
       row: ["G1", "G2"],
       roots: ["R", "S"],
+      above: [["R", "S"]],
       anchors: [
         anchor("G1", "R", "r1", 0, 10),
         anchor("G1", "S", "s1", 0, 5),
@@ -348,7 +355,7 @@ describe("the rules of items side by side", () => {
     });
   });
 
-  it("orders the roots by a subsequence", () => {
+  it("orders the shared roots by the anchors on shared roots alone", () => {
     const manifest = built({
       roots: {
         R: [
@@ -363,26 +370,59 @@ describe("the rules of items side by side", () => {
       },
       groups: { G1: ["r1", "t1"], G2: ["r2", "s1", "t2"] },
     });
+    // S hangs one group alone: no shared root, and G2's anchor on it orders nothing.
     expect(row(manifest, ["G2", "G1"])).toMatchObject({
       row: ["G1", "G2"],
-      roots: ["R", "S", "T"],
+      roots: ["R", "T"],
+      above: [["R", "T"]],
     });
   });
 
-  it("keeps the stored order of items hanging on nothing", () => {
+  it("keeps the stored order of items hanging on no shared root", () => {
+    // G2 alone hangs on R: R keeps its ancestor card behind G2's frame.
     expect(row(ITEMS, ["U", "G2", "G1"])).toEqual({
       row: ["U", "G2", "G1"],
-      roots: ["R"],
-      anchors: [anchor("G2", "R", "r1", 0, 10)],
+      roots: [],
+      above: [],
+      anchors: [],
     });
   });
 
-  it("orders roots no group orders by ID", () => {
+  it("starts the roots no group orders from the places of their first groups", () => {
+    // R is shared by G2 and G4, S by G1 and G3; no group hangs on both. S's first group G1 stands
+    // before R's first group G2, so S comes first, though R comes first by name.
     const manifest = built({
-      roots: { R: [["r1", 0, 10]], S: [["s1", 0, 10]] },
-      groups: { G1: ["s1"], G2: ["r1"] },
+      roots: {
+        R: [
+          ["r1", 0, 10],
+          ["r2", 20, 10],
+        ],
+        S: [
+          ["s1", 0, 10],
+          ["s2", 20, 10],
+        ],
+      },
+      groups: { G1: ["s1"], G2: ["r1"], G3: ["s2"], G4: ["r2"] },
     });
-    expect(row(manifest, ["G1", "G2"])).toMatchObject({ row: ["G1", "G2"], roots: ["R", "S"] });
+    expect(row(manifest, [])).toMatchObject({
+      row: ["G1", "G2", "G3", "G4"],
+      roots: ["S", "R"],
+      above: [],
+    });
+    expect(row(manifest, ["G2", "G1", "G4", "G3"])).toMatchObject({
+      row: ["G2", "G1", "G4", "G3"],
+      roots: ["R", "S"],
+    });
+  });
+
+  it("takes the items in name order, then by ID", () => {
+    // Groups by title, else ID; ungrouped roots by name, else ID; ties by ID.
+    const manifest = built({
+      groups: { G1: ["p1"], G2: ["p2"], G3: ["p3"], G4: ["p4"] },
+      ungrouped: ["U1", "U2"],
+      names: { G1: "Theme B", G2: "Theme A", G4: "Theme A", U1: "Zeta", U2: "Alpha" },
+    });
+    expect(itemOrder(manifest, [])).toEqual(["G3", "G2", "G4", "G1", "U2", "U1"]);
   });
 
   it("refuses an overlap", () => {
@@ -492,10 +532,13 @@ describe("the rules of items side by side", () => {
       reason: '"G1" holds "R" above "S", "G2" holds "S" above "R"',
     };
     expect(conflict(manifest)).toEqual(cycle);
-    // A comes first by ID and only follows the cycle: G3 holds R above it.
+    // A comes first by name and only follows the cycle: G3 holds R above it.
     const below = built({
       roots: {
-        A: [["a1", 0, 10]],
+        A: [
+          ["a1", 0, 10],
+          ["a2", 20, 10],
+        ],
         R: [
           ["r1", 0, 10],
           ["r2", 20, 10],
@@ -506,7 +549,7 @@ describe("the rules of items side by side", () => {
           ["s2", 20, 10],
         ],
       },
-      groups: { G1: ["r1", "s1"], G2: ["s2", "r2"], G3: ["r3", "a1"] },
+      groups: { G1: ["r1", "s1"], G2: ["s2", "r2"], G3: ["r3", "a1"], G4: ["a2"] },
     });
     expect(conflict(below)).toEqual(cycle);
   });
@@ -517,6 +560,17 @@ describe("the rules of items side by side", () => {
     );
     expect(anchorChange(FIRST_INSIDE, "G1", ["r1", "r2"])).toBeNull();
     expect(anchorChange(TWO_ROOTS, "G1", ["x1", "r1", "s1"])).toBeNull();
+    // A root one group hangs on is bound by no rule: its anchor may change.
+    const alone = built({
+      roots: {
+        R: [
+          ["r1", 0, 10],
+          ["r2", 20, 10],
+        ],
+      },
+      groups: { G1: ["r1", "r2"] },
+    });
+    expect(anchorChange(alone, "G1", ["r2", "r1"])).toBeNull();
   });
 });
 
@@ -540,6 +594,7 @@ describe("the rules on the arranged fixtures", () => {
     expect(row(manifest, ["page", "group_3", "group_1", "group_2"])).toEqual({
       row: ["page", "group_1", "group_2", "group_3"],
       roots: ["score", "session"],
+      above: [["score", "session"]],
       anchors: [
         anchor("group_1", "score", "exposition", 0, 16),
         onSession("group_1", "take_a", 0, 30),

@@ -110,9 +110,9 @@ export interface AncestorCard {
 
 /** What the drawing of a manifest draws as roots (section 8.1). */
 export interface MemberDrawings {
-  /** The frames, in canonical order of their groups. */
+  /** The frames, in name order of their groups (`compareByName`). */
   readonly frames: readonly GroupFrame[];
-  /** The roots drawn without a frame (no group names them and they contain no member), by id. */
+  /** The roots drawn without a frame (no group names them and they contain no member), in name order. */
   readonly ungrouped: readonly MemberDrawing[];
   /**
    * The ancestor cards, frame by frame in the order of `frames`, then by their members' display
@@ -121,14 +121,47 @@ export interface MemberDrawings {
   readonly ancestorCards: readonly AncestorCard[];
 }
 
+/** What `compareByName` orders: a group, a timeline or a virtual timeline. */
+export interface Named {
+  readonly id: string;
+  readonly name?: string | null | undefined;
+}
+
 /**
- * The member drawings of a manifest in canonical order: every group's
- * members in their display order (`displayOrder`), each with its ancestors,
- * then the ungrouped roots, and the ancestor cards behind the frames. A
- * member id no timeline carries, which the schema refuses, is passed over.
+ * The block's **name order** (section 8.1): by the title of a group or the
+ * name of a timeline, its `name`, else its whole ID (section 5.3), compared
+ * by code point, then by ID, compared by code point. Groups, ungrouped roots
+ * and placed virtual timelines each follow it; every view listing them
+ * follows it too.
+ */
+export function compareByName(left: Named, right: Named): number {
+  return (
+    compareCodePoints(left.name ?? left.id, right.name ?? right.id) ||
+    compareCodePoints(left.id, right.id)
+  );
+}
+
+/**
+ * The virtual timelines of `manifest` that no group names, in name order
+ * (`compareByName`, section 8.1): each the item of a block-held card, which
+ * the block draws where its `places` holds its ID (section 8.10).
+ */
+export function ungroupedVirtuals(manifest: Manifest): readonly VirtualTimeline[] {
+  const grouped = new Set(manifest.groups.flatMap((group) => group.members));
+  return (manifest.virtual_timelines ?? [])
+    .filter((item) => !grouped.has(item.id))
+    .sort(compareByName);
+}
+
+/**
+ * The member drawings of a manifest in drawing order (section 8.1): every
+ * group in name order (`compareByName`) with its members in their display
+ * order (`displayOrder`), each with its ancestors, then the ungrouped roots
+ * in name order, and the ancestor cards behind the frames. A member id no
+ * timeline carries, which the schema refuses, is passed over.
  */
 export function memberDrawings(manifest: Manifest): MemberDrawings {
-  const roots = [...manifest.timelines].sort((a, b) => compareCodePoints(a.id, b.id));
+  const roots = [...manifest.timelines].sort(compareByName);
   const found = new Map<string, MemberDrawing>();
   const visit = (timeline: TimelineManifest, ancestors: readonly Ancestor[]) => {
     if (!found.has(timeline.id)) found.set(timeline.id, { timeline, ancestors });
@@ -141,7 +174,7 @@ export function memberDrawings(manifest: Manifest): MemberDrawings {
     const member = found.get(id);
     return member === undefined ? [] : [member];
   };
-  const groups = [...manifest.groups].sort((a, b) => compareCodePoints(a.id, b.id));
+  const groups = [...manifest.groups].sort(compareByName);
   const frames = groups.map((group) => ({
     group,
     members: displayOrder(manifest, group.id).flatMap(drawn),
