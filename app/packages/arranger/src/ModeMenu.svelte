@@ -7,10 +7,14 @@
  * through every pan, zoom and preview. The resize
  * toolbar's modes (one pressed) and a selected elision's gap modes (one or
  * both pressed) are drawn by it, its buttons by `ModeButtons`, which the
- * Arrange menu draws alone; what a press does is its owner's.
+ * Arrange menu draws alone; what a press does is its owner's. What its
+ * owner gives as `children` (the resize toolbar's flow switch) stands in the
+ * same row, right of the buttons, joined to them as one panel; with no
+ * entries the row holds that alone.
  */
 import { useStore } from "@xyflow/svelte";
 import { getNodeToolbarTransform, Position } from "@xyflow/system";
+import type { Snippet } from "svelte";
 import type { ModeEntry } from "./ModeButtons.svelte";
 import ModeButtons from "./ModeButtons.svelte";
 
@@ -28,9 +32,11 @@ interface Props {
   /** The prefix of each button's test ID, followed by its value. */
   testid: string;
   onpress: (value: Value) => void;
+  /** What stands right of the buttons in the same row. */
+  children?: Snippet;
 }
 
-let { label, entries, pressed, disabled, bounds, testid, onpress }: Props = $props();
+let { label, entries, pressed, disabled, bounds, testid, onpress, children }: Props = $props();
 
 /** How far above the box, in screen pixels, the menu sits: Svelte Flow's `NodeToolbar` default. */
 const MENU_GAP = 10;
@@ -43,7 +49,10 @@ const transform = $derived(
 </script>
 
 <div class="mode-menu" style:transform>
-  <ModeButtons {label} {entries} {pressed} {disabled} {testid} {onpress} />
+  {#if entries.length > 0}
+    <ModeButtons {label} {entries} {pressed} {disabled} {testid} {onpress} />
+  {/if}
+  {@render children?.()}
 </div>
 
 <style>
@@ -53,5 +62,19 @@ const transform = $derived(
     top: 0;
     left: 0;
     z-index: 5;
+    display: flex;
+    align-items: stretch;
+  }
+
+  /* Panels side by side in the row are drawn as one: one border between them, square inner corners. */
+  .mode-menu > :global(.tilie-menu:has(+ .tilie-menu)) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .mode-menu > :global(.tilie-menu + .tilie-menu) {
+    border-left: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
   }
 </style>

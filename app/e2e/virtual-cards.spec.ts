@@ -13,9 +13,10 @@
  *   chunk 2 shows the written position in the flag's part `written
  *   allegro_default`, named "Allegro", its occurrence `2 of 2` (A is played
  *   twice), wherever in chunk 2 the pointer lies;
- * - above `allegro`'s selected card the flow switch lists "As written" and
- *   the seven flows of `allegro`, and choosing "Allegro, default" journals
- *   exactly the `style` command setting `flow` on `{id: "allegro", part:
+ * - beside the resize modes of `allegro`'s selected card the flow switch
+ *   lists "As written" and the four FlowMaps of `allegro`, each once, no
+ *   virtual timeline, and choosing `default` journals exactly the `style`
+ *   command setting `flow` to `default` on `{id: "allegro", part:
  *   ["card"]}`;
  * - Delete on the selected card of `allegro_default` hides it: the journal
  *   gains exactly `{type: "set", changes: [{target: {block, id:
@@ -94,7 +95,7 @@ test("the flag on a virtual card names the written position's occurrence", async
   );
 });
 
-test("the flow switch above a card sends the style command", async ({ page }) => {
+test("the flow switch of a card sends the style command", async ({ page }) => {
   const block = await start(page);
   await select(page, [{ block, id: "allegro", part: ["card"] }]);
   const flow = page.getByTestId("flow-switch");
@@ -104,17 +105,14 @@ test("the flow switch above a card sends the style command", async ({ page }) =>
     "default",
     "printed",
     "single",
-    "Allegro, practice",
-    "Allegro, default",
-    "Allegro, single",
   ]);
   const before = await journalLength(page);
-  await flow.selectOption({ label: "Allegro, default" });
+  await flow.selectOption({ label: "default" });
   await expect.poll(() => journalLength(page)).toBe(before + 1);
   expect(await newestCommand(page)).toEqual({
     type: "style",
     select: { addresses: [{ id: "allegro", part: ["card"] }] },
-    set: { flow: DEFAULT },
+    set: { flow: "default" },
     blocks: [block],
   });
 });

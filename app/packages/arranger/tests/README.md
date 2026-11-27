@@ -5233,36 +5233,42 @@ virtual card is hovered and pinned as any root's, and the named timestamp
 4241/2 on its own axis, its part named "Allegro, default".
 
 **The switch** (`flow-switch.test.ts`, the pure functions, then
-`ToolbarHarness`). A card of `allegro` offers "As written", then the
-FlowMaps `by_hand` ("Practice"), `default`, `printed`, `single` (no name,
-labelled by ID), then the virtual timelines "Allegro, practice", "Allegro,
-default", "Allegro, single"; a virtual card offers nothing, nor
-`recording`'s card, nor a band or the block. `performance`'s frame in
-`groups/switched_frame` offers `allegro`'s list (its member `recording`
-has none). The entry shown chosen is `default` in `switched_card` and in
-`switched_frame`'s frame, "As written" in `virtual_cards`. Choosing on a
-card sends one `style` command, `{type: "style", select: {addresses:
-[{id: "allegro", part: ["card"]}]}, set: {flow: F}, blocks: [A]}`, with `F`
-the chosen ID, `null` for "As written"; choosing what is shown sends
-nothing; on a frame "As written" removes the flow of every member setting
-one. Each command applied by core leaves the chosen ID as the card's
-`flow` (core's `cardFlow`) and passes the validators. Mounted above `allegro`'s
-card, the select `flow-switch` lists those labels in that order, the
-chosen one selected; choosing entry 6 ("Allegro, default") dispatches
-exactly that command once; a locked canvas disables it. Above
-`switched_frame`'s frame a choice is one edit of the frame's group, so it
-is undone in one step: choosing "As written" there asks the canvas for
-exactly one edit, `{edit: {block: A, id: "performance"}, commands:
-[flowOn(null)]}`, and dispatches nothing; that edit made through a store
-(`storeOf`, core's `Store.edit`) leaves `allegro`'s `flow` null, and one
-`undo()` gives `default` back. Its width never
+`ToolbarHarness`). The list holds what a choice can switch to, each once:
+a card's reading is "as written" or one FlowMap of its root, and a virtual
+timeline applying a FlowMap draws the card as that FlowMap does, so it is
+no entry of its own (were it one, a FlowMap would appear twice). A card of
+`allegro` offers exactly "As written", then the FlowMaps `by_hand`
+("Practice"), `default`, `printed`, `single` (no name, labelled by ID), in
+the manifest's order: five entries, the root's four FlowMaps once each,
+and none of the three virtual timelines; `allegro`'s card in
+`groups/switched_frame`'s frame offers the same five. Nothing is offered
+above a frame (`performance`'s in `groups/switched_frame`: each of its
+cards chooses its own), a virtual card, `recording`'s card, a band or the
+block. The entry shown chosen is `default` in `switched_card` and on
+`switched_frame`'s `allegro` card, "As written" in `virtual_cards`, and
+`default` again where the card's `flow` names the virtual timeline
+`allegro_default` (which applies `default`): what is drawn decides the
+entry, not the ID spelled. Choosing on a card sends one `style` command,
+`{type: "style", select: {addresses: [{id: "allegro", part: ["card"]}]},
+set: {flow: F}, blocks: [A]}`, with `F` the chosen FlowMap's ID, `null`
+for "As written"; choosing what is shown sends nothing (`default` on a
+card whose `flow` is `default` or `allegro_default`), "As written" on a
+card naming `allegro_default` removes it, and a frame sends nothing. Each
+command applied by core leaves the chosen ID as the card's `flow` (core's
+`cardFlow`) and passes the validators. Mounted above `allegro`'s card in
+`switched_card`, the select `flow-switch` lists those five labels in that
+order, `default` (entry 2) selected; choosing entry 4 (`single`)
+dispatches exactly that command once; a locked canvas disables it; above
+`switched_frame`'s frame no select is mounted while the resize modes are.
+It stands in the mode menu's row, right of Scale, Box and Stretch: in the DOM the switch's panel is the next sibling of the modes'
+toolbar in the menu's one positioned element, so both follow the one
+transform; the browser's geometry (the list's box right of Stretch's, the
+two boxes on one row) is `e2e/flowlist.spec.ts`'s. Its width never
 follows the names: the select states the one width `SWITCH_WIDTH`
 (`11rem`) inline above `switched_card`'s card, `virtual_cards`' card and
-`switched_frame`'s frame alike, and shows every name whole on hover: the
-select's `title` is the chosen entry's label (`default`, "As written"),
-each option's its own label. It stands `10 +
-h + 4` screen pixels above the box, `h` the mode menu's measured height,
-`10` where no mode menu is shown (`switchOffset`).
+`switched_frame`'s `allegro` card alike, and shows every name whole on
+hover: the select's `title` is the chosen entry's label (`default`, "As
+written"), each option's its own label.
 
 **The switch's motion.** Where a card becomes switched its chunks move from
 their written stretch on the card's line to their brace on the virtual

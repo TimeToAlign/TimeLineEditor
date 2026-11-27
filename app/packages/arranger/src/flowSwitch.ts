@@ -1,11 +1,9 @@
 /**
  * The flow switch (TimeToShare's `docs/drawing.md`, sections 2.4 and 8.10):
- * the list above a selected card choosing how the card draws its timeline,
- * as written or on the virtual axis of one FlowMap of its root, the
- * property `flow` of the manifest's own layer on the card's address. In a
- * frame the choice switches the frame: the member whose FlowMap is chosen
- * is switched, every other member drawn through the group; a frame with
- * two switched members is drawn as written, so a choice there leaves one.
+ * the list beside the resize modes of a selected card choosing how the card
+ * draws its timeline, as written or on the virtual axis of one FlowMap of
+ * its root, the property `flow` of the manifest's own layer on the card's
+ * address. A frame offers no list: each of its cards chooses its own.
  *
  * And the switch's motion: where a card becomes switched, each of its
  * chunks moves from the stretch it plays as written on the card's line to
@@ -22,7 +20,6 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   cardFlow,
-  displayOrder,
   FlowMapError,
   placeKeyText,
   resolveFlowMap,
@@ -35,28 +32,10 @@ import { lineAxes } from "@timetoalign/tilie-layout";
 import { isAncestorCard } from "./boxes.ts";
 import { cardHolding, clippedOn } from "./ribbons.ts";
 
-/** One entry of the list: a FlowMap or virtual timeline `flow` of the root `timeline`, or "As written" (both `null`). */
+/** One entry of the list: a FlowMap `flow` of the card's root, or "As written" (`null`). */
 export interface FlowChoice {
-  readonly timeline: string | null;
   readonly flow: string | null;
   readonly label: string;
-}
-
-/**
- * How far above a box, in screen pixels, the canvas's menus stand: Svelte
- * Flow's `NodeToolbar` default, which the mode menu keeps too.
- */
-export const MENU_GAP = 10;
-
-/** The gap, in screen pixels, between the flow switch and the mode menu below it. */
-export const SWITCH_GAP = 4;
-
-/**
- * How far above its box the flow switch stands: clear of the mode menu,
- * `menu` screen pixels high, where one is shown; `MENU_GAP` where none is.
- */
-export function switchOffset(menu: number | null): number {
-  return menu === null ? MENU_GAP : MENU_GAP + menu + SWITCH_GAP;
 }
 
 /**
@@ -66,83 +45,63 @@ export function switchOffset(menu: number | null): number {
 export const SWITCH_WIDTH = "11rem";
 
 /** The list's first entry. */
-export const AS_WRITTEN: FlowChoice = { timeline: null, flow: null, label: "As written" };
+export const AS_WRITTEN: FlowChoice = { flow: null, label: "As written" };
 
 /**
- * The FlowMaps and virtual timelines a card of `timeline` may switch to
- * (section 2.4, the validators' `flow_rule`): where it is a root, each
- * FlowMap of it, then each virtual timeline applying one of those to it
- * without `through`, in the manifest's order, labelled by its `name`, else
- * its ID; none for any other timeline.
+ * The FlowMaps a card of `timeline` may switch to (section 2.4, the
+ * validators' `flow_rule`): where it is a root, each FlowMap of it once, in
+ * the manifest's order, labelled by its `name`, else its ID; none for any
+ * other timeline. A virtual timeline applying one of them is no entry of
+ * its own: switching to it draws the card as its FlowMap does.
  */
-export function flowsOf(manifest: Manifest, timeline: string): FlowChoice[] {
+function flowsOf(manifest: Manifest, timeline: string): FlowChoice[] {
   if (!manifest.timelines.some((root) => root.id === timeline)) return [];
-  const maps = (manifest.flow_maps ?? []).filter((map) => map.timeline === timeline);
-  const ids = new Set(maps.map((map) => map.id));
-  const virtual = (manifest.virtual_timelines ?? []).filter(
-    (item) => ids.has(item.map) && item.timeline === timeline && item.through === undefined,
-  );
-  return [...maps, ...virtual].map((item) => ({
-    timeline,
-    flow: item.id,
-    label: item.name ?? item.id,
-  }));
+  return (manifest.flow_maps ?? [])
+    .filter((map) => map.timeline === timeline)
+    .map((map) => ({ flow: map.id, label: map.name ?? map.id }));
 }
 
-/**
- * The timelines whose cards `box` switches: a card's own timeline, a
- * frame's members in display order; none for an ancestor card, the block
- * and a band.
- */
-function switchedBy(manifest: Manifest, box: DrawnBox): readonly string[] {
+/** The timeline whose cards `box` switches: a card's own; none for an ancestor card, a frame, the block and a band. */
+function switchedBy(box: DrawnBox): string | null {
   const { id, part } = box.address;
-  if (id === undefined) return [];
-  if (box.kind === "card" && !isAncestorCard(box) && part?.[0] === "card") return [id];
-  return box.kind === "frame" ? displayOrder(manifest, id) : [];
+  if (id === undefined || box.kind !== "card" || isAncestorCard(box)) return null;
+  return part?.[0] === "card" ? id : null;
 }
 
 /**
- * The list of the switch above `box`: "As written" (`AS_WRITTEN`), then the
- * flows of every timeline it switches (`flowsOf`), a frame's member by
- * member; `null` where there is none to choose, so no switch is shown.
+ * The list of the switch beside the resize modes of `box`: "As written"
+ * (`AS_WRITTEN`), then the FlowMaps of the card's root (`flowsOf`); `null`
+ * where there is none to choose, so no switch is shown.
  */
 export function flowChoices(manifest: Manifest, box: DrawnBox): FlowChoice[] | null {
-  const choices = switchedBy(manifest, box).flatMap((timeline) => flowsOf(manifest, timeline));
+  const timeline = switchedBy(box);
+  const choices = timeline === null ? [] : flowsOf(manifest, timeline);
   return choices.length === 0 ? null : [AS_WRITTEN, ...choices];
 }
 
 /**
- * The entry the switch above `box` shows chosen: the one flow its
- * timelines' cards are switched to where exactly one is (core's `cardFlow`), else
- * "As written", as the drawing draws a frame with two switched members.
+ * The entry the switch of `box` shows chosen: the FlowMap its card's
+ * `flow` (core's `cardFlow`) names, or the one applied by the virtual
+ * timeline it names where that applies a FlowMap of the card's root without
+ * `through`; "As written" otherwise.
  */
 export function chosenFlow(manifest: Manifest, box: DrawnBox): FlowChoice {
-  const switched = switchedBy(manifest, box).flatMap((timeline) => {
-    const flow = cardFlow(manifest, timeline);
-    return flow === null ? [] : [{ timeline, flow }];
-  });
-  const [one] = switched;
-  if (one === undefined || switched.length > 1) return AS_WRITTEN;
-  return flowsOf(manifest, one.timeline).find((choice) => choice.flow === one.flow) ?? AS_WRITTEN;
-}
-
-/** The `style` command of block `block` setting `flow` on the cards of `timeline`, `null` removing it. */
-function flowCommand(block: BlockId, timeline: string, flow: string | null): StyleCommand {
-  return {
-    type: "style",
-    select: { addresses: [{ id: timeline, part: ["card"] }] },
-    set: { flow },
-    blocks: [block],
-  };
+  const timeline = switchedBy(box);
+  const flow = timeline === null ? null : cardFlow(manifest, timeline);
+  if (timeline === null || flow === null) return AS_WRITTEN;
+  const virtual = (manifest.virtual_timelines ?? []).find(
+    (item) => item.id === flow && item.timeline === timeline && item.through === undefined,
+  );
+  const map = virtual?.map ?? flow;
+  return flowsOf(manifest, timeline).find((choice) => choice.flow === map) ?? AS_WRITTEN;
 }
 
 /**
- * The commands choosing `choice` on the switch above `box` of block
- * `block`: first one removing `flow` from the cards of every other timeline
- * the box switches that sets one (`cardFlow`; "As written" removes it from
- * all), then, for a FlowMap or virtual timeline, one setting it on its
- * timeline's cards where they set another or none; none where `choice` is
- * what the cards show already.
+ * The commands choosing `choice` on the switch of `box` of block `block`:
+ * one `style` command setting `flow` on the cards of the card's timeline to
+ * the chosen FlowMap's ID, removing it for "As written"; none where
+ * `choice` is what the card shows already (`chosenFlow`; for "As written",
+ * where the cards set no `flow`).
  */
 export function flowCommands(
   block: BlockId,
@@ -150,17 +109,21 @@ export function flowCommands(
   box: DrawnBox,
   choice: FlowChoice,
 ): StyleCommand[] {
-  const commands: StyleCommand[] = [];
-  for (const timeline of switchedBy(manifest, box)) {
-    const flow = cardFlow(manifest, timeline);
-    if (flow !== null && timeline !== choice.timeline) {
-      commands.push(flowCommand(block, timeline, null));
-    }
-  }
-  if (choice.timeline !== null && cardFlow(manifest, choice.timeline) !== choice.flow) {
-    commands.push(flowCommand(block, choice.timeline, choice.flow));
-  }
-  return commands;
+  const timeline = switchedBy(box);
+  if (timeline === null) return [];
+  const stays =
+    choice.flow === null
+      ? cardFlow(manifest, timeline) === null
+      : chosenFlow(manifest, box).flow === choice.flow;
+  if (stays) return [];
+  return [
+    {
+      type: "style",
+      select: { addresses: [{ id: timeline, part: ["card"] }] },
+      set: { flow: choice.flow },
+      blocks: [block],
+    },
+  ];
 }
 
 /** An abscissa span `[x1, x2]` in block-local canvas units. */

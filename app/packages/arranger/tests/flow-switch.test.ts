@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 /**
  * The flow switch (README, "Virtual cards, ribbons, the flow flag and the
- * flow switch"): the list offered above a card or a frame, the entry shown
- * chosen, the `style` commands a choice sends, each applied by core, the
- * select above a card in a canvas, and the switch's motion arithmetic.
+ * flow switch"): the list offered on a card (none on a frame), the entry
+ * shown chosen, the `style` commands a choice sends, each applied by core,
+ * the select in the resize toolbar's row, and the switch's motion arithmetic.
  */
 
 import type { ElementAddress, StyleCommand, View } from "@timetoalign/tilie-core";
@@ -24,10 +24,9 @@ import {
   SWITCH_WIDTH,
   spanAt,
   switchMorphs,
-  switchOffset,
 } from "../src/flowSwitch.ts";
 import { recordingActions, stubCanvasGlobals } from "./dom.ts";
-import { A, blockIn, changed, storeOf, viewOf } from "./support.ts";
+import { A, blockIn, changed, viewOf } from "./support.ts";
 import Harness from "./ToolbarHarness.svelte";
 import { DEFAULT, drawingIn, ROOT, virtualView } from "./virtualCards.ts";
 
@@ -44,18 +43,13 @@ function box(view: View, address: ElementAddress): DrawnBox {
 
 const manifest = (view: View) => blockIn(view, A).manifest;
 
-/** The list's entries: "As written", the FlowMaps of `allegro`, then its virtual timelines. */
+/** The list's entries: "As written", then each FlowMap of `allegro` once. */
 const ALLEGRO: FlowChoice[] = [
   AS_WRITTEN,
-  ...[
-    ["by_hand", "Practice"],
-    ["default", "default"],
-    ["printed", "printed"],
-    ["single", "single"],
-    ["allegro_by_hand", "Allegro, practice"],
-    ["allegro_default", "Allegro, default"],
-    ["allegro_single", "Allegro, single"],
-  ].map(([flow, label]) => ({ timeline: ROOT, flow: flow ?? null, label: label ?? "" })),
+  { flow: "by_hand", label: "Practice" },
+  { flow: "default", label: "default" },
+  { flow: "printed", label: "printed" },
+  { flow: "single", label: "single" },
 ];
 
 /** The command setting `flow` on `allegro`'s cards in block A. */
@@ -68,40 +62,44 @@ const flowOn = (flow: string | null): StyleCommand => ({
 
 const choice = (flow: string | null) => ALLEGRO.find((entry) => entry.flow === flow) ?? AS_WRITTEN;
 
+/** `virtual_cards` with `allegro`'s cards switched to the virtual timeline `allegro_default`. */
+const NAMING_VIRTUAL = changed(VIRTUAL, flowOn(DEFAULT));
+
 describe("the list", () => {
-  it("offers As written and every flow of the root above its card", () => {
+  it("offers As written and each FlowMap of the root once above its card", () => {
     expect(flowChoices(manifest(VIRTUAL), box(VIRTUAL, cardAddress(ROOT)))).toEqual(ALLEGRO);
+    expect(flowChoices(manifest(SWITCHED), box(SWITCHED, cardAddress(ROOT)))).toEqual(ALLEGRO);
+    expect(flowChoices(manifest(FRAME), box(FRAME, cardAddress(ROOT)))).toEqual(ALLEGRO);
   });
 
-  it("offers nothing above a virtual card, the block or a member without flows", () => {
+  it("offers nothing above a frame, a virtual card, the block or a member without flows", () => {
+    expect(flowChoices(manifest(FRAME), box(FRAME, idAddress("performance")))).toBeNull();
     expect(flowChoices(manifest(VIRTUAL), box(VIRTUAL, cardAddress(DEFAULT)))).toBeNull();
     expect(flowChoices(manifest(VIRTUAL), box(VIRTUAL, {}))).toBeNull();
     expect(flowChoices(manifest(FRAME), box(FRAME, cardAddress("recording")))).toBeNull();
   });
 
-  it("offers the members' flows above a frame", () => {
-    expect(flowChoices(manifest(FRAME), box(FRAME, idAddress("performance")))).toEqual(ALLEGRO);
-  });
-
-  it("shows the flow the cards are switched to", () => {
+  it("shows the FlowMap the card is drawn on, also where its flow names a virtual timeline", () => {
     expect(chosenFlow(manifest(VIRTUAL), box(VIRTUAL, cardAddress(ROOT)))).toEqual(AS_WRITTEN);
     expect(cardFlow(manifest(VIRTUAL), ROOT)).toBeNull();
     expect(chosenFlow(manifest(SWITCHED), box(SWITCHED, cardAddress(ROOT)))).toEqual(
       choice("default"),
     );
-    expect(chosenFlow(manifest(FRAME), box(FRAME, idAddress("performance")))).toEqual(
+    expect(chosenFlow(manifest(FRAME), box(FRAME, cardAddress(ROOT)))).toEqual(choice("default"));
+    expect(cardFlow(manifest(NAMING_VIRTUAL), ROOT)).toBe(DEFAULT);
+    expect(chosenFlow(manifest(NAMING_VIRTUAL), box(NAMING_VIRTUAL, cardAddress(ROOT)))).toEqual(
       choice("default"),
     );
   });
 });
 
 describe("the commands", () => {
-  it("sets the chosen flow on the card, applied by core", () => {
+  it("sets the chosen FlowMap on the card, applied by core", () => {
     const card = box(VIRTUAL, cardAddress(ROOT));
-    const commands = flowCommands(A, manifest(VIRTUAL), card, choice(DEFAULT));
-    expect(commands).toEqual([flowOn(DEFAULT)]);
+    const commands = flowCommands(A, manifest(VIRTUAL), card, choice("default"));
+    expect(commands).toEqual([flowOn("default")]);
     const next = commands.reduce(changed, VIRTUAL);
-    expect(cardFlow(manifest(next), ROOT)).toBe(DEFAULT);
+    expect(cardFlow(manifest(next), ROOT)).toBe("default");
   });
 
   it("replaces a flow by one command and removes it for As written", () => {
@@ -114,10 +112,18 @@ describe("the commands", () => {
     expect(flowCommands(A, manifest(SWITCHED), card, choice("default"))).toEqual([]);
   });
 
-  it("removes every member's flow from a frame for As written", () => {
+  it("treats a flow naming a virtual timeline as its FlowMap's entry", () => {
+    const card = box(NAMING_VIRTUAL, cardAddress(ROOT));
+    const of = (entry: FlowChoice) => flowCommands(A, manifest(NAMING_VIRTUAL), card, entry);
+    expect(of(choice("default"))).toEqual([]);
+    expect(of(AS_WRITTEN)).toEqual([flowOn(null)]);
+    expect(of(choice("single"))).toEqual([flowOn("single")]);
+  });
+
+  it("sends nothing for a frame", () => {
     const frame = box(FRAME, idAddress("performance"));
-    expect(flowCommands(A, manifest(FRAME), frame, AS_WRITTEN)).toEqual([flowOn(null)]);
-    expect(flowCommands(A, manifest(FRAME), frame, choice("printed"))).toEqual([flowOn("printed")]);
+    expect(flowCommands(A, manifest(FRAME), frame, AS_WRITTEN)).toEqual([]);
+    expect(flowCommands(A, manifest(FRAME), frame, choice("printed"))).toEqual([]);
   });
 });
 
@@ -154,35 +160,39 @@ describe("the select above a card", () => {
   const select = () =>
     document.querySelector<HTMLSelectElement>("select[data-testid='flow-switch']");
 
-  it("lists the flows, the chosen one selected, and sends one command for a choice", () => {
+  it("lists the FlowMaps, the chosen one selected, and sends one command for a choice", () => {
     const calls = mountOn(SWITCHED, cardAddress(ROOT));
     const shown = select();
-    expect([...(shown?.options ?? [])].map((option) => option.textContent)).toEqual(
-      ALLEGRO.map((entry) => entry.label),
-    );
+    expect([...(shown?.options ?? [])].map((option) => option.textContent)).toEqual([
+      "As written",
+      "Practice",
+      "default",
+      "printed",
+      "single",
+    ]);
     expect(shown?.value).toBe("2");
     expect(shown?.disabled).toBe(false);
     if (shown === null) throw new Error("no switch");
-    shown.value = "6";
+    shown.value = "4";
     shown.dispatchEvent(new Event("change", { bubbles: true }));
     flushSync();
-    expect(calls).toEqual([{ dispatch: flowOn(DEFAULT) }]);
+    expect(calls).toEqual([{ dispatch: flowOn("single") }]);
   });
 
-  it("asks for one edit of the frame's group for a choice above a frame", () => {
-    const calls = mountOn(FRAME, idAddress("performance"));
-    const shown = select();
-    if (shown === null) throw new Error("no switch");
-    shown.value = "0";
-    shown.dispatchEvent(new Event("change", { bubbles: true }));
-    flushSync();
-    const performance = { block: A, id: "performance" };
-    expect(calls).toEqual([{ edit: performance, commands: [flowOn(null)] }]);
-    const store = storeOf(FRAME);
-    expect(store.edit(performance, [flowOn(null)])).toBeNull();
-    expect(cardFlow(manifest(store.view), ROOT)).toBeNull();
-    store.undo();
-    expect(cardFlow(manifest(store.view), ROOT)).toBe("default");
+  it("stands in the mode menu's row, right of the modes", () => {
+    mountOn(SWITCHED, cardAddress(ROOT));
+    const modes = document.querySelector("[role='toolbar'][aria-label='Resize mode']");
+    const panel = select()?.closest("label");
+    expect(modes?.nextElementSibling).toBe(panel);
+    expect(
+      [...(modes?.querySelectorAll("button") ?? [])].map((button) => button.dataset.testid),
+    ).toEqual(["mode-scale", "mode-box", "mode-stretch"]);
+  });
+
+  it("is absent above a frame, whose resize modes stay", () => {
+    mountOn(FRAME, idAddress("performance"));
+    expect(select()).toBeNull();
+    expect(document.querySelector("[data-testid='mode-box']")).not.toBeNull();
   });
 
   it("keeps one width whatever the names and shows each name whole on hover", () => {
@@ -190,7 +200,7 @@ describe("the select above a card", () => {
     const cases = [
       [SWITCHED, cardAddress(ROOT), "default"],
       [VIRTUAL, cardAddress(ROOT), "As written"],
-      [FRAME, idAddress("performance"), "default"],
+      [FRAME, cardAddress(ROOT), "default"],
     ] as const;
     for (const [view, address, chosen] of cases) {
       mountOn(view, address);
@@ -217,10 +227,6 @@ describe("the select above a card", () => {
 });
 
 describe("the switch's motion", () => {
-  it("stands clear of the mode menu", () => {
-    expect([switchOffset(null), switchOffset(38)]).toEqual([10, 52]);
-  });
-
   it("moves nothing between two drawings of one manifest", () => {
     const drawing = drawingIn(SWITCHED);
     expect(switchMorphs(manifest(SWITCHED), drawing, drawing)).toEqual([]);
