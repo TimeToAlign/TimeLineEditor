@@ -25,7 +25,7 @@ import {
 import { addStylesOf, fadingsOf } from "./dom.ts";
 import { holder } from "./holder.svelte.ts";
 import { MIXED, mixedStore } from "./mixed.ts";
-import { blockId, noMatchClaims, posting, providing, storeOf } from "./support.ts";
+import { blockId, noMatchClaims, posting, providing, storeOf, withElisionMode } from "./support.ts";
 
 const { A } = MIXED;
 /** The address of block `A`. */
@@ -1203,7 +1203,7 @@ describe("a selected elision", () => {
         target: document.body,
         context: posting(),
         props: {
-          live: liveStore(storeOf("groups/group_grandchild")),
+          live: liveStore(withElisionMode(storeOf("groups/group_grandchild"), "auto")),
           get selection() {
             return selection.value;
           },

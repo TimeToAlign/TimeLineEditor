@@ -865,6 +865,28 @@ height. Cases:
 4. The same fixture, the frame `{id: performance}` clicked: Add goes into
    the frame's first member in display order, `allegro_default`, with the
    same stretch, drawn alike.
+5. A root drawn once behind a row (drawing.md section 8.8, Drawn once:
+   a once card reads no elision property but `elision-display`, so it
+   draws no card elision): `bundles/bundle_arranged_roots` arranged
+   `{direction: horizontal, order: [page, group_3, group_1, group_2]}` by
+   one `set`, the canvas at zoom 0.5 so that the row lies inside the
+   window, `take_b`'s card clicked (its root `session`, 130.0 s, drawn once
+   behind `group_1` and `group_3`). The timeline's block offers no mode:
+   no radio, in their place the line "Drawn once behind the row: its
+   elisions are not drawn while the bundle is arranged side by side.",
+   "Gaps between groups" listing `between "Exposition" and
+   "Recapitulation" 33″–44″`. Add stays: the once card is the ancestor
+   card behind the row's first group, `group_1`, whose anchor `take_a`
+   covers 0.0–30.0, so Add is `{start: 63.333333333333336, end:
+   96.66666666666667}` into `session`, the middle third of 30.0–130.0 as
+   binary64 (`session` is float). Then the summary reads "Drawn once, 1
+   elision", the row carries the note "not drawn while arranged side by
+   side", and the drawing holds no element of it. The arrangement set to
+   `null` (free) by one `set`, each of `session`'s two ancestor cards
+   (behind `group_1`, whose anchor covers 0.0–30.0, and behind `group_3`,
+   100.0–130.0, neither touching 63.3–96.7) draws it under the initial
+   `custom`: its gap, ellipsis and name label twice, in that order, and the
+   page shows the ellipsis.
 
 **`elision-tab.spec.ts`** (Chromium, Firefox, WebKit) proves that an
 elision selected by a real pointer click on the canvas brings the Elisions
@@ -892,8 +914,11 @@ so the automatic proportions are those of a wide canvas.
 
 1. *Automatic elisions*, the end-to-end workspace `e2e/groups` opened from
    the header's Fixture menu exactly as a viewer opens it (its blocks hold
-   no stored elision: `elisions: []` in each; the automatic ones are those
-   of the ancestor cards drawn by default): the drawer opened and
+   no stored elision: `elisions: []` in each), its ancestor cards in
+   `ggrand0000` and `gmixed0000` given the mode `auto` by one `style`
+   command (`{select: {element: ancestor_card}, set: {elision-mode: auto}}`;
+   the initial `custom` derives no elision, drawing.md section 2.5), so the
+   automatic elisions are the ones they derive: the drawer opened and
    Properties chosen before each click, a click on the ellipsis and on the
    name label "Score" of `score`'s automatic elision in `ggrand0000`, on
    the ellipsis of `movement`'s there and of `session`'s in `gmixed0000`,
@@ -905,7 +930,8 @@ so the automatic proportions are those of a wide canvas.
    "600–1 754 px" of `elision_2` (on `page`), the ID label "elision_4" of
    `elision_4` (on `score`) and the ellipsis of `elision_3`, a group
    elision drawn in `group_1`'s frame.
-3. *A pin held*: a click on a named timestamp's wedge (`timestamp_3` in
+3. *A pin held*: `e2e/groups` opened as in 1 (the same `auto` rule), a
+   click on a named timestamp's wedge (`timestamp_3` in
    `ggrand0000`; `timestamp_7` in `bundle_elisions_stored`) shows the
    Timestamp tab with the timestamp's name header (`timestamp-name`); a
    click on an elision (`score`'s automatic ellipsis; `elision_2`'s) then

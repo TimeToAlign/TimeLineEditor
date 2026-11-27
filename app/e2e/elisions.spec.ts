@@ -8,7 +8,9 @@
  * card is selected, the tab's timeline or group block opened by its
  * disclosure button and Add elision pressed; then the drawing of the stored
  * block holds exactly the new elision's gap, its ellipsis and its name
- * label, and the page draws that ellipsis visibly. The expected values are derived in
+ * label, and the page draws that ellipsis visibly. A root drawn once behind a row of
+ * groups side by side offers no mode, lists its elision as not drawn there and keeps Add,
+ * the elision drawn once the row is free. The expected values are derived in
  * `README.md` ("elisions.spec.ts").
  */
 
@@ -246,4 +248,65 @@ test("an elision added on a virtual member's frame is drawn across it", async ({
     elision: { start: [4241, 6], end: [4241, 3] },
   });
   await drawn(page, block, id);
+});
+
+test("a root drawn once behind a row offers no mode, keeps its elision undrawn, and draws it free", async ({
+  page,
+}) => {
+  const block = await importFixture(page, "bundles/bundle_arranged_roots");
+  const arranged = { direction: "horizontal", order: ["page", "group_3", "group_1", "group_2"] };
+  expect(
+    await dispatch(page, {
+      type: "set",
+      changes: [{ target: { block }, values: { arrangement: arranged } }],
+    }),
+  ).toBeNull();
+  // The whole row inside the window: the block's place at (40, 40), at half size.
+  const view = await viewAtBlock(page, block);
+  await setViewport(page, { x: 40 + (view.x - 40) / 2, y: 40 + (view.y - 40) / 2, zoom: 0.5 });
+  await settledDrawing(page, block);
+  const tile = page.getByTestId("elisions");
+  const summary = async () =>
+    (await page.getByTestId("elisions-expand").textContent())?.replace(/\s+/g, " ").trim();
+  const { command, id } = await addThroughTab(
+    page,
+    block,
+    { id: "take_b", part: ["card"] },
+    "elisions",
+  );
+  // The once card is the card behind the row's first group, `group_1`, whose anchor `take_a`
+  // covers 0.0–30.0: the middle third of 30.0–130.0, written as `session`'s float.
+  expect(command).toEqual({
+    type: "add",
+    into: { block, id: "session" },
+    elision: { start: 63.333333333333336, end: 96.66666666666667 },
+  });
+  await expect.poll(summary).toBe('Timeline Parent timeline "Session" Drawn once, 1 elision');
+  await expect(tile.getByRole("radio")).toHaveCount(0);
+  await expect(tile.locator(".once")).toHaveText(
+    "Drawn once behind the row: its elisions are not drawn while the bundle is arranged side by side.",
+  );
+  await expect(tile.getByTestId("arranged-gaps").locator("li")).toHaveText([
+    'between "Exposition" and "Recapitulation" 33″–44″',
+  ]);
+  await expect(tile.locator(".rows .note")).toHaveText(["not drawn while arranged side by side"]);
+  await settledDrawing(page, block);
+  expect(await drawnOf(page, block, id)).toEqual([]);
+  // Free, each of `session`'s two ancestor cards draws it: behind `group_1` and behind `group_3`.
+  expect(
+    await dispatch(page, {
+      type: "set",
+      changes: [{ target: { block }, values: { arrangement: null } }],
+    }),
+  ).toBeNull();
+  await settledDrawing(page, block);
+  const pieces = [
+    { type: "elision", part: undefined },
+    { type: "ellipsis", part: ["ellipsis"] },
+    { type: "label", part: ["name"] },
+  ];
+  expect(await drawnOf(page, block, id)).toEqual([...pieces, ...pieces]);
+  await expect(
+    element(page, block, { id, part: ["ellipsis"] } as ElementAddress).first(),
+  ).toBeVisible();
 });

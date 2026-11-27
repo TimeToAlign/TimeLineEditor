@@ -13,9 +13,11 @@
  * by depth (Automatic, or the depths chosen) and what every derived
  * elision shows; under Custom the stored elisions the card draws, a click
  * selecting one, `[×]` deleting it, Add elision and Remove all. A root
- * drawn once behind a row of groups side by side also lists, read-only,
- * the gaps between two of its groups, and its stored elisions lying there,
- * kept and not drawn, with a note saying so. The **group's** block
+ * drawn once behind a row of groups side by side offers no mode (its card
+ * reads none): one line saying it is drawn once and its elisions are not
+ * drawn while the bundle is arranged side by side, the gaps between two of
+ * its groups, read-only, and every stored elision of it, kept and not
+ * drawn, each with a note saying so, Add elision and Remove all. The **group's** block
  * wherever the selection lies in a group's frame, or in its editor: a
  * checkbox drawing the group's elisions, its elisions, Add elision and
  * Remove all. The **elision's** block, the form of one selected elision:
@@ -60,6 +62,7 @@ import {
   groupElisionsOf,
   KIND_WORDS,
   MODE_WORDS,
+  ONCE_LINE,
   proportionAutomaticCommand,
   proportionCommand,
   rootElisionsOf,
@@ -386,7 +389,9 @@ function toggled(
     {#if shown.shown !== null}
       {@render checkbox(shown.shown, "card-shown", "Draw behind its groups", rootKey)}
     {/if}
-    {#if shown.mode !== null}
+    {#if shown.mode === "once"}
+      <p class="once">{ONCE_LINE}</p>
+    {:else if shown.mode !== null}
       {@render modes(shown.options, shown.mode, MODE_WORDS, rootKey)}
     {/if}
     {#if shown.arranged.length > 0}
@@ -641,7 +646,8 @@ function toggled(
   }
 
   .hint,
-  .count {
+  .count,
+  .once {
     margin: 0;
     color: #595959;
   }

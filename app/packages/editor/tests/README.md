@@ -2051,24 +2051,30 @@ itself, and the selection resolved as the canvas does): the row
 s, `take_a` 0.0–30.0 in `group_1`, `take_b` 100.0–130.0 in `group_3`)
 each drawn once. The drawing records ONE ancestor card per root, under the
 key of the first group of the row hanging on it, `{item: group_1, member:
-R}`, its `ancestor.groups` every group it lies behind, left to right. What
-proves the reading:
-- **One card, found from any group.** The root's block reads that card for
-  a subject in any of the groups: `{id: development}` (`group_2`'s member,
-  whose own card is not recorded) and `{id: recapitulation}` show `score`
-  drawn Proportional, as `{id: exposition}` does, not hidden (which is what
-  reading the card `{item: group_2, member: score}` would give: nothing
-  recorded there). `{id: take_b}` shows `session` the same way.
+R}`, its `ancestor.groups` every group it lies behind, left to right. A
+once card reads no elision property but `elision-display` (drawing.md
+§8.8: it draws no card elision and derives none, the arrangement's gaps
+taking their place), so its exposure says `drawn: once`, whatever the
+cascaded `elision-mode` (the workspace's `auto` here, which would derive
+elisions on a card behind one frame). What proves the reading:
+- **One card, found from any group, read as drawn once.** The root's block
+  reads that card for a subject in any of the groups: `{id: development}`
+  (`group_2`'s member, whose own card is not recorded) and `{id:
+  recapitulation}` show `score` drawn once, as `{id: exposition}` does, not
+  hidden (which is what reading the card `{item: group_2, member: score}`
+  would give: nothing recorded there). `{id: take_b}` shows `session` the
+  same way. Drawn once, the block offers no mode (no option, so no radio a
+  click could not change anything by) and no Proportional settings.
 - **The arrangement's gaps, read-only.** `score`'s block lists nothing
   under "Gaps between groups": its anchors' stretches touch at 16 and 32 ♩, so its
   axis has seams there and no gap, and a seam leaves out nothing, is no gap
   and is not exposed (drawing.md section 3.2, Seams); `session`'s lists
   `between "Exposition" and "Recapitulation"` with its elided stretch as
-  layout exposes it, "33″–44″". They are not card elisions: in Custom the
-  count and the rows hold none of them; the default elision `{id: score,
-  part: [elision]}`, which is their address, has no form (only a gap of
-  origin `default` has), and Proportional → Custom stores none of them. In
-  the free drawing the block lists none.
+  layout exposes it, "33″–44″". They are not card elisions: the count and
+  the rows hold none of them; the default elision `{id: score, part:
+  [elision]}`, which is their address, has no form (only a gap of origin
+  `default` has), and with no mode offered nothing stores them. In the free
+  drawing the block lists none.
 - **A gap is named by its stretch.** `score` made 56 ♩ long and
   `recapitulation` moved to 40 (one `set`): the anchors now lie 0–16,
   16–32 and 40–56, so the axis has a seam at 16 and one gap, between
@@ -2077,20 +2083,30 @@ proves the reading:
   "Recapitulation"`, with the stretch of the one `arrangement` gap layout
   exposes; reading the gaps by their place in the list would have named
   "Exposition" and "Development", the pair across the seam.
-- **Stored elisions between two anchors.** `session` given a card
+- **Stored elisions, kept and not drawn.** `session` given a card
   elision 50.0–80.0 (one `add`), which lies between `take_a` and `take_b`:
-  the free drawing draws it and lists it plainly; side by side the card
-  draws it not (the stretch between two anchors is the arrangement's gap
-  whatever the mode), yet it is kept: Custom lists it "—" Session
-  "50″–1′20″" with the note "not drawn while arranged side by side", counts
-  it, and its `[×]` and Remove all remove it. Mounted (the tab, the
-  block's `arrangement` stated by one `set` so that the arranger's drawing
-  is the side-by-side one): "Gaps between groups" holds the one item `between
-  "Exposition" and "Recapitulation" 33″–44″`, the count reads "1 elision",
-  and the row carries the note.
-- **The least proportion.** With a group elision on `development`
-  4–12 the free drawing exposes the proportions 0.5 (behind `group_1`),
-  0.29 (`group_2`) and 0.3262963256835937 (`group_3`) for `score`. Behind
+  the free drawing (Custom, by the workspace's `auto` and the stored
+  elision) draws it and lists it plainly; side by side the once card draws
+  no card elision, yet it is kept: the block lists every stored card
+  elision of the root, this one "—" Session "50″–1′20″" with the note "not
+  drawn while arranged side by side", counts it, and its `[×]` and Remove
+  all remove it. Add stays offered: the once card is the ancestor card
+  behind the row's first group, `group_1`, whose anchor `take_a` covers
+  0.0–30.0, so Add is one `add` into `session` of the middle third of
+  30.0–130.0, 190/3 to 290/3 written as `session`'s float, `{start:
+  63.333333333333336, end: 96.66666666666667}` (an elision drawn there once
+  the row is no longer side by side). Mounted (the tab, the block's
+  `arrangement` stated by one `set` so that the arranger's drawing is the
+  side-by-side one): the summary reads "Drawn once, 1 elision", no mode
+  radio is rendered, the line "Drawn once behind the row: its elisions are
+  not drawn while the bundle is arranged side by side." stands in their
+  place, "Gaps between groups" holds the one item `between "Exposition"
+  and "Recapitulation" 33″–44″`, the count reads "1 elision", and the row
+  carries the note.
+- **No proportion side by side.** With a group elision on `development`
+  4–12 the free drawing exposes, in the groups' name order (Development,
+  Exposition, Recapitulation), the proportions 0.29 (behind `group_2`),
+  0.5 (`group_1`) and 0.3262963256835937 (`group_3`) for `score`. Behind
   `group_3` (`recapitulation` 32–48, so `EL` 32, `ER` 0, `λ` 16, `uL`
   2) section 8.9's (b) binds: the frame is `Fw = 567.39013671875` wide,
   `c = Fw / 2`, and `score` laid out alone has `σ = K + N' + G' = 8 +
@@ -2101,9 +2117,8 @@ proves the reading:
   below (a)'s `λ / E = 0.5` (the card reaches `σ` left of the frame's
   edge, its seam putting what lies left of `recapitulation` outside the
   frame); side by side the once
-  card's Proportion shows "0.29", Automatic ticked: the least, read from the
-  exposure, equal to the least of the free cards' (an oracle the editor
-  never computes).
+  card derives none of them: its block reads `once` and shows no
+  Proportional settings at all.
 
 **Virtual timelines** (drawing.md section 8.10, Elisions of a virtual
 timeline). A virtual timeline lies in no tree: it is the root of its own
@@ -2304,8 +2319,10 @@ chosen, an elision with `score` and then `score` alone leave Journal.
 Closed, with Journal chosen, `elision_5` selected leaves the drawer
 closed (no tab list rendered); `score` then selected, the drawer opened
 shows Elisions. On `group_grandchild`, whose ancestor card of `score`
-draws `score`'s automatic elision by default (no elision stored), the
-drawer open with Properties chosen: `{id: score, part: [elision]}`
+derives `score`'s automatic elision under the workspace rule `{select:
+{element: ancestor_card}, set: {elision-mode: auto}}` (the initial
+`custom` derives none; no elision stored), the drawer open with
+Properties chosen: `{id: score, part: [elision]}`
 selected shows Elisions with the form's block expanded.
 
 **The component** reads the editing path from the real store (open, Done,

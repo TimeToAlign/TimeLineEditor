@@ -110,7 +110,12 @@ async function elisionsShown(page: Page, block: string, address: ElementAddress)
   await expect(page.getByTestId("elision-form-expand")).toHaveAttribute("aria-expanded", "true");
 }
 
-/** Open `e2e/groups` from the header's Fixture menu, as a viewer does, and open the drawer. */
+/**
+ * Open `e2e/groups` from the header's Fixture menu, as a viewer does, give
+ * the ancestor cards of the blocks drawing automatic elisions the mode
+ * `auto` (one `style`; the initial `custom` derives none), and open the
+ * drawer.
+ */
 async function groups(page: Page): Promise<void> {
   await page.goto("/");
   await page.getByTestId("fixture-select").selectOption("e2e/groups");
@@ -118,6 +123,14 @@ async function groups(page: Page): Promise<void> {
   await expect
     .poll(() => page.evaluate(() => Object.keys(window.__tilie.store().view.blocks).length))
     .toBe(4);
+  expect(
+    await dispatch(page, {
+      type: "style",
+      select: { element: "ancestor_card" },
+      set: { "elision-mode": "auto" },
+      blocks: [GRANDCHILD, MIXED],
+    }),
+  ).toBeNull();
   await openDrawer(page);
 }
 

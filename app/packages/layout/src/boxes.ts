@@ -335,7 +335,12 @@ export interface ElisionExposure {
   readonly key: PlaceKey;
   readonly address: ElementAddress;
   readonly mode: "auto" | "full" | "proportional" | "custom";
-  readonly drawn: "full" | "proportional" | "custom";
+  /**
+   * The mode it draws by; `once` for the card of a root drawn once behind a row of groups side by
+   * side (section 8.8, Drawn once), which reads no elision property but `elision-display`: it draws
+   * no card elision and derives none, the arrangement's gaps taking their place.
+   */
+  readonly drawn: "full" | "proportional" | "custom" | "once";
   /** The proportion of its derived elisions; 1 where it derives none, null for any but an ancestor card. */
   readonly proportion: number | null;
   readonly automatic: boolean;

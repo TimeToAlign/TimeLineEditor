@@ -724,10 +724,8 @@ function laidOnce(
         kind: "ancestor_card",
         key,
         address,
-        // A once card reads no elision property but `elision-display`: it draws no card elision
-        // and derives none (section 8.8, Drawn once), as `full` would.
         mode: style["elision-mode"],
-        drawn: "full",
+        drawn: "once",
         proportion: 1,
         automatic: false,
         chain: ancestor.member.ancestors.map((each) => each.timeline.id),
