@@ -3,9 +3,9 @@
  * browser: the root's tree box showing its child's atomic sections with
  * one press (the shape of Beethoven's Op. 106, whose movements hold atomic
  * sections and whose root holds none), its conversion maps hidden and
- * shown again on every child, and the root's own empty Regions band hidden
- * and shown, never disabled, and a press of several commands inside an
- * open editor one undo step. The expected values are derived in
+ * shown again on every child, the root's own empty Regions band shown
+ * (explicitly, so drawn though empty) and hidden, never disabled, and a
+ * press of several commands inside an open editor one undo step. The expected values are derived in
  * `README.md` ("controls.spec.ts").
  */
 
@@ -44,6 +44,22 @@ function style(block: string, select: object, display: string | null) {
   return { type: "style", select, set: { display }, blocks: [block] };
 }
 
+/** The rules of block `block`'s manifest, as JSON. */
+function rulesOf(page: Page, block: string): Promise<unknown> {
+  return page.evaluate(
+    (id) =>
+      JSON.parse(
+        JSON.stringify(window.__tilie.store().view.blocks[id]?.manifest.graphical?.rules ?? []),
+      ),
+    block,
+  );
+}
+
+/** The facets of the bands the hook records of `timeline` in block `block`. */
+async function facetsOf(page: Page, block: string, timeline: string): Promise<string[]> {
+  return (await bandsOf(page, block, timeline)).map((band) => band.facet);
+}
+
 /** Whether the checkbox `name` of `list` is indeterminate, a property no attribute shows. */
 function mixed(list: ReturnType<Page["locator"]>, name: string): Promise<boolean> {
   return list
@@ -65,31 +81,36 @@ test("the root's tree box shows its child's atomic sections with one press", asy
     name: "Regions with its descendants visible",
     exact: true,
   });
-  await expect(own).toBeChecked();
+  // `score`'s band, displayed by the initial value alone and drawing nothing, is absent.
+  await expect(own).not.toBeChecked();
   await expect(own).toBeEnabled();
   await expect(tree).toBeEnabled();
   await expect(tree).not.toBeChecked();
-  expect(await mixed(list, "Regions with its descendants visible")).toBe(true);
+  expect(await mixed(list, "Regions with its descendants visible")).toBe(false);
   await expect(element(page, block, { id: "region_1" })).toHaveCount(0);
 
+  const bands = { element: "band", facet: "regions", within: "score" };
+  const regions = { element: "region", within: "score" };
   const entries = await journalLength(page);
   await tree.click();
   await expect.poll(() => journalLength(page)).toBe(entries + 1);
-  expect(await newestCommand(page)).toEqual(
-    style(block, { element: "region", within: "score" }, "inline"),
-  );
+  expect(await rulesOf(page, block)).toEqual([
+    { select: bands, set: { display: "inline" } },
+    { select: regions, set: { display: "inline" } },
+  ]);
   await expect(tree).toBeChecked();
   expect(await mixed(list, "Regions with its descendants visible")).toBe(false);
+  await expect(own).toBeChecked();
   await expect(element(page, block, { id: "region_1" })).toHaveCount(1);
+  await expect.poll(() => facetsOf(page, block, "score")).toContain("regions");
 
   await tree.click();
   await expect.poll(() => journalLength(page)).toBe(entries + 2);
+  expect(await rulesOf(page, block)).toEqual([{ select: bands, set: { display: "none" } }]);
   await expect(tree).not.toBeChecked();
   await expect(own).not.toBeChecked();
   await expect(element(page, block, { id: "region_1" })).toHaveCount(0);
-  await expect
-    .poll(async () => (await bandsOf(page, block, "movement")).map((band) => band.facet))
-    .not.toContain("regions");
+  await expect.poll(() => facetsOf(page, block, "movement")).not.toContain("regions");
 });
 
 test("the root's tree box hides and shows every child's conversion maps", async ({ page }) => {
@@ -100,9 +121,11 @@ test("the root's tree box hides and shows every child's conversion maps", async 
     name: "Conversion maps with its descendants visible",
     exact: true,
   });
+  // `piece`'s band, holding no map, is absent; the children's show theirs.
   await expect(own).toBeEnabled();
-  await expect(own).toBeChecked();
-  await expect(tree).toBeChecked();
+  await expect(own).not.toBeChecked();
+  await expect(tree).not.toBeChecked();
+  expect(await mixed(list, "Conversion maps with its descendants visible")).toBe(true);
   const maps = async () =>
     (await Promise.all(["ante", "cons"].map((timeline) => bandsOf(page, block, timeline)))).map(
       (bands) => bands.filter((band) => band.facet === "conversion_maps").length,
@@ -111,38 +134,48 @@ test("the root's tree box hides and shows every child's conversion maps", async 
 
   const entries = await journalLength(page);
   const rule = { element: "band", facet: "conversion_maps", within: "piece" };
-  await tree.uncheck();
+  await tree.click();
   await expect.poll(() => journalLength(page)).toBe(entries + 1);
+  expect(await newestCommand(page)).toEqual(style(block, rule, "inline"));
+  await expect(own).toBeChecked();
+  await expect(tree).toBeChecked();
+  await expect.poll(maps).toEqual([1, 1]);
+
+  await tree.click();
+  await expect.poll(() => journalLength(page)).toBe(entries + 2);
   expect(await newestCommand(page)).toEqual(style(block, rule, "none"));
   await expect.poll(maps).toEqual([0, 0]);
   await expect(own).not.toBeChecked();
 
-  await tree.check();
-  await expect.poll(() => journalLength(page)).toBe(entries + 2);
-  expect(await newestCommand(page)).toEqual(style(block, rule, null));
+  await tree.click();
+  await expect.poll(() => journalLength(page)).toBe(entries + 3);
+  expect(await newestCommand(page)).toEqual(style(block, rule, "inline"));
   await expect.poll(maps).toEqual([1, 1]);
   await expect(own).toBeChecked();
 });
 
-test("the root's own empty Regions band is hidden and shown, never disabled", async ({ page }) => {
+test("the root's own empty Regions band is shown and hidden, never disabled", async ({ page }) => {
   const block = await importFixture(page, "unknown_length_child");
   const list = await bandList(page, block, "score");
   const own = list.getByRole("checkbox", { name: "Regions visible", exact: true });
   await expect(own).toBeEnabled();
+  await expect(own).not.toBeChecked();
   await expect(list.getByRole("rowheader", { name: /^Regions/ })).toContainText(
     "Timeline 'score' holds no regions; its descendants hold some.",
   );
   const rule = { element: "band", addresses: [{ id: "score", facet: "regions" }] };
   const entries = await journalLength(page);
-  await own.uncheck();
+  await own.check();
   await expect.poll(() => journalLength(page)).toBe(entries + 1);
+  expect(await newestCommand(page)).toEqual(style(block, rule, "inline"));
+  await expect(own).toBeChecked();
+  await expect.poll(() => facetsOf(page, block, "score")).toContain("regions");
+  await own.uncheck();
+  await expect.poll(() => journalLength(page)).toBe(entries + 2);
   expect(await newestCommand(page)).toEqual(style(block, rule, "none"));
   await expect(own).not.toBeChecked();
   await expect(own).toBeEnabled();
-  await own.check();
-  await expect.poll(() => journalLength(page)).toBe(entries + 2);
-  expect(await newestCommand(page)).toEqual(style(block, rule, null));
-  await expect(own).toBeChecked();
+  await expect.poll(() => facetsOf(page, block, "score")).not.toContain("regions");
 });
 
 test("a press of several commands inside an open editor is one undo step", async ({ page }) => {

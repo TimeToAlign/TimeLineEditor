@@ -22,12 +22,13 @@
  * same display `within` `T`, `{element: "band", facet, within: T}`, which
  * the cascade gives the band of `T` and of every descendant unless a rule
  * of higher rank (a band's own, a deeper `within`) states otherwise
- * (section 2.5). A band shows what it holds when it is displayed and, for a
- * regions or a conversion maps band holding some, one of them is displayed
- * (the defaults hide the atomic sections, section 4): showing writes the
- * band's rule where the band is hidden and the rule displaying its regions
- * or maps (`{element: type, within: T}`) where none is displayed
- * (`bandCommands`).
+ * (section 2.5). A band shows what it holds when it is displayed and
+ * present, drawing a displayed element or shown explicitly (section 6.4,
+ * Empty bands), and, for a regions or a conversion maps band holding some,
+ * one of them is displayed (the defaults hide the atomic sections, section
+ * 4): showing writes the band's rule where the band is hidden or absent,
+ * so an empty band appears, and the rule displaying its regions or maps
+ * (`{element: type, within: T}`) where none is displayed (`bandCommands`).
  *
  * A virtual timeline's band list also holds, per band, the switch **From
  * the sources** (section 8.10, Windows): the one rule `{facet, inside:
@@ -248,6 +249,8 @@ class Reading {
   readonly #keys = new Map<string, ElementKey[]>();
   /** The style of each key read, by key. */
   readonly #styles = new Map<ElementKey, Style>();
+  /** Whether each band read is shown explicitly, by key. */
+  readonly #explicit = new Map<ElementKey, boolean>();
 
   constructor(view: View, block: Block) {
     this.view = view;
@@ -285,6 +288,20 @@ class Reading {
   /** Whether `key` is displayed by its own `display`. */
   own(key: ElementKey): boolean {
     return this.styleOf(key).display === "inline";
+  }
+
+  /**
+   * Whether the band `key` is shown explicitly (section 6.4, Empty bands):
+   * the rule setting its `display` sets `inline` and names `addresses` or
+   * `within` (`Cascade.resolveBand`).
+   */
+  explicit(key: ElementKey): boolean {
+    let explicit = this.#explicit.get(key);
+    if (explicit === undefined) {
+      explicit = this.cascade.resolveBand(key, undefined).explicit;
+      this.#explicit.set(key, explicit);
+    }
+    return explicit;
   }
 
   /** The IDs from the root of `timeline`'s tree down to it; a virtual timeline's itself. */
@@ -437,6 +454,12 @@ function heldBy(reading: Reading, timeline: string, facet: Facet): ElementKey[] 
   });
 }
 
+/** The elements the band `band` holds directly (`heldBy`). */
+function heldOf(reading: Reading, band: ElementKey): ElementKey[] {
+  const { id } = band.address;
+  return id === undefined || band.facet === null ? [] : heldBy(reading, id, band.facet);
+}
+
 /** Whether a descendant of `timeline` holds an element of the type a band of `facet` holds. */
 function heldBelow(reading: Reading, timeline: string, facet: Facet): boolean {
   return reading.elements.some(
@@ -506,17 +529,62 @@ function bandKeys(reading: Reading, select: Selector): ElementKey[] {
 }
 
 /**
- * Whether `band` shows what it holds: displayed and, for a band whose
- * content its control also shows (`CONTENT`), holding none of it or one of
- * it displayed.
+ * Whether `band` is displayed and **present** (section 6.4, Empty bands):
+ * it draws an element it holds, one displayed, or it is shown explicitly,
+ * so that, empty, it takes its room all the same. A band displayed by the
+ * initial value alone that draws nothing is absent. A child's flow control
+ * band is laid out in its root's, at no line of its own (section 6.4), so
+ * it is present while displayed: what it holds is drawn in its root's band.
+ * A virtual timeline's band also draws what its chunks' windows join to it
+ * (section 8.10, Windows: `windowsDraw`).
  */
-function shows(reading: Reading, band: ElementKey): boolean {
+function present(
+  reading: Reading,
+  band: ElementKey,
+  held: readonly ElementKey[] = heldOf(reading, band),
+): boolean {
   if (!reading.own(band)) return false;
   const { id } = band.address;
+  if (id === undefined || band.facet === null) return true;
+  if (band.facet === "flow_control" && reading.ancestry(id)[0] !== id) return true;
+  return (
+    held.some((key) => reading.own(key) && draws(reading, key)) ||
+    reading.explicit(band) ||
+    windowsDraw(reading, id, band.facet)
+  );
+}
+
+/**
+ * Whether the chunks' windows of the virtual timeline `V` join a displayed
+ * element to its band of `facet`: a window band of that facet is displayed
+ * and an element of the facet's types it shows is (`SHOWN`); `false` for a
+ * timeline that is not virtual, which has no window.
+ */
+function windowsDraw(reading: Reading, virtual: string, facet: Facet): boolean {
+  const shown = reading.elements.filter((key) => key.window === virtual && reading.own(key));
+  return (
+    shown.some(
+      (key) =>
+        key.type === "band" &&
+        key.facet === facet &&
+        key.address.id === virtual &&
+        typeof key.address.part?.[0] === "number",
+    ) && shown.some((key) => key.type !== "band" && SHOWN[facet].includes(key.type))
+  );
+}
+
+/**
+ * Whether `band` shows what it holds: displayed and present (`present`)
+ * and, for a band whose content its control also shows (`CONTENT`),
+ * holding none of it or one of it displayed.
+ */
+function shows(reading: Reading, band: ElementKey): boolean {
+  const held = heldOf(reading, band);
+  if (!present(reading, band, held)) return false;
   const content = band.facet === null ? undefined : CONTENT[band.facet];
-  if (id === undefined || band.facet === null || content === undefined) return true;
-  const held = heldBy(reading, id, band.facet).filter((key) => key.type === content);
-  return held.length === 0 || held.some((key) => reading.own(key));
+  if (content === undefined) return true;
+  const kept = held.filter((key) => key.type === content);
+  return kept.length === 0 || kept.some((key) => reading.own(key));
 }
 
 /** The control of a band `declaration` over the bands `keys`: pressed where all show what they hold, mixed where some do; never inert. */
@@ -987,18 +1055,34 @@ function contentSelect(reading: Reading, control: Control): Selector | null {
   return first === undefined ? null : { element, addresses: [first, ...rest] };
 }
 
+/** Whether `band` holds an element of the type its control also displays (`CONTENT`) that draws. */
+function filled(reading: Reading, band: ElementKey): boolean {
+  const content = band.facet === null ? undefined : CONTENT[band.facet];
+  return (
+    content !== undefined &&
+    heldOf(reading, band).some((key) => key.type === content && draws(reading, key))
+  );
+}
+
 /**
  * The `style`s a press of the band control `control` sends for `block` in
  * `view`, in order; `[]` where nothing is to change. Pressed, it hides its
- * bands; else it shows them. Each step is read on the view the previous
- * ones leave (`preview`):
+ * bands; else it shows them. A band **lacks** what a press asks for while,
+ * showing, it is not displayed and present (`present`: an empty band
+ * displayed by the initial value alone is absent), unless it is displayed
+ * and holds regions or maps that step 4 displays (`filled`), and, hiding,
+ * while it is displayed. Each step is read on the view the previous ones
+ * leave (`preview`):
  *
- * 1. for its rule `within` `T`, each band lacking the asked `display`
- *    whose own rule the manifest states: that rule removed (it outranks
- *    the tree's, section 2.5);
+ * 1. for its rule `within` `T`, each band lacking it whose own rule the
+ *    manifest states: that rule removed (it outranks the tree's, section
+ *    2.5);
  * 2. its rule: where the manifest states it and the cascade without it
- *    gives every band the asked `display`, it is removed; else it is stated
- *    where a band lacks it;
+ *    leaves no band lacking, it is removed; else, where a band lacks it,
+ *    it is stated `inline` or `none` (a stated value already asked for
+ *    kept). Showing an empty band so writes its rule `inline`, which shows
+ *    it explicitly (section 2.4: a control displaying a band shows it
+ *    explicitly), and the band appears, empty, to have content added;
  * 3. for its rule `within` `T`, each band still lacking it (a rule of
  *    higher rank states otherwise): the band's own rule stated;
  * 4. showing a regions or conversion maps band holding some, none of them
@@ -1023,8 +1107,13 @@ export function bandCommands(view: View, block: Block, control: Control): StyleC
     reading = next;
   };
   const asked = show ? "inline" : "none";
+  // Showing, a band lacks presence (an empty band displayed by the initial value alone is
+  // absent) unless, displayed, it holds content that step 4 displays; hiding, a band lacks
+  // `none` while it is displayed.
   const lacking = (on: Reading): ElementKey[] =>
-    bandKeys(on, control.select).filter((key) => on.own(key) !== show);
+    bandKeys(on, control.select).filter((key) =>
+      show ? !present(on, key) && !(on.own(key) && filled(on, key)) : on.own(key),
+    );
   const { select } = control;
   const tree = select.within !== undefined;
   const ownOf = (band: ElementKey): Selector | null => {
@@ -1039,11 +1128,12 @@ export function bandCommands(view: View, block: Block, control: Control): StyleC
       send(displayCommand(block, own, null));
     }
   }
-  if (stated(reading.manifest, select, "display") !== undefined) {
+  const written = stated(reading.manifest, select, "display");
+  if (written !== undefined) {
     const without = read(displayCommand(block, select, null));
     if (without !== null && lacking(without).length === 0)
       send(displayCommand(block, select, null));
-    else send(displayCommand(block, select, asked));
+    else if (written !== asked) send(displayCommand(block, select, asked));
   } else if (lacking(reading).length > 0) {
     send(displayCommand(block, select, asked));
   }
@@ -1053,13 +1143,10 @@ export function bandCommands(view: View, block: Block, control: Control): StyleC
   }
   const content = contentSelect(reading, control);
   if (content === null) return commands;
-  const written = stated(reading.manifest, content, "display");
+  const shown = stated(reading.manifest, content, "display");
   if (!show) {
-    if (written !== undefined) send(displayCommand(block, content, null));
-  } else if (
-    written !== "inline" &&
-    !bandKeys(reading, select).every((key) => shows(reading, key))
-  ) {
+    if (shown !== undefined) send(displayCommand(block, content, null));
+  } else if (shown !== "inline" && !bandKeys(reading, select).every((key) => shows(reading, key))) {
     send(displayCommand(block, content, "inline"));
   }
   return commands;

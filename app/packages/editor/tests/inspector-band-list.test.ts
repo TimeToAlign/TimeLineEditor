@@ -119,6 +119,18 @@ const ALL_SHOWN = [
   ["Regions", true],
 ];
 
+/**
+ * The rows of a child of `score` in `styled_score_flow_inner` holding nothing: every band
+ * displayed, each absent but its flow control band, which its root's lays out.
+ */
+const EMPTY_CHILD = [
+  ["Children", false],
+  ["Markers", false],
+  ["Conversion maps", false],
+  ["Flow control", true],
+  ["Regions", false],
+];
+
 describe("the selections listing bands", () => {
   it("are a timeline's card, its line or one of its bands, a child's and a virtual timeline's alike", () => {
     const store = storeOf("styled_score_flow_inner");
@@ -126,12 +138,12 @@ describe("the selections listing bands", () => {
     expect(rowsOf(store, { id: "score" })).toEqual(ALL_SHOWN);
     expect(rowsOf(store, { id: "score", facet: "regions" })).toEqual(ALL_SHOWN);
     expect(rowsOf(store, card("score"), { id: "score" })).toEqual(ALL_SHOWN);
-    expect(rowsOf(store, { id: "b" })).toEqual(ALL_SHOWN);
+    expect(rowsOf(store, { id: "b" })).toEqual(EMPTY_CHILD);
     // A virtual timeline has the five bands of every timeline (drawing.md section 8.10).
     const virtual = storeOf("flow/virtual_cards");
-    // In the default band order, every one shown.
+    // In the default band order, every one displayed and empty, so absent.
     const bands = ["Children", "Conversion maps", "Markers", "Regions", "Flow control"].map(
-      (band) => [band, true],
+      (band) => [band, false],
     );
     expect(rowsOf(virtual, { id: "allegro_by_hand" })).toEqual(bands);
     expect(rowsOf(virtual, card("allegro_by_hand"))).toEqual(bands);
@@ -154,18 +166,19 @@ describe("the selections listing bands", () => {
 
   it("list a root's bands and a child member's, its flow control included, in the band order", () => {
     const store = storeOf("groups/group_child_member");
+    // Each holds its named timestamps alone; a child's flow control band is its root's.
     expect(rowsOf(store, card("recording"))).toEqual([
-      ["Children", true],
-      ["Conversion maps", true],
+      ["Children", false],
+      ["Conversion maps", false],
       ["Markers", true],
-      ["Regions", true],
-      ["Flow control", true],
+      ["Regions", false],
+      ["Flow control", false],
     ]);
     expect(rowsOf(store, card("second-half"))).toEqual([
-      ["Children", true],
-      ["Conversion maps", true],
+      ["Children", false],
+      ["Conversion maps", false],
       ["Markers", true],
-      ["Regions", true],
+      ["Regions", false],
       ["Flow control", true],
     ]);
   });
@@ -244,18 +257,35 @@ describe("the tree's box", () => {
     ).toEqual([null, null, null, null, null]);
     const regions = rowOf(store, "score", "regions");
     expect([regions.control.pressed, regions.control.hint]).toEqual([
-      true,
+      false,
       "Timeline 'score' holds no regions; its descendants hold some.",
     ]);
     expect([regions.tree?.pressed, regions.tree?.mixed, regions.tree?.hint]).toEqual([
-      true,
       false,
+      true,
       null,
+    ]);
+  });
+
+  it("shows an empty band explicitly, its own box writing the band's rule", () => {
+    const store = storeOf("unknown_length_child");
+    expect(press(store, "score", "regions")).toEqual([style(OWN, "inline")]);
+    expect(boxesOf(store, "score", "regions")).toEqual({ own: [true, false], tree: [true, false] });
+    expect(press(store, "score", "regions")).toEqual([style(OWN, "none")]);
+    expect(boxesOf(store, "score", "regions")).toEqual({
+      own: [false, false],
+      tree: [false, true],
+    });
+    expect(press(store, "score", "regions")).toEqual([style(OWN, "inline")]);
+    expect(store.view.blocks[A]?.manifest.graphical?.rules).toEqual([
+      { select: OWN, set: { display: "inline" } },
     ]);
   });
 
   it("writes the rule within the timeline, mixed while a band's own rule outranks it", () => {
     const store = storeOf("unknown_length_child");
+    expect(press(store, "score", "regions", "tree")).toEqual([style(TREE, "inline")]);
+    expect(boxesOf(store, "score", "regions")).toEqual({ own: [true, false], tree: [true, false] });
     expect(press(store, "score", "regions", "tree")).toEqual([style(TREE, "none")]);
     expect(boxesOf(store, "score", "regions")).toEqual({
       own: [false, false],
@@ -276,9 +306,12 @@ describe("the tree's box", () => {
       false,
       "None of the regions it holds is displayed.",
     ]);
-    expect(boxesOf(store, "score", "regions").tree).toEqual([false, true]);
+    expect(boxesOf(store, "score", "regions").tree).toEqual([false, false]);
     const regions = { element: "region", within: "score" };
-    expect(press(store, "score", "regions", "tree")).toEqual([style(regions, "inline")]);
+    expect(press(store, "score", "regions", "tree")).toEqual([
+      style(TREE, "inline"),
+      style(regions, "inline"),
+    ]);
     expect(boxesOf(store, "score", "regions").tree).toEqual([true, false]);
     expect(boxesOf(store, "movement", "regions").own).toEqual([true, false]);
     expect(press(store, "score", "regions", "tree")).toEqual([
@@ -316,7 +349,7 @@ describe("a hint", () => {
       ["Flow control", hidden],
       ["Regions", hidden],
     ]);
-    expect(rowsOf(storeOf("styled_score_flow_inner"), { id: "a" })).toEqual(ALL_SHOWN);
+    expect(rowsOf(storeOf("styled_score_flow_inner"), { id: "a" })).toEqual(EMPTY_CHILD);
   });
 
   it("is a virtual timeline's band holding nothing", () => {
@@ -419,11 +452,10 @@ describe("the switch From the sources", () => {
 
   it("is hinted, never disabled, while its virtual timeline's band is hidden", () => {
     const store = windowed();
-    const [command, ...others] = press(store, "allegro_default", "regions");
-    expect(command).toEqual(
-      style({ element: "band", addresses: [{ id: "allegro_default", facet: "regions" }] }, "none"),
-    );
-    expect(others).toEqual([]);
+    const own = { element: "band", addresses: [{ id: "allegro_default", facet: "regions" }] };
+    // Empty, the band is absent: the first press shows it explicitly, the second hides it.
+    expect(press(store, "allegro_default", "regions")).toEqual([style(own, "inline")]);
+    expect(press(store, "allegro_default", "regions")).toEqual([style(own, "none")]);
     const { sources } = rowOf(store, "allegro_default", "regions");
     expect([sources?.hint, sources?.inert]).toEqual([
       "The regions band of virtual timeline 'Allegro, default' is hidden.",
@@ -509,23 +541,32 @@ describe("the band list in the Properties tab", () => {
         box.disabled,
       ]),
     ).toEqual([
-      ["Children with its descendants visible", true, false, false],
-      ["Markers with its descendants visible", true, false, false],
-      ["Conversion maps with its descendants visible", true, false, false],
+      // The bands of `a` and `b`, empty, are absent; their flow control bands are `score`'s.
+      ["Children with its descendants visible", false, true, false],
+      ["Markers with its descendants visible", false, true, false],
+      ["Conversion maps with its descendants visible", false, true, false],
       ["Flow control with its descendants visible", true, false, false],
-      ["Regions with its descendants visible", true, false, false],
+      ["Regions with its descendants visible", false, true, false],
     ]);
+    const rules = store.view.blocks[A]?.manifest.graphical?.rules ?? [];
     const entries = store.listed.length;
     boxes()[4]?.click();
     flushSync();
     expect(store.listed.length).toBe(entries + 1);
     expect(store.listed.at(-1)?.entry).toMatchObject({ command: bandStyle("regions", "none") });
     expect(boxes()[4]?.checked).toBe(false);
-    expect(trees()[4]?.indeterminate).toBe(true);
+    expect([trees()[4]?.checked, trees()[4]?.indeterminate]).toEqual([false, false]);
     trees()[4]?.click();
     flushSync();
     expect(store.listed.length).toBe(entries + 2);
-    expect(store.listed.at(-1)?.entry).toMatchObject({ command: bandStyle("regions", null) });
+    expect(store.listed.at(-1)?.changes).toBe(2);
+    expect(store.view.blocks[A]?.manifest.graphical?.rules).toEqual([
+      ...rules,
+      {
+        select: { element: "band", facet: "regions", within: "score" },
+        set: { display: "inline" },
+      },
+    ]);
     expect([trees()[4]?.checked, trees()[4]?.indeterminate, boxes()[4]?.checked]).toEqual([
       true,
       false,

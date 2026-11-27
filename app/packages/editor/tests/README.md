@@ -1530,13 +1530,21 @@ which TimeToShare's cascade gives the band of `T` and of every descendant
 unless a rule of higher rank states otherwise (section 2.5: a band's own
 rule, a deeper `within`). What a box shows is read from the same cascade
 the canvas draws with; a press journals the `style`s it sends, read back
-through that cascade. A band **shows what it holds** when it is displayed
-and, for a regions or a conversion maps band holding some, one of them is
-displayed (the defaults hide the atomic sections, section 4): the own box
-is checked exactly then, the tree's box checked when every band of its
+through that cascade. A band is **present** when it is displayed and
+either draws an element it holds that is displayed (for a virtual
+timeline, also one its chunks' windows join to it) or is **shown
+explicitly**, the rule setting its `display` being `inline` and naming
+`addresses` or `within` (section 6.4, Empty bands, `Cascade.resolveBand`);
+a band displayed by the initial value alone that draws nothing is absent,
+so not drawn. A child's flow control band is laid out in its root's, at no
+line of its own, so it is present while displayed. A band **shows what it
+holds** when it is present and, for a regions or a conversion maps band
+holding some, one of them is displayed (the defaults hide the atomic
+sections, section 4): the own box is checked exactly then, the tree's box checked when every band of its
 facet in the tree shows what it holds, indeterminate (mixed) when some do
-and others not. Showing a band is how content is added to it, so **no box
-is ever disabled**: where a box shows nothing now, the reason stands as a
+and others not. Showing a band is how content is added to it (section 2.4:
+the rule a control displaying a band writes shows it explicitly, so the
+empty band appears), so **no box is ever disabled**: where a box shows nothing now, the reason stands as a
 hint (the specification's section 2.4: a band hides what it holds, a line
 its timeline's drawing). Each fixture is held in block `0000000000`; IDs
 are the fixtures' own speaking ones.
@@ -1553,7 +1561,12 @@ are the fixtures' own speaking ones.
    line (`{id: "allegro_by_hand"}`), its card (`{id: "allegro_by_hand",
    part: ["card"]}`) or its regions band lists the five bands of every
    timeline in the default order, Children, Conversion maps, Markers,
-   Regions and Flow control, each shown (drawing.md section 8.10).
+   Regions and Flow control (drawing.md section 8.10), each unchecked: it
+   holds nothing of its own and its chunks' windows show nothing by
+   default, so each band is displayed and absent. `score`'s five rows are
+   checked (item 2); `b`, holding nothing, has Children, Markers,
+   Conversion maps and Regions unchecked, Flow control checked (a child's
+   flow control band is its root's).
 2. **Rows in the band order.** `score` states `graphical.order`
    `["children", "markers", "line", "conversion_maps", "flow_control",
    "regions"]`, so its rows are, in order, Children, Markers, Conversion
@@ -1564,7 +1577,10 @@ are the fixtures' own speaking ones.
    an order, the card of `recording` and that of `second-half` each list
    Children, Conversion maps, Markers, Regions, Flow control (the default
    band order): a child's flow control band holds its own flow-control
-   elements, so it is listed as every band is.
+   elements, so it is listed as every band is. Each holds its two named
+   timestamps alone: Markers checked, Children, Conversion maps and
+   Regions unchecked; Flow control unchecked on the root `recording`,
+   checked on the child `second-half`.
 3. **The own box writes or removes the band's own rule.** On
    `styled_score_flow_inner`, the card of `score` selected, in order:
    - Regions unchecked → `{type: "style", select: {element: "band",
@@ -1592,12 +1608,27 @@ are the fixtures' own speaking ones.
    `unknown_length_child` (root `score` holding no region, its one child
    `movement` holding `region_1`, no group): `score`'s rows each have a
    tree box, `movement`'s none (it has no descendant). `score`'s Regions:
-   own box checked (its band is displayed and holds nothing), hint
-   "Timeline 'score' holds no regions; its descendants hold some."; tree
-   box checked, not mixed, no hint. In order:
-   - the tree's Regions unchecked → the one command `{select: {element:
-     "band", facet: "regions", within: "score"}, set: {display: "none"}}`;
-     then the own boxes of `score` and `movement` and the tree's box are
+   own box unchecked (its band is displayed, holds nothing and is not
+   shown explicitly, so it is absent), hint "Timeline 'score' holds no
+   regions; its descendants hold some."; tree box mixed (`movement`'s
+   band draws `region_1`), no hint.
+   - **The empty band shown (the way to add a region to it).** `score`'s
+     own Regions pressed → the one command `{select: {element: "band",
+     addresses: [{id: "score", facet: "regions"}]}, set: {display:
+     "inline"}}`: the band is shown explicitly, so present though empty;
+     then own and tree checked, not mixed. Pressed again → the same
+     selector `{display: "none"}` (without the rule the band would be
+     displayed by the initial value, and hiding asks for `none`); own
+     unchecked, tree mixed. Pressed a third time → `{display: "inline"}`
+     again, the manifest's rules then that one rule alone.
+   On a fresh store, in order:
+   - the tree's Regions pressed (mixed) → the one command `{select:
+     {element: "band", facet: "regions", within: "score"}, set: {display:
+     "inline"}}`, which shows `score`'s empty band explicitly; own and
+     tree checked;
+   - the tree's Regions unchecked → that rule `{display: "none"}` (stated
+     `inline`, and without it the bands would still be displayed); then
+     the own boxes of `score` and `movement` and the tree's box are
      unchecked, not mixed;
    - `score`'s own Regions checked → `{element: "band", addresses: [{id:
      "score", facet: "regions"}]}` `{display: "inline"}` (it outranks the
@@ -1611,11 +1642,16 @@ are the fixtures' own speaking ones.
    ["https://timetoalign.github.io/timetoshare/ns#AtomicSection"]}`, the
    full IRI, which every manifest expands to itself), as Op. 106's
    movements hold theirs: `movement`'s own Regions unchecked, hint "None
-   of the regions it holds is displayed."; the tree's box mixed. Pressing
-   the tree's box sends the one command `{select: {element: "region",
-   within: "score"}, set: {display: "inline"}}` (every band is displayed
-   already), and the tree's box and `movement`'s own are checked; pressing
-   it again sends, in order, `{element: "band", facet: "regions", within:
+   of the regions it holds is displayed."; the tree's box unchecked, not
+   mixed (`score`'s band is absent, `movement`'s shows nothing). Pressing
+   the tree's box sends, in order, `{select: {element: "band", facet:
+   "regions", within: "score"}, set: {display: "inline"}}` (it shows
+   `score`'s empty band explicitly; `movement`'s, displayed and holding a
+   region the next rule displays, needs no rule of its own) and `{select:
+   {element: "region", within: "score"}, set: {display: "inline"}}`, the
+   two rules of Op. 106's worked example (drawing.md section 2.4), and the
+   tree's box and `movement`'s own are checked; pressing it again sends,
+   in order, `{element: "band", facet: "regions", within:
    "score"}` `{display: "none"}` and the region rule `{display: null}`.
    On another such store, `movement`'s own box alone shows its regions:
    checking it sends `{select: {element: "region", within: "movement"},
@@ -1628,8 +1664,8 @@ are the fixtures' own speaking ones.
 6. **A hint states what a box shows of nothing now**, never disabling it.
    - A hidden line: on `styled_score_flow_inner`, the child `a`'s rows
      (Children, Markers, Conversion maps, Flow control, Regions, the
-     order `a` inherits) are each checked and hinted "Timeline 'a' is
-     hidden.".
+     order `a` inherits) are each hinted "Timeline 'a' is hidden.";
+     `a` holds nothing, so Flow control alone is checked (item 1, `b`).
    - A virtual timeline: on `flow/virtual_cards`, `allegro_by_hand` has
      the five bands of every timeline, in the default order, each hinted
      that it holds nothing of its own ("Virtual timeline 'Allegro,
@@ -1643,15 +1679,21 @@ are the fixtures' own speaking ones.
    selected, the Properties tab shows below the form a table captioned
    "Bands", headed Band and Visible, one row per band of item 2, each
    row's own checkbox named "<band> visible" and its tree's checkbox
-   "<band> with its descendants visible", every one enabled and checked,
-   none indeterminate. A change of the own Regions box journals exactly
-   the `style` of item 3 and leaves it unchecked, the tree's Regions box
-   then indeterminate (`score`'s band hidden, those of `a` and `b`
-   displayed). A change of the tree's box then shows every band of the
-   tree: the press removes the band's own rule of `score` that outranks
-   the tree's (`{display: null}`), after which the cascade displays every
-   band, so it journals that one `style` alone; the tree's box is then
-   checked, not indeterminate. Nothing is posted. With `intro` selected no
+   "<band> with its descendants visible", every one enabled; the own
+   boxes checked, none indeterminate; the tree's boxes of Children,
+   Markers, Conversion maps and Regions indeterminate (the bands of `a`
+   and `b` hold nothing, so they are absent), that of Flow control
+   checked (theirs are `score`'s). A change of the own Regions box
+   journals exactly the `style` of item 3 and leaves it unchecked, the
+   tree's Regions box then unchecked, not indeterminate (no band of the
+   tree shows). A change of the tree's box then shows every band of the
+   tree as one entry of two changes: the press removes the band's own
+   rule of `score` that outranks the tree's (`{display: null}`), after
+   which `score`'s band draws `intro`, and states the tree's rule
+   `{display: "inline"}`, which shows the empty bands of `a` and `b`
+   explicitly, the manifest's rules then the fixture's followed by that
+   rule; the tree's box is then checked, not indeterminate, the own box
+   checked. Nothing is posted. With `intro` selected no
    table is shown. With the line of `score` of `unknown_length_child`
    selected, the Regions box is enabled, its hint in its row (which
    describes it). The commands of one press are one journal entry: on
@@ -1697,8 +1739,9 @@ are the fixtures' own speaking ones.
    - Regions pressed again → the same with `{display: null}` (without it
      the defaults hide every window band), accepted; then unchecked and
      the manifest's rules are again the fixture's (none);
-   - `allegro_default`'s own Regions box unchecked (its band's own rule
-     `{display: "none"}`): the switch's hint is then "The regions band of
+   - `allegro_default`'s own Regions box, unchecked (its band is empty,
+     absent), pressed twice: `{display: "inline"}` on the band's own rule,
+     then `{display: "none"}`; with the band so hidden the switch's hint is then "The regions band of
      virtual timeline 'Allegro, default' is hidden." (that band hides what
      the windows join to it, section 2.4), the switch still enabled.
    Mounted with `allegro_default`'s line selected, the table is headed

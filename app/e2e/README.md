@@ -790,17 +790,23 @@ and the inspector opened on Properties.
 - On `unknown_length_child` (root `score`, its child `movement` holding
   `region_1`), the region made an atomic section by one `set` of its
   `statements` (`{type: [<the full IRI of tts:AtomicSection>]}`): `score`'s
-  "Regions visible" is checked and enabled (its empty band is displayed),
-  "Regions with its descendants visible" enabled, not checked and
-  indeterminate (`movement`'s band shows none of its regions), and
-  `region_1` is not drawn. One click on the tree's box journals one entry,
-  `{type: "style", select: {element: "region", within: "score"}, set:
-  {display: "inline"}, blocks: [block]}`; the box is then checked, not
-  indeterminate, and `region_1` is drawn, one element carrying its
-  address. A second click journals one more entry (the bands' rule
-  `within` `score` `{display: "none"}` and that region rule removed, one
-  session); both of `score`'s Regions boxes are then unchecked, `region_1`
-  is not drawn, and the hook no longer records `movement`'s regions band.
+  "Regions visible" is enabled and not checked (its band, displayed by the
+  initial value alone and drawing nothing, is absent), "Regions with its
+  descendants visible" enabled, not checked and not indeterminate (no band
+  of the tree shows: `score`'s is absent, `movement`'s shows none of its
+  regions), and `region_1` is not drawn. One click on the tree's box
+  journals one entry, one session of two commands, after which the
+  manifest's rules are, in order, `{select: {element: "band", facet:
+  "regions", within: "score"}, set: {display: "inline"}}` (which shows
+  `score`'s empty band explicitly) and `{select: {element: "region",
+  within: "score"}, set: {display: "inline"}}`; the tree's box is then
+  checked, not indeterminate, the own box checked, `region_1` drawn (one
+  element carrying its address) and the hook records `score`'s regions
+  band. A second click journals one more entry (the bands' rule `within`
+  `score` `{display: "none"}` and that region rule removed, one session),
+  the rules then that one bands' rule alone; both of `score`'s Regions
+  boxes are then unchecked, `region_1` is not drawn, and the hook no
+  longer records `movement`'s regions band.
 - The same two presses inside the open timeline editor of `score`
   (opened through the hook): the first adds one entry to the editor's
   session, the second exactly one more (its two commands one step,
@@ -809,20 +815,28 @@ and the inspector opened on Properties.
   text), the tree's box checked and `region_1` drawn again.
 - On `map_row_moved` (root `piece` holding no map, its children `ante`
   with two maps and `cons` with one), `piece`'s "Conversion maps visible"
-  is enabled and checked (its empty band is displayed) and its tree's box
-  checked; the hook records one conversion maps band of `ante` and one of
-  `cons`. Unchecking the tree's box journals `{select: {element: "band",
-  facet: "conversion_maps", within: "piece"}, set: {display: "none"}}`,
-  after which neither child's band is recorded and the own box is
-  unchecked (the rule `within` `piece` reaches `piece`'s own band too);
-  checking it again journals the same selector with `{display: null}`, and
-  both bands are recorded again, the own box checked.
-- On `unknown_length_child` as written, `score`'s own Regions box stays
-  enabled, the hint "Timeline 'score' holds no regions; its descendants
-  hold some." in its row: unchecking it journals `{element: "band",
-  addresses: [{id: "score", facet: "regions"}]}` `{display: "none"}`,
-  the box unchecked and still enabled; checking it journals the same
-  selector with `{display: null}`, the box checked.
+  is enabled and not checked (its empty band is absent) and its tree's box
+  not checked, indeterminate (the children's bands show their maps); the
+  hook records one conversion maps band of `ante` and one of `cons`. In
+  order, each click journaling one entry:
+  - the tree's box clicked → `{select: {element: "band", facet:
+    "conversion_maps", within: "piece"}, set: {display: "inline"}}`, which
+    shows `piece`'s empty band explicitly; both boxes then checked, both
+    children's bands recorded;
+  - clicked again → the same selector with `{display: "none"}`, after
+    which neither child's band is recorded and the own box is unchecked
+    (the rule `within` `piece` reaches `piece`'s own band too);
+  - clicked again → `{display: "inline"}` (without the rule `piece`'s band
+    would be absent), both bands recorded again, the own box checked.
+- On `unknown_length_child` as written, `score`'s own Regions box is
+  enabled and not checked (the band is absent), the hint "Timeline
+  'score' holds no regions; its descendants hold some." in its row:
+  checking it journals `{element: "band", addresses: [{id: "score",
+  facet: "regions"}]}` `{display: "inline"}`, the box checked and the
+  hook recording `score`'s regions band; unchecking it journals the same
+  selector with `{display: "none"}` (without it the band is displayed by
+  the initial value), the box unchecked and still enabled, the band no
+  longer recorded.
 
 **`empty-band.spec.ts`** (Chromium) proves that a band shown explicitly
 that draws nothing, an empty band (TimeToShare's `docs/drawing.md`, section
