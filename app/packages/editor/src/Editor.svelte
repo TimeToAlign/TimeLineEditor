@@ -774,6 +774,10 @@ if (withTestHook) {
 <style>
   /* The whole editor fills the element the host gives it; its parts are sized by its width. */
   .editor {
+    /* The flags of the canvas and the inspector: an opaque face covering what lies
+       behind, and its edge. */
+    --tilie-flag-background: #fff;
+    --tilie-flag-border: #c8c8c8;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto 1fr;

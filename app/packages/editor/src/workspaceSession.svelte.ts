@@ -48,6 +48,7 @@ import {
   mintBlockId,
   readManifestFile,
   readWorkspace,
+  sameView,
   saveManifest,
   WORKSPACE,
   writeWorkspace,
@@ -194,8 +195,12 @@ export class WorkspaceSession {
   handle: FileSystemFileHandle | null = null;
   /** Where Save writes back to through the server: the workspace file's path from its root. */
   path: string | null = null;
-  /** Whether the workspace holds changes its file does not. */
-  readonly dirty: boolean = $derived(this.live.view !== this.savedView);
+  /**
+   * Whether the workspace holds changes its file does not: the live view compared with the saved
+   * one by content, since a view the store rebuilds (an undo past the views it keeps) is a new
+   * object equal to the saved one.
+   */
+  readonly dirty: boolean = $derived(!sameView(this.live.view, this.savedView));
   /** The MatchClaim tables of the open workspace's blocks, held for the session, never written to its file. */
   readonly tables: MatchClaimTables;
 

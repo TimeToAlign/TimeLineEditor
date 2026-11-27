@@ -817,6 +817,16 @@ and the inspector opened on Properties.
   addresses: [{id: "score", facet: "regions"}]}` `{display: "none"}`,
   the box unchecked and still enabled; checking it journals the same
   selector with `{display: null}`, the box checked.
+- The two boxes of a row are drawn as one control, its face and edge in the
+  editor's flag colours, which the editor's root defines for the canvas and
+  the inspector alike (`--tilie-flag-background` `#fff`,
+  `--tilie-flag-border` `#c8c8c8`): on `unknown_length_child`, the Regions
+  row's control (the box's `.reach` parent) computes `background-color`
+  `rgb(255, 255, 255)` and a `1px` `solid` border of `rgb(200, 200, 200)`
+  on every side, and its tree box's label a `1px` `solid` inline-start
+  border of `rgb(200, 200, 200)`, the divider between the two boxes.
+  Without the definitions the face computes transparent
+  (`rgba(0, 0, 0, 0)`) and the edge `currentColor`, which the test refuses.
 
 **`elisions.spec.ts`** (Chromium, Firefox, WebKit) proves that an
 elision added through the Elisions tab, as a viewer adds it, is drawn on

@@ -214,6 +214,8 @@ const raisedCards = $derived(
  */
 const backdrop = $derived(layers.below.filter((entry) => entry.role === "block"));
 const drawnBelow = $derived(layers.below.filter((entry) => entry.role !== "block"));
+/** The selected strokes below the raised cards, whose halos the layer after them draws. */
+const belowHalos = $derived(drawnBelow.filter(haloed));
 
 /** Every entry in the order the block shows it: below the raised cards, then theirs. */
 const entries = $derived(
@@ -406,6 +408,47 @@ const outOfDate = $derived.by(() => {
 /** Whether an element shows the selection on itself: any but a box, whose selection is a mark. */
 function glows(entry: Entry): boolean {
   return !isBoxShape(entry.role) && isSelected(entry);
+}
+
+/** The selection's colour, which a selected stroke and its halo take. */
+const SELECTION_COLOUR = "#0a84ff";
+/** How much wider than its stroke a selected stroke's halo is, and how opaque. */
+const HALO_WIDENING = 3;
+const HALO_OPACITY = "0.35";
+
+/**
+ * Whether a selected element is a stroke with a halo: a line, path or
+ * polygon drawn by its stroke (a stroked rectangle is a box, outlined; a
+ * shape or text without a stroke glows behind its fill).
+ */
+function haloed(entry: Entry): boolean {
+  const { stroke } = entry.attributes;
+  return (
+    entry.descriptor.tag !== "rect" && stroke !== undefined && stroke !== "none" && glows(entry)
+  );
+}
+
+/**
+ * The halo of a selected stroke: a copy of its shape, no address, a wider
+ * translucent stroke of the selection's colour and no fill, drawn under the
+ * stroke where the stroke's layer allows it, so the selection follows the
+ * stroke and never shows a box (no `filter`, which is rastered again at every
+ * zoom step).
+ */
+function haloOf(entry: Entry): Record<string, string> {
+  const own = Number(entry.attributes["stroke-width"] ?? 1);
+  const attributes = Object.fromEntries(
+    Object.entries(shapeOf(entry)).filter(([name]) => !name.startsWith("marker")),
+  );
+  return {
+    ...attributes,
+    fill: "none",
+    stroke: SELECTION_COLOUR,
+    "stroke-opacity": HALO_OPACITY,
+    "stroke-width": attributeText(own + HALO_WIDENING),
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+  };
 }
 
 /**
@@ -789,6 +832,26 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
       >
     {/each}
     <!--
+      The halos of the selected strokes drawn above: a keyed element that
+      slides is the only child of its loop, so its halo cannot precede it
+      there; the halo is the stroke's own colour, translucent, so the stroke
+      shows through it as over it. Each takes its stroke's motion.
+    -->
+    {#each belowHalos as entry (entry.key)}
+      {@const placed = cardMotions.placedOf(entry.descriptor.source.element)}
+      {#if !hidden.has(entry.descriptor)}
+        <svelte:element
+          this={entry.descriptor.tag}
+          {...haloOf(entry)}
+          {...placed === null ? switchAttributes(entry) : placedAttributes(placed, ownOpacity(entry))}
+          class="tilie-halo"
+          data-halo={entry.addressKey}
+          pointer-events="none"
+          aria-hidden="true"
+        />
+      {/if}
+    {/each}
+    <!--
       Each raised card in its own layer, clipped and its rows shifted while it
       unfolds or folds back (`raiseUnfold`, `frameAt`), letting the pointer
       through while it moves; at rest its entries are drawn as every other
@@ -817,6 +880,17 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         pointer-events={clip === null ? undefined : "none"}
       >
         {#each cardEntries as entry (entry.key)}
+          {#if haloed(entry)}
+            <svelte:element
+              this={entry.descriptor.tag}
+              {...haloOf(entry)}
+              {...unfoldAttributes(entry, unfold, t)}
+              class="tilie-halo"
+              data-halo={entry.addressKey}
+              pointer-events="none"
+              aria-hidden="true"
+            />
+          {/if}
           <svelte:element
             this={entry.descriptor.tag}
             {...attributesOf(entry)}
