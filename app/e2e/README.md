@@ -2099,6 +2099,32 @@ inside the pane's right edge, the pointer still inside the pane and the
 twin's middle past its right border, it stores two entries, the virtual
 timeline's `add` and the `set` placing it.
 
+**`names.spec.ts`** (Chromium, Firefox, WebKit) proves that names are cut
+and never cover a line, and that a cut name shows whole on hover
+(drawing.md section 6.6), on TimeToShare's `flow/virtual_cards` imported as
+one block, `allegro_default` placed at (0, 200) and, in one `set`, `allegro`
+named "Allegro con brio, the first movement of the sonata in full" and the
+FlowMap `by_hand` "Practice: the opening four times, a breath, then the
+coda", each wider than a name's `max-width` 160. **The cards**: the names
+of `allegro` and of the virtual card `allegro_default` ("Allegro, default ·
+unfolded from" and the long name, cut as one text) end in `…`, and each
+ends left of its card's line (the line's first part, its left edge); no
+name flag is shown. With the pointer 20 px into `allegro_default`'s name,
+exactly one flag shows, its text the whole name `Allegro, default · unfolded
+from Allegro con brio, …` and its box filled opaque white (the canvas's
+token `--tilie-flag-background`); the box holds the whole text and reaches
+right past the line's start, so it covers what lies behind; the topmost
+element at the pointer is still the drawn name (the flag lets the pointer
+through). With the pointer off the block the flag is gone. **The flow
+editor's rows**: the editor of `allegro` opened as in `rows.spec.ts` (zoom
+1, the block's place at canvas pixel (300, 40)), each of the four rows'
+names ends left of its row's first entry, whose left edge is its line's
+start; `by_hand`'s name reads `Practice: the opening four times, …` (cut
+at the pane's font size 9, arranger README "The rows' names") and carries
+its whole name in `data-whole`, `default`'s none; its `::after` content is
+`none` until the pointer is on the name, then the whole name on an opaque
+white face.
+
 **`embed.spec.ts`** (Chromium, Firefox, WebKit) proves the embed build in a
 host page it does not own. A route serves the host page at
 `http://host.test/` (its own margin, font and title "Host page", an input,

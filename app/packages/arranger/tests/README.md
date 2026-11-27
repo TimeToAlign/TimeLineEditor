@@ -2647,6 +2647,26 @@ below `printed` by `16 + h(printed)` (`h` each row's drawing height, from
 layout's drawing of the row), so the cards stand one under another in the
 rows' order and never on one another; a row not shown has none.
 
+**The rows' names** (`PaneRow.name`, drawing.md section 6.6: an overlay
+drawing member drawings cuts its names as a row's name is cut, in a name
+column of its own before its lines). Each row's name is cut to the
+`max-width` of a name (its row's card's name in layout's drawing of the
+rows, 160 under the defaults at scale 1) at the pane's font size
+`PANE_FONT_SIZE` 9, with `…` (2048); a name drawn whole carries no
+`whole`, a cut one its whole name. The pane's lines start at the card's
+line start or `G'` (8) right of the widest name, whichever lies further
+right. On block A the names `default`, `printed`, `single`, `Practice` are
+whole (widest `Practice`, `8216 × 9 / 2048 = 36.10546875`, so the column
+ends at `8 + 36.10546875 + 8 = 52.10546875`, left of the card's 54.6396484375,
+which the lines keep). With `by_hand` named `Practice: the opening four
+times, a breath, then the coda` (an advance sum of 36408.88… at most at
+size 9), its name is cut to `Practice: the opening four times, …` (sum
+36307, the next `a` 1255 too many), `159.55224609375` wide, its whole name
+kept; the other names stay whole, and every row's line, and so its first
+entry, starts at `8 + 159.55224609375 + 8 = 175.55224609375`, the row of
+`default` ending at `175.55224609375 + 400 × 2120.5 / 1644`: no name covers
+a line, and the rows keep one start.
+
 **What each action stores** (`FlowEditorSession` on a store opened in
 `allegro`'s flow editor), each command compared whole. The **edited row**
 is the new FlowMap's (Add +) or a hand-made FlowMap's (`edit`); one row at
@@ -5422,6 +5442,23 @@ x(953/2)]`, B from `[953/2, 500]` to `[x(953/2), x(500)]`, A again from
 span `from + (to − from) × t`: `matrix(s 0 0 1 x1(t) − to.x1 × s 0)`, `s` the
 span's width at `t` over `to`'s; a text moves by its span's middle; at
 `t = 1` nothing.
+
+## A cut name's flag (`name-flag.test.ts`)
+
+A name the drawing cuts carries its whole text (layout, "A cut name keeps
+its whole text"); under the pointer the block shows it whole on an opaque
+box (`nameFlagOf`, drawing.md section 6.6: an overlay of the app's, no
+element of the drawing). On `flow/virtual_cards` drawn by layout with
+`allegro_default` placed at the defaults, the name of `{id:
+"allegro_default", part: ["name"]}` reads `Allegro, default · unfolded …`
+and its flag shows `Allegro, default · unfolded from Allegro` (sum 39961,
+`39961 × 11 / 2048 = 214.63427734375` wide at size 11) with the attributes
+it is given, unchanged; its box is padded by a quarter of the font size,
+2.75, on every side: x `16 − 2.75 = 13.25`, y the name's baseline less
+`a(11) = 1901 × 11 / 2048 = 10.21044921875` less 2.75, width
+`214.63427734375 + 5.5 = 220.13427734375`, height `h(11) + 5.5 = 12.8046875
++ 5.5 = 18.3046875`. A name drawn whole (`allegro`'s "Allegro"), a label
+(the card's first label, its first chunk's `A`) and no element at all give no flag.
 
 ## Package (`name.test.ts`)
 

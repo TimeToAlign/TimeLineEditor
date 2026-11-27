@@ -50,6 +50,8 @@ import type { Ghost, NodeHost } from "./gestures/host.ts";
 import { movedItemGesture } from "./gestures/item.ts";
 import { OUT_OF_DATE_MARK } from "./matches.ts";
 import { settle, slide } from "./motion.ts";
+import NameFlag from "./NameFlag.svelte";
+import { nameFlagOf } from "./nameFlag.ts";
 import type { BlockNode as BlockNodeType } from "./node.ts";
 import { getNodeActions } from "./nodeActions.ts";
 import Ribbons from "./Ribbons.svelte";
@@ -280,6 +282,10 @@ function onpointermove(event: PointerEvent & { currentTarget: SVGSVGElement }) {
   // A band is highlighted in every view, where the press lies inside the edited element.
   const inside = pressSelection(hit, data.editing, data.inside) !== null;
   show(hoverOf(hit, inside ? bandUnder(data.drawing, hit, point, data.editing) : null));
+  named =
+    source !== null && !isAffordance(source) && source.type === "name"
+      ? addressKey(source.address)
+      : null;
   const chunk =
     source === null || isAffordance(source) ? null : chunkOf(data.block.manifest, source.address);
   hoverChunks(
@@ -291,8 +297,27 @@ function onpointermove(event: PointerEvent & { currentTarget: SVGSVGElement }) {
 
 function onpointerleave() {
   show(NO_HOVER);
+  named = null;
   hoverChunks([]);
 }
+
+/** The key (`addressKey`) of the name under the pointer, held by address so a redraw keeps it; `null` off every name. */
+let named: string | null = $state.raw(null);
+
+/**
+ * The flag of the name under the pointer where the drawing cuts it
+ * (`nameFlagOf`): its whole text, found through its address's element, over
+ * what lies behind; `null` off a cut name.
+ */
+const nameFlag = $derived.by(() => {
+  if (named === null) return null;
+  const entry = entries.find(
+    (item) => item.addressKey === named && item.descriptor.source.type === "name",
+  );
+  return entry === undefined
+    ? null
+    : nameFlagOf(data.drawing.elements[entry.descriptor.source.element], shapeOf(entry), measure);
+});
 
 /** Where the pointer shows a chunk (`chunkZones`), read once per drawing. */
 const zones = $derived(chunkZones(data.block.manifest, data.drawing));
@@ -898,6 +923,9 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         aria-hidden="true"
       />
     {/each}
+    {#if nameFlag !== null}
+      <NameFlag flag={nameFlag} />
+    {/if}
     {#if ghost !== null}
       <g
         class="tilie-dragged"

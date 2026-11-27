@@ -374,6 +374,12 @@ export interface TextElement extends Addressed {
    * ancestor line that shows a value; absent on every other text.
    */
   readonly coordinate?: ShownCoordinate;
+  /**
+   * The whole text of a row's name cut to its `max-width` (section 6.6): the names joined or
+   * the `content`, which an application shows in full on hover; absent where the text is drawn
+   * whole and on every label. No writer writes it.
+   */
+  readonly whole?: string;
 }
 
 /** Any element of a drawing. */

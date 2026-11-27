@@ -23,6 +23,9 @@
 }
 
 .tilie-canvas {
+  /* The canvas's flags: an opaque face covering what lies behind, and its edge. */
+  --tilie-flag-background: #fff;
+  --tilie-flag-border: #c8c8c8;
   position: relative;
   width: 100%;
   height: 100%;
@@ -347,4 +350,16 @@
 .tilie-canvas .tilie-coordinates-foot {
   margin-top: 4px;
   font-size: 10.5px;
+}
+
+/*
+ * A cut name shown whole under the pointer (`NameFlag.svelte`), in the
+ * drawing's units over its block's drawing: an opaque box covering what
+ * lies behind, edged one pixel wide at every zoom.
+ */
+.tilie-canvas .tilie-name-flag-box {
+  fill: var(--tilie-flag-background);
+  stroke: var(--tilie-flag-border);
+  stroke-width: calc(1px / var(--tilie-zoom, 1));
+  rx: calc(2px / var(--tilie-zoom, 1));
 }

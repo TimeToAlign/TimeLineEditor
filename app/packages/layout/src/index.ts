@@ -42,7 +42,7 @@ export type {
 } from "./boxes.ts";
 export type { Style } from "./cascade.ts";
 export { Cascade, INITIAL_STYLE } from "./cascade.ts";
-export { GAP_LINE_STROKE } from "./constants.ts";
+export { G, GAP_LINE_STROKE } from "./constants.ts";
 export { DEFAULT_LAYER, manifestLayer } from "./defaults.ts";
 export type {
   AnchorElement,
@@ -80,6 +80,8 @@ export type { Bounds, Circle, LineGeometry, LineMark } from "./geometry.ts";
 export { boundsOf, brace, lineGeometry, wedgePoints } from "./geometry.ts";
 export { frameMemberLines, groupSpans, readsAcrossGroup } from "./groupstamps.ts";
 export { cleanText, TextMeasure } from "./metrics.ts";
+export type { CutText } from "./names.ts";
+export { cutText } from "./names.ts";
 export { times } from "./numbers.ts";
 export type { WedgeCorner } from "./rotation.ts";
 export type { Span } from "./stacks.ts";
