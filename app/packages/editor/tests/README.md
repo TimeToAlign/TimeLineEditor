@@ -109,7 +109,18 @@ shows no button. Inside `score`'s timeline editor, `score`'s card selected
 `score`'s card selected shows no button either, so the button never
 offers what a double-click there would not do. The Properties tab shows it below
 the name field, for every selection (a band selected alone shows it, as
-a double-click on the band opens its timeline's editor).
+a double-click on the band opens its timeline's editor). After opening,
+it asks the canvas to select (`onselect`) what the opened editor shows
+chosen for the selected address (the arranger's `openedFocus`), as Enter
+on the canvas does: a window's element in the virtual card's editor, and
+nothing else, so the opening's own selection of the edited element
+stands. The press on `score`'s card asks for no selection; on
+`flow/virtual_cards` with `allegro_default` placed at (0, 200), so its
+card is drawn, the label of its chunk 1 `{block: A, id:
+"allegro_default", part: [1, "label"]}` selected opens the flow-control
+editor of `allegro` (`{target: {block: A, id: "allegro"}, kind:
+"flow"}`) and asks for no selection either (its chunk chosen in the
+pane is the canvas's flow session's, which the button does not reach).
 
 **The flow editor's server** (`flow-server.test.ts`): `flowServerOf` sends
 the manifest as Save writes it (`saveManifest`) with the root's bare ID to

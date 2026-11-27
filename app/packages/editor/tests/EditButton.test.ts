@@ -22,20 +22,38 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-/** The button for `selected` on `store` under `editing`, on a canvas opening editors or not, mounted. */
+/**
+ * The button for `selected` on `store` under `editing`, on a canvas opening
+ * editors or not, mounted; what it asks to select is pushed to `chosen`.
+ */
 function show(
   store: Store,
   selected: readonly Address[],
   editing: Editing | null = null,
   opens = true,
+  chosen: (readonly Address[])[] = [],
 ): void {
   const subjects = resolveSelection(store.view, selectionOf(selected), editing, fontMetrics);
+  const onselect = (addresses: readonly Address[]) => {
+    chosen.push(addresses);
+  };
   app = mount(EditButton, {
     target: document.body,
     context: posting(),
-    props: { view: store.view, store, subjects, editing, opens },
+    props: { view: store.view, store, subjects, editing, opens, onselect },
   });
   flushSync();
+}
+
+/** `flow/virtual_cards` with the virtual timeline `allegro_default` placed at (0, 200), so its card is drawn. */
+function placedVirtual(): Store {
+  const store = storeOf("flow/virtual_cards");
+  const place = {
+    target: { block: A, id: "allegro_default" },
+    values: { place: { x: 0, y: 200 } },
+  };
+  expect(store.dispatch({ type: "set", changes: [place] })).toBeNull();
+  return store;
 }
 
 function button(): HTMLButtonElement | null {
@@ -49,11 +67,13 @@ function path(store: Store) {
 describe("the Edit button", () => {
   it("opens the editor a double-click on the selection would open", () => {
     const store = storeOf("bundles/bundle_mixed");
-    show(store, [SCORE_CARD]);
+    const chosen: (readonly Address[])[] = [];
+    show(store, [SCORE_CARD], null, true, chosen);
     expect(button()?.textContent).toBe("Edit");
     expect(button()?.title).toBe("Open the editor of Score");
     button()?.click();
     expect(path(store)).toEqual([{ target: SCORE, kind: "timeline" }]);
+    expect(chosen).toEqual([]);
   });
 
   it("opens a frame's group editor", () => {
@@ -82,5 +102,14 @@ describe("the Edit button", () => {
     show(store, [SCORE_CARD], null, false);
     expect(button()).toBeNull();
     expect(path(store)).toEqual([]);
+  });
+
+  it("opens a chunk's flow-control editor and selects nothing more", () => {
+    const store = placedVirtual();
+    const chosen: (readonly Address[])[] = [];
+    show(store, [{ block: A, id: "allegro_default", part: [1, "label"] }], null, true, chosen);
+    button()?.click();
+    expect(path(store)).toEqual([{ target: { block: A, id: "allegro" }, kind: "flow" }]);
+    expect(chosen).toEqual([]);
   });
 });

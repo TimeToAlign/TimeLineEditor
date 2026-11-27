@@ -920,8 +920,8 @@ function focusInput(element: HTMLInputElement): void {
     top: 0;
     left: -0.25em;
     padding: 0 0.25em;
-    outline: 1px solid var(--tilie-flag-border);
-    background: var(--tilie-flag-background);
+    outline: 1px solid var(--tilie-flag-border, #c8c8c8);
+    background: var(--tilie-flag-background, #fff);
   }
 
   .entry {
@@ -939,8 +939,8 @@ function focusInput(element: HTMLInputElement): void {
   }
 
   .entry.selected {
-    background: rgb(10 132 255 / 0.18);
-    outline: 1px solid #0a84ff;
+    background: color-mix(in srgb, var(--tilie-selection, #0a84ff) 18%, transparent);
+    outline: 1px solid var(--tilie-selection, #0a84ff);
     outline-offset: -1px;
   }
 

@@ -7,11 +7,20 @@
  * editor. Absent where the selection opens none, and where the canvas
  * opens no editor (`opens`, its rules' `open`), so it never offers what a
  * double-click there would not do; a refusal of the store is posted to the
- * message bar.
+ * message bar. The opened editor shows chosen what it would for the
+ * selected address, as Enter on the canvas has it (`openedFocus`): a
+ * window's element selected in the virtual card's editor in place of the
+ * edited element its opening selected.
  */
 import type { Editing, Subject } from "@timetoalign/tilie-arranger";
-import { drawingOf, editorOf, openable, selectionOf } from "@timetoalign/tilie-arranger";
-import type { Store, View } from "@timetoalign/tilie-core";
+import {
+  drawingOf,
+  editorOf,
+  openable,
+  openedFocus,
+  selectionOf,
+} from "@timetoalign/tilie-arranger";
+import type { Address, Store, View } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { postOf } from "../messages.svelte.ts";
 import { paneOf } from "../pane.ts";
@@ -23,6 +32,7 @@ let {
   subjects,
   editing,
   opens,
+  onselect = () => {},
 }: {
   view: View;
   store: Store;
@@ -32,6 +42,8 @@ let {
   editing: Editing | null;
   /** Whether the canvas opens editors (its rules' `open`; false on a read-only canvas). */
   opens: boolean;
+  /** Select `addresses` on the canvas: what the opened editor shows chosen. */
+  onselect?: (addresses: readonly Address[]) => void;
 } = $props();
 
 const post = postOf();
@@ -56,11 +68,20 @@ const opened = $derived.by(() => {
   return target === null ? null : editorOf(target);
 });
 
-/** Open the editor; a refusal goes to the message bar. */
+/**
+ * Open the editor, then select what it shows chosen for the sole selected
+ * address (`openedFocus`); a refusal goes to the message bar.
+ */
 function open(): void {
   if (opened === null) return;
+  const from = subjects.length === 1 ? (subjects[0]?.address ?? null) : null;
   const error = store.open(opened.target, opened.kind);
-  if (error !== null) post("error", error.message);
+  if (error !== null) {
+    post("error", error.message);
+    return;
+  }
+  const focus = openedFocus(store.view, opened, from);
+  if (focus?.kind === "select") onselect([focus.address]);
 }
 </script>
 

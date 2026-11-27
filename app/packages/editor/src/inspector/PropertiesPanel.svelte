@@ -101,7 +101,7 @@ let {
   /** The placement a canvas gesture shows before release; the form shows it for its block. */
   placement: LivePlacement | null;
   drafts: PropertyDrafts;
-  /** Select `addresses` on the canvas: the marks of a jump's destination. */
+  /** Select `addresses` on the canvas: the marks of a jump's destination, what an editor opened by Edit shows chosen. */
   onselect?: (addresses: readonly Address[]) => void;
   /** Whether the canvas opens editors (its rules' `open`): the Edit button is shown only then. */
   opens?: boolean;
@@ -322,7 +322,7 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     <p class="problem" id="{uid}-problem-name">{problem}</p>
   {/if}
 {/if}
-<EditButton {view} {store} {subjects} {editing} {opens} />
+<EditButton {view} {store} {subjects} {editing} {opens} {onselect} />
 
 {#snippet locked()}
   {#if lock !== null}

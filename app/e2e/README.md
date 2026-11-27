@@ -841,6 +841,14 @@ and the inspector opened on Properties.
   selector with `{display: "none"}` (without it the band is displayed by
   the initial value), the box unchecked and still enabled, the band no
   longer recorded.
+- On `unknown_length_child`, `score`'s line selected through the hook is
+  drawn as one stroked element marked selected, and `BlockNode` draws one
+  halo under it (`.tilie-halo`, its shape copied, no stroke of its own):
+  its computed stroke is the editor's `--tilie-selection`, `rgb(10, 132,
+  255)`, at the halo's opacity `0.35`. With the token set to `rgb(200, 0,
+  0)` on `.editor`, the element both the canvas and the inspector are
+  mounted in, the halo's stroke and the selected line's are `rgb(200, 0,
+  0)`: both read the token, neither a colour of its own.
 
 **`empty-band.spec.ts`** (Chromium) proves that a band shown explicitly
 that draws nothing, an empty band (TimeToShare's `docs/drawing.md`, section
