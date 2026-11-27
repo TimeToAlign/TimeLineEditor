@@ -4,45 +4,46 @@
  * heading is a disclosure button: the kind (Timeline, Group, Elision), the
  * title and one line of essentials, the rest shown on a click. The
  * **timeline's** block, wherever the selection lies wholly under one root
- * whose drawing carries elisions: its title naming the root; the mode, one
- * radio group (arrow keys move between the options), each option its
- * commands, an option that cannot be chosen focusable with `aria-disabled`
- * and a visible hint saying why; in Proportional the proportion
- * (Automatic, or a number), the rows by depth (Automatic, or the depths
- * chosen) and what every default elision shows; in Custom the list of the
- * stored elisions the card draws, a click selecting one, `[×]` deleting it,
- * Add elision and Remove all. A root drawn once behind a row of groups side
- * by side also lists, read-only, the gaps between two of its groups, and
- * its stored elisions lying there, kept and not drawn, with a note saying
- * so. The **group's** block wherever the selection lies in a group's frame,
- * or in its editor: Full or Custom, the group's elisions, Add elision and
+ * whose drawing carries elisions: its title naming the root; for an
+ * ancestor card a checkbox drawing the root behind its groups; the mode
+ * of its cards, the one radio group of the block (arrow keys move between
+ * the options), each option its commands, an option that cannot be chosen
+ * focusable with `aria-disabled` and a visible hint saying why; under
+ * Proportional, grouped, the proportion (Automatic, or a number), the rows
+ * by depth (Automatic, or the depths chosen) and what every derived
+ * elision shows; under Custom the stored elisions the card draws, a click
+ * selecting one, `[×]` deleting it, Add elision and Remove all. A root
+ * drawn once behind a row of groups side by side also lists, read-only,
+ * the gaps between two of its groups, and its stored elisions lying there,
+ * kept and not drawn, with a note saying so. The **group's** block
+ * wherever the selection lies in a group's frame, or in its editor: a
+ * checkbox drawing the group's elisions, its elisions, Add elision and
  * Remove all. The **elision's** block, the form of one selected elision:
- * From and To in its timeline's unit, typed exactly, its gap's width form
- * and value, what it shows, the other timelines a group elision elides, and
- * Delete; a default elision's form is read-only. Every block is collapsed
- * at first but the one holding the selected elision and that elision's
- * own; an action taken in a block (a command, a row's click) first keeps it
- * open, so that it stays open once the selection leaves it, a Delete in
- * the form keeping open the block that held the elision, and a close by a
- * timeline's or a group's button holds there too; which blocks are
- * open, the typed text and the refusals are the inspector's
- * `PropertyDrafts`, kept while another tab is shown. Every action is one
- * command. With nothing to configure, one hint line.
+ * its start and end in its timeline's unit, typed exactly, what it shows,
+ * the other timelines a group elision elides, and Delete; a derived
+ * elision's form is read-only. Every block is collapsed at first but the
+ * one holding the selected elision and that elision's own; an action
+ * taken in a block (a command, a row's click) first keeps it open, so that
+ * it stays open once the selection leaves it, a Delete in the form keeping
+ * open the block that held the elision, and a close by a timeline's or a
+ * group's button holds there too; which blocks are open, the typed text
+ * and the refusals are the inspector's `PropertyDrafts`, kept while
+ * another tab is shown. Every action is one command. With nothing to
+ * configure, one hint line.
  */
 import type { Editing, LivePlacement, Subject } from "@timetoalign/tilie-arranger";
 import type { Address, Block, Command, Store, View } from "@timetoalign/tilie-core";
 import { addressKey, sameAddress } from "@timetoalign/tilie-core";
-import type { WidthForm } from "@timetoalign/tilie-layout";
 import type { Snippet } from "svelte";
 import { paneOf } from "../pane.ts";
 import DisclosureButton from "./DisclosureButton.svelte";
 import type {
   ElisionBlock,
   ElisionField,
-  ElisionForm,
   ElisionRow,
   ElisionWord,
   ModeOption,
+  Toggle,
 } from "./elisions.ts";
 import {
   blocksOf,
@@ -55,9 +56,7 @@ import {
   ELISIONS_HINT,
   elisionDisplayCommand,
   elisionFormOf,
-  FORM_WORDS,
   fieldCommand,
-  formCommand,
   groupElisionsOf,
   KIND_WORDS,
   MODE_WORDS,
@@ -65,7 +64,6 @@ import {
   proportionCommand,
   rootElisionsOf,
   STORED_WORDS,
-  WIDTH_FORMS,
 } from "./elisions.ts";
 import { shownOf } from "./properties.ts";
 import type { DraftField, FieldOwner, PropertyDrafts } from "./propertyDrafts.svelte.ts";
@@ -124,7 +122,9 @@ const root = $derived(
   elided === null ? null : rootElisionsOf(view, elided.block, subjects, elided.drawing),
 );
 const group = $derived(
-  elided === null ? null : groupElisionsOf(elided.block, subjects, elided.drawing, editedGroup),
+  elided === null
+    ? null
+    : groupElisionsOf(view, elided.block, subjects, elided.drawing, editedGroup),
 );
 const form = $derived(
   elided === null ? null : elisionFormOf(elided.block, subjects, elided.drawing),
@@ -197,18 +197,6 @@ function restore(input: HTMLInputElement, stored: string): void {
   }
 }
 
-/** A width form chosen: its value converted so that the drawn width does not jump. */
-function chooseForm(
-  event: Event & { currentTarget: HTMLInputElement },
-  shown: ElisionForm,
-  next: WidthForm,
-): void {
-  restore(event.currentTarget, shown.form);
-  const edit = formCommand(shown, next);
-  if (!edit.ok) refusal = { key: formKey, message: edit.problems[0]?.message ?? "" };
-  else send(formKey, [edit.value]);
-}
-
 /** Whether `address` is the one selected subject. */
 function isSelected(address: Address): boolean {
   const [subject, ...others] = subjects;
@@ -248,7 +236,7 @@ function toggled(
   key: string,
 )}
   <fieldset class="mode">
-    <legend class="hidden">Mode</legend>
+    <legend>Elisions</legend>
     {#each options as option (option.mode)}
       <label class={{ held: option.reason !== null }}>
         <input
@@ -272,6 +260,18 @@ function toggled(
       <p class="hint" id="{uid}-{key}-held-{option.mode}">{words[option.mode]}: {option.reason}</p>
     {/if}
   {/each}
+{/snippet}
+
+{#snippet checkbox(toggle: Toggle, name: string, label: string, key: string)}
+  <label class="check">
+    <input
+      type="checkbox"
+      {name}
+      checked={toggle.checked}
+      onchange={(event) => toggled(event, toggle.checked, key, toggle.command)}
+    />
+    {label}
+  </label>
 {/snippet}
 
 {#snippet list(rows: readonly ElisionRow[], key: string)}
@@ -383,10 +383,15 @@ function toggled(
 {#snippet rootBody()}
   {#if root !== null}
     {@const shown = root}
-    {@render modes(shown.options, shown.mode, MODE_WORDS, rootKey)}
+    {#if shown.shown !== null}
+      {@render checkbox(shown.shown, "card-shown", "Draw behind its groups", rootKey)}
+    {/if}
+    {#if shown.mode !== null}
+      {@render modes(shown.options, shown.mode, MODE_WORDS, rootKey)}
+    {/if}
     {#if shown.arranged.length > 0}
       <div class="arranged" data-testid="arranged-gaps">
-        <span class="label" id="{uid}-arranged">Side by side</span>
+        <span class="label" id="{uid}-arranged">Gaps between groups</span>
         <ul aria-labelledby="{uid}-arranged">
           {#each shown.arranged as gap (gap.key)}
             <li><span>{gap.between}</span> <span>{gap.stretch}</span></li>
@@ -396,59 +401,62 @@ function toggled(
     {/if}
     {#if shown.proportional !== null}
       {@const settings = shown.proportional}
-      <div class="setting" role="group" aria-labelledby="{uid}-proportion">
-        <span class="label" id="{uid}-proportion">Proportion</span>
-        <label>
-          <input
-            type="checkbox"
-            name="proportion-automatic"
-            checked={settings.automatic}
-            onchange={(event) =>
-              toggled(event, settings.automatic, rootKey, proportionAutomaticCommand(shown))}
-          />
-          Automatic
-        </label>
-        {@render field(shown, "proportion", "Proportion value", "", settings.proportion, settings.automatic, (text) =>
-          proportionCommand(shown, text),
-        )}
-      </div>
-      <div class="setting depths" role="group" aria-labelledby="{uid}-rows">
-        <span class="label" id="{uid}-rows">Rows</span>
-        <label>
-          <input
-            type="checkbox"
-            name="depths-automatic"
-            checked={settings.depthsAutomatic}
-            onchange={(event) =>
-              toggled(event, settings.depthsAutomatic, rootKey, depthsAutomaticCommand(shown))}
-          />
-          Automatic
-        </label>
-        {#each settings.depths as row (row.depth)}
-          {@const command = depthCommand(shown, row.depth)}
-          <label class="depth">
+      <fieldset class="group">
+        <legend>Proportional</legend>
+        <div class="setting" role="group" aria-labelledby="{uid}-proportion">
+          <span class="label" id="{uid}-proportion">Proportion</span>
+          <label>
             <input
               type="checkbox"
-              name="depth"
-              value={row.depth}
-              checked={row.chosen}
-              disabled={settings.depthsAutomatic || command === null}
-              onchange={(event) => toggled(event, row.chosen, rootKey, command)}
+              name="proportion-automatic"
+              checked={settings.automatic}
+              onchange={(event) =>
+                toggled(event, settings.automatic, rootKey, proportionAutomaticCommand(shown))}
             />
-            {row.names}
+            Automatic
           </label>
-        {/each}
-      </div>
-      <div class="setting" role="group" aria-labelledby="{uid}-show">
-        <span class="label" id="{uid}-show">Show</span>
-        <DisplayToggles
-          words={DEFAULT_WORDS}
-          display={settings.display}
-          disabled={false}
-          labelledby="{uid}-show"
-          ontoggle={(word: ElisionWord) => send(rootKey, [defaultsDisplayCommand(shown, word)])}
-        />
-      </div>
+          {@render field(shown, "proportion", "Proportion value", "", settings.proportion, settings.automatic, (text) =>
+            proportionCommand(shown, text),
+          )}
+        </div>
+        <div class="setting depths" role="group" aria-labelledby="{uid}-rows">
+          <span class="label" id="{uid}-rows">Rows</span>
+          <label>
+            <input
+              type="checkbox"
+              name="depths-automatic"
+              checked={settings.depthsAutomatic}
+              onchange={(event) =>
+                toggled(event, settings.depthsAutomatic, rootKey, depthsAutomaticCommand(shown))}
+            />
+            Automatic
+          </label>
+          {#each settings.depths as row (row.depth)}
+            {@const command = depthCommand(shown, row.depth)}
+            <label class="depth">
+              <input
+                type="checkbox"
+                name="depth"
+                value={row.depth}
+                checked={row.chosen}
+                disabled={settings.depthsAutomatic || command === null}
+                onchange={(event) => toggled(event, row.chosen, rootKey, command)}
+              />
+              {row.names}
+            </label>
+          {/each}
+        </div>
+        <div class="setting" role="group" aria-labelledby="{uid}-show">
+          <span class="label" id="{uid}-show">Show</span>
+          <DisplayToggles
+            words={DEFAULT_WORDS}
+            display={settings.display}
+            disabled={false}
+            labelledby="{uid}-show"
+            ontoggle={(word: ElisionWord) => send(rootKey, [defaultsDisplayCommand(shown, word)])}
+          />
+        </div>
+      </fieldset>
     {/if}
     {#if shown.custom !== null}
       {@const custom = shown.custom}
@@ -463,7 +471,7 @@ function toggled(
 {#snippet groupBody()}
   {#if group !== null}
     {@const shown = group}
-    {@render modes(shown.options, shown.mode, MODE_WORDS, groupKey)}
+    {@render checkbox(shown.drawn, "frame-drawn", "Draw the group's elisions", groupKey)}
     <p class="count">{shown.count}</p>
     {@render list(shown.rows, groupKey)}
     {@render actions(shown.add, shown.removeAll, groupKey)}
@@ -484,34 +492,6 @@ function toggled(
     {#if !editable}
       <p class="hint">{DEFAULT_HINT}</p>
     {:else}
-      <fieldset class="width">
-        <legend>Gap</legend>
-        {#each WIDTH_FORMS as each (each)}
-          <div class="form">
-            <label>
-              <input
-                type="radio"
-                name="{uid}-width"
-                value={each}
-                checked={shown.form === each}
-                onchange={(event) => chooseForm(event, shown, each)}
-              />
-              {FORM_WORDS[each]}
-            </label>
-            {#if each !== "standard"}
-              {@render field(
-                shown,
-                each,
-                `${FORM_WORDS[each]} value`,
-                each === "ratio" ? "of its length" : each === "span" ? shown.unit : "px",
-                shown.widths[each],
-                false,
-                edit(each),
-              )}
-            {/if}
-          </div>
-        {/each}
-      </fieldset>
       <div class="setting" role="group" aria-labelledby="{uid}-elision-show">
         <span class="label" id="{uid}-elision-show">Show</span>
         <DisplayToggles
@@ -631,16 +611,27 @@ function toggled(
   .mode {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 0.75rem;
   }
 
-  .hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+  legend {
+    padding: 0;
+    color: #3d3d3d;
+    font-weight: 600;
+  }
+
+  /* Proportional's settings: one group, indented under its legend. */
+  .group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-left: 0.75rem;
+    border-left: 2px solid #c8c8c8;
+  }
+
+  .group legend {
+    margin-left: -0.75rem;
   }
 
   /* Cannot be chosen: greyed, its reason in the hint below the group. */
@@ -722,7 +713,6 @@ function toggled(
   }
 
   .stretch,
-  .form,
   .also,
   .arranged {
     display: flex;
@@ -742,7 +732,6 @@ function toggled(
     font: inherit;
   }
 
-  .form .value span:first-child,
   .setting .value span:first-child {
     position: absolute;
     width: 1px;

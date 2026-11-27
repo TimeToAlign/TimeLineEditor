@@ -1890,8 +1890,10 @@ with their origin, elided coordinates and widths, and its runs); what it
 draws, from the elements: a gap writes an `elision` element, its one
 ellipsis an `ellipsis` element and its labels `label` elements, the gap's
 rectangle being its extent whether it is filled or not. **One ellipsis per
-gap** (section 6.6): a gap draws, where its display lists `ellipsis` and it
-is at least 20 wide, exactly one, at its middle `xm = (x(a) + x(b)) / 2`
+gap** (section 6.6): a gap draws, where its display lists `ellipsis`,
+exactly one, a stored elision's gap (its own or carried into an ancestor
+card) whatever its width, so that every stored elision a card draws is
+seen, a derived one's where it is at least 20 wide, at its middle `xm = (x(a) + x(b)) / 2`
 and the middle `ym = (yt + yb) / 2` of the card drawing it (of a frame's
 member cards together for a group elision); its labels, whether or not the
 ellipsis is drawn, are centred on `xm` just below it, the `i`-th with its
@@ -2123,8 +2125,9 @@ elision without `display` draws `["ellipsis", "name"]`.
 14. **One ellipsis per gap, on no row** (section 6.6). Over every manifest
    fixture drawn with the defaults, each drawing of a gap in a member,
    block-held card or across a frame writes exactly one ellipsis, at
-   `(xm, ym)`, where the gap is at least 20 wide and its display lists
-   `ellipsis`, and none otherwise: a stored gap's display is its elision's
+   `(xm, ym)`, where its display lists `ellipsis` and the gap is a stored
+   elision's (origin `stored` or `carried`) or at least 20 wide, and none
+   otherwise: a stored gap's display is its elision's
    `display`, a derived one's its card's `elision-display`, which no
    fixture states, so the initial `ellipsis name` (the test checks that no
    fixture's text names `elision-display`). Its labels lie at `xm` with the
@@ -2588,8 +2591,10 @@ less and plus `k` = 8.
     and the shrink at 19); the line is cut there (`cuts` that one pair)
     and ends at `x(24) = x0 + 241.33333333333343` in its end circle; the
     brace of chunk 2 (`B`, midpoint 20, in no gap) is drawn from `x(16) =
-    x0 + 133.33333333333331` to `x(24)`, cut at the gap; the gap draws no
-    ellipsis (it is narrower than 20). The card of `score` drawn as
+    x0 + 133.33333333333331` to `x(24)`, cut at the gap; the gap draws its one
+    ellipsis at its middle, `((x(17) + x(19)) / 2, (yt + yb) / 2)`, the
+    gap being a stored elision's, drawn whatever its width (section 6.6).
+    The card of `score` drawn as
     written draws no elision of `virtual_1` (the elision lies on another
     timeline), and switched to `virtual_1` by the manifest's rule it draws
     none either (section 8.10, Switched cards).

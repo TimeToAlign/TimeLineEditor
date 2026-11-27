@@ -6,13 +6,17 @@
  * included, the virtual timeline its own root, section 8.10); the block of
  * the group `G` whose
  * frame the selection lies in, or whose editor is open; and the form of one
- * selected elision. A root's mode and its settings are one rule on its card
- * address, a frame's mode one rule on its address; what they resolve to,
- * the proportion, the depths and every gap are read from the exposure the
+ * selected elision. A root's mode, the one control of its cards, and its
+ * settings are one rule on its card address; whether a frame draws its
+ * group's elisions one rule on its address; what they resolve to, the
+ * proportion, the depths and every gap are read from the exposure the
  * drawing gives of each card and frame (`Drawing.elisions`), never from a
- * drawing tried with a command applied. Every action is one command, so one
- * journal entry. A root drawn once behind a row of groups side by side
- * (section 8.8, Drawn once) is read through the one ancestor card the drawing
+ * drawing tried with a command applied, and no rule stated reads as the
+ * cascade's initial value. Every action is one command, so one journal
+ * entry. A selected stored elision is edited by its start, its end and what
+ * it shows; its gap's width is set on the canvas, by its handles. A root
+ * drawn once behind a row of groups side by side (section 8.8, Drawn
+ * once) is read through the one ancestor card the drawing
  * records for it, whose `ancestor.groups` lists every group it lies behind;
  * the gaps the arrangement cuts between two of them are listed read-only,
  * never edited (a seam leaves out nothing and is no gap, so none is listed).
@@ -22,7 +26,7 @@
  * and kept open once an action has been taken in it.
  */
 
-import type { CardAxis, Subject } from "@timetoalign/tilie-arranger";
+import type { Subject } from "@timetoalign/tilie-arranger";
 import {
   axisValueAt,
   cardAxisAt,
@@ -56,6 +60,7 @@ import {
   copyValue,
   displayOrder,
   elisionsUnder,
+  FlowMapError,
   findTimeline,
   groupElisions,
   groupsHolding,
@@ -63,6 +68,7 @@ import {
   inBlock,
   indexOf,
   prettyUnit,
+  resolveFlowMap,
   sameAddress,
   samePlaceKey,
 } from "@timetoalign/tilie-core";
@@ -81,36 +87,27 @@ import {
   toFloat,
   toRational,
 } from "@timetoalign/tilie-core/numbers";
-import type {
-  Drawing,
-  DrawnBox,
-  ElisionExposure,
-  ExposedGap,
-  StoredWidth,
-  WidthForm,
-} from "@timetoalign/tilie-layout";
-import { widthAs } from "@timetoalign/tilie-layout";
+import type { Drawing, DrawnBox, ElisionExposure, ExposedGap } from "@timetoalign/tilie-layout";
 import type { Declaration, Selector } from "@timetoalign/timetoshare";
-import { ELISION_DISPLAY, isJsonFloat } from "@timetoalign/timetoshare";
+import { ELISION_DISPLAY } from "@timetoalign/timetoshare";
 import type { Result } from "./problems.ts";
 import { InspectorCode, refused } from "./problems.ts";
 import { toggledDisplay } from "./stamps/commands.ts";
 
 // --- Words ----------------------------------------------------------------------------------------
 
-/** How a root's cards are drawn (drawing.md section 8.9, Modes), Hidden its card rule's `display: none`. */
-export type RootMode = "hidden" | "full" | "proportional" | "custom";
-
-/** How a frame draws the elisions of its group: none, or the stored ones. */
-export type FrameMode = "full" | "custom";
+/** Which elisions a root's cards draw (drawing.md section 8.9, Modes), `auto` read as what it resolves to. */
+export type RootMode = "full" | "proportional" | "custom";
 
 /** The label of each mode. */
 export const MODE_WORDS: { readonly [mode in RootMode]: string } = {
-  hidden: "Hidden",
   full: "Full",
   proportional: "Proportional",
   custom: "Custom",
 };
+
+/** What a timeline's block summarises where its ancestor cards are hidden. */
+export const HIDDEN_WORD = "Hidden";
 
 /** A word of an elision's `display`. */
 export type ElisionWord = (typeof ELISION_DISPLAY)[number];
@@ -132,22 +129,18 @@ export const STORED_WORDS: readonly { readonly word: ElisionWord; readonly label
 export const DEFAULT_WORDS: readonly { readonly word: ElisionWord; readonly label: string }[] =
   STORED_WORDS.filter(({ word }) => word !== "id");
 
-/** The words of a gap's width forms. */
-export const FORM_WORDS: { readonly [form in WidthForm]: string } = {
-  standard: "Standard (32)",
-  ratio: "Proportional",
-  span: "As wide as",
-  canvas: "Fixed",
-};
-
-/** The width forms in the order the form lists them. */
-export const WIDTH_FORMS: readonly WidthForm[] = ["standard", "ratio", "span", "canvas"];
-
 /** The hint of a default elision's form. */
 export const DEFAULT_HINT = "Choose Custom to edit";
 
 /** The note of a stored elision lying between two groups of a row, which the root's card does not draw (section 8.8). */
 export const NOT_DRAWN_ARRANGED = "not drawn while arranged side by side";
+
+/**
+ * The note of a group elision the frame does not draw although it draws its
+ * group's elisions: its timeline's line not drawn there, its gap hidden, or
+ * the frame switched to a FlowMap (sections 8.9 and 8.10).
+ */
+export const NOT_DRAWN_FRAME = "not drawn in this frame";
 
 // --- Shapes ---------------------------------------------------------------------------------------
 
@@ -169,7 +162,7 @@ export interface ElisionRow {
   readonly timeline: string;
   /** Its elided coordinates on that timeline's axis, `start–end` with the unit; pieces joined. */
   readonly stretch: string;
-  /** Why the card does not draw it (`NOT_DRAWN_ARRANGED`); `null` where it is drawn or not listed for it. */
+  /** Why the card or frame does not draw it (`NOT_DRAWN_ARRANGED`, `NOT_DRAWN_FRAME`); `null` where it is drawn. */
   readonly note: string | null;
   /** Its `[×]`: one `remove`. */
   readonly remove: RemoveCommand;
@@ -196,6 +189,12 @@ export interface DepthRow {
   readonly chosen: boolean;
 }
 
+/** A checkbox: whether it is ticked, and the one command its click sends. */
+export interface Toggle {
+  readonly checked: boolean;
+  readonly command: StyleCommand;
+}
+
 /** The root's block, `Parent timeline "R"` or `Elisions of "R"`. */
 export interface RootElisions {
   readonly block: string;
@@ -204,8 +203,11 @@ export interface RootElisions {
   /** The address of the root's rule, which the drafts of its Proportion belong to. */
   readonly address: Address;
   readonly manifest: Manifest;
-  readonly mode: RootMode;
-  /** Hidden, Full, Proportional, Custom for an ancestor card; Full and Custom for an ungrouped root. */
+  /** The mode its cards draw by; `null` where its ancestor cards are hidden, which read none. */
+  readonly mode: RootMode | null;
+  /** Whether its ancestor cards are drawn (their `display`); `null` for an ungrouped card. */
+  readonly shown: Toggle | null;
+  /** Full, Proportional, Custom for an ancestor card; Full and Custom for an ungrouped root; none while hidden. */
   readonly options: readonly ModeOption<RootMode>[];
   /** The gaps between the groups of a row it is drawn behind once, left to right; none elsewhere. */
   readonly arranged: readonly ArrangedGap[];
@@ -241,18 +243,18 @@ export interface GroupElisions {
   readonly block: string;
   readonly group: string;
   readonly title: string;
-  readonly mode: FrameMode;
-  readonly options: readonly ModeOption<FrameMode>[];
+  /** Whether the frame draws its group's elisions (its `elision-mode` resolves to `custom`). */
+  readonly drawn: Toggle;
   /** "0 elisions", "1 elision", "2 elisions". */
   readonly count: string;
-  /** Every stored elision of the group, drawn or not. */
+  /** Every stored elision of the group, drawn or not, one the frame does not draw with its note. */
   readonly rows: readonly ElisionRow[];
   readonly add: AddCommand | null;
   readonly removeAll: RemoveCommand | null;
 }
 
 /** The fields of a selected elision the form types into. */
-export type ElisionField = "start" | "end" | "ratio" | "span" | "canvas";
+export type ElisionField = "start" | "end";
 
 /** One other timeline a group elision elides, with its elided coordinates; "—" without a value. */
 export interface AlsoElided {
@@ -274,18 +276,9 @@ export interface ElisionForm {
   readonly stored: Elision | null;
   readonly start: string;
   readonly end: string;
-  readonly form: WidthForm;
-  /** The text of each width field: the stored value of its form, else the drawn width converted. */
-  readonly widths: { readonly [form in Exclude<WidthForm, "standard">]: string };
   readonly display: readonly ElisionWord[];
   /** Across a frame, the other timelines it elides; `null` for a card elision. */
   readonly also: readonly AlsoElided[] | null;
-  /** The gap it is drawn as and what its width is read with; `null` where it is not drawn. */
-  readonly gap: {
-    readonly gap: ExposedGap;
-    readonly L: number;
-    readonly lambda: Real;
-  } | null;
 }
 
 /** What a typed field or a chosen form gives: the command, `null` where it changes nothing, or a refusal. */
@@ -308,27 +301,7 @@ function gapsIn(
     .map((piece) => piece.gap);
 }
 
-/**
- * What the width of a gap of `timeline` in the container of `axis` is read
- * with (layout's `widthAs`): the container's full scale `L` and the length or
- * reach `λ` of the timeline its axis reads `timeline` on; `null` where the
- * axis does not draw `timeline`.
- */
-function widthScale(
-  axis: CardAxis | null,
-  timeline: string,
-): { readonly L: number; readonly lambda: Real } | null {
-  const base = axis?.baseOf(timeline) ?? null;
-  if (axis === null || base === null) return null;
-  return { L: axis.exposure.runs[0]?.L ?? 0, lambda: base.lambda };
-}
-
 // --- Values ---------------------------------------------------------------------------------------
-
-/** A JSON number of the manifest (an integral float wrapped) as a double. */
-function jsonNumber(value: unknown): number {
-  return isJsonFloat(value) ? value.value : Number(value);
-}
 
 /** A real as a double. */
 function double(value: Real): number {
@@ -655,25 +628,58 @@ function removalOf(block: string, elisions: readonly Elision[]): RemoveCommand |
   };
 }
 
-/** The mode a root's exposure shows; Hidden where its card is not drawn. */
-function rootModeOf(exposure: ElisionExposure | undefined, ancestor: boolean): RootMode {
-  if (exposure === undefined) return "hidden";
+/** The mode a root's exposure shows; `null` where its card is not drawn. */
+function rootModeOf(exposure: ElisionExposure | undefined, ancestor: boolean): RootMode | null {
+  if (exposure === undefined) return null;
   if (!ancestor && exposure.drawn === "proportional") return "custom";
   return exposure.drawn;
 }
 
-/** The options of a root's radio group (drawing.md section 8.9, Modes; one switch, one entry). */
+/** The declarations of the rules of `graphical`, a named style read through its name. */
+function declarationsOf(graphical: Manifest["graphical"] | View["graphical"] | undefined) {
+  return (graphical?.rules ?? []).map((rule) => ({
+    select: rule.select,
+    set: typeof rule.set === "string" ? (graphical?.styles?.[rule.set] ?? {}) : rule.set,
+  }));
+}
+
+/**
+ * The `set` giving the rule of `select` the mode `custom`, the initial value
+ * (drawing.md section 2.5): removing the rule's own `elision-mode` where it
+ * states one and no other rule of the workspace or the manifest states any,
+ * so that nothing but the initial value is left; else stating `custom`.
+ */
+function customSet(view: View, manifest: Manifest, select: Selector): StyleCommand["set"] {
+  const key = canonicalText(select);
+  const own = ownDeclaration(manifest, select)["elision-mode"] !== undefined;
+  const states = (rule: { readonly set: Declaration }) => rule.set["elision-mode"] !== undefined;
+  const others =
+    declarationsOf(view.graphical).some(states) ||
+    declarationsOf(manifest.graphical).some(
+      (rule) => states(rule) && canonicalText(rule.select) !== key,
+    );
+  return own && !others ? { "elision-mode": null } : { "elision-mode": "custom" };
+}
+
+/**
+ * The options of a root's mode (drawing.md section 8.9, Modes; one switch,
+ * one entry): Full and Proportional state their mode; Custom gives the rule
+ * the mode `custom` (`customSet`), first storing the elisions the card
+ * derives where it draws Proportional (an `auto` the stored ones then turn
+ * to `custom`), so that Custom starts from what was shown.
+ */
 function rootOptions(
   view: View,
   block: Block,
   drawing: Drawing,
   of: RootOf,
-  mode: RootMode,
+  mode: RootMode | null,
   exposure: ElisionExposure | undefined,
 ): ModeOption<RootMode>[] {
+  if (mode === null) return [];
   const root = of.root.id;
-  const style = (set: StyleCommand["set"]) => styleCommand(block.id, rootSelector(root), set);
-  const stored = elisionsUnder(block.manifest, root).length > 0;
+  const select = rootSelector(root);
+  const style = (set: StyleCommand["set"]) => styleCommand(block.id, select, set);
   const holding = holdingOf(block.manifest, root);
   const option = (
     target: RootMode,
@@ -689,27 +695,30 @@ function rootOptions(
       ? defaultsStored(view, block.id, drawing, of.key)
       : null;
   const defaults = persisted === null || "refused" in persisted ? null : persisted;
-  const custom: Command[] = stored
-    ? [style({ "elision-mode": null, display: null })]
-    : defaults !== null
-      ? [defaults, ...(exposure?.mode === "auto" ? [] : [style({ "elision-mode": null })])]
-      : [style({ "elision-mode": "custom", display: null })];
+  const toCustom = style(customSet(view, block.manifest, select));
+  const custom: Command[] =
+    defaults === null ? [toCustom] : [defaults, ...(exposure?.mode === "auto" ? [] : [toCustom])];
   const [group] = holding;
   const customOption = option(
     "custom",
     custom,
     group === undefined ? null : `its elisions belong to group "${group.name ?? group.id}"`,
   );
-  const full = option("full", [style({ "elision-mode": "full", display: null })]);
+  const full = option("full", [style({ "elision-mode": "full" })]);
   if (!of.ancestor) return [full, customOption];
-  return [
-    option("hidden", [style({ display: "none" })]),
-    full,
-    option("proportional", [
-      style({ "elision-mode": stored ? "proportional" : null, display: null }),
-    ]),
-    customOption,
-  ];
+  return [full, option("proportional", [style({ "elision-mode": "proportional" })]), customOption];
+}
+
+/**
+ * Whether a root's ancestor cards are drawn, and the command of its
+ * checkbox: hiding them states `display: none` on the root's rule, showing
+ * them removes it.
+ */
+function shownToggle(block: Block, root: string, shown: boolean): Toggle {
+  return {
+    checked: shown,
+    command: styleCommand(block.id, rootSelector(root), { display: shown ? "none" : null }),
+  };
 }
 
 /** The text a proportion field shows: at most six decimals. */
@@ -735,11 +744,65 @@ function depthRows(
 }
 
 /**
- * The `add` of an elision on the subject's timeline `T` (or `R`) at the
- * middle third of the longest stretch of it outside the protected span,
- * with the standard gap; `null` where none fits.
+ * The stretches of `[from, to]` outside every stretch of `cuts`, from the
+ * left, each with a length.
  */
-function addOnRoot(block: Block, of: RootOf): AddCommand | null {
+function outsideOf(
+  from: Rational,
+  to: Rational,
+  cuts: readonly (readonly [Rational, Rational])[],
+): [Rational, Rational][] {
+  const sorted = [...cuts].sort(([left], [right]) => left.compare(right));
+  const left: [Rational, Rational][] = [];
+  let at = from;
+  for (const [a, b] of sorted) {
+    if (a.compare(at) > 0) left.push([at, a.compare(to) < 0 ? a : to]);
+    if (b.compare(at) > 0) at = b;
+  }
+  if (at.compare(to) < 0) left.push([at, to]);
+  return left.filter(([a, b]) => a.compare(b) < 0);
+}
+
+/**
+ * The run gaps of a placed virtual card (drawing.md section 8.10, Runs) on
+ * its virtual timeline's axis: for every run of its FlowMap of two or more
+ * entries, the stretch from its first entry's end to its last one's, where
+ * the card draws it once (its axis draws no position inside it); none for
+ * any other card or a virtual timeline whose map is no FlowMap.
+ */
+function runGapsOf(
+  manifest: Manifest,
+  drawing: Drawing,
+  of: RootOf,
+): (readonly [Rational, Rational])[] {
+  const virtual = (manifest.virtual_timelines ?? []).find((item) => item.id === of.root.id);
+  const axis = cardAxisAt(manifest, drawing, of.key);
+  if (virtual === undefined || axis === null || of.ancestor) return [];
+  let resolved: ReturnType<typeof resolveFlowMap>;
+  try {
+    resolved = resolveFlowMap(manifest, virtual.map);
+  } catch (error) {
+    if (error instanceof FlowMapError) return [];
+    throw error;
+  }
+  return resolved.runs.flatMap(({ chunk, count }) => {
+    const last = resolved.chunks[chunk.index + count - 1];
+    if (count < 2 || last === undefined) return [];
+    const a = toRational(realOf(chunk.played.end));
+    const b = toRational(realOf(last.played.end));
+    const middle = a.add(b).divide(Rational.of(2n));
+    return axis.abscissaOf(of.root.id, middle) === null ? [[a, b] as const] : [];
+  });
+}
+
+/**
+ * The `add` of an elision on the subject's timeline `T` (or `R`) at the
+ * middle third of the longest stretch of it the card draws: outside the
+ * protected span and, on a placed virtual card, outside its run gaps, so
+ * that the new elision is drawn where it lies; with the standard gap;
+ * `null` where none fits.
+ */
+function addOnRoot(block: Block, of: RootOf, drawing: Drawing): AddCommand | null {
   const { manifest } = block;
   const lineage = of.subject === null ? undefined : indexOf(manifest).ancestry.get(of.subject);
   const inCard =
@@ -750,23 +813,17 @@ function addOnRoot(block: Block, of: RootOf): AddCommand | null {
   const offset = offsetOnRoot(manifest, timeline.id);
   const from = offset;
   const to = offset.add(toRational(extentOf(timeline, manifest)));
-  const stretches: [Rational, Rational][] = [];
-  if (of.protected === null) stretches.push([from, to]);
-  else {
-    const left = toRational(of.protected.from);
-    const right = toRational(of.protected.to);
-    stretches.push([from, left.compare(to) < 0 ? left : to]);
-    stretches.push([right.compare(from) > 0 ? right : from, to]);
+  const cuts: (readonly [Rational, Rational])[] = runGapsOf(manifest, drawing, of);
+  if (of.protected !== null) {
+    cuts.push([toRational(of.protected.from), toRational(of.protected.to)]);
   }
-  const longest = stretches
-    .filter(([a, b]) => a.compare(b) < 0)
-    .reduce<[Rational, Rational] | null>(
-      (best, each) =>
-        best === null || each[1].subtract(each[0]).compare(best[1].subtract(best[0])) > 0
-          ? each
-          : best,
-      null,
-    );
+  const longest = outsideOf(from, to, cuts).reduce<[Rational, Rational] | null>(
+    (best, each) =>
+      best === null || each[1].subtract(each[0]).compare(best[1].subtract(best[0])) > 0
+        ? each
+        : best,
+    null,
+  );
   if (longest === null) return null;
   const stretch = middleThird(longest[0].subtract(offset), longest[1].subtract(offset), timeline);
   if (stretch === null) return null;
@@ -881,6 +938,7 @@ export function rootElisionsOf(
   const root = of.root.id;
   const { manifest } = block;
   const mode = rootModeOf(exposure, of.ancestor);
+  const shown = of.ancestor ? shownToggle(block, root, exposure !== undefined) : null;
   const own = ownDeclaration(manifest, rootSelector(root));
   const depthsStated = own["elision-depths"];
   const proportional =
@@ -904,7 +962,7 @@ export function rootElisionsOf(
             ),
             ...storedRows(block, undrawnBetween(manifest, of, exposure), NOT_DRAWN_ARRANGED),
           ],
-          add: addOnRoot(block, of),
+          add: addOnRoot(block, of, drawing),
           removeAll: defaultsRemoval(view, block.id, root),
         }
       : null;
@@ -916,6 +974,7 @@ export function rootElisionsOf(
     address: inBlock(block.id, { id: root, part: ["card"] }),
     manifest,
     mode,
+    shown,
     options: rootOptions(view, block, drawing, of, mode, exposure),
     arranged: arrangedGaps(manifest, of, exposure),
     proportional,
@@ -1045,6 +1104,7 @@ function addOnGroup(block: Block, group: string, subjects: readonly Subject[]): 
  * the drawing draws `G`'s frame; `null` otherwise.
  */
 export function groupElisionsOf(
+  view: View,
   block: Block,
   subjects: readonly Subject[],
   drawing: Drawing,
@@ -1061,25 +1121,28 @@ export function groupElisionsOf(
   const exposure = exposureAt(drawing, { item: group });
   const found = manifest.groups.find((each) => each.id === group);
   if (exposure === undefined || found === undefined) return null;
-  const mode: FrameMode = exposure.drawn === "custom" ? "custom" : "full";
-  const style = (set: StyleCommand["set"]) => styleCommand(block.id, frameSelector(group), set);
-  const option = (target: FrameMode, command: StyleCommand) => ({
-    mode: target,
-    commands: target === mode ? [] : [command],
-    reason: null,
-  });
+  const drawn = exposure.drawn === "custom";
+  const drawnIds = new Set(
+    exposure.gaps.filter((gap) => gap.origin === "stored").map((gap) => gap.address.id),
+  );
+  const select = frameSelector(group);
   const elisions = groupElisions(manifest, group);
   return {
     block: block.id,
     group,
     title: `Elisions in group "${found.name ?? found.id}"`,
-    mode,
-    options: [
-      option("full", style({ "elision-mode": "full" })),
-      option("custom", style({ "elision-mode": null })),
-    ],
+    drawn: {
+      checked: drawn,
+      command: styleCommand(
+        block.id,
+        select,
+        drawn ? { "elision-mode": "full" } : customSet(view, manifest, select),
+      ),
+    },
     count: counted(elisions.length),
-    rows: storedRows(block, elisions),
+    rows: elisions.flatMap((elision) =>
+      storedRows(block, [elision], drawn && !drawnIds.has(elision.id) ? NOT_DRAWN_FRAME : null),
+    ),
     add: addOnGroup(block, group, subjects),
     removeAll: removalOf(block.id, elisions),
   };
@@ -1087,103 +1150,43 @@ export function groupElisionsOf(
 
 // --- A selected elision ---------------------------------------------------------------------------
 
-/** The width form a stored `width` has. */
-function formOfWidth(width: Elision["width"] | undefined): WidthForm {
-  if (width?.ratio !== undefined) return "ratio";
-  if (width?.span !== undefined) return "span";
-  if (width?.canvas !== undefined) return "canvas";
-  return "standard";
-}
-
-/** The stored width `form` gives the drawn gap, as the manifest writes it; `undefined` where it does not fit. */
-function storedWidth(
-  form: WidthForm,
-  shown: NonNullable<ElisionForm["gap"]>,
-  timeline: TimelineManifest,
-): { readonly [form: string]: unknown } | null | undefined {
-  const width: StoredWidth = widthAs(form, shown.gap, shown.L, shown.lambda, timeline.number_type);
-  if (width === null) return null;
-  if ("span" in width) {
-    const span = axisValueAt(width.span, timeline);
-    return span === undefined ? undefined : { span };
-  }
-  return width;
-}
-
-/** The text of each width field: the stored value of its form, else the drawn width converted. */
-function widthTexts(
-  width: Elision["width"] | undefined,
-  shown: ElisionForm["gap"],
-  timeline: TimelineManifest,
-): ElisionForm["widths"] {
-  const converted = (form: Exclude<WidthForm, "standard">): string => {
-    if (shown === null) return "";
-    const value = widthAs(form, shown.gap, shown.L, shown.lambda, timeline.number_type);
-    if (value === null) return "";
-    if ("span" in value) return fieldText(value.span, timeline);
-    return String("ratio" in value ? value.ratio : value.canvas);
-  };
-  return {
-    ratio: width?.ratio !== undefined ? String(jsonNumber(width.ratio)) : converted("ratio"),
-    span:
-      width?.span !== undefined
-        ? copyValue(axisCoordinate(width.span, timeline).value, timeline.number_type)
-        : converted("span"),
-    canvas: width?.canvas !== undefined ? String(jsonNumber(width.canvas)) : converted("canvas"),
-  };
-}
-
 /**
- * Where a stored elision `elision` on `timeline` is drawn for the subject:
- * a group elision across the frame of the group its subject's box lies in,
- * else the first group its timeline lies in, its span read with that
- * member's length; a card elision in the card the root block reads, its
- * span read with the root's length.
+ * The other timelines a stored group elision `elision` elides, as the frame
+ * its subject's box lies in draws it (else the first group its timeline lies
+ * in): each with its elided coordinates (layout's `members`); `null` for a
+ * card elision.
  */
-function storedGap(
+function alsoElided(
   block: Block,
   subject: Subject,
   elision: Elision,
   drawing: Drawing,
-): { gap: NonNullable<ElisionForm["gap"]> | null; also: AlsoElided[] | null } {
+): AlsoElided[] | null {
   const { manifest } = block;
   const holding = holdingOf(manifest, elision.timeline);
-  const address = idAddress(elision.id);
-  if (holding.length > 0) {
-    const framed = groupsBehind(subject.box);
-    const group = holding.find((each) => framed.includes(each.id)) ?? holding[0];
-    const exposure = group === undefined ? undefined : exposureAt(drawing, { item: group.id });
-    const [gap] = exposure === undefined ? [] : gapsIn(drawing, exposure, address);
-    const also = (gap?.members ?? [])
-      .filter((each) => each.timeline !== elision.timeline)
-      .flatMap((each) => {
-        const on = timelineIn(manifest, each.timeline);
-        if (on === undefined) return [];
-        const stretch =
-          each.start === null || each.end === null ? "—" : stretchText(on, each.start, each.end);
-        return [{ timeline: nameOf(on), stretch }];
-      });
-    const scale =
-      group === undefined
-        ? null
-        : widthScale(cardAxisAt(manifest, drawing, { item: group.id }), elision.timeline);
-    if (gap === undefined || scale === null) return { gap: null, also };
-    return { gap: { gap, ...scale }, also };
-  }
-  const of = rootOf(block, [subject], drawing);
-  const exposure = of === null ? undefined : exposureAt(drawing, of.key);
-  const [gap] = exposure === undefined ? [] : gapsIn(drawing, exposure, address);
-  const scale = of === null ? null : widthScale(cardAxisAt(manifest, drawing, of.key), of.root.id);
-  if (gap === undefined || scale === null) return { gap: null, also: null };
-  return { gap: { gap, ...scale }, also: null };
+  if (holding.length === 0) return null;
+  const framed = groupsBehind(subject.box);
+  const group = holding.find((each) => framed.includes(each.id)) ?? holding[0];
+  const exposure = group === undefined ? undefined : exposureAt(drawing, { item: group.id });
+  const [gap] = exposure === undefined ? [] : gapsIn(drawing, exposure, idAddress(elision.id));
+  return (gap?.members ?? [])
+    .filter((each) => each.timeline !== elision.timeline)
+    .flatMap((each) => {
+      const on = timelineIn(manifest, each.timeline);
+      if (on === undefined) return [];
+      const stretch =
+        each.start === null || each.end === null ? "—" : stretchText(on, each.start, each.end);
+      return [{ timeline: nameOf(on), stretch }];
+    });
 }
 
 /**
  * The form of the one selected elision: a stored one (`{block, id: E}`),
- * read from the manifest and from the gap the drawing draws of it; a
- * default one (`{block, id: T, part: [elision]}`), read-only, from the first
- * of its gaps in the card the root block reads; `null` for any other
- * selection or a default elision the card does not draw.
+ * read from the manifest, what it also elides from the gap the drawing
+ * draws of it; a default one (`{block, id: T, part: [elision]}`),
+ * read-only, from the first of its gaps in the card the root block reads;
+ * `null` for any other selection or a default elision the card does not
+ * draw.
  */
 export function elisionFormOf(
   block: Block,
@@ -1198,7 +1201,6 @@ export function elisionFormOf(
     const { elision } = resolved;
     const timeline = resolved.at.timeline;
     const [start, end] = storedStretch(elision, timeline);
-    const { gap, also } = storedGap(block, subject, elision, drawing);
     return {
       block,
       address,
@@ -1209,11 +1211,8 @@ export function elisionFormOf(
       stored: elision,
       start: fieldText(start, timeline),
       end: fieldText(end, timeline),
-      form: formOfWidth(elision.width),
-      widths: widthTexts(elision.width, gap, timeline),
       display: elision.display,
-      also,
-      gap,
+      also: alsoElided(block, subject, elision, drawing),
     };
   }
   if (
@@ -1233,9 +1232,7 @@ export function elisionFormOf(
           (each) => each.origin === "default",
         );
   const timeline = resolved.owner.at.timeline;
-  const scale = of === null ? null : widthScale(cardAxisAt(manifest, drawing, of.key), of.root.id);
-  if (exposure === undefined || gap === undefined || scale === null) return null;
-  const shown = { gap, ...scale };
+  if (exposure === undefined || gap === undefined) return null;
   return {
     block,
     address,
@@ -1246,11 +1243,8 @@ export function elisionFormOf(
     stored: null,
     start: fieldText(gap.start, timeline),
     end: fieldText(gap.end, timeline),
-    form: gap.drawn === 32 ? "standard" : "canvas",
-    widths: widthTexts(undefined, shown, timeline),
     display: exposure.display,
     also: null,
-    gap: shown,
   };
 }
 
@@ -1263,44 +1257,10 @@ function setOf(form: ElisionForm, values: { readonly [property: string]: unknown
 export function fieldCommand(form: ElisionForm, field: ElisionField, text: string): ElisionEdit {
   const path = [addressKey(form.address), field];
   const trimmed = text.trim();
-  if (form.stored === null) return { ok: true, value: null };
-  if (field === "start" || field === "end") {
-    if (trimmed === form[field]) return { ok: true, value: null };
-    const value = typedValue(trimmed, form.timeline);
-    if (typeof value === "string") return refused(InspectorCode.invalidValue, value, path);
-    return { ok: true, value: setOf(form, { [field]: value }) };
-  }
-  if (form.form === field && trimmed === form.widths[field]) return { ok: true, value: null };
-  if (field === "span") {
-    const value = typedValue(trimmed, form.timeline);
-    if (typeof value === "string") return refused(InspectorCode.invalidValue, value, path);
-    return { ok: true, value: setOf(form, { width: { span: value } }) };
-  }
-  if (!DECIMAL.test(trimmed)) {
-    return refused(InspectorCode.invalidValue, `${trimmed} is not a number`, path);
-  }
-  return { ok: true, value: setOf(form, { width: { [field]: Number(trimmed) } }) };
-}
-
-/**
- * The command choosing the width form `next`, converted from the gap as
- * drawn (layout's `widthAs`) so that it does not jump: Standard leaves
- * `width` out. `null` for the form stored; refused where the gap is not
- * drawn and the form needs its width.
- */
-export function formCommand(form: ElisionForm, next: WidthForm): ElisionEdit {
-  if (next === form.form || form.stored === null) return { ok: true, value: null };
-  if (next === "standard") return { ok: true, value: setOf(form, { width: null }) };
-  const path = [addressKey(form.address), next];
-  const width = form.gap === null ? undefined : storedWidth(next, form.gap, form.timeline);
-  if (width === undefined || width === null) {
-    return refused(
-      InspectorCode.invalidValue,
-      "the elision is not drawn here, so its width cannot be converted: type a value",
-      path,
-    );
-  }
-  return { ok: true, value: setOf(form, { width }) };
+  if (form.stored === null || trimmed === form[field]) return { ok: true, value: null };
+  const value = typedValue(trimmed, form.timeline);
+  if (typeof value === "string") return refused(InspectorCode.invalidValue, value, path);
+  return { ok: true, value: setOf(form, { [field]: value }) };
 }
 
 /** The command showing or hiding one word of the stored elision's `display`. */
@@ -1402,7 +1362,7 @@ export function blocksOf(
         : {
             kind: "timeline",
             title: root.title,
-            summary: `${MODE_WORDS[root.mode]}${rootCount}`,
+            summary: root.mode === null ? HIDDEN_WORD : `${MODE_WORDS[root.mode]}${rootCount}`,
             key: blockKey(root.address, inRoot ? selected : null),
             keeps: rootOwn,
             opened: inRoot,
@@ -1413,7 +1373,7 @@ export function blocksOf(
         : {
             kind: "group",
             title: group.title,
-            summary: `${MODE_WORDS[group.mode]}, ${group.count}`,
+            summary: `${group.drawn.checked ? MODE_WORDS.custom : MODE_WORDS.full}, ${group.count}`,
             key: blockKey(frame, inGroup ? selected : null),
             keeps: groupOwn,
             opened: inGroup,

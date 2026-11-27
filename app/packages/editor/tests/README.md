@@ -1716,11 +1716,29 @@ of one selected elision. What a mode resolves to, the proportion `r`, the
 depths and every gap's coordinates and widths are read from the exposure
 the drawing gives of the card or frame (`Drawing.elisions`, layout's,
 which derives its numbers from drawing.md §8.9); the tab never lays
-anything out and never draws a trial. A root's mode and its settings are
-one `style` of the root's rule `{addresses: [{id: R, part: [card]}]}` in
-block `B`, a frame's mode one `style` of `{addresses: [{id: G}]}`; every
-action sends one command, so one journal entry, the one exception named
-below.
+anything out and never draws a trial. A root's mode, its settings and
+whether its ancestor cards are drawn are one `style` of the root's rule
+`{addresses: [{id: R, part: [card]}]}` in block `B`, whether a frame draws
+its group's elisions one `style` of `{addresses: [{id: G}]}`; every action
+sends one command, so one journal entry, the one exception named below.
+What it needs and nothing more is offered (start, end and display per
+elision; the mode once per card; whether a frame draws its elisions): a
+stored elision's width is set on the canvas by its handles, never in the
+tab.
+
+**The initial mode.** The cascade's initial `elision-mode` is the
+specification's and layout's (drawing.md section 2.5), never the
+editor's: no rule stated reads as what layout resolves. So that the
+values below do not hang on it, every ancestor-card fixture is opened with
+one workspace rule, `{select: {element: ancestor_card}, set:
+{elision-mode: auto}}`, stated by one `set` of the workspace's
+`graphical` (the layer the specification's deriving examples name), under
+which `piece` derives and `score` draws its stored elisions; the one test
+of Custom from Full states `custom` there instead, the initial value.
+Where a rule of the workspace or another rule of the manifest states
+`elision-mode`, Custom states `{elision-mode: custom}`; only where the
+root's or frame's own rule is the one stating it does Custom remove it
+(`{elision-mode: null}`), the initial value `custom` being left.
 
 The oracles are three fixtures, every one drawn in block `B` =
 `0000000000`:
@@ -1759,11 +1777,12 @@ The oracles are three fixtures, every one drawn in block `B` =
 **Where.** In `group_elided_inside` the root's block is offered for the
 card `{id: excerpt, part: [card]}`, the child `{id: first}`, the root
 `{id: piece}` and the default elision `{id: second, part: [elision]}`,
-always titled `Parent timeline "Piece"` with the options Hidden, Full,
-Proportional, Custom; not for `recording` (a root member: no ancestor
+always titled `Parent timeline "Piece"` with the options Full,
+Proportional, Custom and the checkbox "Draw behind its groups" ticked; not for `recording` (a root member: no ancestor
 card), the block, `group_1`, or `excerpt` with `recording` (two roots).
-The ungrouped `page` is titled `Elisions of "Page"` with Full and Custom.
-The group's block, `Elisions in group "Theme"` with Full and Custom, is
+The ungrouped `page` is titled `Elisions of "Page"` with Full and Custom
+and no checkbox. The group's block, `Elisions in group "Theme"` with its
+checkbox "Draw the group's elisions" ticked, is
 offered in `bundle_elisions_stored` for `{id: theme}` (a member),
 `{id: group_1}` (the frame), `{id: elision_3}` (a group elision) and,
 with nothing selected, `group_1`'s editor; not for `score` (an ancestor
@@ -1778,8 +1797,9 @@ button, `aria-expanded` and `aria-controls` naming the region that
 follows it, `hidden` while collapsed. The button's accessible name is the
 kind word, the title and one line of essentials, so a timeline's block and
 a group's are told apart by their names alone: `Timeline`, the title, the
-mode, and in Custom the count ("Custom, 3 elisions"); `Group`, the title,
-the mode and the count; `Elision`, the title, the stretch From–To with the
+mode, and in Custom the count ("Custom, 3 elisions"), `Hidden` where its
+ancestor cards are hidden; `Group`, the title, "Custom" where the frame
+draws its elisions and "Full" where not, and the count; `Elision`, the title, the stretch From–To with the
 unit, a default elision's followed by ", automatic". Mounted for
 `{id: excerpt}` of `group_elided_members` (a member of `group_1` whose root
 `piece` draws an ancestor card), the tab shows two blocks, named
@@ -1819,7 +1839,7 @@ key says: in `group_elided_members`, `elision_1` (a group elision of
 shows the group's block open and the timeline's block, which was never
 touched and holds no selection, collapsed. The other handlers keep it
 open alike, with `elision_5` selected: the mode Full (one `style` of
-`{elision-mode: full, display: null}` on `score`'s card, summary
+`{elision-mode: full}` on `score`'s card, summary
 `Full`), Add elision (one `add` into `score` of `[112, 3]`–`[152, 3]`,
 as under "Read", summary `Custom, 4 elisions`) and the click on the
 first row (no command, `elision_4` handed to the selection, summary
@@ -1834,8 +1854,8 @@ summary `Custom, 2 elisions`) or the mode Full, then the block closed
 by its button, `score` selected alone shows the block with
 `aria-expanded` "false" and its region hidden; without that write it
 reopens. The group's block alike: `elision_3` selected, the frame's
-mode Full (one `style` of `{elision-mode: full}` on `group_1`), the
-group's block closed, `theme` selected shows `Group Elisions in group
+checkbox unticked (one `style` of `{elision-mode: full}` on `group_1`),
+the group's block closed, `theme` selected shows `Group Elisions in group
 "Theme" Full, 1 elision` collapsed, and the timeline's block of `score`
 collapsed, never touched.
 
@@ -1869,34 +1889,40 @@ member `excerpt` `{start: [16, 3], end: [32, 3]}`.
 
 **Switch** (drawing.md §8.9, Modes; each one command, one entry,
 mounted). On `piece` (inside): Full sends `{type: style, select:
-{addresses: [{id: piece, part: [card]}]}, set: {elision-mode: full,
-display: null}, blocks: [B]}`, after which the mode reads Full; undo
-gives Proportional back. Hidden sends `set: {display: none}` (the mode
-then Hidden: the drawing records no ancestor card of `piece`), and from
-Hidden Proportional sends `{elision-mode: null, display: null}` (nothing
-stored), which leaves the rule empty, so the manifest holds no rule.
-Proportional → Custom with nothing stored is one `add {into: {block:
-B}, elision: [...]}` of the three default gaps as drawn: `first` `[0,
-1]`–`[8, 1]` `{canvas: 57.14285714285714}`, `first` `[16, 1]`–`[32, 1]`
-`{canvas: 114.28571428571428}`, `second` `[1, 1]`–`[31, 1]` `{canvas:
+{addresses: [{id: piece, part: [card]}]}, set: {elision-mode: full},
+blocks: [B]}`, after which the mode reads Full; undo gives Proportional
+back. Unticking "Draw behind its groups" sends `set: {display: none}`:
+the drawing records no ancestor card of `piece`, the summary reads
+`Hidden` and the block offers no mode (a hidden card reads none); ticking
+it again sends `{display: null}`, which leaves the rule empty, so the
+manifest holds no rule, and Proportional is shown again. Proportional →
+Custom with nothing stored is one `add {into: {block: B}, elision: [...]}`
+of the three default gaps as drawn: `first` `[0, 1]`–`[8, 1]` `{canvas:
+57.14285714285714}`, `first` `[16, 1]`–`[32, 1]` `{canvas:
+114.28571428571428}`, `second` `[1, 1]`–`[31, 1]` `{canvas:
 128.57142857142856}`, each `display` the card's resolved
 `elision-display` as layout exposes it); the mode then reads Custom
-(`auto`) with those three
-rows, and Remove all, one `remove` of the three, gives Proportional back.
-With stored elisions (`score`) Full sends `{elision-mode: full, display:
-null}` and Custom then `{elision-mode: null, display: null}`, the stored
-ones back; Proportional sends `{elision-mode: proportional, display:
-null}`. With nothing stored and Full, Custom sends `{elision-mode: custom,
-display: null}` (starting from full timelines). The frame: Full sends
-`{select: {addresses: [{id: group_1}]}, set: {elision-mode: full}}`,
-Custom then `{elision-mode: null}`. A root that is a member of one group
-(`piece` made the one member of a new group `group_2` "Whole" by one
-`add`) offers Custom with `aria-disabled="true"` and the visible hint
-`Custom: its elisions belong to group "Whole"`; choosing it sends nothing.
-The one exception to one entry: Proportional → Custom where the root's
-rule states `elision-mode: proportional` with nothing stored adds the
-defaults and then deletes the mode (two entries; no fixture states it,
-`elisions.ts` says so).
+(`auto`, the stored ones there) with those three rows, and Remove all, one
+`remove` of the three, gives Proportional back. With stored elisions
+(`score`) Full sends `{elision-mode: full}`, and Custom then
+`{elision-mode: custom}` (the workspace's rule states a mode too, so
+Custom states it), the stored ones back; Proportional sends
+`{elision-mode: proportional}`. Under the initial `custom` stated by the
+workspace, Full then Custom on `piece` sends `{elision-mode: custom}`
+alike, starting from full timelines; with no other rule stating a mode,
+Custom after Full sends `{elision-mode: null}` (a placed virtual card,
+below). The frame's checkbox unticked sends `{select: {addresses: [{id:
+group_1}]}, set: {elision-mode: full}}`, ticked again `{elision-mode:
+custom}` (`bundle_elisions_stored`, opened without the workspace rule,
+still states `session`'s mode in another rule). A root that is a
+member of one group (`piece` made the one member of a new group `group_2`
+"Whole" by one `add`) offers Custom with `aria-disabled="true"` and the
+visible hint `Custom: its elisions belong to group "Whole"`; choosing it
+sends nothing. The one exception to one entry: Proportional → Custom
+where the cascaded mode is `proportional` (stated by a rule, not `auto`)
+adds the defaults and then gives the rule the mode `custom` (two entries:
+`piece` made Proportional by its own rule before the tab is shown, then
+Custom: the `add`, then `{elision-mode: custom}`, three rows listed).
 
 **Settings** (Proportional, each one `style` of the root's rule).
 Unticking Proportion's Automatic sends `{elision-proportion:
@@ -1925,18 +1951,14 @@ canvas shows at that pane (the arranger's `drawingOf` with that pane, the
 oracle), which differs from the paneless drawing's 1/7; unticking
 Automatic states that drawn proportion exactly.
 
-**A selected elision.** The form reads the gap the drawing draws of it and
-converts widths through layout's `widthAs`, with the card's or frame's
-length `L`, the root's length (a card elision) or the holding member's (a
-group elision) as `λ`, exact on an exact axis.
-- `elision_5`: title `Elision on "Score"`, From "32", To "48", unit ♩,
-  form As wide as; the fields Proportional "0.25" (200 / 800), As wide as
-  "4" (stored), Fixed "200"; no Also elides. `elision_4`: form
-  Proportional, "0.5", "8" (`400 × 64 / 3200`), "400". `elision_6`: form
-  Fixed, "0.075", "3/5" (`30 × 64 / 3200`), "30".
-- `elision_1` of `group_elided_members`: title `Elision on "Excerpt"`,
-  form Standard, "0.21333333333333335" (32 / 150), "32/25" (`32 × 16 /
-  400`), "32"; Also elides Piece "18–24 ♩", Voice "3–12 ♩", Sketch "—".
+**A selected elision.** The form reads the elision from the manifest
+and, for a group elision, what else it elides from the gap the drawing
+draws of it (layout's `members`); it offers From, To, Show and Delete,
+never a width.
+- `elision_5`: title `Elision on "Score"`, From "32", To "48", unit ♩; no
+  Also elides; no width field in the form.
+- `elision_1` of `group_elided_members`: title `Elision on "Excerpt"`;
+  Also elides Piece "18–24 ♩", Voice "3–12 ♩", Sketch "—".
   `elision_3`: From "0.0", To "2.0", unit s; Also elides Theme "0–1 3/5 ♩",
   Score "16–17 3/5 ♩", Take "0″–5.1″", Session "30″–35.1″".
 - Commands (mounted, each one entry, each on `elision_5` as the fixture
@@ -1946,16 +1968,14 @@ group elision) as `λ`, exact on an exact axis.
   write an integer, n/d, a b/c or a decimal", `aria-invalid`; From
   `9007199254740993/2` gives `start: [9007199254740993n, 2]`, the
   numerator past 2^53 kept whole (it was rounded through `Number` before);
-  choosing Fixed is one `set` of `width: {canvas: 200}`, Proportional of
-  `width: {ratio: 0.25}`, Standard of `width: null`; Show's Ellipsis is one
-  `set` of `display: [ellipsis, name]` (the canonical order); Delete one
-  `remove`.
+  Show's Ellipsis is one `set` of `display: [ellipsis, name]` (the
+  canonical order); Delete one `remove`.
 - The Name field at the top names a stored elision: `elision_5`'s is
   "Development", `elision_4`'s empty, an empty text unstating it; a
   default elision has none.
 - The default `{id: second, part: [elision]}` (inside): title `Elision on
   "Second"`, From "1", To "31", both fields disabled, the hint "Choose
-  Custom to edit", no width, Show or Delete.
+  Custom to edit", no Show or Delete.
 
 **Side by side** (drawing.md §8.8, Drawn once). A fourth fixture,
 `bundles/bundle_arranged_roots`, drawn in `B` by layout with the placement
@@ -1973,11 +1993,11 @@ proves the reading:
 - **One card, found from any group.** The root's block reads that card for
   a subject in any of the groups: `{id: development}` (`group_2`'s member,
   whose own card is not recorded) and `{id: recapitulation}` show `score`
-  drawn Proportional, as `{id: exposition}` does, not Hidden (which is what
+  drawn Proportional, as `{id: exposition}` does, not hidden (which is what
   reading the card `{item: group_2, member: score}` would give: nothing
   recorded there). `{id: take_b}` shows `session` the same way.
 - **The arrangement's gaps, read-only.** `score`'s block lists nothing
-  under "Side by side": its anchors' stretches touch at 16 and 32 ♩, so its
+  under "Gaps between groups": its anchors' stretches touch at 16 and 32 ♩, so its
   axis has seams there and no gap, and a seam leaves out nothing, is no gap
   and is not exposed (drawing.md section 3.2, Seams); `session`'s lists
   `between "Exposition" and "Recapitulation"` with its elided stretch as
@@ -2002,7 +2022,7 @@ proves the reading:
   "50″–1′20″" with the note "not drawn while arranged side by side", counts
   it, and its `[×]` and Remove all remove it. Mounted (the tab, the
   block's `arrangement` stated by one `set` so that the arranger's drawing
-  is the side-by-side one): "Side by side" holds the one item `between
+  is the side-by-side one): "Gaps between groups" holds the one item `between
   "Exposition" and "Recapitulation" 33″–44″`, the count reads "1 elision",
   and the row carries the note.
 - **The least proportion.** With a group elision on `development`
@@ -2036,26 +2056,34 @@ stretches written by the arranger's `stretchText` as every row is.
   is offered for its card `{id: allegro_default, part: [card]}`, its line
   `{id: allegro_default}` and its band `{id: allegro_default, facet:
   regions}`, titled `Elisions of "Allegro, default"` with the options Full
-  and Custom, mode Custom (it derives nothing), no rows, Remove all
-  `null`, and Add one `add {into: {B, allegro_default}, elision: {start:
-  [4241, 6], end: [4241, 3]}}`, the middle third of its played axis 0 to
-  4241/2. Its Full is one `style` of `{addresses: [{id: allegro_default,
-  part: [card]}]}` setting `{elision-mode: full, display: null}`. The card
-  of `allegro_single`, not placed, is offered no block. With that Add
+  and Custom and no checkbox, mode Custom (it derives nothing), no rows,
+  Remove all `null`, and Add one `add {into: {B, allegro_default},
+  elision: {start: [4241, 6], end: [4241, 3]}}`, the middle third of its
+  played axis 0 to 4241/2 (its FlowMap `default` plays A B A C, no run).
+  Its Full is one `style` of `{addresses: [{id: allegro_default, part:
+  [card]}]}` setting `{elision-mode: full}`, and Custom then
+  `{elision-mode: null}`: no other rule states a mode, so removing its own
+  leaves the initial value. The card of `allegro_single`, not placed, is
+  offered no block. With that Add
   dispatched (one entry), the block lists one row, "—" "Allegro, default"
   and the stretch `stretchText` writes of 4241/6 to 4241/3 on its axis
   (no run gap there: the gap is the whole stretch), and Remove all is one
   `remove` of that elision (core's `elisionsUnder` of the virtual
   timeline); the elision selected shows the form titled `Elision on
   "Allegro, default"`, unit ♩, its From and To the texts a typed value
-  gives back (`4241/6` and `4241/3`), held by the root's block. Its
-  width is read on the card's axis, the virtual timeline's own (base
-  itself, `λ` 4241/2, `L` 400): form Standard, the drawn gap the standard
-  32, its natural width `400 × 2/3 − 400 × 1/3` with each proportion
-  rounded once to a double (133.33333333333331), so the fields read ratio
-  `0.24000000000000005` (32 over it), span `4241/25` (32 × λ / L, exact)
-  and canvas `32`; choosing Span is one `set` of that elision's `width`
-  to `{span: [4241, 25]}`.
+  gives back (`4241/6` and `4241/3`), held by the root's block.
+- **Add where the card draws.** `allegro_by_hand` "Allegro, practice"
+  (3054 ♩, its FlowMap `by_hand` A A A A, a gap of 4, C, each A 953/2,
+  C 1144) placed alike: its four A's are one run drawn once (drawing.md
+  section 8.10, Runs), so the card draws 0–953/2, then the gap 1906–1910,
+  then C 1910–3054, and its run gap 953/2–1906 not at all. Add is one
+  `add {into: {B, allegro_by_hand}, elision: {start: [6866, 3], end:
+  [8014, 3]}}`, the middle third of 1906–3054, the gap and C, the longest
+  stretch drawn (1906 + 1148/3 to 3054 − 1148/3); the middle third of the
+  whole played axis, 1018–2036, would lie in the run gap but for its last
+  130 ♩. The
+  run gap is read from the FlowMap's runs and kept only where the card's
+  axis draws no position inside it.
 - **A virtual member.** `groups/virtual_member` (`allegro_default` a
   member of `performance` "Performance" with the root `recording`) given
   `gap` on `allegro_default` from 500 to 1000 by one `add`: the group's
@@ -2069,11 +2097,15 @@ stretches written by the arranger's `stretchText` as every row is.
   "1000" and Also elides `Recording` with the stretch `stretchText`
   writes of 702500/4241 to 1405000/4241 on `recording`'s float axis (the
   exact proportions times its length 702.5, rounded once), layout's
-  elided coordinates. Its width is read on the frame's axis, the virtual
-  member's own (`λ` 4241/2, `L` 400): form Standard, the drawn gap 32
-  over layout's natural width 94.31737797689225, so ratio
-  `0.33927999999999997`, span `4241/25`, canvas `32`; choosing Canvas is
-  one `set` of `gap`'s `width` to `{canvas: 32}`.
+  elided coordinates.
+- **A switched frame.** `groups/switched_frame` (`performance` holding
+  `allegro`, whose card's rule plays the FlowMap `default`, and
+  `recording`): an elision added through the group's block from
+  `allegro`'s card is listed with the note "not drawn in this frame",
+  the frame's checkbox still ticked: a switched frame draws no group
+  elision (drawing.md section 8.10), and a row the frame does not draw
+  while it draws its group's elisions says so. The virtual member's `gap`
+  above, drawn, has no note.
 
 **The display command** is one (`stamps/commands.ts`): a named timestamp's,
 an anchor's and a stored elision's `display` toggle through it, taking a

@@ -790,8 +790,9 @@ describe("modes", () => {
 describe("ellipses", () => {
   it("are one per drawing of a gap, at its middle and the middle of its height, its labels below", () => {
     // Every fixture drawn with the defaults (section 6.6), in its member and block-held cards and
-    // across its frames: a gap at least 20 wide whose display lists
-    // `ellipsis` draws exactly one, at `xm` and `ym`, and any other none; its labels follow at `xm`,
+    // across its frames: a gap whose display lists `ellipsis` draws exactly one, at `xm` and `ym`,
+    // a stored elision's (its own or carried) whatever its width and a derived one's where it is at
+    // least 20 wide, and any other none; its labels follow at `xm`,
     // the `i`-th with its baseline at `ym + 2 + 2 + (i − 1) × h(9) + a(9)`: no stack of these
     // drawings meets a neighbour's, so each starts on line 1.
     for (const name of manifestNames()) {
@@ -806,11 +807,12 @@ describe("ellipses", () => {
         const ym = (gap.yt + gap.yb) / 2;
         const ellipses = following.filter((element) => element.type === "ellipsis");
         const listed = displayOf(manifest, gap).includes("ellipsis");
-        expect(ellipses.length).toBe(listed && gap.x2 - gap.x1 >= 20 ? 1 : 0);
+        const stored = gap.origin === "stored" || gap.origin === "carried";
+        expect(ellipses.length).toBe(listed && (stored || gap.x2 - gap.x1 >= 20) ? 1 : 0);
         for (const ellipsis of ellipses) {
           expect(ellipsis.type === "ellipsis" && [ellipsis.x, ellipsis.y]).toEqual([xm, ym]);
         }
-        if (gap.x2 - gap.x1 < 20) expect(ellipses).toEqual([]);
+        if (!stored && gap.x2 - gap.x1 < 20) expect(ellipses).toEqual([]);
         const labels = following.filter((element) => element.type === "label");
         expect(labels.map((label) => label.type === "label" && [label.x, label.baseline])).toEqual(
           labels.map((_, index) => [xm, ym + 4 + index * H9 + A9]),

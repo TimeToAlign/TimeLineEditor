@@ -23,7 +23,7 @@ import type {
   Store,
   TimelineManifest,
 } from "@timetoalign/tilie-core";
-import { findTimeline } from "@timetoalign/tilie-core";
+import { findTimeline, WORKSPACE } from "@timetoalign/tilie-core";
 import { virtualDrawing } from "@timetoalign/tilie-core/drawing";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { Drawing } from "@timetoalign/tilie-layout";
@@ -37,8 +37,8 @@ import {
   blocksOf,
   elisionFormOf,
   fieldCommand,
-  formCommand,
   groupElisionsOf,
+  NOT_DRAWN_FRAME,
   rootElisionsOf,
 } from "../src/inspector/elisions.ts";
 import Inspector from "../src/inspector/Inspector.svelte";
@@ -55,6 +55,30 @@ const INSIDE = "groups/group_elided_inside";
 const STORED = "bundles/bundle_elisions_stored";
 const MEMBERS = "groups/group_elided_members";
 const ARRANGED = "bundles/bundle_arranged_roots";
+
+/**
+ * `store` with one workspace rule stating `mode` as the `elision-mode` of
+ * every ancestor card, stated by one `set` of the workspace's `graphical`:
+ * the values below then hang on no initial value of the cascade.
+ */
+function withMode(store: Store, mode: "auto" | "custom"): Store {
+  const { graphical } = store.view;
+  const rule = { select: { element: "ancestor_card" }, set: { "elision-mode": mode } };
+  const refused = store.dispatch({
+    type: "set",
+    changes: [
+      {
+        target: WORKSPACE,
+        values: { graphical: { ...graphical, rules: [...(graphical.rules ?? []), rule] } },
+      },
+    ],
+  });
+  if (refused !== null) throw new Error(`${refused.code} at ${JSON.stringify(refused.path)}`);
+  return store;
+}
+
+/** The fixture `name` opened under the workspace rule `auto` of its ancestor cards (`withMode`). */
+const opened = (name: string): Store => withMode(storeOf(name), "auto");
 
 function blockOf(store: Store): Block {
   const block = store.view.blocks[B];
@@ -80,7 +104,13 @@ function groupOf(
   edited: string | null,
   ...elements: ElementAddress[]
 ): GroupElisions | null {
-  return groupElisionsOf(blockOf(store), subjectsOf(store, elements), drawn(store), edited);
+  return groupElisionsOf(
+    store.view,
+    blockOf(store),
+    subjectsOf(store, elements),
+    drawn(store),
+    edited,
+  );
 }
 
 function formOf(store: Store, element: ElementAddress): ElisionForm | null {
@@ -120,10 +150,17 @@ const rootStyle = (root: string, set: object) => ({
   blocks: [B],
 });
 const at = (id: string): Address => ({ block: B, id });
+/** The `style` stating `mode` on the root `root`'s rule in `B`, as a command to dispatch. */
+const modeRule = (root: string, mode: "full" | "proportional"): Command => ({
+  type: "style",
+  select: { addresses: [{ id: root, part: ["card"] }] },
+  set: { "elision-mode": mode },
+  blocks: [B],
+});
 
 /** `piece` of `group_elided_inside` made the one member of a new group "Whole". */
 function insideWithPieceGrouped(): Store {
-  const store = storeOf(INSIDE);
+  const store = opened(INSIDE);
   const error = store.dispatch({
     type: "add",
     into: { block: B },
@@ -140,14 +177,10 @@ describe("where the blocks are offered", () => {
     [[{ id: "piece" }]],
     [[{ id: "second", part: ["elision"] }]],
   ])("offers piece's block for %j", (elements) => {
-    const root = rootOf(storeOf(INSIDE), ...elements);
+    const root = rootOf(opened(INSIDE), ...elements);
     expect(root?.title).toBe('Parent timeline "Piece"');
-    expect(root?.options.map((option) => option.mode)).toEqual([
-      "hidden",
-      "full",
-      "proportional",
-      "custom",
-    ]);
+    expect(root?.options.map((option) => option.mode)).toEqual(["full", "proportional", "custom"]);
+    expect(root?.shown?.checked).toBe(true);
   });
 
   it.each<[ElementAddress[]]>([
@@ -156,13 +189,14 @@ describe("where the blocks are offered", () => {
     [[{ id: "group_1" }]],
     [[{ id: "excerpt" }, { id: "recording" }]],
   ])("offers no root's block for %j", (elements) => {
-    expect(rootOf(storeOf(INSIDE), ...elements)).toBe(null);
+    expect(rootOf(opened(INSIDE), ...elements)).toBe(null);
   });
 
   it("offers an ungrouped root's block with Full and Custom", () => {
-    const root = rootOf(storeOf(STORED), { id: "page" });
+    const root = rootOf(opened(STORED), { id: "page" });
     expect(root?.title).toBe('Elisions of "Page"');
     expect(root?.options.map((option) => option.mode)).toEqual(["full", "custom"]);
+    expect(root?.shown).toBe(null);
   });
 
   it.each<[ElementAddress[]]>([
@@ -170,31 +204,31 @@ describe("where the blocks are offered", () => {
     [[{ id: "group_1" }]],
     [[{ id: "elision_3" }]],
   ])("offers group_1's block for %j", (elements) => {
-    const group = groupOf(storeOf(STORED), null, ...elements);
+    const group = groupOf(opened(STORED), null, ...elements);
     expect(group?.title).toBe('Elisions in group "Theme"');
-    expect(group?.options.map((option) => option.mode)).toEqual(["full", "custom"]);
+    expect(group?.drawn.checked).toBe(true);
   });
 
   it("offers group_1's block in its editor with nothing selected", () => {
-    expect(groupOf(storeOf(STORED), "group_1")?.group).toBe("group_1");
-    expect(groupOf(storeOf(STORED), null)).toBe(null);
+    expect(groupOf(opened(STORED), "group_1")?.group).toBe("group_1");
+    expect(groupOf(opened(STORED), null)).toBe(null);
   });
 
   it.each<[ElementAddress[]]>([[[{ id: "score" }]], [[{ id: "page" }]]])(
     "offers no group's block for %j",
     (elements) => {
-      expect(groupOf(storeOf(STORED), null, ...elements)).toBe(null);
+      expect(groupOf(opened(STORED), null, ...elements)).toBe(null);
     },
   );
 
   it("offers no root's block for a group elision on a member root", () => {
-    expect(rootOf(storeOf(STORED), { id: "elision_3" })).toBe(null);
+    expect(rootOf(opened(STORED), { id: "elision_3" })).toBe(null);
   });
 });
 
 describe("what the blocks read", () => {
   it("reads piece's Proportional settings", () => {
-    const store = storeOf(INSIDE);
+    const store = opened(INSIDE);
     const root = rootOf(store, { id: "piece" });
     expect(root?.mode).toBe("proportional");
     expect(root?.proportional).toEqual({
@@ -212,7 +246,7 @@ describe("what the blocks read", () => {
   });
 
   it("reads score's stored card elisions", () => {
-    const root = rootOf(storeOf(STORED), { id: "score" });
+    const root = rootOf(opened(STORED), { id: "score" });
     expect(root?.mode).toBe("custom");
     expect(root?.proportional).toBe(null);
     expect(rowsOf(root?.custom?.rows ?? [])).toEqual([
@@ -232,7 +266,7 @@ describe("what the blocks read", () => {
   });
 
   it("reads session Full and page Custom", () => {
-    const store = storeOf(STORED);
+    const store = opened(STORED);
     expect(rootOf(store, { id: "session" })?.mode).toBe("full");
     const page = rootOf(store, { id: "page" });
     expect(page?.mode).toBe("custom");
@@ -245,9 +279,9 @@ describe("what the blocks read", () => {
   });
 
   it("reads group_1's elisions", () => {
-    const store = storeOf(STORED);
+    const store = opened(STORED);
     const group = groupOf(store, null, { id: "theme" });
-    expect(group?.mode).toBe("custom");
+    expect(group?.drawn.checked).toBe(true);
     expect(group?.count).toBe("1 elision");
     expect(rowsOf(group?.rows ?? [])).toEqual([["—", "Recording", "0″–2″"]]);
     expect(group?.removeAll).toEqual({ type: "remove", targets: [at("elision_3")] });
@@ -264,7 +298,7 @@ describe("what the blocks read", () => {
   });
 
   it("reads a frame's two elisions and adds into its first member", () => {
-    const group = groupOf(storeOf(MEMBERS), null, { id: "group_1" });
+    const group = groupOf(opened(MEMBERS), null, { id: "group_1" });
     expect(group?.count).toBe("2 elisions");
     expect(rowsOf(group?.rows ?? [])).toEqual([
       ["Development", "Excerpt", "2–8 ♩"],
@@ -288,34 +322,35 @@ describe("what the blocks read", () => {
 });
 
 describe("a selected elision's form", () => {
-  it("reads a span width and converts the others through layout", () => {
-    const form = formOf(storeOf(STORED), { id: "elision_5" });
+  it("reads a card elision's stretch and no width", () => {
+    const form = formOf(opened(STORED), { id: "elision_5" });
     expect(form?.title).toBe('Elision on "Score"');
-    expect([form?.start, form?.end, form?.unit, form?.form]).toEqual(["32", "48", "♩", "span"]);
-    expect(form?.widths).toEqual({ ratio: "0.25", span: "4", canvas: "200" });
+    expect([form?.start, form?.end, form?.unit]).toEqual(["32", "48", "♩"]);
     expect(form?.also).toBe(null);
-  });
-
-  it.each([
-    ["elision_4", "ratio", { ratio: "0.5", span: "8", canvas: "400" }],
-    ["elision_6", "canvas", { ratio: "0.075", span: "3/5", canvas: "30" }],
-  ])("reads %s's widths", (id, form, widths) => {
-    const read = formOf(storeOf(STORED), { id });
-    expect(read?.form).toBe(form);
-    expect(read?.widths).toEqual(widths);
+    expect(form === null ? [] : Object.keys(form).sort()).toEqual([
+      "address",
+      "also",
+      "block",
+      "display",
+      "end",
+      "manifest",
+      "start",
+      "stored",
+      "timeline",
+      "title",
+      "unit",
+    ]);
   });
 
   it("reads a group elision with what it also elides", () => {
-    const form = formOf(storeOf(MEMBERS), { id: "elision_1" });
+    const form = formOf(opened(MEMBERS), { id: "elision_1" });
     expect(form?.title).toBe('Elision on "Excerpt"');
-    expect(form?.form).toBe("standard");
-    expect(form?.widths).toEqual({ ratio: "0.21333333333333335", span: "32/25", canvas: "32" });
     expect(form?.also).toEqual([
       { timeline: "Piece", stretch: "18–24 ♩" },
       { timeline: "Voice", stretch: "3–12 ♩" },
       { timeline: "Sketch", stretch: "—" },
     ]);
-    const seconds = formOf(storeOf(STORED), { id: "elision_3" });
+    const seconds = formOf(opened(STORED), { id: "elision_3" });
     expect([seconds?.start, seconds?.end, seconds?.unit]).toEqual(["0.0", "2.0", "s"]);
     expect(seconds?.also).toEqual([
       { timeline: "Theme", stretch: "0–1 3/5 ♩" },
@@ -326,7 +361,7 @@ describe("a selected elision's form", () => {
   });
 
   it("keeps a numerator past 2^53 whole", () => {
-    const form = formOf(storeOf(STORED), { id: "elision_5" });
+    const form = formOf(opened(STORED), { id: "elision_5" });
     if (form === null) throw new Error("no form");
     expect(fieldCommand(form, "start", "9007199254740993/2")).toEqual({
       ok: true,
@@ -338,7 +373,7 @@ describe("a selected elision's form", () => {
   });
 
   it("names a stored elision and no default one", () => {
-    const store = storeOf(STORED);
+    const store = opened(STORED);
     expect(nameOf(store.view, subjectsOf(store, [{ id: "elision_5" }]), null)).toEqual({
       target: at("elision_5"),
       name: "Development",
@@ -346,20 +381,20 @@ describe("a selected elision's form", () => {
       manifest: blockOf(store).manifest,
     });
     expect(nameOf(store.view, subjectsOf(store, [{ id: "elision_4" }]), null)?.name).toBe(null);
-    const inside = storeOf(INSIDE);
+    const inside = opened(INSIDE);
     expect(
       nameOf(inside.view, subjectsOf(inside, [{ id: "second", part: ["elision"] }]), null),
     ).toBe(null);
   });
 
   it("reads a default elision read-only", () => {
-    const form = formOf(storeOf(INSIDE), { id: "second", part: ["elision"] });
+    const form = formOf(opened(INSIDE), { id: "second", part: ["elision"] });
     expect(form?.title).toBe('Elision on "Second"');
     expect([form?.start, form?.end, form?.stored]).toEqual(["1", "31", null]);
   });
 
   it("is absent for anything but one elision", () => {
-    expect(formOf(storeOf(INSIDE), { id: "piece" })).toBe(null);
+    expect(formOf(opened(INSIDE), { id: "piece" })).toBe(null);
   });
 });
 
@@ -501,7 +536,7 @@ describe("the Elisions tab", () => {
   });
 
   it("tells a timeline's block from a group's by their names, both collapsed", () => {
-    show(storeOf(MEMBERS), [{ id: "excerpt" }]);
+    show(opened(MEMBERS), [{ id: "excerpt" }]);
     expect(blocks()).toEqual([
       ["elisions", 'Timeline Parent timeline "Piece" Proportional', "false", true],
       ["group-elisions", 'Group Elisions in group "Theme" Custom, 2 elisions', "false", true],
@@ -509,7 +544,7 @@ describe("the Elisions tab", () => {
   });
 
   it("opens one block on a click, and closes it again", () => {
-    show(storeOf(MEMBERS), [{ id: "excerpt" }]);
+    show(opened(MEMBERS), [{ id: "excerpt" }]);
     click(expander("elisions"));
     expect(blocks().map(([testid, , expanded, hidden]) => [testid, expanded, hidden])).toEqual([
       ["elisions", "true", false],
@@ -550,7 +585,7 @@ describe("the Elisions tab", () => {
   });
 
   it("keeps a block's state for the selected elision apart from its own", () => {
-    const store = storeOf(STORED);
+    const store = opened(STORED);
     const drafts = new PropertyDrafts();
     show(store, [{ id: "elision_5" }], null, null, drafts);
     click(expander("elisions"));
@@ -603,7 +638,7 @@ describe("the Elisions tab", () => {
       "Proportional",
     ],
   ])("keeps the block that held elision_5 open after %s", (_, control, command, summary) => {
-    const store = storeOf(STORED);
+    const store = opened(STORED);
     const drafts = new PropertyDrafts();
     show(store, [{ id: "elision_5" }], null, null, drafts);
     click(control());
@@ -615,7 +650,7 @@ describe("the Elisions tab", () => {
   });
 
   it("leaves a block never acted in collapsed", () => {
-    const store = storeOf(MEMBERS);
+    const store = opened(MEMBERS);
     const drafts = new PropertyDrafts();
     show(store, [{ id: "elision_1" }], null, null, drafts);
     click(button("Remove all", part("group-elisions")));
@@ -632,7 +667,7 @@ describe("the Elisions tab", () => {
   });
 
   it("respects a close after an action", () => {
-    const store = storeOf(STORED);
+    const store = opened(STORED);
     const drafts = new PropertyDrafts();
     show(store, [{ id: "elision_5" }], null, null, drafts);
     click(button("Delete elision", part("elision-form")));
@@ -647,7 +682,7 @@ describe("the Elisions tab", () => {
     [
       "a mode change",
       () => click(radio("elisions", "Full")),
-      [rootStyle("score", { "elision-mode": "full", display: null })],
+      [rootStyle("score", { "elision-mode": "full" })],
       [],
       "Full",
     ],
@@ -675,7 +710,7 @@ describe("the Elisions tab", () => {
   ])(
     "keeps the block that held elision_5 open after %s",
     (_, act, journal, rowsSelected, summary) => {
-      const store = storeOf(STORED);
+      const store = opened(STORED);
       const drafts = new PropertyDrafts();
       show(store, [{ id: "elision_5" }], null, null, drafts);
       act();
@@ -696,11 +731,11 @@ describe("the Elisions tab", () => {
     [
       "a mode change",
       () => click(radio("elisions", "Full")),
-      [rootStyle("score", { "elision-mode": "full", display: null })],
+      [rootStyle("score", { "elision-mode": "full" })],
       "Full",
     ],
   ])("keeps a close made while elision_5 is selected, after %s", (_, act, journal, summary) => {
-    const store = storeOf(STORED);
+    const store = opened(STORED);
     const drafts = new PropertyDrafts();
     show(store, [{ id: "elision_5" }], null, null, drafts);
     act();
@@ -715,10 +750,10 @@ describe("the Elisions tab", () => {
   });
 
   it("keeps a close of the group's block made while elision_3 is selected", () => {
-    const store = storeOf(STORED);
+    const store = opened(STORED);
     const drafts = new PropertyDrafts();
     show(store, [{ id: "elision_3" }], null, null, drafts);
-    click(radio("group-elisions", "Full"));
+    click(input("frame-drawn", part("group-elisions")));
     click(expander("group-elisions"));
     expect(commands(store).slice(base)).toEqual([
       {
@@ -737,7 +772,7 @@ describe("the Elisions tab", () => {
   });
 
   it("keeps an opened block through a change of tab and a closed drawer", () => {
-    const store = storeOf(INSIDE);
+    const store = opened(INSIDE);
     const live = liveStore(store);
     const drafts = new PropertyDrafts();
     const selected = holder<Selection>(selectionOf([{ block: B, id: "piece" }]));
@@ -777,7 +812,7 @@ describe("the Elisions tab", () => {
 
   it("says what to select with nothing to configure", () => {
     for (const elements of [[], [{}]]) {
-      show(storeOf(STORED), elements);
+      show(opened(STORED), elements);
       expect(blocks()).toEqual([]);
       expect(document.body.textContent?.trim()).toBe(
         "Select one timeline, card or group frame to edit its elisions.",
@@ -787,12 +822,12 @@ describe("the Elisions tab", () => {
   });
 
   it("switches to Full and back by undo, one entry each", () => {
-    const store = storeOf(INSIDE);
+    const store = opened(INSIDE);
     show(store, [{ id: "piece" }]);
     expect(checked("elisions")).toEqual(["proportional"]);
     click(radio("elisions", "Full"));
     expect(store.journal.length - base).toBe(1);
-    expect(last(store)).toEqual(rootStyle("piece", { "elision-mode": "full", display: null }));
+    expect(last(store)).toEqual(rootStyle("piece", { "elision-mode": "full" }));
     expect(checked("elisions")).toEqual(["full"]);
     store.undo();
     flushSync();
@@ -800,21 +835,24 @@ describe("the Elisions tab", () => {
   });
 
   it("hides the card and shows it Proportional again, leaving no rule", () => {
-    const store = storeOf(INSIDE);
+    const store = opened(INSIDE);
     show(store, [{ id: "piece" }]);
-    click(radio("elisions", "Hidden"));
+    const shown = () => input("card-shown", part("elisions"));
+    expect(shown()?.checked).toBe(true);
+    click(shown());
     expect(last(store)).toEqual(rootStyle("piece", { display: "none" }));
-    expect(checked("elisions")).toEqual(["hidden"]);
     expect(drawn(store).boxes.filter((box) => box.ancestor !== undefined)).toEqual([]);
-    click(radio("elisions", "Proportional"));
+    expect([shown()?.checked, checked("elisions")]).toEqual([false, []]);
+    expect(blocks()[0]?.[1]).toBe('Timeline Parent timeline "Piece" Hidden');
+    click(shown());
     expect(store.journal.length - base).toBe(2);
-    expect(last(store)).toEqual(rootStyle("piece", { "elision-mode": null, display: null }));
+    expect(last(store)).toEqual(rootStyle("piece", { display: null }));
     expect(checked("elisions")).toEqual(["proportional"]);
     expect(blockOf(store).manifest.graphical?.rules).toEqual([]);
   });
 
   it("stores the drawn defaults in one add and removes them all in one", () => {
-    const store = storeOf(INSIDE);
+    const store = opened(INSIDE);
     const display = layoutDisplay(store);
     show(store, [{ id: "piece" }]);
     click(radio("elisions", "Custom"));
@@ -858,30 +896,44 @@ describe("the Elisions tab", () => {
   });
 
   it("keeps stored elisions in the background through Full and Proportional", () => {
-    const store = storeOf(STORED);
+    const store = opened(STORED);
     show(store, [{ id: "score" }]);
     click(radio("elisions", "Full"));
-    expect(last(store)).toEqual(rootStyle("score", { "elision-mode": "full", display: null }));
+    expect(last(store)).toEqual(rootStyle("score", { "elision-mode": "full" }));
     click(radio("elisions", "Custom"));
-    expect(last(store)).toEqual(rootStyle("score", { "elision-mode": null, display: null }));
+    expect(last(store)).toEqual(rootStyle("score", { "elision-mode": "custom" }));
     expect(checked("elisions")).toEqual(["custom"]);
     click(radio("elisions", "Proportional"));
-    expect(last(store)).toEqual(
-      rootStyle("score", { "elision-mode": "proportional", display: null }),
-    );
+    expect(last(store)).toEqual(rootStyle("score", { "elision-mode": "proportional" }));
     expect(store.journal.length - base).toBe(3);
   });
 
   it("starts Custom from full timelines with nothing stored", () => {
-    const store = storeOf(INSIDE);
+    const store = withMode(storeOf(INSIDE), "custom");
     show(store, [{ id: "piece" }]);
     click(radio("elisions", "Full"));
     click(radio("elisions", "Custom"));
-    expect(last(store)).toEqual(rootStyle("piece", { "elision-mode": "custom", display: null }));
+    expect(last(store)).toEqual(rootStyle("piece", { "elision-mode": "custom" }));
     expect(checked("elisions")).toEqual(["custom"]);
+    expect(part("elisions")?.querySelectorAll(".rows li")).toHaveLength(0);
   });
 
-  it("switches a frame between Full and Custom", () => {
+  it("stores the defaults and states Custom where a rule states Proportional", () => {
+    const store = opened(INSIDE);
+    expect(store.dispatch(modeRule("piece", "proportional"))).toBeNull();
+    show(store, [{ id: "piece" }]);
+    click(radio("elisions", "Custom"));
+    const [add, custom] = commands(store).slice(base);
+    expect([(add as { type?: string } | undefined)?.type, custom]).toEqual([
+      "add",
+      rootStyle("piece", { "elision-mode": "custom" }),
+    ]);
+    expect(store.journal.length - base).toBe(2);
+    expect(checked("elisions")).toEqual(["custom"]);
+    expect(part("elisions")?.querySelectorAll(".rows li")).toHaveLength(3);
+  });
+
+  it("switches whether a frame draws its elisions", () => {
     const store = storeOf(STORED);
     show(store, [{ id: "theme" }]);
     const frame = (set: object) => ({
@@ -890,16 +942,20 @@ describe("the Elisions tab", () => {
       set,
       blocks: [B],
     });
-    click(radio("group-elisions", "Full"));
+    const box = () => input("frame-drawn", part("group-elisions"));
+    expect(box()?.checked).toBe(true);
+    click(box());
     expect(last(store)).toEqual(frame({ "elision-mode": "full" }));
-    expect(checked("group-elisions")).toEqual(["full"]);
-    click(radio("group-elisions", "Custom"));
-    expect(last(store)).toEqual(frame({ "elision-mode": null }));
-    expect(checked("group-elisions")).toEqual(["custom"]);
+    expect(box()?.checked).toBe(false);
+    click(box());
+    // `session`'s rule states a mode too, so the frame's `custom` is stated.
+    expect(last(store)).toEqual(frame({ "elision-mode": "custom" }));
+    expect(box()?.checked).toBe(true);
+    expect(store.journal.length - base).toBe(2);
   });
 
   it("shows the group's block in its editor with nothing selected", () => {
-    show(storeOf(STORED), [], { kind: "group", target: { block: B, id: "group_1" } });
+    show(opened(STORED), [], { kind: "group", target: { block: B, id: "group_1" } });
     expect(part("group-elisions")?.querySelector("h3 .title")?.textContent).toBe(
       'Elisions in group "Theme"',
     );
@@ -918,7 +974,7 @@ describe("the Elisions tab", () => {
   });
 
   it("states the proportion, types it and gives it back to Automatic", () => {
-    const store = storeOf(INSIDE);
+    const store = opened(INSIDE);
     show(store, [{ id: "piece" }]);
     const section = part("elisions");
     const before = gapEdges(drawn(store));
@@ -942,7 +998,7 @@ describe("the Elisions tab", () => {
   });
 
   it("reads the proportion the canvas draws at its pane", () => {
-    const store = storeOf(INSIDE);
+    const store = opened(INSIDE);
     const pane = new Pane();
     pane.measure(1100, 800);
     const block = blockOf(store);
@@ -961,7 +1017,7 @@ describe("the Elisions tab", () => {
   });
 
   it("chooses the rows by depth, never none", () => {
-    const store = storeOf(INSIDE);
+    const store = opened(INSIDE);
     show(store, [{ id: "piece" }]);
     const section = part("elisions");
     click(input("depths-automatic", section));
@@ -975,7 +1031,7 @@ describe("the Elisions tab", () => {
   });
 
   it("toggles what every default elision shows", () => {
-    const store = storeOf(INSIDE);
+    const store = opened(INSIDE);
     show(store, [{ id: "piece" }]);
     const shown = layoutDisplay(store);
     const pressed = () =>
@@ -1006,7 +1062,7 @@ describe("the Elisions tab", () => {
   });
 
   it("selects a row and deletes one stored elision", () => {
-    const store = storeOf(STORED);
+    const store = opened(STORED);
     show(store, [{ id: "score" }]);
     const rows = part("elisions")?.querySelectorAll<HTMLButtonElement>(".rows .row");
     click(rows?.[1]);
@@ -1017,7 +1073,7 @@ describe("the Elisions tab", () => {
   });
 
   it("edits a stored elision exactly, one command each", () => {
-    const store = storeOf(STORED);
+    const store = opened(STORED);
     show(store, [{ id: "elision_5" }]);
     const form = () => part("elision-form");
     enter(input("start", form()), "33.5");
@@ -1034,29 +1090,16 @@ describe("the Elisions tab", () => {
     expect(store.journal.length - base).toBe(1);
   });
 
-  it("converts a width form, toggles a word and deletes, one command each", () => {
-    const store = storeOf(STORED);
+  it("toggles a word and deletes, one command each, and offers no width", () => {
+    const store = opened(STORED);
     show(store, [{ id: "elision_5" }]);
     const form = () => part("elision-form");
-    const widthRadio = (value: string) =>
-      part("elision-form")?.querySelector<HTMLInputElement>(
-        `.width input[type="radio"][value="${value}"]`,
-      ) ?? null;
-    click(widthRadio("canvas"));
-    expect(last(store)).toEqual({
-      type: "set",
-      changes: [{ target: at("elision_5"), values: { width: { canvas: 200 } } }],
-    });
-    click(widthRadio("ratio"));
-    expect(last(store)).toEqual({
-      type: "set",
-      changes: [{ target: at("elision_5"), values: { width: { ratio: 0.25 } } }],
-    });
-    click(widthRadio("standard"));
-    expect(last(store)).toEqual({
-      type: "set",
-      changes: [{ target: at("elision_5"), values: { width: null } }],
-    });
+    expect(form()?.querySelectorAll('input[type="radio"]')).toHaveLength(0);
+    expect(
+      [...(form()?.querySelectorAll<HTMLInputElement>('input[type="text"]') ?? [])].map(
+        (field) => field.name,
+      ),
+    ).toEqual(["start", "end"]);
     click(button("Ellipsis", form()));
     expect(last(store)).toEqual({
       type: "set",
@@ -1064,11 +1107,11 @@ describe("the Elisions tab", () => {
     });
     click(button("Delete elision", form()));
     expect(last(store)).toEqual({ type: "remove", targets: [at("elision_5")] });
-    expect(store.journal.length - base).toBe(5);
+    expect(store.journal.length - base).toBe(2);
   });
 
   it("shows a default elision read-only", () => {
-    show(storeOf(INSIDE), [{ id: "second", part: ["elision"] }]);
+    show(opened(INSIDE), [{ id: "second", part: ["elision"] }]);
     const form = part("elision-form");
     expect(form?.querySelector("h3 .title")?.textContent).toBe('Elision on "Second"');
     expect([input("start", form)?.value, input("end", form)?.value]).toEqual(["1", "31"]);
@@ -1115,7 +1158,7 @@ describe("a root drawn once behind a row side by side", () => {
   }
 
   function dispatched(...commands: Command[]): Store {
-    const store = storeOf(ARRANGED);
+    const store = opened(ARRANGED);
     for (const command of commands) {
       const error = store.dispatch(command);
       if (error !== null) throw new Error(error.message);
@@ -1134,7 +1177,7 @@ describe("a root drawn once behind a row side by side", () => {
     root?.arranged.map((gap) => [gap.between, gap.stretch]);
 
   it("records one card per root, under the first group's key, behind every group", () => {
-    const cards = sideBySide(storeOf(ARRANGED)).boxes.flatMap((box) =>
+    const cards = sideBySide(opened(ARRANGED)).boxes.flatMap((box) =>
       box.ancestor === undefined ? [] : [[box.key, box.ancestor.groups]],
     );
     expect(cards).toEqual([
@@ -1150,13 +1193,13 @@ describe("a root drawn once behind a row side by side", () => {
     [{ id: "take_a" }, "session"],
     [{ id: "take_b" }, "session"],
   ])("reads the once card for %j", (element, root) => {
-    const read = arrangedRoot(storeOf(ARRANGED), element);
+    const read = arrangedRoot(opened(ARRANGED), element);
     expect(read?.root).toBe(root);
     expect(read?.mode).toBe("proportional");
   });
 
   it("lists the arrangement's gap read-only, and no seam", () => {
-    const store = storeOf(ARRANGED);
+    const store = opened(ARRANGED);
     expect(arrangedOf(arrangedRoot(store, { id: "development" }))).toEqual([]);
     expect(arrangedOf(arrangedRoot(store, { id: "take_b" }))).toEqual([
       ['between "Exposition" and "Recapitulation"', "33″–44″"],
@@ -1188,18 +1231,18 @@ describe("a root drawn once behind a row side by side", () => {
   });
 
   it("offers no form for the address the arrangement's gaps share", () => {
-    const store = storeOf(ARRANGED);
+    const store = opened(ARRANGED);
     const subjects = subjectsOf(store, [{ id: "score", part: ["elision"] }]);
     expect(elisionFormOf(blockOf(store), subjects, sideBySide(store))).toBe(null);
   });
 
   it("stores none of them when Proportional turns Custom", () => {
-    const root = arrangedRoot(storeOf(ARRANGED), { id: "development" });
+    const root = arrangedRoot(opened(ARRANGED), { id: "development" });
     expect(root?.options.find((option) => option.mode === "custom")?.commands).toEqual([
       {
         type: "style",
         select: rootRule("score"),
-        set: { "elision-mode": "custom", display: null },
+        set: { "elision-mode": "custom" },
         blocks: [B],
       },
     ]);
@@ -1316,9 +1359,34 @@ describe("elisions on a virtual timeline", () => {
       add: { type: "add", into: at(VIRTUAL), elision: MIDDLE_THIRD },
       removeAll: null,
     });
+    expect(root?.shown).toBe(null);
     expect(root?.options.find((option) => option.mode === "full")?.commands).toEqual([
-      rootStyle(VIRTUAL, { "elision-mode": "full", display: null }),
+      rootStyle(VIRTUAL, { "elision-mode": "full" }),
     ]);
+  });
+
+  it("gives Custom back by removing its own Full", () => {
+    const store = placed();
+    expect(store.dispatch(modeRule(VIRTUAL, "full"))).toBeNull();
+    const root = rootOf(store, card(VIRTUAL));
+    expect(root?.mode).toBe("full");
+    expect(root?.options.find((option) => option.mode === "custom")?.commands).toEqual([
+      rootStyle(VIRTUAL, { "elision-mode": null }),
+    ]);
+  });
+
+  it("adds outside the run gap of the practice card, where the card draws", () => {
+    const store = storeOf("flow/virtual_cards");
+    const error = store.dispatch({
+      type: "set",
+      changes: [{ target: at("allegro_by_hand"), values: { place: { scale: 1 } } }],
+    });
+    if (error !== null) throw new Error(error.message);
+    expect(rootOf(store, card("allegro_by_hand"))?.custom?.add).toEqual({
+      type: "add",
+      into: at("allegro_by_hand"),
+      elision: { start: [6866, 3], end: [8014, 3] },
+    });
   });
 
   it("offers no block for a virtual card that is not placed", () => {
@@ -1350,18 +1418,6 @@ describe("elisions on a virtual timeline", () => {
     ]);
     const blocks = blocksOf(root, groupOf(store, null, { id: stored.id }), form);
     expect([blocks.root?.opened, blocks.group]).toEqual([true, null]);
-    expect([form?.form, form?.widths]).toEqual([
-      "standard",
-      { ratio: "0.24000000000000005", span: "4241/25", canvas: "32" },
-    ]);
-    if (form === null) throw new Error("no form");
-    expect(formCommand(form, "span")).toEqual({
-      ok: true,
-      value: {
-        type: "set",
-        changes: [{ target: at(stored.id), values: { width: { span: [4241, 25] } } }],
-      },
-    });
   });
 
   it("makes one on a virtual member a group elision of its frame", () => {
@@ -1385,6 +1441,7 @@ describe("elisions on a virtual timeline", () => {
         "1 elision",
       ]);
       expect(rowsOf(group?.rows ?? [])).toEqual([["—", "Allegro, default", stretch]]);
+      expect(group?.rows.map((row) => row.note)).toEqual([null]);
       expect(group?.removeAll).toEqual({ type: "remove", targets: [at("gap")] });
       expect(rootOf(store, element)).toBe(null);
     }
@@ -1401,17 +1458,17 @@ describe("elisions on a virtual timeline", () => {
       "1000",
       [{ timeline: "Recording", stretch: stretchText(recording, 702500 / 4241, 1405000 / 4241) }],
     ]);
-    expect([form?.form, form?.widths]).toEqual([
-      "standard",
-      { ratio: "0.33927999999999997", span: "4241/25", canvas: "32" },
+  });
+
+  it("notes a group elision a switched frame does not draw", () => {
+    const store = storeOf("groups/switched_frame");
+    const add = groupOf(store, null, card("allegro"))?.add;
+    if (add == null) throw new Error("no Add");
+    expect(store.dispatch(add)).toBeNull();
+    const group = groupOf(store, null, card("allegro"));
+    expect([group?.drawn.checked, group?.rows.map((row) => row.note)]).toEqual([
+      true,
+      [NOT_DRAWN_FRAME],
     ]);
-    if (form === null) throw new Error("no form");
-    expect(formCommand(form, "canvas")).toEqual({
-      ok: true,
-      value: {
-        type: "set",
-        changes: [{ target: at("gap"), values: { width: { canvas: 32 } } }],
-      },
-    });
   });
 });

@@ -39,7 +39,7 @@ import {
   MARKER_HEIGHT,
   STANDARD_GAP,
 } from "./constants.ts";
-import type { DrawnElement, EllipsisElement, TextElement, View } from "./elements.ts";
+import type { DrawnElement, EllipsisElement, GapOrigin, TextElement, View } from "./elements.ts";
 import { cleanText } from "./metrics.ts";
 import { cutText, nameOf } from "./names.ts";
 import {
@@ -1360,6 +1360,9 @@ export function crossingRows(axis: CardAxis, gap: Gap, rows: readonly CrossingRo
   return rows.filter((row) => axis.crosses(gap, row.start, row.end)).map((row) => row.y);
 }
 
+/** Whether a gap of `origin` is a stored elision's, drawn in its card or carried behind its frame. */
+const storedGap = (origin: GapOrigin): boolean => origin === "stored" || origin === "carried";
+
 /**
  * A label of a gap's stack (section 6.6): drawn centred on the gap's middle
  * just below its ellipsis, its baseline `below` under the ellipsis's
@@ -1371,9 +1374,11 @@ export type StackLabel = Omit<TextElement, "x" | "baseline"> & { readonly below:
  * The elements of one drawing of a gap (sections 6.6, 7.2 and 8.5): its
  * rectangle from `x1` to `x2` and `yt` to `yb` with its continuations on the
  * rows `rows`, where listed; its one ellipsis at the gap's middle `xm` and
- * the middle `ym = (yt + yb) / 2` of its height, where the gap is at least 20
- * wide; then its labels `labels`, centred on `xm` just below `ym`, whether or
- * not the ellipsis is drawn.
+ * the middle `ym = (yt + yb) / 2` of its height: a stored elision's whatever
+ * the gap's width, its own or carried into an ancestor card, so that every
+ * stored elision a card draws is seen where it lies; a derived one's where
+ * the gap is at least 20 wide; then its labels `labels`, centred on `xm` just
+ * below `ym`, whether or not the ellipsis is drawn.
  */
 export function gapElements(
   gap: Gap,
@@ -1388,7 +1393,7 @@ export function gapElements(
   const xm = (x1 + x2) / 2;
   const ym = (yt + yb) / 2;
   const ellipses: EllipsisElement[] =
-    source.ellipsis === null || x2 - x1 < ELLIPSIS_GAP
+    source.ellipsis === null || (!storedGap(source.origin) && x2 - x1 < ELLIPSIS_GAP)
       ? []
       : [
           {
