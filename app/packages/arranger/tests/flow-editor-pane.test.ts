@@ -529,6 +529,17 @@ describe("the flow editor's pane", () => {
     );
     await settle();
     expect(harness().current().viewport).toEqual({ x: -20, y: -20, zoom: 1 });
+    // A Shift wheel reported as vertical travel, under a macOS user agent (a trackpad's, and
+    // WebKit's as Playwright drives it), pans left as well, where Svelte Flow alone pans it up.
+    const agent = vi
+      .spyOn(navigator, "userAgent", "get")
+      .mockReturnValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15");
+    drawing.dispatchEvent(
+      new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: 40, shiftKey: true }),
+    );
+    agent.mockRestore();
+    await settle();
+    expect(harness().current().viewport).toEqual({ x: -40, y: -20, zoom: 1 });
     drawing.dispatchEvent(
       new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: -100, ctrlKey: true }),
     );

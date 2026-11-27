@@ -34,6 +34,7 @@ import {
   select,
   selection,
   settledDrawing,
+  setViewport,
   tab,
   viewportOf,
 } from "./support.ts";
@@ -167,21 +168,25 @@ test("a double-click on a window's region opens the virtual card's editor, its e
   const handles = page.getByTestId("region-handle-end");
   await expect(handles).toHaveCount(3);
   const before = await drawingNow(page, block);
-  // 100 quarters of the window's brace (`motto` is [100, 200]), in screen pixels.
+  // 100 quarters of the window's brace (`motto` is [100, 200]), in canvas units, made a whole number
+  // of screen pixels by the zoom: Firefox and WebKit deliver a pointer at whole pixels only.
   const [, piece] = before.drawing.elements.filter(
     (item) => item.type === "region" && item.address.id === "motto",
   );
   if (piece?.type !== "region") throw new Error("motto draws no window brace");
   const scale = before.view.blocks[block]?.scale ?? 1;
-  const brace = (piece.x2 - piece.x1) * scale * (await viewportOf(page)).zoom;
+  const units = (piece.x2 - piece.x1) * scale;
+  const shownAt = await viewportOf(page);
+  const brace = Math.round(units * shownAt.zoom);
+  await setViewport(page, { ...shownAt, zoom: brace / units });
   const handle = await handles.nth(1).boundingBox();
   if (handle === null) throw new Error("the window's end handle is not shown");
+  const x = Math.round(handle.x + handle.width / 2);
+  const y = Math.round(handle.y + handle.height / 2);
   const entries = await entriesLength(page);
-  await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+  await page.mouse.move(x, y);
   await page.mouse.down();
-  await page.mouse.move(handle.x + handle.width / 2 + brace, handle.y + handle.height / 2, {
-    steps: 10,
-  });
+  await page.mouse.move(x + brace, y, { steps: 10 });
   await page.mouse.up();
   const command = {
     type: "set",
