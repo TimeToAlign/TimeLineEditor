@@ -461,7 +461,7 @@ describe("horizontal, shared roots on one line, a root of one group behind its f
 
   it("cuts each shared root at most 40 beyond its outer frames", () => {
     const outer = drawing.elisions
-      .filter((exposure) => exposure.kind === "ancestor_card" && exposure.drawn === "full")
+      .filter((exposure) => exposure.kind === "ancestor_card" && exposure.drawn === "once")
       .map((exposure) =>
         exposure.gaps
           .filter((gap) => gap.origin === "arrangement")

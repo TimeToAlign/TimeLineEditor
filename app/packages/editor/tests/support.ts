@@ -22,7 +22,7 @@ import {
   readWorkspace,
   WORKSPACE,
 } from "@timetoalign/tilie-core";
-import type { DumpsOptions } from "@timetoalign/timetoshare";
+import type { DumpsOptions, Rule } from "@timetoalign/timetoshare";
 import { dumps, loads, SCHEMA_VERSION, withBareIds, withFileIds } from "@timetoalign/timetoshare";
 import { flushSync } from "svelte";
 import { vi } from "vitest";
@@ -195,20 +195,38 @@ export const FULL_CARDS = {
   set: { display: "none" },
 } as const;
 
-/**
- * `store` with `FULL_CARDS` appended to its workspace's rules by one `set`
- * of its `graphical`: for a test of an ancestor card whose subject is not
- * the elision, so that its values, derived on whole cards, stand.
- */
-export function withFullCards(store: Store): Store {
+/** `store` with `rule` appended to its workspace's rules by one `set` of its `graphical`. */
+function withWorkspaceRule(store: Store, rule: Rule): Store {
   const { graphical } = store.view;
-  const rules = [...(graphical.rules ?? []), FULL_CARDS];
+  const rules = [...(graphical.rules ?? []), rule];
   const refused = store.dispatch({
     type: "set",
     changes: [{ target: WORKSPACE, values: { graphical: { ...graphical, rules } } }],
   });
   if (refused !== null) throw new Error(`${refused.code} at ${JSON.stringify(refused.path)}`);
   return store;
+}
+
+/**
+ * `store` with `FULL_CARDS` appended to its workspace's rules: for a test
+ * of an ancestor card whose subject is not the elision, so that its values,
+ * derived on whole cards, stand.
+ */
+export function withFullCards(store: Store): Store {
+  return withWorkspaceRule(store, FULL_CARDS);
+}
+
+/**
+ * `store` with one workspace rule stating `mode` as the `elision-mode` of
+ * every ancestor card (drawing.md section 8.9, Modes): `auto` for a test of
+ * derived elisions, which the initial `custom` derives none of; the values
+ * then hang on no initial value of the cascade.
+ */
+export function withElisionMode(store: Store, mode: "auto" | "custom"): Store {
+  return withWorkspaceRule(store, {
+    select: { element: "ancestor_card" },
+    set: { "elision-mode": mode },
+  });
 }
 
 /** The installed test hook of the mounted page. */

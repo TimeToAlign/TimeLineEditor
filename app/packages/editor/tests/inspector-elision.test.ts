@@ -23,7 +23,7 @@ import type {
   Store,
   TimelineManifest,
 } from "@timetoalign/tilie-core";
-import { findTimeline, WORKSPACE } from "@timetoalign/tilie-core";
+import { findTimeline } from "@timetoalign/tilie-core";
 import { virtualDrawing } from "@timetoalign/tilie-core/drawing";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { Drawing } from "@timetoalign/tilie-layout";
@@ -48,7 +48,7 @@ import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
 import { paneContext } from "../src/pane.ts";
 import { holder } from "./holder.svelte.ts";
-import { blockId, posting, providing, storeMints, storeOf } from "./support.ts";
+import { blockId, posting, providing, storeMints, storeOf, withElisionMode } from "./support.ts";
 
 const B = blockId(0);
 const INSIDE = "groups/group_elided_inside";
@@ -56,29 +56,8 @@ const STORED = "bundles/bundle_elisions_stored";
 const MEMBERS = "groups/group_elided_members";
 const ARRANGED = "bundles/bundle_arranged_roots";
 
-/**
- * `store` with one workspace rule stating `mode` as the `elision-mode` of
- * every ancestor card, stated by one `set` of the workspace's `graphical`:
- * the values below then hang on no initial value of the cascade.
- */
-function withMode(store: Store, mode: "auto" | "custom"): Store {
-  const { graphical } = store.view;
-  const rule = { select: { element: "ancestor_card" }, set: { "elision-mode": mode } };
-  const refused = store.dispatch({
-    type: "set",
-    changes: [
-      {
-        target: WORKSPACE,
-        values: { graphical: { ...graphical, rules: [...(graphical.rules ?? []), rule] } },
-      },
-    ],
-  });
-  if (refused !== null) throw new Error(`${refused.code} at ${JSON.stringify(refused.path)}`);
-  return store;
-}
-
-/** The fixture `name` opened under the workspace rule `auto` of its ancestor cards (`withMode`). */
-const opened = (name: string): Store => withMode(storeOf(name), "auto");
+/** The fixture `name` opened under the workspace rule `auto` of its ancestor cards (`withElisionMode`). */
+const opened = (name: string): Store => withElisionMode(storeOf(name), "auto");
 
 function blockOf(store: Store): Block {
   const block = store.view.blocks[B];
@@ -580,7 +559,7 @@ describe("the Elisions tab", () => {
       ],
     ],
   ])("opens the blocks of %s's %j without a click", (fixture, element, expected) => {
-    show(storeOf(fixture), [element]);
+    show(opened(fixture), [element]);
     expect(blocks()).toEqual(expected);
   });
 
@@ -909,7 +888,7 @@ describe("the Elisions tab", () => {
   });
 
   it("starts Custom from full timelines with nothing stored", () => {
-    const store = withMode(storeOf(INSIDE), "custom");
+    const store = withElisionMode(storeOf(INSIDE), "custom");
     show(store, [{ id: "piece" }]);
     click(radio("elisions", "Full"));
     click(radio("elisions", "Custom"));
@@ -1192,10 +1171,14 @@ describe("a root drawn once behind a row side by side", () => {
     [{ id: "recapitulation" }, "score"],
     [{ id: "take_a" }, "session"],
     [{ id: "take_b" }, "session"],
-  ])("reads the once card for %j", (element, root) => {
+  ])("reads the once card for %j, drawn once, with no mode", (element, root) => {
     const read = arrangedRoot(opened(ARRANGED), element);
-    expect(read?.root).toBe(root);
-    expect(read?.mode).toBe("proportional");
+    expect([read?.root, read?.mode, read?.options, read?.proportional]).toEqual([
+      root,
+      "once",
+      [],
+      null,
+    ]);
   });
 
   it("lists the arrangement's gap read-only, and no seam", () => {
@@ -1236,16 +1219,9 @@ describe("a root drawn once behind a row side by side", () => {
     expect(elisionFormOf(blockOf(store), subjects, sideBySide(store))).toBe(null);
   });
 
-  it("stores none of them when Proportional turns Custom", () => {
+  it("lists none of them as a card elision, and offers no mode to store them", () => {
     const root = arrangedRoot(opened(ARRANGED), { id: "development" });
-    expect(root?.options.find((option) => option.mode === "custom")?.commands).toEqual([
-      {
-        type: "style",
-        select: rootRule("score"),
-        set: { "elision-mode": "custom" },
-        blocks: [B],
-      },
-    ]);
+    expect([root?.options, root?.custom?.rows, root?.custom?.removeAll]).toEqual([[], [], null]);
   });
 
   it("keeps a stored elision between two anchors, listed as not drawn", () => {
@@ -1256,7 +1232,7 @@ describe("a root drawn once behind a row side by side", () => {
       free?.custom?.rows.map((row) => [row.name, row.timeline, row.stretch, row.note]),
     ).toEqual([["—", "Session", "50″–1′20″", null]]);
     const arranged = arrangedRoot(store, { id: "take_b" });
-    expect(arranged?.mode).toBe("custom");
+    expect(arranged?.mode).toBe("once");
     expect(
       arranged?.custom?.rows.map((row) => [row.name, row.timeline, row.stretch, row.note]),
     ).toEqual([["—", "Session", "50″–1′20″", "not drawn while arranged side by side"]]);
@@ -1265,6 +1241,11 @@ describe("a root drawn once behind a row side by side", () => {
       targets: [at("session_gap")],
     });
     expect(arranged?.custom?.removeAll).toEqual({ type: "remove", targets: [at("session_gap")] });
+    expect(arranged?.custom?.add).toEqual({
+      type: "add",
+      into: at("session"),
+      elision: { start: 63.333333333333336, end: 96.66666666666667 },
+    });
   });
 
   it("shows the gap and the undrawn elision in the tab", () => {
@@ -1288,6 +1269,14 @@ describe("a root drawn once behind a row side by side", () => {
     flushSync();
     try {
       const section = document.querySelector('[data-testid="elisions"]');
+      const heading = section?.querySelector('[data-testid="elisions-expand"]')?.textContent;
+      expect(heading?.replace(/\s+/g, " ").trim()).toBe(
+        'Timeline Parent timeline "Session" Drawn once, 1 elision',
+      );
+      expect(section?.querySelectorAll('input[type="radio"]').length).toBe(0);
+      expect(section?.querySelector(".once")?.textContent).toBe(
+        "Drawn once behind the row: its elisions are not drawn while the bundle is arranged side by side.",
+      );
       const gaps = [...(section?.querySelectorAll('[data-testid="arranged-gaps"] li') ?? [])];
       expect(gaps.map((gap) => gap.textContent)).toEqual([
         'between "Exposition" and "Recapitulation" 33″–44″',
@@ -1302,7 +1291,7 @@ describe("a root drawn once behind a row side by side", () => {
     }
   });
 
-  it("shows the least of the anchors' proportions", () => {
+  it("shows no proportion side by side, though the free cards derive theirs", () => {
     const store = dispatched({
       type: "add",
       into: at("development"),
@@ -1314,13 +1303,12 @@ describe("a root drawn once behind a row side by side", () => {
         : [],
     );
     expect(free).toEqual([
-      ["group_1", 0.5],
       ["group_2", 0.29],
+      ["group_1", 0.5],
       ["group_3", 0.3262963256835937],
     ]);
     const root = arrangedRoot(store, { id: "recapitulation" });
-    expect(root?.proportional?.automatic).toBe(true);
-    expect(root?.proportional?.proportion).toBe("0.29");
+    expect([root?.mode, root?.proportional]).toEqual(["once", null]);
   });
 });
 

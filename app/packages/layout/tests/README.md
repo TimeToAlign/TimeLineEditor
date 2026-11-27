@@ -2397,7 +2397,10 @@ specification orders the operations.
      its root in every frame hanging on one, at 82.01171875; every item,
      hanging on a shared root or not, at the first item's default top
      28.8046875;
-   - each shared root ends at most 40 beyond its outer frames: `track_1`
+   - each shared root ends at most 40 beyond its outer frames, read from
+     the exposures of the once cards, each of which says `drawn: once` (a
+     once card reads no elision property but `elision-display`, section
+     8.8), never a mode: `track_1`
      runs on 50–100 past "A 3", `XO(51) − xr = 40 > 8`, so the end gap
      starts at 50 at A 3's right edge, 32 wide; `track_2` starts 30
      before "D 1" (`XO(29) = xl − 40`), so a start gap 0–30 ends at D 1's

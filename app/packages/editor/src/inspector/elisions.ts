@@ -17,9 +17,12 @@
  * it shows; its gap's width is set on the canvas, by its handles. A root
  * drawn once behind a row of groups side by side (section 8.8, Drawn
  * once) is read through the one ancestor card the drawing
- * records for it, whose `ancestor.groups` lists every group it lies behind;
- * the gaps the arrangement cuts between two of them are listed read-only,
- * never edited (a seam leaves out nothing and is no gap, so none is listed).
+ * records for it, whose `ancestor.groups` lists every group it lies behind.
+ * That card reads no elision property but `elision-display`, so it offers
+ * no mode: the gaps the arrangement cuts between two of its groups are
+ * listed read-only, never edited (a seam leaves out nothing and is no gap,
+ * so none is listed), and every stored card elision of the root is listed
+ * as kept and not drawn while the row is side by side.
  * The tab shows each of the three as a block of its kind (a timeline's, a
  * group's, an elision's), collapsed to one line that says its essentials
  * (`blocksOf`), open without a click where it holds the selected elision,
@@ -99,12 +102,24 @@ import { toggledDisplay } from "./stamps/commands.ts";
 /** Which elisions a root's cards draw (drawing.md section 8.9, Modes), `auto` read as what it resolves to. */
 export type RootMode = "full" | "proportional" | "custom";
 
-/** The label of each mode. */
-export const MODE_WORDS: { readonly [mode in RootMode]: string } = {
+/**
+ * What a root's block reads its card to draw: a mode, or `once` for a root
+ * drawn once behind a row of groups side by side, whose card reads no mode
+ * (drawing.md section 8.8, Drawn once).
+ */
+export type RootDrawn = RootMode | "once";
+
+/** The label of each mode, and of a card drawn once, as a block's summary names them. */
+export const MODE_WORDS: { readonly [mode in RootDrawn]: string } = {
   full: "Full",
   proportional: "Proportional",
   custom: "Custom",
+  once: "Drawn once",
 };
+
+/** The line a root's block shows for a card drawn once behind a row, in place of the modes. */
+export const ONCE_LINE =
+  "Drawn once behind the row: its elisions are not drawn while the bundle is arranged side by side.";
 
 /** What a timeline's block summarises where its ancestor cards are hidden. */
 export const HIDDEN_WORD = "Hidden";
@@ -132,7 +147,7 @@ export const DEFAULT_WORDS: readonly { readonly word: ElisionWord; readonly labe
 /** The hint of a default elision's form. */
 export const DEFAULT_HINT = "Choose Custom to edit";
 
-/** The note of a stored elision lying between two groups of a row, which the root's card does not draw (section 8.8). */
+/** The note of a stored card elision of a root drawn once behind a row, which its card does not draw (section 8.8). */
 export const NOT_DRAWN_ARRANGED = "not drawn while arranged side by side";
 
 /**
@@ -203,11 +218,14 @@ export interface RootElisions {
   /** The address of the root's rule, which the drafts of its Proportion belong to. */
   readonly address: Address;
   readonly manifest: Manifest;
-  /** The mode its cards draw by; `null` where its ancestor cards are hidden, which read none. */
-  readonly mode: RootMode | null;
+  /**
+   * The mode its cards draw by, `once` for a card drawn once behind a row; `null` where its
+   * ancestor cards are hidden, which read none.
+   */
+  readonly mode: RootDrawn | null;
   /** Whether its ancestor cards are drawn (their `display`); `null` for an ungrouped card. */
   readonly shown: Toggle | null;
-  /** Full, Proportional, Custom for an ancestor card; Full and Custom for an ungrouped root; none while hidden. */
+  /** Full, Proportional, Custom for an ancestor card; Full and Custom for an ungrouped root; none while hidden or drawn once. */
   readonly options: readonly ModeOption<RootMode>[];
   /** The gaps between the groups of a row it is drawn behind once, left to right; none elsewhere. */
   readonly arranged: readonly ArrangedGap[];
@@ -225,9 +243,9 @@ export interface RootElisions {
     readonly display: readonly ElisionWord[];
   } | null;
   /**
-   * What Custom shows: the stored card elisions the card draws, then, drawn
-   * once behind a row, those lying between its first and last group, which
-   * it keeps undrawn (`note`); `null` in any other mode.
+   * What Custom shows, the stored card elisions the card draws; for a card
+   * drawn once behind a row, every stored card elision of the root, each
+   * kept and not drawn (`note`); `null` in any other mode.
    */
   readonly custom: {
     readonly rows: readonly ElisionRow[];
@@ -482,9 +500,11 @@ interface RootOf {
    */
   readonly key: PlaceKey;
   /**
-   * The stretch of `R`'s axis its anchors cover: the member the ancestor card
-   * is aligned to, from its start to its end; behind a row, from the first
-   * group's anchor's start to the last one's end; `null` for an ungrouped card.
+   * The stretch of `R`'s axis its anchor covers: the member the ancestor card
+   * is aligned to, from its start to its end; for a card drawn once behind a
+   * row, the ancestor card behind the row's first group (section 8.8), that
+   * group's anchor, where an elision added is drawn once the row is no longer
+   * side by side; `null` for an ungrouped card.
    */
   readonly protected: { readonly from: Real; readonly to: Real } | null;
   /** The groups the card lies behind, left to right (`ancestor.groups`); none for an ungrouped card. */
@@ -524,25 +544,14 @@ function rootOf(block: Block, subjects: readonly Subject[], drawing: Drawing): R
   if (card !== undefined) {
     const drawn = drawnCardOf(drawing, id, card.group.id);
     const groups = drawn?.ancestor?.groups ?? [card.group.id];
-    let from: Rational | null = null;
-    let to: Rational | null = null;
-    for (const each of cards.filter((other) => groups.includes(other.group.id))) {
-      let start = Rational.of(0n);
-      for (const { timeline, offset } of each.member.ancestors) {
-        start = toRational(realOf(axisCoordinate(offset, timeline))).add(start);
-      }
-      const end = toRational(extentOf(each.member.timeline, manifest)).add(start);
-      if (from === null || start.compare(from) < 0) from = start;
-      if (to === null || end.compare(to) > 0) to = end;
+    const key = drawn?.key ?? { item: card.group.id, member: id };
+    const behind = cards.find((other) => other.group.id === key.item) ?? card;
+    let from = Rational.of(0n);
+    for (const { timeline, offset } of behind.member.ancestors) {
+      from = toRational(realOf(axisCoordinate(offset, timeline))).add(from);
     }
-    return {
-      root,
-      ancestor: true,
-      key: drawn?.key ?? { item: card.group.id, member: id },
-      protected: from === null || to === null ? null : { from, to },
-      groups,
-      subject: only,
-    };
+    const to = toRational(extentOf(behind.member.timeline, manifest)).add(from);
+    return { root, ancestor: true, key, protected: { from, to }, groups, subject: only };
   }
   const placeable =
     virtualDrawing(manifest, id) !== undefined && holdingOf(manifest, id).length === 0;
@@ -628,8 +637,8 @@ function removalOf(block: string, elisions: readonly Elision[]): RemoveCommand |
   };
 }
 
-/** The mode a root's exposure shows; `null` where its card is not drawn. */
-function rootModeOf(exposure: ElisionExposure | undefined, ancestor: boolean): RootMode | null {
+/** The mode a root's exposure shows, `once` for a card drawn once; `null` where its card is not drawn. */
+function rootModeOf(exposure: ElisionExposure | undefined, ancestor: boolean): RootDrawn | null {
   if (exposure === undefined) return null;
   if (!ancestor && exposure.drawn === "proportional") return "custom";
   return exposure.drawn;
@@ -673,10 +682,10 @@ function rootOptions(
   block: Block,
   drawing: Drawing,
   of: RootOf,
-  mode: RootMode | null,
+  mode: RootDrawn | null,
   exposure: ElisionExposure | undefined,
 ): ModeOption<RootMode>[] {
-  if (mode === null) return [];
+  if (mode === null || mode === "once") return [];
   const root = of.root.id;
   const select = rootSelector(root);
   const style = (set: StyleCommand["set"]) => styleCommand(block.id, select, set);
@@ -893,32 +902,6 @@ function arrangedGaps(
 }
 
 /**
- * The stored card elisions of a root drawn once behind a row that its card
- * does not draw and that lie, on its axis, between its first group's anchor
- * and its last one's (section 8.8, Drawn once: the stretch between two anchors
- * is the arrangement's whatever the mode); none for a card behind
- * one group.
- */
-function undrawnBetween(manifest: Manifest, of: RootOf, exposure: ElisionExposure): Elision[] {
-  const span = of.protected;
-  if (of.groups.length < 2 || span === null) return [];
-  const from = toRational(span.from);
-  const to = toRational(span.to);
-  const drawn = new Set(
-    exposure.gaps.filter((gap) => gap.origin === "stored").map((gap) => gap.address.id),
-  );
-  return elisionsUnder(manifest, of.root.id).filter((elision) => {
-    const timeline = findTimeline(manifest, elision.timeline);
-    if (drawn.has(elision.id) || timeline === undefined) return false;
-    const offset = offsetOnRoot(manifest, timeline.id);
-    const [start, end] = storedStretch(elision, timeline);
-    return (
-      toRational(start).add(offset).compare(to) < 0 && toRational(end).add(offset).compare(from) > 0
-    );
-  });
-}
-
-/**
  * The root's block of the inspected subjects, all in `block` and drawn as
  * `drawing`: offered where every subject is a timeline, a card, a part of
  * either or an elision, all under one root `R` that has an ancestor card or
@@ -952,20 +935,25 @@ export function rootElisionsOf(
           display: exposure.display,
         }
       : null;
+  const rows =
+    exposure === undefined
+      ? null
+      : mode === "custom"
+        ? exposedRows(
+            block,
+            exposure.gaps.filter((gap) => gap.origin === "stored"),
+          )
+        : mode === "once"
+          ? storedRows(block, elisionsUnder(manifest, root), NOT_DRAWN_ARRANGED)
+          : null;
   const custom =
-    mode === "custom" && exposure !== undefined
-      ? {
-          rows: [
-            ...exposedRows(
-              block,
-              exposure.gaps.filter((gap) => gap.origin === "stored"),
-            ),
-            ...storedRows(block, undrawnBetween(manifest, of, exposure), NOT_DRAWN_ARRANGED),
-          ],
+    rows === null
+      ? null
+      : {
+          rows,
           add: addOnRoot(block, of, drawing),
           removeAll: defaultsRemoval(view, block.id, root),
-        }
-      : null;
+        };
   const name = nameOf(of.root);
   return {
     block: block.id,
