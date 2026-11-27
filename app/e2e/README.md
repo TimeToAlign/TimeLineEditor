@@ -188,11 +188,14 @@ frame and are much wider than their frames. The positions above are chosen
 from the blocks as layout records them (the arranger's `drawingOf` at
 layout's default view, the nodes by `nodePosition`, width × height, node
 from (left, top) to (right, bottom)) so that no two nodes overlap (the
-narrowest gap is the 16.87890625 between `bmixed0000`, whose `annotations`
-lies below `recording`'s ancestor card, and `bungroup00`). A wider pane
-widens the elided ancestor cards of `gchild0000` and `bshared000` to the
-left only; at the 1304.609375 px pane of a page 1920 wide with the drawer
-open, and at 1920, every gap is the same. The ancestor lines of a
+narrowest gap is the `480 − 451.14453125 = 28.85546875` between
+`bmixed0000`, whose `annotations` lies below `recording`'s ancestor card,
+and `bungroup00`). No ancestor card of these blocks derives an elision or
+holds a stored one, so the initial `elision-mode` `custom` draws every one
+whole (drawing.md section 8.9) and no drawing reads the pane: at the
+1304.609375 px pane of a page 1920 wide with the drawer open, at the
+1087 px pane of a page 1600 wide with it open, and at 1920, every row of
+the table is the same. The ancestor lines of a
 child member lie below it by default, so no ancestor card reaches above
 its frame and every origin's ordinate is 0, and the
 member cards grow by 3.40234375 (an ancestor band below a markers band
@@ -200,12 +203,12 @@ starts beyond it); the positions above keep every node apart:
 
 | Block | Drawing | Origin | Node |
 |---|---|---|---|
-| `gchild0000` | 1001.609814453125 × 173.5625 | (447.99018554687495, 0) | (−447.99018554687495, 0) to (553.61962890625, 173.5625) |
-| `ggrand0000` | 1052.96923828125 × 207.5390625 | (245.69419642857133, 0) | (−245.69419642857133, 288) to (807.2750418526787, 495.5390625) |
-| `gmixed0000` | 1262.9775390625 × 324.515625 | (273.0302734375, 0) | (366.9697265625, 544) to (1629.947265625, 868.515625) |
+| `gchild0000` | 1034.2392578125 × 173.5625 | (480.61962890625, 0) | (−480.61962890625, 0) to (553.61962890625, 173.5625) |
+| `ggrand0000` | 3452.96923828125 × 187.5625 | (1274.265625, 0) | (−1274.265625, 288) to (2178.70361328125, 475.5625) |
+| `gmixed0000` | 1887.838560814951 × 324.515625 | (528.5579618566177, 0) | (111.44203814338232, 544) to (1999.2805989583335, 868.515625) |
 | `gstyled000` | 546.1240234375 × 257.6796875 | (0, 0) | (640, 0) to (1186.1240234375, 257.6796875) |
-| `bmixed0000` | 1067.755615234375 × 463.12109375 | (121.70361328125, 0) | (−121.70361328125, 0) to (946.052001953125, 463.12109375) |
-| `bshared000` | 1435.7741210937497 × 519.4765625 | (433.10493164062495, 0) | (206.89506835937505, 952) to (1642.6691894531248, 1471.4765625) |
+| `bmixed0000` | 2267.755615234375 × 451.14453125 | (271.70361328125, 0) | (−271.70361328125, 0) to (1996.052001953125, 451.14453125) |
+| `bshared000` | 2095.416097005208 × 519.4765625 | (826.0802408854167, 0) | (−186.08024088541674, 952) to (1909.3358561197913, 1471.4765625) |
 | `bungroup00` | 527.3271484375 × 249.65625 | (0, 0) | (0, 480) to (527.3271484375, 729.65625) |
 | `btwogroups` | 541.83056640625 × 323.9296875 | (0, 0) | (640, 560) to (1181.83056640625, 883.9296875) |
 
@@ -416,7 +419,8 @@ half its delta, Shift+wheel sideways and Ctrl+wheel zooms about the
 pointer; the marquee selects exactly the blocks wholly inside, keeps its
 start while it pans in the edge zone, and its toggle makes plain drags and
 clicks additive; a click selects an element, a card (marked by a selection
-overlay on the card's own rectangle, never its shadow, and no hover overlay
+overlay on the card's own rectangle, never its shadow, drawn by its stroke
+alone, `rgb(10, 132, 255)` 2 px wide and no filter, and no hover overlay
 of its own while it is selected: the pointer resting on `melody`'s card at
 `cardPoint`, the first clear point of its raster, marks only the band under
 it, `melody`'s children band, since a band is marked on hover in every view)
@@ -1315,18 +1319,14 @@ lines not already listed (`gchild0000`: `piece`'s card, `piece`,
 `recording`'s card and line; `gmixed0000`: the ancestor cards of `sonata`,
 `session` and `page` in the order of their members; `bshared000`:
 `score`'s card with `score`, `exposition`, `recapitulation` and its two
-segment lines, `recapitulation_second` before `recapitulation_first`),
-and the titles their texts. A line elided whole by an ancestor card's
-derived gap is not drawn in that card (drawing.md section 8.9): the card
-of `score` behind `group_1` is drawn at the proportion `r = λ / E =
-12 / 20 = 0.6` (`exposition`'s 12 quarters over the 20 of `score` it
-leaves out, the least bound at the page's pane, 1600 × 968), so its one
-piece, `score` from 12 to 32, natural width `n = 20 × 400 / 12`, is drawn
-`W = 0.6 n = 400` wide, `h = (400 − 32) / 2 = 184`, `h / k = 5.52`, and
-elides `⌊12 + 5.52⌋ = 17` to `⌈32 − 5.52⌉ = 27`: `recapitulation_first`
-(20 to 26) lies in that gap whole, `recapitulation_second` (26 to 32)
-does not, so the latter is drawn first, the former only in the card
-behind `group_2`. An element drawn twice is marked selected in all its
+segment lines, `recapitulation_first` before `recapitulation_second`),
+the frames in the order of their names (drawing.md section 8.1:
+`bmixed0000`'s `group_2` "Facsimile" before `group_1` "Performance",
+`btwogroups`' `g2` "Page" before `g1` "Performance", so `t`, a member of
+both, is listed in `g2`), and the titles their texts. No ancestor card of
+these fixtures derives an elision or holds a stored one, so under the
+initial `elision-mode` `custom` each is drawn whole (drawing.md section
+8.9), its root's whole subtree in the manifest's order. An element drawn twice is marked selected in all its
 drawings: `ggrand0000`'s `timestamp_3`, `theme`'s `origin`, a
 groupstamp displaying wedge, coordinate and line, is drawn on `theme`'s
 line in its member card and again in `score`'s ancestor card behind the
@@ -1338,18 +1338,20 @@ coordinate label and its line in two pieces around them (the cut of
 section 6.6), the ancestor card's first, then the groupstamp's frame line
 across `recording`'s card, nine in all. `score`'s line in `bshared000`
 (at the viewport showing that block, `(40, 40 − 952)`, where `(40, 40)`
-showed it before it moved below the others) is drawn as 16 parts: four
+showed it before it moved below the others) is drawn as 14 parts: four
 as the ancestor line in each frame's member card (the line, the circle
 at `score`'s start in `exposition`'s card or the arrowhead at its end in
 `recapitulation`'s, and two chevrons where it runs on beyond the member,
-section 8.3), and four in each of `score`'s two ancestor cards (the line
-in two pieces around the card's derived gap, the circle at its start, the
-arrowhead at its end); six part centres lie inside each frame, the four
-of its member card and, of the ancestor card behind it, the piece and
-the mark that lie behind the frame (behind `group_1` the piece from 0 to
-17 and the start circle, behind `group_2` the piece from 17 to 32 and the
-arrowhead), the other piece and mark lying beyond the frame's borders; a
-click on it selects `{block, id: "score"}` and marks all 16. Delete removes a timeline with its subtree from its group (one `remove`
+section 8.3), and three in each of `score`'s two ancestor cards, drawn
+whole (the line, the circle at its start, the arrowhead at its end); five
+part centres lie inside each frame, the four of its member card and, of
+the ancestor card behind it, the mark that lies behind the frame (behind
+`group_1` the start circle at drawing x 961.4703776041667, behind
+`group_2` the arrowhead ending at 1370.4703776041667, the frames spanning
+834.0802408854167 to 1401.4703776041667), each ancestor line's centre
+(1514.8037109375 and 764.4419759114584) and the other mark lying beyond
+the frame's borders; a click on it selects `{block, id: "score"}` and
+marks all 14. Delete removes a timeline with its subtree from its group (one `remove`
 of `{block, id: T}`) and a region added into `second-half` (`region_1`,
 removed as `{block, id: "region_1"}`), and refuses a selection holding the
 manifest's title whole. Hover marks exactly one box
@@ -1360,15 +1362,16 @@ empty pane at canvas (584, 600), between `bungroup00` and `btwogroups`;
 `gchild0000` at scale 1.5 draws its
 `<svg>` 1.5 times its drawing's width, the drawing at that scale and at
 the canvas's pane (the arranger's size, 1600 × 968 with the drawer
-closed, which the case asserts first): `piece`'s ancestor card is elided
-at the automatic proportion, which reads the scale and the pane (section
-8.9), so the width depends on both (1001.609814453125 at layout's default
-view and scale 1, the fixture table above); at that pane and scale it is
-1551.35888671875, layout's record, pinned, and the editor's drawing code
-run outside the page gives it beside; a press on a frame selects the group;
+closed, which the case asserts first): `piece`'s ancestor card derives
+no elision and holds no stored one, so it is drawn whole (section 8.9)
+and the drawing reads neither the scale nor the pane: 1034.2392578125
+wide, the fixture table above, so the `<svg>` is `1.5 × 1034.2392578125
+= 1551.35888671875` wide, and the editor's drawing code run outside the
+page gives it beside; a press on a frame selects the group;
 a click on a member's line marks its card and frame as holding the
 selection and the block dotted (the block's mark `data-marks="{}"`,
-`data-box="block"`), each in its stated colour. A stretch keeps
+`data-box="block"`), each in its stated colour: the block 1 px dotted,
+the frame and the card 2 px dashed, each width and dash halved at zoom 2. A stretch keeps
 the margin a box resize added in proportion: `bungroup00` is drawn
 527.3271484375 wide (layout's record: it holds no frame, so each of its
 ungrouped cards lies at `x = P = 8`; its widest end label is
@@ -1869,8 +1872,10 @@ to `x0 + 94.40995415848069` (the gap entry `[1906, 1910]`, 0.5239… wide
 at full scale, widened to the least gap width 32), the line ending at `x0
 + 244.2462344466274`; the chunks' labels `A × 4`, `4 ♩` and `C` at `x0 +
 31.204977079240344`, `x0 + 78.40995415848069` and `x0 +
-169.328094302554`, each with its baseline above the line's ordinate (a
-segment label, no brace below the line); the boundaries of chunks 4 and
+169.328094302554`, each a segment label (no brace below the line) in
+tier 1, its baseline at `y − (m + 2) − d(9) = y − (8 + 2) −
+2.12255859375 = y − 12.12255859375`, `y` the line's ordinate and `m = k
+= 8` (the line draws boundaries and no stack above); the boundaries of chunks 4 and
 5 at the gap's two ends. With the region `motto` "Motto" over `[100,
 200]` added to `allegro` (inside A) and `allegro_default` placed, the
 page draws `motto` and its label once (on `allegro`'s card: the virtual
@@ -1928,22 +1933,23 @@ folds the session into one journal entry, undone as one step, Cancel asks
 only when there are changes, and Escape aborts a gesture, then clears the
 selection, then acts as Done; moves in the bundle editor state every item's
 place; a card moved left of everything drawn grows the box left: in the
-bundle editor at viewport (340, 40), `annotations`' card dragged by
-(−200, 16) is stored at `{x: −192, y: <its y> + 16}`, beyond the left edge
+bundle editor at viewport (440, 40), `annotations`' card dragged by
+(−300, 16) is stored at `{x: −292, y: <its y> + 16}`, beyond the left edge
 of `recording`'s ancestor card, which lies `shift − P` left of the place
-origin (`shift` the drawing's origin abscissa: `recording`'s card is
-elided at the automatic proportion, which reads the pane, so `shift` is
-the origin of the block's drawing at the canvas's pane, the arranger's
-size with the drawer open, 1087 × 968 at the page's 1600 × 1000, which
-each case using it asserts first; there it is 117.44561314174106,
-layout's record at that pane, pinned, and the editor's drawing code run
-outside the page gives it beside; at layout's default view it is
-121.70361328125, derived in the arranger's tests README, "`bundle_mixed`'s
-`score`", which the case first checks), so the node moves left by `192 − (shift − 8)`, from `−shift` to
-`−200` (the moved card's edge −192 and the padding 8; the node's computed
-transform compared as below, `arrangement.spec.ts`), and the frame, drawn
-at `8 + shift`, lies as much further right in it; two items move together
-(the frame's and the card's `rect` at `48 + shift` while the drag holds);
+origin (`shift` the drawing's origin abscissa: `recording`'s card derives
+no elision and holds no stored one, so the initial `elision-mode` `custom`
+draws it whole, drawing.md section 8.9, and `shift` reads nothing of the
+pane; it is 271.70361328125, derived in the arranger's tests README,
+"`bundle_mixed`'s `score`", With `recording`'s ancestor card, which the
+case first checks at layout's default view, and each case using it asserts
+the canvas's pane, the arranger's size with the drawer open, 1087 × 968 at
+the page's 1600 × 1000, and the editor's drawing code run outside the page
+giving the same value there), so the node moves left by
+`292 − (shift − 8) = 28.29638671875`, from `−shift` to `−300` (the moved
+card's edge −292 and the padding 8; the node's computed transform compared
+as below, `arrangement.spec.ts`), and the frame, drawn at `8 + shift`,
+lies as much further right in it; two items move together (the frame's and
+the card's `rect` at `48 + shift` while the drag holds);
 the items' drawn places at the pane equal those at layout's default view;
 a change outside the edited element is refused (a `set` of
 `group_2`'s place in `group_1`'s editor: `side_effect` at the path
@@ -2376,18 +2382,39 @@ FlowMap `by_hand` "Practice: the opening four times, a breath, then the
 coda", each wider than a name's `max-width` 160. **The cards**: the names
 of `allegro` and of the virtual card `allegro_default` ("Allegro, default ·
 unfolded from" and the long name, cut as one text) end in `…`, and each
-ends left of its card's line (the line's first part, its left edge); no
-name flag is shown. With the pointer 20 px into `allegro_default`'s name,
+ends left of its card's line, by the numbers of the drawing the canvas
+draws (`drawingOf` on the workspace the hook writes) and the writer's
+attributes on the page: `allegro`'s cut name "Allegro con brio, the first
+…" drawn from 24 (inside its frame), 151.20703125 wide at size 11, its
+line from 189.65771484375; `allegro_default`'s "Allegro, default ·
+unfolded …" from 16, 157.65771484375 wide, its line from
+181.65771484375 (`s0 = n + N + G'`, `N` = 157.65771484375 the column's
+widest cut name, so the name ends `G'` = 8 before its line); no name
+flag is shown. With the pointer 20 px into `allegro_default`'s name,
 exactly one flag shows, its text the whole name `Allegro, default · unfolded
 from Allegro con brio, …` and its box filled opaque white (the canvas's
-token `--tilie-flag-background`); the box holds the whole text and reaches
-right past the line's start, so it covers what lies behind; the topmost
+token `--tilie-flag-background`); the box holds the whole text (486.041015625
+wide at size 11), padded `11 / 4 = 2.75` on every side, its text from the
+name's 16: the box's attributes `x` 13.25, `y` `232.28466796875 −
+10.21044921875 − 2.75 = 219.32421875` (the name's baseline less `a(11)`
+and the padding), `width` 491.541015625 and `height` `12.8046875 + 5.5 =
+18.3046875`, so it reaches right to 504.791015625, past the line's start
+181.65771484375, and covers what lies behind; the topmost
 element at the pointer is still the drawn name (the flag lets the pointer
 through). With the pointer off the block the flag is gone. **The flow
 editor's rows**: the editor of `allegro` opened as in `rows.spec.ts` (zoom
 1, the block's place at canvas pixel (300, 40)), each of the four rows'
-names ends left of its row's first entry, whose left edge is its line's
-start; `by_hand`'s name reads `Practice: the opening four times, …` (cut
+names ends left of its row's first entry, by the pane's numbers
+(`flowPaneOf` run outside the page on the same drawing): the names from
+8 in pane coordinates (`allegro`'s name 24 less its card's 16), cut at
+size 9 and 31.6669921875 (`default`), 32.396484375 (`printed`),
+26.64404296875 (`single`) and 159.55224609375 (`by_hand`, the widest)
+wide, so every line starts at `8 + 159.55224609375 + G' =
+175.55224609375` (right of the card's own line start 173.65771484375),
+each row's first entry there; on the page, the block at scale 1, each
+name's inline `left` is `8px` and each first entry's `175.55224609375px`
+as the browser writes that length back (Chromium `175.552px`, read from a
+probe element given exactly that value); `by_hand`'s name reads `Practice: the opening four times, …` (cut
 at the pane's font size 9, arranger README "The rows' names") and carries
 its whole name in `data-whole`, `default`'s none; its `::after` content is
 `none` until the pointer is on the name, then the whole name on an opaque

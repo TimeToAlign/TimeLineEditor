@@ -74,7 +74,11 @@ test("the practice card labels its chunks above its line and draws its gap 32 wi
   expect(
     await grey.evaluate((drawn) => [drawn.getAttribute("x1"), drawn.getAttribute("x2")]),
   ).toEqual(gap.map(formatNumber));
-  // The chunks' labels, segment labels above the line, centred on their drawn spans.
+  // The chunks' labels, segment labels above the line, centred on their drawn spans, in tier 1:
+  // the baseline `y − (m + 2) − d(9)`, `m = k = 8` (the line draws boundaries, no stack above),
+  // `d(9) = 2.12255859375`.
+  const baseline = line.y - (8 + 2) - 2.12255859375;
+  expect(line.y - baseline).toBe(12.12255859375);
   const labels = [
     [0, "A × 4", x0 + 31.204977079240344],
     [4, "4 ♩", x0 + 78.40995415848069],
@@ -83,11 +87,10 @@ test("the practice card labels its chunks above its line and draws its gap 32 wi
   for (const [k, text, x] of labels) {
     const label = element(page, block, { id: PRACTICE, part: [k, "label"] });
     await expect(label).toHaveText(text);
-    const [lx, baseline] = await label.evaluate((drawn) =>
+    const [lx, ly] = await label.evaluate((drawn) =>
       ["x", "y"].map((name) => Number(drawn.getAttribute(name))),
     );
-    expect(lx).toBe(Number(formatNumber(x)));
-    expect(baseline).toBeLessThan(line.y);
+    expect([lx, ly]).toEqual([x, baseline].map((value) => Number(formatNumber(value))));
   }
   // The boundaries of the gap's chunk and of C at the gap's two ends.
   for (const [k, x] of [

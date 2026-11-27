@@ -56,6 +56,9 @@ const op106 = (): Manifest =>
     targets: [target("timestamp_1"), target("timestamp_2")],
   });
 
+/** The root of `data/op106.manifest.json`, "Op. 106". */
+const OP106_ROOT = "clt_0is8auvrgrzyd";
+
 const REGIONS_WITHIN_PIECE = showing({ facet: "regions", within: "piece" });
 
 describe("empty bands", () => {
@@ -78,15 +81,14 @@ describe("empty bands", () => {
     );
     if (isLoadError(manifest)) throw new Error("the Op. 106 manifest is refused");
     const root = (drawing: Drawing) =>
-      bands(drawing).filter(([timeline, facet]) => timeline === "clt_1" && facet !== "children");
-    const without = root(drawn(manifest));
-    const [flow] = without;
-    if (flow === undefined) throw new Error("Op. 106's root draws no flow control band");
-    const [, , , elements, , width] = flow;
-    expect(without).toEqual([["clt_1", "flow_control", -1, elements, 5.5, width]]);
-    expect(root(drawn(manifest, [showing({ facet: "regions", within: "clt_1" })]))).toEqual([
-      ["clt_1", "regions", -1, 0, 5.5, Wb],
-      ["clt_1", "flow_control", -2, elements, 27.9765625, width],
+      bands(drawing).filter(([timeline, facet]) => timeline === OP106_ROOT && facet !== "children");
+    // The movements' 11 drawn flow-control elements (a break, eight barlines, two jumps), the
+    // band `Hs + Hf = 17.96875 + 20.8009383552` wide (tests/README.md, "Op. 106").
+    const width = 38.7696883552;
+    expect(root(drawn(manifest))).toEqual([[OP106_ROOT, "flow_control", -1, 11, 5.5, width]]);
+    expect(root(drawn(manifest, [showing({ facet: "regions", within: OP106_ROOT })]))).toEqual([
+      [OP106_ROOT, "regions", -1, 0, 5.5, Wb],
+      [OP106_ROOT, "flow_control", -2, 11, 27.9765625, width],
     ]);
   });
 

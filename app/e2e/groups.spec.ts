@@ -384,9 +384,9 @@ test.describe("a group workspace", () => {
     expect(refusal).toBeNull();
     expect(await journalLength(page)).toBe(OPENED_JOURNAL.groups + 1);
     // 1.5 times the block's drawing width at scale 1.5 and the canvas's pane: `piece`'s ancestor
-    // card is elided at the automatic proportion, which reads both (section 8.9).
-    // The pane is the arranger's size, the drawer closed; the width there is layout's record
-    // (README, "groups.spec.ts"), which the editor's drawing code gives.
+    // card derives no elision and holds no stored one, so it is drawn whole (section 8.9) and the
+    // drawing reads neither, 1.5 × 1034.2392578125. The pane is the arranger's size, the drawer
+    // closed (README, "groups.spec.ts"), and the editor's drawing code gives the width there.
     const pane = await paneOf(page);
     expect(pane).toEqual({ view: { width: 1600, height: 968 } });
     expect(groupsDrawing(GROUPS.child, { scale: 1.5 }, pane).width * 1.5).toBe(1551.35888671875);
@@ -415,17 +415,17 @@ test.describe("a bundle workspace", () => {
       cardAddress("recording"),
       line("recording"),
       line("excerpt"),
+      frame("group_2"),
+      title("group_2"),
+      cardAddress("page"),
+      line("page"),
+      cardAddress("excerpt"),
       frame("group_1"),
       title("group_1"),
       cardAddress("score"),
       line("score"),
       cardAddress("performance"),
       line("performance"),
-      frame("group_2"),
-      title("group_2"),
-      cardAddress("page"),
-      line("page"),
-      cardAddress("excerpt"),
       cardAddress("annotations"),
       line("annotations"),
     ]);
@@ -436,10 +436,9 @@ test.describe("a bundle workspace", () => {
       line("score"),
       line("exposition"),
       line("recapitulation"),
-      // The card behind `group_1` elides `score` from 17 to 27, `recapitulation_first` (20–26)
-      // whole: it is first drawn in the card behind `group_2`.
-      line("recapitulation_second"),
+      // The card behind `group_1` draws `score` whole, its subtree in the manifest's order.
       line("recapitulation_first"),
+      line("recapitulation_second"),
       frame("group_1"),
       title("group_1"),
       cardAddress("exposition"),
@@ -462,19 +461,20 @@ test.describe("a bundle workspace", () => {
       cardAddress("score"),
       line("score"),
     ]);
-    // The card and line of `t`, drawn in both frames, are listed where first drawn.
+    // The frames in the order of their names ("Page" before "Performance"); the card and line of
+    // `t`, drawn in both frames, are listed where first drawn, in `g2`.
     expect(await structureOf(page, BUNDLES.twoGroups)).toEqual([
       TITLE_ADDRESS,
-      frame("g1"),
-      title("g1"),
-      cardAddress("t"),
-      line("t"),
-      cardAddress("u"),
-      line("u"),
       frame("g2"),
       title("g2"),
+      cardAddress("t"),
+      line("t"),
       cardAddress("v"),
       line("v"),
+      frame("g1"),
+      title("g1"),
+      cardAddress("u"),
+      line("u"),
     ]);
     expect(await titles(page, BUNDLES.mixed)).toEqual({
       [addressKey(TITLE_ADDRESS)]: "Mixed",
@@ -500,17 +500,18 @@ test.describe("a bundle workspace", () => {
     await setViewport(page, SHARED_VIEW);
     const score = line("score");
     // Four parts in each frame's member card (the ancestor line, the circle at `score`'s start or
-    // the arrowhead at its end, two chevrons where it runs on), four in each of `score`'s two
-    // ancestor cards (the line in two pieces around the derived gap, the circle, the arrowhead).
-    // Inside each frame: its member card's four, and the ancestor card's piece and mark behind it.
-    await expect(element(page, BUNDLES.shared, score)).toHaveCount(16);
-    expect(await partsInside(page, BUNDLES.shared, score, frame("group_1"))).toBe(6);
-    expect(await partsInside(page, BUNDLES.shared, score, frame("group_2"))).toBe(6);
+    // the arrowhead at its end, two chevrons where it runs on), three in each of `score`'s two
+    // ancestor cards, drawn whole (the line, the circle, the arrowhead). Inside each frame: its
+    // member card's four, and the ancestor card's mark behind it (the circle behind `group_1`,
+    // the arrowhead behind `group_2`), each line's centre lying beyond the frame.
+    await expect(element(page, BUNDLES.shared, score)).toHaveCount(14);
+    expect(await partsInside(page, BUNDLES.shared, score, frame("group_1"))).toBe(5);
+    expect(await partsInside(page, BUNDLES.shared, score, frame("group_2"))).toBe(5);
     const { x, y } = await partCentre(page, BUNDLES.shared, score);
     await page.mouse.click(x, y);
     expect(await selection(page)).toEqual([{ block: BUNDLES.shared, id: "score" }]);
     expect(await marked(page, "selection")).toEqual(
-      Array.from({ length: 16 }, () => markOf(BUNDLES.shared, score)),
+      Array.from({ length: 14 }, () => markOf(BUNDLES.shared, score)),
     );
   });
 
@@ -547,7 +548,7 @@ test.describe("a bundle workspace", () => {
     expect(await looks()).toEqual([
       ["block", blue, "1px", "1px, 2px", "non-scaling-stroke", "none"],
       ["frame", blue, "2px", "6px, 4px", "non-scaling-stroke", "none"],
-      ["card", blue, "3px", "6px, 4px", "non-scaling-stroke", "none"],
+      ["card", blue, "2px", "6px, 4px", "non-scaling-stroke", "none"],
     ]);
     expect(
       await dashed.evaluateAll((items) =>
@@ -558,7 +559,7 @@ test.describe("a bundle workspace", () => {
     expect(await looks()).toEqual([
       ["block", blue, "0.5px", "0.5px, 1px", "non-scaling-stroke", "none"],
       ["frame", blue, "1px", "3px, 2px", "non-scaling-stroke", "none"],
-      ["card", blue, "1.5px", "3px, 2px", "non-scaling-stroke", "none"],
+      ["card", blue, "1px", "3px, 2px", "non-scaling-stroke", "none"],
     ]);
     const stroke = (address: ElementAddress) =>
       element(page, BUNDLES.mixed, address)

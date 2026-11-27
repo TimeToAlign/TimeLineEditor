@@ -40,7 +40,7 @@ export interface RibbonEnd {
 }
 
 /**
- * One ribbon: from a stretch of a chunk's brace on its virtual card's line
+ * One ribbon: from a stretch of a chunk's segment on its virtual card's line
  * (`from`) to that stretch as written on a line of the source (`to`), and its
  * path, the two ends joined by cubic curves leaving each line upright.
  */

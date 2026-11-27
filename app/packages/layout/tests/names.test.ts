@@ -60,14 +60,14 @@ describe("row names", () => {
       [{ part: ["name"] }, "Virtual cards", undefined],
       [at("allegro", "name"), "Allegro", undefined],
       [
-        at("allegro_by_hand", "name"),
-        "Allegro, practice · unfolded…",
-        "Allegro, practice · unfolded from Allegro",
-      ],
-      [
         at("allegro_default", "name"),
         "Allegro, default · unfolded …",
         "Allegro, default · unfolded from Allegro",
+      ],
+      [
+        at("allegro_by_hand", "name"),
+        "Allegro, practice · unfolded…",
+        "Allegro, practice · unfolded from Allegro",
       ],
       [
         at("allegro_single", "name"),
@@ -80,18 +80,18 @@ describe("row names", () => {
     expect(N).toBe(159.93505859375);
     const rows = names.slice(1);
     expect(rows.map((item) => measure.advances(item.text).prefixes.at(-1))).toEqual([
-      7194, 29777, 29353, 29773,
+      7194, 29353, 29777, 29773,
     ]);
     // Each width is its sum × 11 / 2048, the widest N, so every name ends by n + N.
     const widths = rows.map((item) => measure.width(item.text, 11));
-    expect(widths).toEqual([38.6396484375, N, 157.65771484375, 159.91357421875]);
+    expect(widths).toEqual([38.6396484375, 157.65771484375, N, 159.91357421875]);
     expect(Math.max(...widths)).toBe(N);
     expect(rows.map((item) => item.x)).toEqual([16, 16, 16, 16]);
     const lines = drawing.elements.flatMap((item) =>
       item.type === "timeline" ? [[item.address.id, item.xs]] : [],
     );
     expect(lines).toEqual(
-      ["allegro", "allegro_by_hand", "allegro_default", "allegro_single"].map((id) => [
+      ["allegro", "allegro_default", "allegro_by_hand", "allegro_single"].map((id) => [
         id,
         183.93505859375,
       ]),
