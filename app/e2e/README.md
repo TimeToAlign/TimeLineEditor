@@ -808,6 +808,54 @@ and the inspector opened on Properties.
   the box unchecked and still enabled; checking it journals the same
   selector with `{display: null}`, the box checked.
 
+**`elisions.spec.ts`** (Chromium, Firefox, WebKit) proves that an
+elision added through the Elisions tab, as a viewer adds it, is drawn on
+the timeline, on a virtual timeline's placed card and on a virtual group
+member. What would prove it, and why a weaker test would not: layout,
+the writers and the arranger's motion each draw such an elision in their
+own tests, so only the whole path of the built app can fail: the click
+selecting the card (`framePoint`, the selection then exactly the card's
+address), the tab's block opened by its disclosure button, its Add
+elision, the store, the drawing the canvas shows and the page. After the
+press exactly one command is journaled, an `add` into the card's virtual
+timeline at the stretch the tab derives (below), with one minted ID `E`;
+then the drawing the arranger gives of the stored block at the canvas's
+pane (`drawingOf`, as `settledDrawing` computes it, once the page shows
+that drawing) holds exactly three elements of `E`, in drawing order: its
+gap `{id: E}` (an `elision`), its ellipsis `{id: E, part: [ellipsis]}`
+and its name label `{id: E, part: [name]}` (an added elision states no
+`display`, so it draws `ellipsis` and `name`, the name its timeline's);
+and the page draws that ellipsis visibly, with a box of positive width and
+height. Cases:
+
+1. `flow/virtual_cards` with `allegro_default` "Allegro, default"
+   (fraction quarters, 4241/2, its FlowMap `default` A B A C: no run)
+   placed at (0, 200) by one `set`: Add on its card is `{start: [4241,
+   6], end: [4241, 3]}`, the middle third of its played axis.
+2. The same block, the flow editor opened by a double-click in
+   `allegro`'s flow control band, the row `by_hand` dragged by its name
+   below the pane (its FlowMap already has a virtual timeline,
+   `allegro_by_hand` "Allegro, practice", so the drop places that card),
+   the editor closed: the block places `allegro_by_hand`. Its FlowMap
+   plays A four times (each 953/2), a gap of 4 and C (1144), 3054 in all;
+   the four A's are one run drawn once (drawing.md section 8.10, Runs), so
+   the card draws nothing of 953/2–1906. Add is `{start: [6866, 3], end:
+   [8014, 3]}`, the middle third of 1906–3054 (the gap and C), the
+   longest stretch the card draws; the middle third of the whole axis,
+   1018–2036, would lie in the run gap but for its last 130 ♩, a piece
+   narrower than 20 in the card. That elision, added by one `add` of
+   `{start: 1018, end: 2036}`, is drawn too: a stored elision's gap draws
+   its ellipsis whatever its width (drawing.md section 6.6), so its gap,
+   ellipsis and name label are the drawing's three elements of it and the
+   page shows its ellipsis.
+3. `groups/virtual_member`: the virtual member `allegro_default`'s card
+   in the frame of `performance` "Performance" clicked, the group's
+   block's Add is the same `{start: [4241, 6], end: [4241, 3]}` (a group
+   elision, drawn across the frame once).
+4. The same fixture, the frame `{id: performance}` clicked: Add goes into
+   the frame's first member in display order, `allegro_default`, with the
+   same stretch, drawn alike.
+
 **`elision-tab.spec.ts`** (Chromium, Firefox, WebKit) proves that an
 elision selected by a real pointer click on the canvas brings the Elisions
 tab forward, whatever the inspector showed before, for both kinds of
@@ -1301,21 +1349,21 @@ collapsed; opened, its title `Parent timeline "Piece"`,
 the mode Proportional checked (the mode `auto` with no stored card
 elision draws as `proportional`, and at `r = 1` it derives no gap: the
 member's span 4 to 12 leaves 4 on each side, `λ / E = 1`, and the view
-bounds none), Hidden not `aria-disabled`. Choosing Hidden journals exactly
-one entry, `{type: "style", select: {addresses: [{id: "piece", part:
+bounds none), the checkbox "Draw behind its groups" ticked and enabled.
+Unticking it journals exactly one entry, `{type: "style", select: {addresses: [{id: "piece", part:
 ["card"]}]}, set: {display: "none"}, blocks: [<block>]}`, the root's one
 rule (every card of `piece`), and the card is gone: nothing is addressed
 `{id: piece, part: [card]}`, the frame and the member cards lie at `x` 8
 and 16 with the same `y`, widths and heights (the cards take no room,
 layout's case 3), the node is at the block's place `(x, y)`, which the
-store keeps throughout. Hidden is then checked. The block is a property
+store keeps throughout. The checkbox is then unticked and the block offers
+no mode (a hidden card reads none). The block is a property
 of the grouped child too, so selecting `middle` instead offers the same
 block, still open (the open state is the root's block's, whichever of
-its timelines is selected), Hidden checked; choosing Proportional journals exactly one
-entry, the same rule with `set: {"elision-mode": null, display: null}`
-(the block's own rule hid the card, so Proportional unstates both rather
-than stating values), and the card and every box are drawn as before,
-Proportional checked.
+its timelines is selected), the checkbox unticked; ticking it journals
+exactly one entry, the same rule with `set: {display: null}` (the block's
+own rule hid the card, so showing it unstates that value), and the card
+and every box are drawn as before, Proportional checked.
 
 *Full and back by the arrow keys.* On `groups/group_elided_inside`
 imported the same way (the root `piece` of 64 quarters with `first`, 32
@@ -1333,10 +1381,10 @@ and `uR` = 48 / 8 = 6, reaches 1/7 at `VW` = (2400 / 7 +
 Selecting `excerpt` shows Proportional checked and the three dots of
 `second`'s default gap. Full journals exactly `{type: "style",
 select: {addresses: [{id: "piece", part: ["card"]}]}, set:
-{"elision-mode": "full", display: null}, blocks: [<block>]}` and no dot
+{"elision-mode": "full"}, blocks: [<block>]}` and no dot
 of `second`'s gap is drawn; ArrowRight from the checked Full moves to
 Proportional, as a native radio group does, and journals the same rule
-with `set: {"elision-mode": null, display: null}`, the three dots drawn
+with `set: {"elision-mode": "proportional"}`, the three dots drawn
 again.
 
 *Custom: the drawn defaults stored, Add elision and Remove all.* On the
@@ -1396,15 +1444,16 @@ way (the group `group_1` "Theme", whose frame elides `elision_1`
 selecting the frame `{block, id: group_1}` offers the group's block,
 its button named `Group Elisions in group "Theme" Custom, 2 elisions`,
 collapsed, and no root's block; opened, its title `Elisions in group
-"Theme"`, Custom checked (the
-frame's `auto` draws its stored elisions), the count "2 elisions" and
+"Theme"`, the checkbox "Draw the group's elisions" ticked (the
+frame's mode draws its stored elisions), the count "2 elisions" and
 the rows "Development", "Excerpt", "2–8 ♩"; "—", "Phrase", "2–6 ♩";
 `elision_1`'s ellipsis is six dots, one across the frame and one in
-`piece`'s ancestor card, which carries the frame's gaps. Full journals exactly `{type: "style",
+`piece`'s ancestor card, which carries the frame's gaps. Unticking it journals exactly `{type: "style",
 select: {addresses: [{id: "group_1"}]}, set: {"elision-mode": "full"},
 blocks: [<block>]}` and no dot of `elision_1` is drawn, neither across
-the frame nor carried into `piece`'s card; Custom journals the same rule
-with `{"elision-mode": null}` and the six dots are drawn again. Add
+the frame nor carried into `piece`'s card; ticking it again journals the
+same rule with `{"elision-mode": null}` (no other rule states a mode) and
+the six dots are drawn again. Add
 elision journals one `add` into `{block, id: excerpt}`, the frame's
 first member in display order, of `{start: [16, 3], end: [32, 3]}`, the
 middle third of its 16 quarters, exactly, with one minted ID,

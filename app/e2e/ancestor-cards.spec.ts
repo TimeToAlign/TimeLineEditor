@@ -4,11 +4,11 @@
  * frame of its member's group by default, beyond the frame's borders; the
  * root's block of the Elisions tab, a timeline's block offered for the root
  * and for its grouped child alike and opened by its heading, hides its
- * cards by the mode Hidden and draws them again, switches to Full and back
+ * cards by its checkbox and draws them again, switches to Full and back
  * by the arrow keys, stores the drawn defaults by Custom, adds an elision
  * and removes them all; a selected stored elision opens its blocks, shows
  * its gap's handles and mode menu and moves its end by one keyboard step; a
- * group's block switches its frame between Full and Custom, adds an
+ * group's block switches its frame's elisions off and on, adds an
  * elision and removes them all; a double-click on an
  * ancestor card opens the root's timeline editor and raises the card over
  * the frame, unfolding it out of the member card and folding it back on
@@ -116,13 +116,21 @@ function rootRule(block: string, set: { readonly [property: string]: unknown }) 
 /** The root's block's title, naming the root. */
 const TITLE = 'Parent timeline "Piece"';
 
-/** The modes of a root's and of a group's block. */
-type Mode = "Hidden" | "Full" | "Proportional" | "Custom";
+/** The modes of a root's block. */
+type Mode = "Full" | "Proportional" | "Custom";
 
-/** The radio of the mode `word` in the block `section` (its test ID). */
-function mode(page: Page, word: Mode, section = "elisions"): Locator {
-  return page.getByTestId(section).getByRole("radio", { name: word, exact: true });
+/** The radio of the mode `word` in the root's block. */
+function mode(page: Page, word: Mode): Locator {
+  return page.getByTestId("elisions").getByRole("radio", { name: word, exact: true });
 }
+
+/** The checkbox `label` in the block `section` (its test ID). */
+function checkbox(page: Page, label: string, section: string): Locator {
+  return page.getByTestId(section).getByRole("checkbox", { name: label, exact: true });
+}
+
+/** The root's checkbox drawing its ancestor cards. */
+const shownBox = (page: Page) => checkbox(page, "Draw behind its groups", "elisions");
 
 /** The title of the block `section`, in its heading after the kind word. */
 function titleOf(page: Page, section: string): Locator {
@@ -179,9 +187,10 @@ test("an ancestor card is drawn by default, hidden from its root and shown from 
   await expand(page, "elisions");
   await expect(titleOf(page, "elisions")).toHaveText(TITLE);
   await expect(mode(page, "Proportional")).toBeChecked();
-  await expect(mode(page, "Hidden")).not.toHaveAttribute("aria-disabled", "true");
+  await expect(shownBox(page)).toBeChecked();
+  await expect(shownBox(page)).toBeEnabled();
 
-  await mode(page, "Hidden").click();
+  await shownBox(page).click();
   await expect.poll(() => journalLength(page)).toBe(2);
   expect(await newestCommand(page)).toEqual(rootRule(block, { display: "none" }));
   await expect(element(page, block, PIECE_CARD)).toHaveCount(0);
@@ -189,16 +198,15 @@ test("an ancestor card is drawn by default, hidden from its root and shown from 
   expect(await nodeTransform(page, block)).toBe(await placedAt(page, x, y));
   const kept = await placement(page, block);
   expect([kept.x, kept.y]).toEqual([x, y]);
-  await expect(mode(page, "Hidden")).toBeChecked();
+  await expect(shownBox(page)).not.toBeChecked();
+  await expect(page.getByTestId("elisions").getByRole("radio")).toHaveCount(0);
 
   await select(page, [{ block, id: "middle" }]);
   await expect(titleOf(page, "elisions")).toHaveText(TITLE);
-  await expect(mode(page, "Hidden")).toBeChecked();
-  await mode(page, "Proportional").click();
+  await expect(shownBox(page)).not.toBeChecked();
+  await shownBox(page).click();
   await expect.poll(() => journalLength(page)).toBe(3);
-  expect(await newestCommand(page)).toEqual(
-    rootRule(block, { "elision-mode": null, display: null }),
-  );
+  expect(await newestCommand(page)).toEqual(rootRule(block, { display: null }));
   await expect(element(page, block, PIECE_CARD)).toHaveCount(2);
   expect(await attributes(box(page, block, PIECE_CARD))).toEqual(CARD);
   expect(await heldBoxes(page, block)).toEqual(HELD_BESIDE_CARD);
@@ -284,9 +292,7 @@ test("the root's elisions switch to Full and back by the arrow keys", async ({ p
 
   await mode(page, "Full").click();
   await expect.poll(() => journalLength(page)).toBe(2);
-  expect(await newestCommand(page)).toEqual(
-    rootRule(block, { "elision-mode": "full", display: null }),
-  );
+  expect(await newestCommand(page)).toEqual(rootRule(block, { "elision-mode": "full" }));
   await expect(element(page, block, SECOND)).toHaveCount(0);
   await expect(mode(page, "Full")).toBeChecked();
 
@@ -294,9 +300,7 @@ test("the root's elisions switch to Full and back by the arrow keys", async ({ p
   await mode(page, "Full").focus();
   await page.keyboard.press("ArrowRight");
   await expect.poll(() => journalLength(page)).toBe(3);
-  expect(await newestCommand(page)).toEqual(
-    rootRule(block, { "elision-mode": null, display: null }),
-  );
+  expect(await newestCommand(page)).toEqual(rootRule(block, { "elision-mode": "proportional" }));
   await expect(mode(page, "Proportional")).toBeChecked();
   await expect(element(page, block, SECOND)).toHaveCount(3);
 });
@@ -399,9 +403,7 @@ test("a selected elision shows its handles and mode menu, and a key moves its en
   expect(stored.find((elision) => elision.id === second1)?.end).toEqual([156, 5]);
 });
 
-test("a group's elisions switch to Full and back, and are added to and removed", async ({
-  page,
-}) => {
+test("a group's elisions switch off and on, and are added to and removed", async ({ page }) => {
   const block = await importFixture(page, "groups/group_elided_members");
   await select(page, [{ block, id: "group_1" }]);
   await elisionsTab(page);
@@ -412,7 +414,8 @@ test("a group's elisions switch to Full and back, and are added to and removed",
   await expand(page, "group-elisions");
   await expect(titleOf(page, "group-elisions")).toHaveText('Elisions in group "Theme"');
   await expect(page.getByTestId("elisions")).toHaveCount(0);
-  await expect(mode(page, "Custom", "group-elisions")).toBeChecked();
+  const frameBox = checkbox(page, "Draw the group's elisions", "group-elisions");
+  await expect(frameBox).toBeChecked();
   await expect(section.locator(".count")).toHaveText("2 elisions");
   expect(await rowsOf(section)).toEqual([
     ["Development", "Excerpt", "2–8 ♩"],
@@ -428,13 +431,13 @@ test("a group's elisions switch to Full and back, and are added to and removed",
     set,
     blocks: [block],
   });
-  await mode(page, "Full", "group-elisions").click();
+  await frameBox.click();
   await expect.poll(() => journalLength(page)).toBe(2);
   expect(await newestCommand(page)).toEqual(frameRule({ "elision-mode": "full" }));
   await expect(element(page, block, development)).toHaveCount(0);
-  await expect(mode(page, "Full", "group-elisions")).toBeChecked();
+  await expect(frameBox).not.toBeChecked();
 
-  await mode(page, "Custom", "group-elisions").click();
+  await frameBox.click();
   await expect.poll(() => journalLength(page)).toBe(3);
   expect(await newestCommand(page)).toEqual(frameRule({ "elision-mode": null }));
   await expect(element(page, block, development)).toHaveCount(6);

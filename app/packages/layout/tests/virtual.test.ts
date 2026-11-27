@@ -472,7 +472,14 @@ describe("elisions of a placed virtual card", () => {
       x0 + 133.33333333333331,
       x0 + 241.33333333333343,
     ]);
-    expect(drawing.elements.filter((item) => item.type === "ellipsis")).toEqual([]);
+    // A stored elision's gap draws its ellipsis whatever its width: 8 wide, at its middle.
+    expect(
+      drawing.elements.flatMap((item) =>
+        item.type === "ellipsis" ? [[item.address, item.x, item.y]] : [],
+      ),
+    ).toEqual([
+      [{ id: "elision_1", part: ["ellipsis"] }, (gap.x1 + gap.x2) / 2, (gap.yt + gap.yb) / 2],
+    ]);
   });
 
   it("are drawn neither by the card of its timeline nor by a card switched to it", () => {
