@@ -2558,7 +2558,8 @@ the same manifest either way), turns Show coordinates on, and moves the pointer 
 each move followed by two frames, so every move is read once: the flag
 shows the map's row before and after, and the script time per move is at
 most one frame at 60 Hz, 16.7 ms. The workspace of virtual cards imports
-TimeToShare's `flow/virtual_cards` twice, places the cards of its three
+TimeToShare's `flow/virtual_cards` twice, the second copy named "Virtual
+cards, copy" (a file the workspace holds already is not imported again), places the cards of its three
 virtual timelines in both blocks, switches the second block's root card
 to "Allegro, practice", hides that root and shows it again, with the
 `style` Delete's "Hide instead" and the bundle's Timelines list write
@@ -2569,7 +2570,27 @@ move followed by two frames, and 1 ms per Ctrl+wheel zoom (60 events over
 the first block, as above); afterwards the pointer on the label of chunk 0
 of `allegro_default` in the first block draws exactly one ribbon (to the
 first root's line, which is not switched), so the moves reached the
-drawing. These `≤` comparisons are budgets by
+drawing. On the same workspace three more budgets hold. **A view change
+with a selection runs no command**: with the drawer on Properties and the
+second block's root card selected (New group enabled, so its verdict was
+read), 30 plain wheel pans and 30 Ctrl+wheel zooms over the first block
+cost at most 1 ms of script per event, as a pan or zoom with nothing
+selected; one membership verdict applies a whole command and checks its
+manifest against the schema, several milliseconds, so a verdict read again
+on any event would exceed it; the journal still holds its 7 entries.
+**Showing a hidden root** (the second block's `allegro` hidden by the
+`style` Hide instead writes, the block selected, its row's Visible box in
+the Timelines list checked, until the journal holds 9 entries, two frames
+on each side) costs at most 60 ms of script (24 to 41 ms measured). **A long session**
+of four rounds, each a root hidden and shown, the first root's
+flow-control editor opened and closed, 50 renames of that root with its
+card selected, 25 undone and 25 redone, then the pans and zooms above,
+holds the same number of DOM nodes and of event listeners after rounds 2,
+3 and 4 (exact: nothing the rounds mount stays mounted), and its heap in
+use after three garbage collections grows by at most 4 MiB from round 2
+to round 4: 2.5 MiB measured, the journal's 100 entries and the views the
+store keeps, against 10.8 MiB when the store kept the view of every change
+(each holding the manifest that change made), which the budget refuses. These `≤` comparisons are budgets by
 definition.
 
 **`visual.spec.ts`** (`@visual`, the pinned container only) compares

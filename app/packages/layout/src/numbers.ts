@@ -62,16 +62,55 @@ export function exactDistance(left: Real, right: Real): Rational {
   return difference.numerator < 0n ? Rational.of(0n).subtract(difference) : difference;
 }
 
+/** 2^53: every integer of smaller magnitude is a double, exactly. */
+const EXACT_BOUND = 2 ** 53;
+
+/** `value` as a double when it is an integer of magnitude below 2^53, which a double holds exactly; else `null`. */
+function exactInteger(value: bigint): number | null {
+  const double = Number(value);
+  // Number() rounds monotonically and 2^53 is a double, so a magnitude below it is exact.
+  return Math.abs(double) < EXACT_BOUND ? double : null;
+}
+
+/**
+ * The double nearest `(a × b) / (c × d)`, ties to even, by one binary64
+ * division where both products are integers a double holds exactly (IEEE 754
+ * rounds a quotient once, as `toFloat` rounds an exact one); `null` where
+ * either is not, or the quotient is 0 (an exact 0 is +0, a division may
+ * give −0). `c × d` is never 0.
+ */
+function fastQuotient(a: bigint, b: bigint, c: bigint, d: bigint): number | null {
+  const [na, nb, nc, nd] = [exactInteger(a), exactInteger(b), exactInteger(c), exactInteger(d)];
+  if (na === null || nb === null || nc === null || nd === null) return null;
+  const numerator = na * nb;
+  const denominator = nc * nd;
+  if (numerator === 0) return null;
+  if (Math.abs(numerator) >= EXACT_BOUND || Math.abs(denominator) >= EXACT_BOUND) return null;
+  return numerator / denominator;
+}
+
+/** The double nearest an exact value (`toFloat`), by one division where its parts allow (`fastQuotient`). */
+function nearestDouble(value: Rational): number {
+  return fastQuotient(value.numerator, 1n, value.denominator, 1n) ?? toFloat(value);
+}
+
 /**
  * The proportion `u = t / λ`: an exact quotient rounded once to the nearest
- * double, a binary64 division when either is a float, 0 when `λ` is 0.
+ * double, a binary64 division when either is a float, 0 when `λ` is 0. An
+ * exact quotient whose cross products are integers below 2^53 is rounded by
+ * one binary64 division of them, the same double without building it.
  */
 export function proportion(t: Real, length: Real): number {
   const isZero = typeof length === "number" ? length === 0 : length.numerator === 0n;
   if (isZero) return 0;
-  if (t instanceof Rational && length instanceof Rational) return toFloat(t.divide(length));
-  const a = t instanceof Rational ? toFloat(t) : t;
-  const b = length instanceof Rational ? toFloat(length) : length;
+  if (t instanceof Rational && length instanceof Rational) {
+    return (
+      fastQuotient(t.numerator, length.denominator, t.denominator, length.numerator) ??
+      toFloat(t.divide(length))
+    );
+  }
+  const a = t instanceof Rational ? nearestDouble(t) : t;
+  const b = length instanceof Rational ? nearestDouble(length) : length;
   return a / b;
 }
 

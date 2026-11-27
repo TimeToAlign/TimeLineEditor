@@ -17,6 +17,7 @@ import {
   cardPoint,
   dispatch,
   drag,
+  editing,
   emptyPoint,
   frames,
   journalLength,
@@ -25,7 +26,9 @@ import {
   partCentre,
   pick,
   SMALL,
+  select,
   setViewport,
+  tab,
   viewportOf,
   withoutPickers,
 } from "./support.ts";
@@ -297,9 +300,11 @@ async function virtualCardsWorkspace(page: Page): Promise<string[]> {
   await page.goto("/");
   await page.waitForFunction(() => window.__tilie !== undefined);
   const text = manifestFixture("flow/virtual_cards");
-  for (const imports of [1, 2]) {
-    await pick(page, "Import manifest…", "virtual_cards.yaml", text);
-    await expect.poll(() => journalLength(page)).toBe(imports);
+  // A file the workspace holds already is not imported again: the second copy is renamed.
+  const copies = [text, text.replace(`name: "Virtual cards"`, `name: "Virtual cards, copy"`)];
+  for (const [index, copy] of copies.entries()) {
+    await pick(page, "Import manifest…", "virtual_cards.yaml", copy);
+    await expect.poll(() => journalLength(page)).toBe(index + 1);
   }
   const blocks = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks));
   expect(blocks).toHaveLength(2);
@@ -398,5 +403,151 @@ test.describe("budgets on virtual cards imported twice", { tag: "@budget" }, () 
     await page.keyboard.up("Control");
     console.log(`virtual cards: ${ms.toFixed(3)} ms of script per wheel event`);
     expect(ms).toBeLessThanOrEqual(1);
+  });
+});
+
+/** Script milliseconds of `run`, two frames rendered on each side. */
+async function scriptOf(page: Page, cdp: CDPSession, run: () => Promise<void>): Promise<number> {
+  return perMove(page, cdp, run, 1);
+}
+
+/** 30 plain wheel pans, then 30 Ctrl+wheel zooms in and out, each followed by two frames. */
+async function panAndZoom(page: Page): Promise<void> {
+  for (let n = 0; n < MOVES / 2; n += 1) {
+    await page.mouse.wheel(n % 10 < 5 ? 40 : -40, n % 10 < 5 ? 40 : -40);
+    await frames(page);
+  }
+  await page.keyboard.down("Control");
+  for (let n = 0; n < MOVES / 2; n += 1) {
+    await page.mouse.wheel(0, n % 10 < 5 ? -40 : 40);
+    await frames(page);
+  }
+  await page.keyboard.up("Control");
+}
+
+/** The heap in use after three collections, in bytes, and the DOM's nodes and listeners. */
+async function heldMemory(page: Page, cdp: CDPSession) {
+  await frames(page);
+  for (let n = 0; n < 3; n += 1) await cdp.send("HeapProfiler.collectGarbage");
+  const { usedSize } = await cdp.send("Runtime.getHeapUsage");
+  const { nodes, jsEventListeners } = await cdp.send("Memory.getDOMCounters");
+  return { heap: usedSize, nodes, listeners: jsEventListeners };
+}
+
+/** The heap a session of four rounds may gain from its second round to its fourth, in bytes. */
+const ROUNDS_HEAP = 4 * 2 ** 20;
+/** The script time of showing a hidden root again through the Timelines list, in milliseconds. */
+const SHOW_MS = 60;
+
+test.describe("budgets of a selection and a long session", { tag: "@budget" }, () => {
+  test.beforeEach(async ({ browserName }) => {
+    test.skip(browserName !== "chromium", "script time is read through Chromium's protocol");
+  });
+
+  test("a pan or zoom with a root card selected runs no command, at most 1 ms each", async ({
+    page,
+  }) => {
+    const blocks = await virtualCardsWorkspace(page);
+    const second = blocks[1] as string;
+    await page.getByRole("button", { name: "Open inspector" }).click();
+    await tab(page, "Properties").click();
+    await select(page, [{ block: second, id: "allegro", part: ["card"] }]);
+    await expect(page.getByRole("button", { name: "New group" })).toBeEnabled();
+    const box = await node(page, blocks[0] as string).boundingBox();
+    if (box === null) throw new Error("the first block is not displayed");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Performance.enable");
+    const ms = await perMove(page, cdp, () => panAndZoom(page));
+    console.log(`selected card: ${ms.toFixed(3)} ms of script per wheel event`);
+    expect(await journalLength(page)).toBe(7);
+    expect(ms).toBeLessThanOrEqual(1);
+  });
+
+  test("showing a hidden root again costs at most 60 ms of script", async ({ page }) => {
+    const blocks = await virtualCardsWorkspace(page);
+    const second = blocks[1] as string;
+    expect(await dispatch(page, rootDisplay(second, "allegro", "none"))).toBeNull();
+    await page.getByRole("button", { name: "Open inspector" }).click();
+    await tab(page, "Properties").click();
+    await select(page, [{ block: second }]);
+    const root = page.getByTestId("timeline-list").getByRole("checkbox").first();
+    await expect(root).not.toBeChecked();
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Performance.enable");
+    const ms = await scriptOf(page, cdp, async () => {
+      await root.check();
+      await expect.poll(() => journalLength(page)).toBe(9);
+    });
+    console.log(`show a root: ${ms.toFixed(3)} ms of script`);
+    expect(ms).toBeLessThanOrEqual(SHOW_MS);
+  });
+
+  test("a long session's heap grows by at most 4 MiB over two rounds, its DOM not at all", async ({
+    page,
+  }) => {
+    test.setTimeout(240_000);
+    const blocks = await virtualCardsWorkspace(page);
+    const [first, second] = blocks as [string, string];
+    await page.getByRole("button", { name: "Open inspector" }).click();
+    await tab(page, "Properties").click();
+    const cdp = await page.context().newCDPSession(page);
+    const rounds: Awaited<ReturnType<typeof heldMemory>>[] = [];
+    for (let round = 1; round <= 4; round += 1) {
+      // A root hidden and shown, the flow-control editor opened and closed.
+      expect(await dispatch(page, rootDisplay(second, "allegro", "none"))).toBeNull();
+      expect(await dispatch(page, rootDisplay(second, "allegro", null))).toBeNull();
+      expect(
+        await page.evaluate(
+          (block) => window.__tilie.store().open({ block, id: "allegro" }, "flow"),
+          first,
+        ),
+      ).toBeNull();
+      await expect.poll(async () => (await editing(page)).length).toBe(1);
+      await frames(page);
+      await page.evaluate(() => window.__tilie.done());
+      await expect.poll(async () => (await editing(page)).length).toBe(0);
+      // 100 commands: 50 renames of the first root, its card selected, 25 undone, 25 redone.
+      await select(page, [{ block: first, id: "allegro", part: ["card"] }]);
+      for (let n = 0; n < 50; n += 1) {
+        const rename = {
+          type: "set",
+          changes: [
+            { target: { block: first, id: "allegro" }, values: { name: `A ${round}.${n}` } },
+          ],
+        };
+        expect(await dispatch(page, rename)).toBeNull();
+        if (n % 10 === 0) await frames(page);
+      }
+      for (const step of ["undo", "redo"] as const) {
+        for (let n = 0; n < 25; n += 1) {
+          await page.evaluate((method) => window.__tilie.store()[method](), step);
+          if (n % 10 === 0) await frames(page);
+        }
+      }
+      const box = await node(page, first).boundingBox();
+      if (box === null) throw new Error("the first block is not displayed");
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await panAndZoom(page);
+      await setViewport(page, { x: 20, y: 20, zoom: 0.5 });
+      rounds.push(await heldMemory(page, cdp));
+    }
+    console.log(
+      `long session: ${rounds
+        .map(
+          ({ heap, nodes, listeners }) =>
+            `${(heap / 2 ** 20).toFixed(2)} MiB ${nodes} nodes ${listeners} listeners`,
+        )
+        .join("; ")}`,
+    );
+    const [, two, three, four] = rounds as [
+      unknown,
+      (typeof rounds)[0],
+      (typeof rounds)[0],
+      (typeof rounds)[0],
+    ];
+    expect([three.nodes, four.nodes]).toEqual([two.nodes, two.nodes]);
+    expect([three.listeners, four.listeners]).toEqual([two.listeners, two.listeners]);
+    expect(four.heap - two.heap).toBeLessThanOrEqual(ROUNDS_HEAP);
   });
 });

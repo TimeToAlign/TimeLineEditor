@@ -4101,6 +4101,25 @@ time `clock().toISOString()`. The tests inject a clock from
 3. **Undo and redo** step to the very views (`toBe`) each dispatch left;
    `canUndo` and `canRedo` follow; a dispatch after an undo discards what
    was undone.
+   **Views held.** Each view a change leaves holds the whole manifest that
+   change made, so a level keeps the very views within `RECENT_VIEWS` (64)
+   changes of its current one and, further away, only those after every
+   `VIEW_CHECKPOINT`-th (16th) change; an undo or a redo to a view it let go
+   replays the changes from the known view before it. Proven on 200 moves
+   of `A` (`x` = 8, 16, …, 1600) after its `add`, each view recorded when
+   its dispatch left it (201 changes): undoing one step at a time down to
+   the empty workspace, every view is deep-equal to the one recorded and
+   is that very object (`toBe`) exactly where it was kept: the 64 latest
+   (after changes 137 to 201), every 16th (16, 32, …, 128) and the first
+   one; after change 136, the newest one let go, it is a new object.
+   Redoing all 201 steps then gives deep-equal views again, the last one
+   `x` 1600, and one more move after it is journaled as the 202nd entry. A
+   view replayed for one undo is kept while it lies near the current one:
+   undoing from 201 down to 120 and redoing one step gives the view after
+   change 121 replayed by that undo, that very object. `sameView` tells
+   each replayed view equal to the one recorded (`true` at every step),
+   the view after change 200 not equal to the one after change 201 (one
+   move apart), and every view not equal to no view (`null`).
 4. **Undo past the loaded view.** A store opened on another store's
    snapshot undoes its three entries to views deep-equal to the other's
    after the same prefixes, the last `createView()`, and redoes them.

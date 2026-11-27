@@ -130,6 +130,27 @@ describe("mount", () => {
     expect(onchange.mock.calls).toEqual([[{ fileName: "untitled.tle.json", dirty: true }]]);
   });
 
+  it("reports no unsaved changes after undoing 70 moves, past the views the store keeps", {
+    timeout: 30_000,
+  }, () => {
+    const onchange = vi.fn();
+    const element = host();
+    const editor = embed(element, { workspace: workspaceOf("bare"), onchange });
+    editor.select([{ block: A }]);
+    flushSync();
+    const canvas = canvasOf(element);
+    const press = (init: KeyboardEventInit) => {
+      canvas.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, ...init }));
+      flushSync();
+    };
+    for (let n = 0; n < 70; n += 1) press({ key: "ArrowRight" });
+    expect(onchange.mock.calls.at(-1)).toEqual([{ fileName: "untitled.tle.json", dirty: true }]);
+    for (let n = 0; n < 69; n += 1) press({ key: "z", ctrlKey: true });
+    expect(onchange.mock.calls.at(-1)).toEqual([{ fileName: "untitled.tle.json", dirty: true }]);
+    press({ key: "z", ctrlKey: true });
+    expect(onchange.mock.calls.at(-1)).toEqual([{ fileName: "untitled.tle.json", dirty: false }]);
+  });
+
   it("takes its shortcuts inside its own element only", () => {
     interceptDownloads();
     const input = document.createElement("input");

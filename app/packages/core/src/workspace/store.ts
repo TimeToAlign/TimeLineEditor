@@ -318,7 +318,8 @@ interface Level {
   /**
    * `views[k]` is the view after the level's first k changes, where it is
    * known; `views[applied]`, the current view, always is, and so is
-   * `views[0]` on an editor's level. `viewAt` fills the gaps.
+   * `views[0]` on an editor's level. `viewAt` fills the gaps, and every
+   * change of the store forgets the old ones again (`forgetViews`).
    */
   readonly views: View[];
   /** The applied changes at the opening, which Cancel's count compares by their command entries. */
@@ -329,6 +330,68 @@ interface Level {
   readonly below: Level | null;
   /** The sessions at the opening. */
   readonly sessions: Sessions;
+}
+
+/** How many views on either side of its current one a level keeps: the latest undos and redos step to the very views. */
+export const RECENT_VIEWS = 64;
+
+/**
+ * Further away, a level keeps the view after every `VIEW_CHECKPOINT`-th
+ * change only, and an undo or a redo there replays the changes from the
+ * known view before it (at most `VIEW_CHECKPOINT − 1`, `viewAt`), so a long
+ * session holds one view in this many, not one for every change: each holds
+ * the whole manifest a change made.
+ */
+export const VIEW_CHECKPOINT = 16;
+
+/**
+ * Let go of the views of `level` more than `RECENT_VIEWS` changes away from
+ * its current one that lie on no checkpoint (`VIEW_CHECKPOINT`); the view
+ * before its first change is kept.
+ */
+function forgetViews(level: Level): void {
+  const { applied, views } = level;
+  // A sparse array: `forEach` visits the views known only.
+  views.forEach((_, k) => {
+    if (k > 0 && Math.abs(k - applied) > RECENT_VIEWS && k % VIEW_CHECKPOINT !== 0) {
+      delete views[k];
+    }
+  });
+}
+
+/** Whether two JSON values are equal, member by member; a part both share is equal at once. */
+function sameContent(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+  if (typeof left !== "object" || typeof right !== "object" || left === null || right === null) {
+    return false;
+  }
+  if (Object.getPrototypeOf(left) !== Object.getPrototypeOf(right)) return false;
+  if (Array.isArray(left)) {
+    const items = right as readonly unknown[];
+    return left.length === items.length && left.every((item, k) => sameContent(item, items[k]));
+  }
+  const members = right as Readonly<Record<string, unknown>>;
+  const keys = Object.keys(left);
+  return (
+    keys.length === Object.keys(members).length &&
+    keys.every(
+      (key) =>
+        Object.hasOwn(members, key) &&
+        sameContent((left as Readonly<Record<string, unknown>>)[key], members[key]),
+    )
+  );
+}
+
+/**
+ * Whether `view` holds what `other` holds; `false` against no view. An undo
+ * or a redo to a view the store let go (`forgetViews`) gives a new object
+ * equal to it, so a view compared with one held elsewhere (the view last
+ * saved) is compared by content where it is not that very object. The parts
+ * two views of one store share are the same objects, so only the parts a
+ * change made are walked.
+ */
+export function sameView(view: View, other: View | null): boolean {
+  return other !== null && sameContent(view, other);
 }
 
 /** A level's own copy, which the store changes while the original stays as it was. */
@@ -406,7 +469,9 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
   };
   const top = () => held(levels.at(-1), "its main level");
   const current = () => withSettings(held(top().views[top().applied], "its current view"));
+  forgetViews(held(levels[0], "its main level"));
   const notify = () => {
+    forgetViews(top());
     revision += 1;
     for (const listener of [...listeners]) listener(current());
   };

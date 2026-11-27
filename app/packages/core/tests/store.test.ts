@@ -7,7 +7,7 @@ import type { Address } from "../src/workspace/address.ts";
 import type { SessionEntry } from "../src/workspace/sessions.ts";
 import { isSessionEntry } from "../src/workspace/sessions.ts";
 import type { Store, Workspace } from "../src/workspace/store.ts";
-import { createStore } from "../src/workspace/store.ts";
+import { createStore, RECENT_VIEWS, sameView, VIEW_CHECKPOINT } from "../src/workspace/store.ts";
 import type { View } from "../src/workspace/view.ts";
 import { createView } from "../src/workspace/view.ts";
 import { A, addBlock, B, refusal, testClock } from "./support.ts";
@@ -84,6 +84,43 @@ describe("the store", () => {
     store.undo();
     store.dispatch(move(A, 4));
     expect(store.canRedo).toBe(false);
+  });
+
+  it("keeps the latest views and every 16th, replaying the others", () => {
+    expect([RECENT_VIEWS, VIEW_CHECKPOINT]).toEqual([64, 16]);
+    const store = createStore(empty(), { clock: testClock() });
+    const views: View[] = [store.view];
+    store.dispatch(addBlock(A, "bare.yaml"));
+    views.push(store.view);
+    for (let n = 1; n <= 200; n += 1) {
+      expect(store.dispatch(move(A, 8 * n))).toBeNull();
+      views.push(store.view);
+    }
+    const kept = (k: number) => k === 0 || k >= 137 || (k <= 128 && k % 16 === 0);
+    let replayed121: View | undefined;
+    for (let k = 200; k >= 0; k -= 1) {
+      store.undo();
+      expect(store.view).toEqual(views[k]);
+      expect(store.view === views[k]).toBe(kept(k));
+      expect([sameView(store.view, views[k] as View), sameView(store.view, null)]).toEqual([
+        true,
+        false,
+      ]);
+      if (k === 121) replayed121 = store.view;
+      if (k === 120) {
+        store.redo();
+        expect(store.view).toBe(replayed121);
+        store.undo();
+      }
+    }
+    for (let k = 1; k <= 201; k += 1) {
+      store.redo();
+      expect(store.view).toEqual(views[k]);
+    }
+    expect(store.view.blocks[A]?.x).toBe(1600);
+    expect(sameView(views[200] as View, views[201] as View)).toBe(false);
+    expect(store.dispatch(move(A, 4))).toBeNull();
+    expect(store.journal.length).toBe(202);
   });
 
   it("undoes past the loaded view by replaying the journal", () => {

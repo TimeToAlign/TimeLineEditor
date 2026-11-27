@@ -170,13 +170,58 @@ function groupsChange(block: Block, timeline: string, groups: readonly string[])
   return { target: inBlock(block.id, idAddress(timeline)), values: { groups: [...groups] } };
 }
 
+/** Core's verdicts on commands aimed into one block, read with one minter state. */
+interface Verdicts {
+  /** The minter state they were read with (`minterKey`). */
+  readonly minter: string;
+  /** Each command's verdict, by its JSON. */
+  readonly refusals: Map<string, string | null>;
+}
+
 /**
- * What core says of `command` on `view`: its message when it refuses it,
- * else `null`. The IDs of what it creates are minted by `minter`.
+ * Core's verdicts already read, by the block a command is aimed into. A
+ * membership `set` or a group `add` reads and changes its block alone, so
+ * its verdict holds for as long as that block is the same object and the
+ * minter mints the same IDs: a pan, a zoom, a hover, another selection or a
+ * command on another block that mints nothing reads it again for free, and
+ * an undo back to a block once read finds it here. A block no view holds any
+ * more is let go with its verdicts.
  */
-function refusalOf(view: View, command: SetCommand | AddCommand, minter: IdMinter): string | null {
+const verdicts = new WeakMap<Block, Verdicts>();
+
+/**
+ * The state of `minter`: its seed, its length and the next ID it mints,
+ * which fix every ID it mints and so every ID a refusal names.
+ */
+function minterKey(minter: IdMinter): string {
+  return JSON.stringify([String(minter.seed), minter.length, minter.copy().mint("_")]);
+}
+
+/**
+ * What core says of `command` on `view`, aimed into `block`: its message
+ * when it refuses it, else `null`. The IDs of what it creates are minted by
+ * `minter`. Applied once for each block, minter state and command
+ * (`verdicts`); verdicts read with another minter state are dropped.
+ */
+function refusalOf(
+  view: View,
+  block: Block,
+  command: SetCommand | AddCommand,
+  minter: IdMinter,
+): string | null {
+  const state = minterKey(minter);
+  let known = verdicts.get(block);
+  if (known === undefined || known.minter !== state) {
+    known = { minter: state, refusals: new Map() };
+    verdicts.set(block, known);
+  }
+  const key = JSON.stringify(command);
+  const found = known.refusals.get(key);
+  if (found !== undefined) return found;
   const result = apply(view, command, minter);
-  return isCommandError(result) ? result.message : null;
+  const refusal = isCommandError(result) ? result.message : null;
+  known.refusals.set(key, refusal);
+  return refusal;
 }
 
 /**
@@ -217,7 +262,7 @@ export function groupsOf(
       checked,
       mixed: members.length > 0 && !checked,
       command,
-      refusal: refusalOf(view, command, minter.copy()),
+      refusal: refusalOf(view, block, command, minter.copy()),
     };
   });
   return { legend: "Groups", rows };
@@ -257,7 +302,7 @@ export function membersOf(
       checked,
       mixed: false,
       command,
-      refusal: refusalOf(view, command, minter.copy()),
+      refusal: refusalOf(view, block, command, minter.copy()),
     };
   });
   return { legend: "Members", rows };
@@ -284,5 +329,5 @@ export function newGroupOf(
   if (members === null) return null;
   const into: Address = { block: block.id };
   const command: AddCommand = { type: "add", into, group: { members: [...members] } };
-  return { command, refusal: refusalOf(view, command, minter.copy()) };
+  return { command, refusal: refusalOf(view, block, command, minter.copy()) };
 }

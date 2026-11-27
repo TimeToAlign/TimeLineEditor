@@ -4148,6 +4148,34 @@ starts where `[0, 2]` starts, `[1, 3]` starts inside `[0, 2]` and where
 `[4, 6]` starts where `[4, 4]` starts); `[5, 6]`, `[3, 4]`, `[4, 5]`,
 `[3.5, 4.5]`, arriving out of order, give rows 1, 1, 1, 2.
 
+## Proportions on an axis (`numbers.test.ts`)
+
+`proportion(t, λ)` is the double nearest the exact quotient `t / λ`, ties to
+even, where both are exact (section 3), a binary64 division where either is a
+float, and 0 where `λ` is 0. Where both are exact it may divide the cross
+products `t.numerator × λ.denominator` and `t.denominator × λ.numerator` as
+doubles instead of building the quotient: that is the same double exactly
+when both products are integers of magnitude below 2^53, since a double holds
+every such integer and IEEE 754 rounds a quotient once, to nearest, ties to
+even. The test proves that the shortcut never changes a result: for every
+pair the oracle is `toFloat(t.divide(λ))`, the exact quotient rounded once,
+and the result must be that double itself (`Object.is`, so +0 and −0 are told
+apart). The pairs are generated (fast-check, seeded) to reach both sides of
+the bound: parts of up to 20 bits, so the products stay below 2^53; parts of
+26 to 27 bits, so the products lie on both sides of 2^53; parts up to 2^70,
+past it; negative numerators and lengths; zero numerators (an exact 0 is +0,
+where the division of −0 by a negative length would give −0); and, where
+either value is a float, the float division of the exact value's nearest
+double. Written out by hand: `1/3` over `1` is `0.3333333333333333` (the
+double nearest 1/3); `0` over `−5` is `+0`; `(2^53 − 1) / 1` over `3`, a
+numerator below the bound, is `3002399751580330.5`, the double nearest
+9007199254740991/3; `(2^53 + 1) / 1`
+over `1`, a numerator past the bound, is `9007199254740992` (ties to even,
+2^53); `1 / (2^26 + 1)` over `1 / (2^27 + 1)`, a denominator product past
+the bound, is `1.999999985098839`, the double nearest `(2^27 + 1) / (2^26 +
+1)`; and `2/3` over
+the float `0.5` is `1.3333333333333333`.
+
 ## Redraw operation counts (`scale.test.ts`)
 
 A synthetic manifest has exactly 1,118 element keys, as core enumerates
