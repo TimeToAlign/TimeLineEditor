@@ -4,15 +4,25 @@
  * virtual card (`docs/drawing.md` in TimeToShare, section 8.10): its line
  * with its gap lines, its chunks as braces named by their source, their
  * boundaries, a run drawn once as "× n"; never the card's rectangle, name,
- * markers or any band of its own. The pane is an editor overlay: none of
+ * markers or any band of its own. Each row is named in a name column of
+ * the pane's own, its name cut as a drawing cuts a row's name (section
+ * 6.6), and its line starts at least `G'` right of that column (section
+ * 8.2), so no name covers a line. The pane is an editor overlay: none of
  * it is part of the block's drawing or written with an address.
  */
 
 import type { Block, Manifest, PlaceKey, VirtualTimeline } from "@timetoalign/tilie-core";
 import { FlowMapError, resolveFlowMap, samePlaceKey } from "@timetoalign/tilie-core";
 import { realOf, toAxisValue, toFloat, toRational } from "@timetoalign/tilie-core/numbers";
-import type { Drawing, DrawnBox, DrawnElement, LineElement } from "@timetoalign/tilie-layout";
-import { draw } from "@timetoalign/tilie-layout";
+import type {
+  Drawing,
+  DrawnBox,
+  DrawnElement,
+  LineElement,
+  Style,
+  TextElement,
+} from "@timetoalign/tilie-layout";
+import { cleanText, cutText, draw, G, TextMeasure } from "@timetoalign/tilie-layout";
 import { toDescriptors } from "@timetoalign/tilie-writers";
 import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
 import { styleLayers } from "./drawing.ts";
@@ -28,6 +38,9 @@ export const ROW_HEAD = 16;
 
 /** The width the pane keeps right of its longest row, in the block's drawing units. */
 export const PANE_PADDING = 8;
+
+/** The font size of the pane's texts, its rows' names among them, in the block's drawing units. */
+export const PANE_FONT_SIZE = 9;
 
 /** The height of the pane's head (Add +, Recompute), in the block's drawing units. */
 export const PANE_HEAD = 18;
@@ -84,9 +97,22 @@ export interface ChunkSpan {
   readonly gap: boolean;
 }
 
+/**
+ * A row's name in the pane's name column, cut as a drawing cuts a row's
+ * name (`docs/drawing.md` in TimeToShare, section 6.6): to the `max-width`
+ * of a name, at the pane's font size `PANE_FONT_SIZE`.
+ */
+export interface PaneName {
+  /** The text shown: the row's name, cut with `…` where it is wider than its `max-width`. */
+  readonly text: string;
+  /** The row's whole name where `text` is cut, shown on hover; `null` where it is shown whole. */
+  readonly whole: string | null;
+}
+
 /** One row of the pane as drawn. */
 export interface PaneRow {
   readonly row: FlowRow;
+  readonly name: PaneName;
   /** Why the FlowMap draws no chunks (it does not resolve); `null` where it resolves. */
   readonly problem: string | null;
   readonly items: readonly OverlayItem[];
@@ -121,6 +147,11 @@ export interface FlowPane {
     readonly height: number;
   };
   readonly nameX: number;
+  /**
+   * Where every row's line starts: where the card's does, or further right
+   * where the rows' own name column needs it, at least `G'` right of its
+   * widest name.
+   */
   readonly lineStart: number;
   readonly width: number;
   /**
@@ -145,6 +176,34 @@ const DRAWN: ReadonlySet<DrawnElement["type"]> = new Set([
 function drawnInRow(element: DrawnElement, id: string): boolean {
   if (element.address.id !== id || !DRAWN.has(element.type)) return false;
   return element.type === "timeline" || element.address.facet === "regions";
+}
+
+/** The name of the timeline `id` that `drawing` draws within `range` (its card's); `undefined` where none is drawn. */
+function nameIn(
+  drawing: Drawing,
+  id: string,
+  range: { readonly start: number; readonly end: number },
+): TextElement | undefined {
+  for (let index = range.start; index < range.end; index += 1) {
+    const element = drawing.elements[index];
+    if (element?.type === "name" && element.address.id === id) return element;
+  }
+  return undefined;
+}
+
+/**
+ * The name `text` of a row as the pane's name column shows it: cut to
+ * `maximum`, the `max-width` of a name, at the pane's font size, with its
+ * width.
+ */
+function paneName(
+  measure: TextMeasure,
+  text: string,
+  maximum: Style["max-width"],
+): { readonly name: PaneName; readonly width: number } {
+  const whole = cleanText(text);
+  const cut = cutText(measure, whole, PANE_FONT_SIZE, maximum);
+  return { name: { text: cut.text, whole: cut.text === whole ? null : whole }, width: cut.width };
 }
 
 /** The card box of `key` in `drawing`. */
@@ -208,15 +267,9 @@ export function flowPaneOf(
   const length = item?.item?.place.length ?? block.length;
   const scale = item?.item?.place.scale ?? 1;
   const written = toFloat(toRational(axis.drawnEnd));
-  const name = drawing.elements.find(
-    (element, index) =>
-      element.type === "name" &&
-      element.address.id === root &&
-      index >= card.range.start &&
-      index < card.range.end,
-  );
-  const lineStart = axis.xStart - card.x;
-  const nameX = name?.type === "name" ? name.x - card.x : PANE_PADDING;
+  const name = nameIn(drawing, root, card.range);
+  const cardLineStart = axis.xStart - card.x;
+  const nameX = name === undefined ? PANE_PADDING : name.x - card.x;
 
   const timeline = block.manifest.timelines.find((item) => item.id === root);
   const known = written > 0 && timeline?.length !== null;
@@ -270,14 +323,31 @@ export function flowPaneOf(
         );
   const descriptors = rowsDrawing === null ? [] : toDescriptors(rowsDrawing);
 
+  // The rows' own name column (section 6.6): each row's name cut to the max-width of its card's
+  // name, else of the root's, else drawn whole; the lines start G' right of the widest, never left
+  // of the card's line.
+  const measure = new TextMeasure(metrics);
+  const names = rows.map((row, index) => {
+    const id = ids[index] ?? "";
+    const box = rowsDrawing === null ? undefined : cardBox(rowsDrawing, { item: id });
+    const own =
+      rowsDrawing === null || box === undefined ? undefined : nameIn(rowsDrawing, id, box.range);
+    return paneName(measure, row.name, (own ?? name)?.style["max-width"] ?? "none");
+  });
+  const widest = Math.max(0, ...names.map((item) => item.width));
+  const lineStart =
+    names.length === 0 ? cardLineStart : Math.max(cardLineStart, nameX + widest + G * scale);
+
   const drawn = rows.map((row, index): PaneRow => {
     const id = ids[index] ?? "";
     const problem = problems.get(index) ?? null;
     const box = rowsDrawing === null ? undefined : cardBox(rowsDrawing, { item: id });
     const rowAxis = rowsDrawing?.axes.find((item) => item.address.id === id);
+    const shown = names[index]?.name ?? { text: row.name, whole: null };
     if (rowsDrawing === null || box === undefined || rowAxis === undefined) {
       return {
         row,
+        name: shown,
         problem: problem ?? "the FlowMap is not drawn",
         items: [],
         viewBox: { x: 0, y: 0, height: 0 },
@@ -324,6 +394,7 @@ export function flowPaneOf(
     chunks.sort((left, right) => left.index - right.index);
     return {
       row,
+      name: shown,
       problem,
       items,
       viewBox: { x: viewX, y: box.y, height: box.height },

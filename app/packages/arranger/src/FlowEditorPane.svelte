@@ -38,7 +38,14 @@ import {
   sweptValue,
 } from "./flowEditor.ts";
 import type { ChunkSpan, FlowPane, PaneRow } from "./flowEditorRows.ts";
-import { EMPTY_DRAFT, PANE_GAP, PANE_HEAD, ROW_HEAD, rowPlace } from "./flowEditorRows.ts";
+import {
+  EMPTY_DRAFT,
+  PANE_FONT_SIZE,
+  PANE_GAP,
+  PANE_HEAD,
+  ROW_HEAD,
+  rowPlace,
+} from "./flowEditorRows.ts";
 import type { GestureSlot, Point } from "./gesture.ts";
 import { drawingPoint, sourceAt } from "./gesture.ts";
 import type { ScreenRect } from "./gestures/flowDrag.ts";
@@ -659,9 +666,11 @@ function focusInput(element: HTMLInputElement): void {
       <span
         class="name"
         role="presentation"
+        data-testid="flow-row-name"
+        data-whole={row.name.whole ?? undefined}
         style:left="{pane.nameX * s}px"
         style:top="{row.lineY * s}px"
-        onpointerdown={(event) => pressRow(event, row)}>{row.row.name}</span
+        onpointerdown={(event) => pressRow(event, row)}>{row.name.text}</span
       >
       {#each row.chunks as span (span.index)}
         {@const entry = row.row.entries[span.index]}
@@ -720,7 +729,7 @@ function focusInput(element: HTMLInputElement): void {
     style:left="{origin.x + pane.x * s}px"
     style:top="{origin.y + pane.y * s}px"
     style:width="{Math.min(pane.width * s, maxWidth)}px"
-    style:font-size="{9 * s}px"
+    style:font-size="{PANE_FONT_SIZE * s}px"
   >
     <div class="pane-head" style:height="{PANE_HEAD * s}px">
       <button type="button" onclick={addRow} disabled={draft !== null}
@@ -865,6 +874,26 @@ function focusInput(element: HTMLInputElement): void {
     cursor: grab;
     touch-action: none;
     user-select: none;
+    white-space: nowrap;
+    /* Unhinted advances, as the drawing's texts: the name is cut to the width the advance table gives. */
+    font-kerning: none;
+    font-variant-ligatures: none;
+    text-rendering: geometricPrecision;
+  }
+
+  /* A cut name shown whole under the pointer, on an opaque face over what lies behind. */
+  .name[data-whole]:hover {
+    z-index: 2;
+  }
+
+  .name[data-whole]:hover::after {
+    content: attr(data-whole);
+    position: absolute;
+    top: 0;
+    left: -0.25em;
+    padding: 0 0.25em;
+    outline: 1px solid var(--tilie-flag-border);
+    background: var(--tilie-flag-background);
   }
 
   .entry {

@@ -341,6 +341,47 @@ describe("the pane as drawn", () => {
     expect(pane?.unit).toBe((1 * 400) / 1644);
   });
 
+  it("names each row whole where its name fits, the lines keeping the card's start", () => {
+    expect(pane?.rows.map((row) => row.name)).toEqual(
+      ["default", "printed", "single", "Practice"].map((text) => ({ text, whole: null })),
+    );
+  });
+
+  it("cuts a long row name in the pane's own name column, every line starting after it", () => {
+    const whole = "Practice: the opening four times, a breath, then the coda";
+    const named: typeof block = {
+      ...block,
+      manifest: {
+        ...block.manifest,
+        flow_maps: (block.manifest.flow_maps ?? []).map((flowMap) =>
+          flowMap.id === "by_hand" ? { ...flowMap, name: whole } : flowMap,
+        ),
+      },
+    };
+    const long = flowPaneOf(
+      named,
+      drawingOf(named, view.graphical, metrics),
+      view.graphical,
+      metrics,
+      ROOT,
+      flowRows(named.manifest, ROOT),
+    );
+    const start = 8 + (36307 * 9) / 2048 + 8;
+    expect(start).toBe(175.55224609375);
+    expect(long?.rows.map((row) => row.name)).toEqual([
+      { text: "default", whole: null },
+      { text: "printed", whole: null },
+      { text: "single", whole: null },
+      { text: "Practice: the opening four times, …", whole },
+    ]);
+    expect(long?.lineStart).toBe(start);
+    for (const row of long?.rows ?? []) {
+      expect(row.lineStart).toBe(start);
+      expect(row.chunks[0]?.x1).toBe(start);
+    }
+    expect(long?.rows[0]?.lineEnd).toBe(start + (400 * 2120.5) / 1644);
+  });
+
   it("places each row's card at the height of its row, indented by the line start", () => {
     if (pane === null) throw new Error("no pane");
     const [first, second, third] = pane.rows;

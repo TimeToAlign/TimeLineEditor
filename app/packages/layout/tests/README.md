@@ -1203,6 +1203,28 @@ later layer outranking the defaults (section 2.5), and cuts it to
 "LayerIt, Clair de lune mm. …", as the manifests of the LayerIt figures
 were cut before.
 
+**A cut name keeps its whole text** (section 6.6: the drawing writes the
+cut text alone, and the name lets an application find the whole). A name
+cut to its `max-width` carries the whole text it stands for, the names
+joined or the `content`, as `whole`, which no writer writes; a name drawn
+whole carries none, so its absence means "nothing is cut". The row above
+cut to `"A…"` carries `whole` `"AAAA"` (its `content`), the root's `"r"`
+none. On `flow/virtual_cards` with its three virtual timelines placed,
+every name at size 11 under the defaults' `max-width` 160, that is an
+advance sum of at most `160 × 2048 / 11 = 29789.09…` (`…` is 2048), each
+virtual card's whole name (`V · unfolded from T`, section 8.10) is cut as
+one text, so its suffix gives way first: `"Allegro, practice ·
+unfolded…"` (sum 29777, the next space 651 too many), `"Allegro, default
+· unfolded …"` (29353, the next `f` 721 too many) and `"Allegro, single ·
+unfolded fr…"` (29773, the next `o` 1253 too many), whole `"Allegro, practice
+· unfolded from Allegro"` and so on; `"Allegro"` and the title "Virtual
+cards" are whole and carry none. The name column `N` is measured on the
+cut names (section 8.2): `N = 29777 × 11 / 2048 = 159.93505859375`, so
+every name, drawn from `n = P + K = 16`, ends at most at `n + N =
+175.93505859375`, and every line of the block, the root's and the three
+virtual cards', starts at `s0 = n + N + G' = 183.93505859375`: no name
+covers a line.
+
 ## Stretch (`stretch.test.ts`)
 
 **Sizes.** For `nested`, `map`, `flow_control` and `with_region`, at

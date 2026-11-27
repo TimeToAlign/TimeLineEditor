@@ -20,6 +20,8 @@ export interface RowName {
   readonly first: Styled;
   readonly text: string;
   readonly width: number;
+  /** The whole text where `text` is cut (section 6.6); absent where it is drawn whole. */
+  readonly whole?: string;
 }
 
 /** A text as drawn: cut to its `max-width` or whole, with its width. */
@@ -83,8 +85,9 @@ export const lineNames = (lines: readonly Entry[]): NameItem[] =>
 /**
  * The text of a row of the name column (section 6.6): the displayed names
  * of `items`, in order, joined by `, `, or the `content` of the first of
- * them when it is not `none`, cut to that name's `max-width`; `undefined`
- * when no name is displayed, so the row has no text.
+ * them when it is not `none`, cut to that name's `max-width`, the whole
+ * text kept beside a cut one for an application's hover; `undefined` when
+ * no name is displayed, so the row has no text.
  */
 export function rowName(scope: Scope, items: readonly NameItem[]): RowName | undefined {
   const { measure } = scope;
@@ -97,8 +100,9 @@ export function rowName(scope: Scope, items: readonly NameItem[]): RowName | und
       ? visible.map((item) => item.text).join(", ")
       : first.style.content;
   const size = first.style["font-size"];
-  const cut = cutText(measure, cleanText(source), size, first.style["max-width"]);
-  return { first, text: cut.text, width: cut.width };
+  const whole = cleanText(source);
+  const cut = cutText(measure, whole, size, first.style["max-width"]);
+  return { first, text: cut.text, width: cut.width, ...(cut.text === whole ? {} : { whole }) };
 }
 
 /**
@@ -117,6 +121,7 @@ export function nameElement(scope: Scope, name: RowName, n: number, y: number): 
     baseline: y + (a(size) - d(size)) / 2,
     anchor: "start",
     text: name.text,
+    ...(name.whole === undefined ? {} : { whole: name.whole }),
   };
 }
 

@@ -7,8 +7,14 @@ import {
 } from "@timetoalign/tilie-core";
 import { dumps } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_LAYER, DEFAULT_PLACEMENT, draw, type TextElement } from "../src/index.ts";
-import { at, build, child, loadFile, metrics } from "./support.ts";
+import {
+  DEFAULT_LAYER,
+  DEFAULT_PLACEMENT,
+  draw,
+  type TextElement,
+  TextMeasure,
+} from "../src/index.ts";
+import { at, build, child, drawFixture, loadFile, metrics } from "./support.ts";
 
 describe("row names", () => {
   it("replaces, cuts and sizes a row from displayed and hidden names", () => {
@@ -35,12 +41,61 @@ describe("row names", () => {
       [at("a", "name"), "A…"],
       [at("r", "name"), "r"],
     ]);
+    expect(names.map((item) => item.whole)).toEqual(["AAAA", undefined]);
     expect(drawing.elements.find((item) => sameAddress(item.address, at("a")))).toMatchObject({
       y: 27.640625,
     });
     expect(drawing.elements.find((item) => sameAddress(item.address, at("b")))).toMatchObject({
       y: 27.640625,
     });
+  });
+
+  it("cuts every virtual card's whole name as one text, the column ending before every line", () => {
+    const drawing = drawFixture("flow/virtual_cards", [], {
+      ...DEFAULT_PLACEMENT,
+      places: { allegro_by_hand: {}, allegro_default: {}, allegro_single: {} },
+    });
+    const names = drawing.elements.filter((item): item is TextElement => item.type === "name");
+    expect(names.map((item) => [item.address, item.text, item.whole])).toEqual([
+      [{ part: ["name"] }, "Virtual cards", undefined],
+      [at("allegro", "name"), "Allegro", undefined],
+      [
+        at("allegro_by_hand", "name"),
+        "Allegro, practice · unfolded…",
+        "Allegro, practice · unfolded from Allegro",
+      ],
+      [
+        at("allegro_default", "name"),
+        "Allegro, default · unfolded …",
+        "Allegro, default · unfolded from Allegro",
+      ],
+      [
+        at("allegro_single", "name"),
+        "Allegro, single · unfolded fr…",
+        "Allegro, single · unfolded from Allegro",
+      ],
+    ]);
+    const measure = new TextMeasure(metrics);
+    const N = (29777 * 11) / 2048;
+    expect(N).toBe(159.93505859375);
+    const rows = names.slice(1);
+    expect(rows.map((item) => measure.advances(item.text).prefixes.at(-1))).toEqual([
+      7194, 29777, 29353, 29773,
+    ]);
+    // Each width is its sum × 11 / 2048, the widest N, so every name ends by n + N.
+    const widths = rows.map((item) => measure.width(item.text, 11));
+    expect(widths).toEqual([38.6396484375, N, 157.65771484375, 159.91357421875]);
+    expect(Math.max(...widths)).toBe(N);
+    expect(rows.map((item) => item.x)).toEqual([16, 16, 16, 16]);
+    const lines = drawing.elements.flatMap((item) =>
+      item.type === "timeline" ? [[item.address.id, item.xs]] : [],
+    );
+    expect(lines).toEqual(
+      ["allegro", "allegro_by_hand", "allegro_default", "allegro_single"].map((id) => [
+        id,
+        183.93505859375,
+      ]),
+    );
   });
 
   it("keeps a hidden card's box when nothing but the block is drawn", () => {
