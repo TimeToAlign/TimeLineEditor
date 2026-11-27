@@ -557,7 +557,7 @@ describe("the halo of a selected stroke", () => {
       ]),
     ).toEqual([
       ["fill", "none"],
-      ["stroke", "#0a84ff"],
+      ["stroke", null],
       ["stroke-opacity", "0.35"],
       ["stroke-width", String(width + 3)],
       ["stroke-linecap", "round"],

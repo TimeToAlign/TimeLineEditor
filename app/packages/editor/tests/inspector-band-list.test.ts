@@ -443,10 +443,13 @@ describe("the switch From the sources", () => {
       style(SOURCES("regions"), "inline"),
     );
     expect(rowOf(store, "allegro_default", "regions").sources?.pressed).toBe(true);
+    // The band draws `motto`, which the windows join to it: the drawing has it present.
+    expect(rowOf(store, "allegro_default", "regions").control.pressed).toBe(true);
     expect(pressSources(store, "allegro_default", "regions")).toEqual(
       style(SOURCES("regions"), null),
     );
     expect(rowOf(store, "allegro_default", "regions").sources?.pressed).toBe(false);
+    expect(rowOf(store, "allegro_default", "regions").control.pressed).toBe(false);
     expect(store.view.blocks[A]?.manifest.graphical?.rules ?? []).toEqual(rules);
   });
 
@@ -461,6 +464,19 @@ describe("the switch From the sources", () => {
       "The regions band of virtual timeline 'Allegro, default' is hidden.",
       null,
     ]);
+  });
+});
+
+describe("presence", () => {
+  it("is the drawing's: a band present in its row of one band order, no rule naming it", () => {
+    const store = storeOf("map_row_siblings");
+    const regions = (timeline: string) => rowOf(store, timeline, "regions").control.pressed;
+    const own = (id: string) => ({ element: "band", addresses: [{ id, facet: "regions" }] });
+    expect([regions("ante"), regions("cons")]).toEqual([false, false]);
+    expect(press(store, "ante", "regions")).toEqual([style(own("ante"), "inline")]);
+    expect([regions("ante"), regions("cons")]).toEqual([true, true]);
+    expect(press(store, "cons", "regions")).toEqual([style(own("cons"), "none")]);
+    expect([regions("ante"), regions("cons")]).toEqual([true, false]);
   });
 });
 

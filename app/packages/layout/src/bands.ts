@@ -13,6 +13,7 @@ import type { AxisMarker, AxisTimestamp } from "./boxes.ts";
 import { BRACE, EMPTY_BAND_LABEL_SIZE, LABEL_GAP } from "./constants.ts";
 import type {
   Cut,
+  Drawing,
   ForkElement,
   JumpElement,
   LeaderElement,
@@ -311,6 +312,48 @@ export function bandSides(order: readonly string[]): Readonly<Record<Facet, Side
     regions: side("regions"),
     flow_control: side("flow_control"),
   };
+}
+
+/**
+ * The facets of the present bands of each timeline a drawing draws with a
+ * line of its own, by the timeline's ID (`presentBands`).
+ */
+export type PresentBands = ReadonlyMap<string, ReadonlySet<Facet>>;
+
+const presentOf = new WeakMap<Drawing, PresentBands>();
+
+/**
+ * The bands `drawing` lays out as present (section 6.4, Levels and Empty
+ * bands), read from its band records, the one place that decides it: every
+ * timeline drawn with a line of its own (an ancestor line is not one), with
+ * the facets of its bands drawing a displayed element they hold (those its
+ * windows or its segments without a line of their own join to it
+ * included), shown explicitly (`Cascade.resolveBand`), or present in its
+ * row of one band order. A timeline the drawing does not draw (its line, or
+ * a holder of it, hidden; a virtual timeline not placed; a segment without
+ * a line) is no key. A child's flow control band is never present: it lies
+ * at no line of its own, what it holds being laid out in its root's
+ * (Gathering).
+ */
+export function presentBands(drawing: Drawing): PresentBands {
+  let present = presentOf.get(drawing);
+  if (present === undefined) {
+    const found = new Map<string, Set<Facet>>();
+    for (const { address, marker } of drawing.axes) {
+      if (marker !== null && address.id !== undefined && !found.has(address.id)) {
+        found.set(address.id, new Set());
+      }
+    }
+    for (const { band } of drawing.boxes) {
+      if (band === undefined) continue;
+      const facets = found.get(band.timeline) ?? new Set<Facet>();
+      facets.add(band.facet);
+      found.set(band.timeline, facets);
+    }
+    present = found;
+    presentOf.set(drawing, present);
+  }
+  return present;
 }
 
 /**

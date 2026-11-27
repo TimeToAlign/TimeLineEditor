@@ -5629,8 +5629,10 @@ screen position chosen for the case or a value derived above.
    **A selected stroke has a halo.** A selected line, path or polygon drawn
    by its stroke (never a stroked rectangle, a box, nor a shape or text
    without a stroke, which glow by the stylesheet) is drawn with a halo: a
-   `.tilie-halo` copy of its shape, every attribute but its address and its
-   markers kept, `fill` `none`, `stroke` the selection's `#0a84ff`,
+   `.tilie-halo` copy of its shape, every attribute but its address, its
+   markers and its `stroke` kept (no `stroke` attribute: the class takes
+   the selection's colour, the token `--tilie-selection`, from
+   `canvas.css`, which a component test does not load), `fill` `none`,
    `stroke-opacity` 0.35, `stroke-width` its own plus 3 (1 + 3 = 4 for a
    line of no stated width), round caps and joins, `pointer-events` `none`,
    `aria-hidden`, `data-halo` the key of its address. Proved on

@@ -1533,15 +1533,21 @@ which TimeToShare's cascade gives the band of `T` and of every descendant
 unless a rule of higher rank states otherwise (section 2.5: a band's own
 rule, a deeper `within`). What a box shows is read from the same cascade
 the canvas draws with; a press journals the `style`s it sends, read back
-through that cascade. A band is **present** when it is displayed and
-either draws an element it holds that is displayed (for a virtual
-timeline, also one its chunks' windows join to it) or is **shown
-explicitly**, the rule setting its `display` being `inline` and naming
-`addresses` or `within` (section 6.4, Empty bands, `Cascade.resolveBand`);
-a band displayed by the initial value alone that draws nothing is absent,
-so not drawn. A child's flow control band is laid out in its root's, at no
-line of its own, so it is present while displayed. A band **shows what it
-holds** when it is present and, for a regions or a conversion maps band
+through that cascade. Whether a band is **present** (section 6.4, Levels
+and Empty bands) is read from the block's drawing, never decided again
+here: layout's `presentBands`, the bands its records lay out, those drawing
+a displayed element they hold (for a virtual timeline, also one its
+chunks' windows join to it), those **shown explicitly** (the rule setting
+the band's `display` being `inline` and naming `addresses` or `within`,
+`Cascade.resolveBand`) and those present in their row of one band order;
+a band displayed by the initial value alone that draws nothing is absent.
+For a timeline the drawing does not draw (its line hidden, a virtual
+timeline not placed) the drawing has no presence to give: its band is
+present where it is shown explicitly. A band is **there** when it is
+displayed and present, or is a child's flow control band displayed: that
+band is laid out in its root's, at no line of its own, and is never
+present, so the control reads it by its display alone, a rule of the
+control. A band **shows what it holds** when it is there and, for a regions or a conversion maps band
 holding some, one of them is displayed (the defaults hide the atomic
 sections, section 4): the own box is checked exactly then, the tree's box checked when every band of its
 facet in the tree shows what it holds, indeterminate (mixed) when some do
@@ -1752,6 +1758,22 @@ are the fixtures' own speaking ones.
    from the sources visible", enabled, unchecked; a change of the Regions
    switch journals the command above and leaves it checked; nothing is
    posted. A root's table is headed Band and Visible alone (item 7).
+   While the Regions switch is on, `allegro_default`'s own Regions box is
+   checked: its band draws `motto`, which the windows join to it, so the
+   drawing has it present; switched off again, unchecked.
+9. **Presence is the drawing's.** What proves that the boxes read the
+   drawing and no rule of their own is a band the drawing has present
+   though it neither holds anything displayed nor is shown explicitly: on
+   `map_row_siblings` the children `ante` and `cons` of `piece` lie in one
+   row of one band order (layout's own test "A row of one band order"),
+   neither holding a region, so both Regions boxes start unchecked
+   (absent). `ante`'s own Regions pressed → the one command `{select:
+   {element: "band", addresses: [{id: "ante", facet: "regions"}]}, set:
+   {display: "inline"}}`; then `ante`'s Regions is checked and so is
+   `cons`'s, its band present in the row though no rule names it. `cons`'s
+   pressed → `{select: {element: "band", addresses: [{id: "cons", facet:
+   "regions"}]}, set: {display: "none"}}` (hiding asks for `none` while it
+   is displayed); then `cons`'s unchecked, `ante`'s still checked.
 
 ## The bundle's timeline list (`inspector-timeline-list.test.ts`)
 

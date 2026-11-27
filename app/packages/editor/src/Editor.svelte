@@ -774,10 +774,13 @@ if (withTestHook) {
 <style>
   /* The whole editor fills the element the host gives it; its parts are sized by its width. */
   .editor {
-    /* The flags of the canvas and the inspector: an opaque face covering what lies
-       behind, and its edge. */
+    /* The tokens of everything the editor holds, the canvas and the inspector alike, defined
+       here alone: the flags' opaque face covering what lies behind and their edge, and the
+       selection's colour. The canvas reads each with its own fallback, for a canvas mounted
+       without the editor. */
     --tilie-flag-background: #fff;
     --tilie-flag-border: #c8c8c8;
+    --tilie-selection: #0a84ff;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto 1fr;

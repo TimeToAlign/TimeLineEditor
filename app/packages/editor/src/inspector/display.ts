@@ -22,11 +22,13 @@
  * same display `within` `T`, `{element: "band", facet, within: T}`, which
  * the cascade gives the band of `T` and of every descendant unless a rule
  * of higher rank (a band's own, a deeper `within`) states otherwise
- * (section 2.5). A band shows what it holds when it is displayed and
- * present, drawing a displayed element or shown explicitly (section 6.4,
- * Empty bands), and, for a regions or a conversion maps band holding some,
- * one of them is displayed (the defaults hide the atomic sections, section
- * 4): showing writes the band's rule where the band is hidden or absent,
+ * (section 2.5). A band shows what it holds when it is there, displayed
+ * and present as layout lays it out in its block's drawing (`presentBands`:
+ * drawing a displayed element, or shown explicitly, section 6.4, Empty
+ * bands) or a child's flow control band displayed (`inRootsBand`), and,
+ * for a regions or a conversion maps band holding some, one of them is
+ * displayed (the defaults hide the atomic sections, section 4): showing
+ * writes the band's rule where the band is hidden or absent,
  * so an empty band appears, and the rule displaying its regions or maps
  * (`{element: type, within: T}`) where none is displayed (`bandCommands`).
  *
@@ -60,8 +62,8 @@
  * Visible when the band is reached and holds a displayed element.
  */
 
-import type { Subject } from "@timetoalign/tilie-arranger";
-import { styleLayers } from "@timetoalign/tilie-arranger";
+import type { Pane, Subject } from "@timetoalign/tilie-arranger";
+import { drawingOf, styleLayers } from "@timetoalign/tilie-arranger";
 import type {
   Block,
   ElementAddress,
@@ -90,9 +92,10 @@ import {
 } from "@timetoalign/tilie-core";
 import type { ElementKey } from "@timetoalign/tilie-core/drawing";
 import { axisCoordinate, compareReal, realOf } from "@timetoalign/tilie-core/numbers";
-import type { Style } from "@timetoalign/tilie-layout";
-import { Cascade } from "@timetoalign/tilie-layout";
+import type { PresentBands, Style } from "@timetoalign/tilie-layout";
+import { Cascade, presentBands } from "@timetoalign/tilie-layout";
 import type { Address, ElementType, Selector } from "@timetoalign/timetoshare";
+import { fontMetrics } from "@timetoalign/timetoshare";
 import type { FlowSubject } from "./flow.ts";
 import { bandWord } from "./words.ts";
 
@@ -239,22 +242,28 @@ const ELEMENT_DRAWN: { readonly [role in FlowSubject["element"]["role"]]: readon
 
 /**
  * What the controls of one block read: the block in `view`, the cascade its
- * manifest is drawn with, and its manifest's element keys by address.
+ * manifest is drawn with, its manifest's element keys by address, and the
+ * bands its drawing at `pane` lays out as present.
  */
 class Reading {
   readonly view: View;
   readonly block: Block;
   readonly manifest: Manifest;
   readonly cascade: Cascade;
+  /** The canvas's pane the block is drawn at; `undefined` for layout's default view. */
+  readonly pane: Pane | undefined;
   readonly #keys = new Map<string, ElementKey[]>();
   /** The style of each key read, by key. */
   readonly #styles = new Map<ElementKey, Style>();
+  /** The present bands of the block's drawing, drawn when first asked for. */
+  #present: PresentBands | undefined;
   /** Whether each band read is shown explicitly, by key. */
   readonly #explicit = new Map<ElementKey, boolean>();
 
-  constructor(view: View, block: Block) {
+  constructor(view: View, block: Block, pane?: Pane) {
     this.view = view;
     this.block = block;
+    this.pane = pane;
     this.manifest = block.manifest;
     this.cascade = cascadeOf(view.graphical, block.manifest);
     for (const key of indexOf(block.manifest).elements) {
@@ -291,11 +300,22 @@ class Reading {
   }
 
   /**
-   * Whether the band `key` is shown explicitly (section 6.4, Empty bands):
-   * the rule setting its `display` sets `inline` and names `addresses` or
-   * `within` (`Cascade.resolveBand`).
+   * Whether the band `key` is present (section 6.4, Levels and Empty
+   * bands), as layout lays it out in the block's drawing (`presentBands`),
+   * the one the canvas shows where the view is the canvas's. A band of a
+   * timeline that drawing does not draw with a line of its own (its line or
+   * a holder of it hidden, a virtual timeline not placed) has no presence to
+   * read there: it is present as it would be laid out drawing nothing, where
+   * it is shown explicitly (`Cascade.resolveBand`).
    */
-  explicit(key: ElementKey): boolean {
+  present(key: ElementKey): boolean {
+    const { id } = key.address;
+    if (id === undefined || key.facet === null) return false;
+    this.#present ??= presentBands(
+      drawingOf(this.block, this.view.graphical, fontMetrics, undefined, this.pane),
+    );
+    const drawn = this.#present.get(id);
+    if (drawn !== undefined) return drawn.has(key.facet);
     let explicit = this.#explicit.get(key);
     if (explicit === undefined) {
       explicit = this.cascade.resolveBand(key, undefined).explicit;
@@ -529,61 +549,37 @@ function bandKeys(reading: Reading, select: Selector): ElementKey[] {
 }
 
 /**
- * Whether `band` is displayed and **present** (section 6.4, Empty bands):
- * it draws an element it holds, one displayed, or it is shown explicitly,
- * so that, empty, it takes its room all the same. A band displayed by the
- * initial value alone that draws nothing is absent. A child's flow control
- * band is laid out in its root's, at no line of its own (section 6.4), so
- * it is present while displayed: what it holds is drawn in its root's band.
- * A virtual timeline's band also draws what its chunks' windows join to it
- * (section 8.10, Windows: `windowsDraw`).
+ * Whether `band` is a child's flow control band, which the control reads as
+ * there while it is displayed (section 6.4, Gathering): it lies at no line
+ * of its own and is never present, what it holds being laid out in its
+ * root's flow control band, so displaying it is all a press of its control
+ * can do.
  */
-function present(
-  reading: Reading,
-  band: ElementKey,
-  held: readonly ElementKey[] = heldOf(reading, band),
-): boolean {
-  if (!reading.own(band)) return false;
+function inRootsBand(reading: Reading, band: ElementKey): boolean {
   const { id } = band.address;
-  if (id === undefined || band.facet === null) return true;
-  if (band.facet === "flow_control" && reading.ancestry(id)[0] !== id) return true;
-  return (
-    held.some((key) => reading.own(key) && draws(reading, key)) ||
-    reading.explicit(band) ||
-    windowsDraw(reading, id, band.facet)
-  );
+  return band.facet === "flow_control" && id !== undefined && reading.ancestry(id)[0] !== id;
 }
 
 /**
- * Whether the chunks' windows of the virtual timeline `V` join a displayed
- * element to its band of `facet`: a window band of that facet is displayed
- * and an element of the facet's types it shows is (`SHOWN`); `false` for a
- * timeline that is not virtual, which has no window.
+ * Whether `band` is **there**: displayed and present (`Reading.present`: an
+ * empty band displayed by the initial value alone is absent, one shown
+ * explicitly present), or a child's flow control band displayed
+ * (`inRootsBand`).
  */
-function windowsDraw(reading: Reading, virtual: string, facet: Facet): boolean {
-  const shown = reading.elements.filter((key) => key.window === virtual && reading.own(key));
-  return (
-    shown.some(
-      (key) =>
-        key.type === "band" &&
-        key.facet === facet &&
-        key.address.id === virtual &&
-        typeof key.address.part?.[0] === "number",
-    ) && shown.some((key) => key.type !== "band" && SHOWN[facet].includes(key.type))
-  );
+function there(reading: Reading, band: ElementKey): boolean {
+  return reading.own(band) && (inRootsBand(reading, band) || reading.present(band));
 }
 
 /**
- * Whether `band` shows what it holds: displayed and present (`present`)
- * and, for a band whose content its control also shows (`CONTENT`),
- * holding none of it or one of it displayed.
+ * Whether `band` shows what it holds: there (`there`) and, for a band whose
+ * content its control also shows (`CONTENT`), holding none of it or one of
+ * it displayed.
  */
 function shows(reading: Reading, band: ElementKey): boolean {
-  const held = heldOf(reading, band);
-  if (!present(reading, band, held)) return false;
+  if (!there(reading, band)) return false;
   const content = band.facet === null ? undefined : CONTENT[band.facet];
   if (content === undefined) return true;
-  const kept = held.filter((key) => key.type === content);
+  const kept = heldOf(reading, band).filter((key) => key.type === content);
   return kept.length === 0 || kept.some((key) => reading.own(key));
 }
 
@@ -1066,10 +1062,10 @@ function filled(reading: Reading, band: ElementKey): boolean {
 
 /**
  * The `style`s a press of the band control `control` sends for `block` in
- * `view`, in order; `[]` where nothing is to change. Pressed, it hides its
- * bands; else it shows them. A band **lacks** what a press asks for while,
- * showing, it is not displayed and present (`present`: an empty band
- * displayed by the initial value alone is absent), unless it is displayed
+ * `view`, drawn at `pane` (the canvas's), in order; `[]` where nothing is
+ * to change. Pressed, it hides its bands; else it shows them. A band
+ * **lacks** what a press asks for while, showing, it is not there (`there`:
+ * an empty band displayed by the initial value alone is absent), unless it is displayed
  * and holds regions or maps that step 4 displays (`filled`), and, hiding,
  * while it is displayed. Each step is read on the view the previous ones
  * leave (`preview`):
@@ -1090,15 +1086,20 @@ function filled(reading: Reading, band: ElementKey): boolean {
  *    that rule removed where the manifest states it (it then changes
  *    nothing drawn, its bands hidden).
  */
-export function bandCommands(view: View, block: Block, control: Control): StyleCommand[] {
+export function bandCommands(
+  view: View,
+  block: Block,
+  control: Control,
+  pane?: Pane,
+): StyleCommand[] {
   const show = !control.pressed;
   const commands: StyleCommand[] = [];
-  let reading = new Reading(view, block);
+  let reading = new Reading(view, block, pane);
   const read = (command: StyleCommand): Reading | null => {
     const viewed = preview(reading.view, command);
     if (isCommandError(viewed)) return null;
     const next = viewed.blocks[block.id];
-    return next === undefined ? null : new Reading(viewed, next);
+    return next === undefined ? null : new Reading(viewed, next, pane);
   };
   const send = (command: StyleCommand): void => {
     const next = read(command);
@@ -1112,7 +1113,7 @@ export function bandCommands(view: View, block: Block, control: Control): StyleC
   // `none` while it is displayed.
   const lacking = (on: Reading): ElementKey[] =>
     bandKeys(on, control.select).filter((key) =>
-      show ? !present(on, key) && !(on.own(key) && filled(on, key)) : on.own(key),
+      show ? !there(on, key) && !(on.own(key) && filled(on, key)) : on.own(key),
     );
   const { select } = control;
   const tree = select.within !== undefined;
@@ -1168,13 +1169,14 @@ function timelineOf({ resolved }: Subject): string | null {
 }
 
 /**
- * The band list of the timeline the subjects name, in `view`: when every
- * subject is the card of one timeline or virtual timeline `T`, its line, or
- * one of its bands, one row per band of `T` in its band order
- * (`bandOrderOf`: its entry of `graphical.order` completed against the
- * order it inherits), every timeline alike: a root's, a child's (its flow
- * control band included, which holds the child's flow-control elements),
- * a virtual timeline's (its markers and regions, the bands it has). Each
+ * The band list of the timeline the subjects name, in `view`, its block
+ * drawn at `pane` (the canvas's): when every subject is the card of one
+ * timeline or virtual timeline `T`, its line, or one of its bands, one row
+ * per band of `T` in its band order (`bandOrderOf`: its entry of
+ * `graphical.order` completed against the order it inherits), every
+ * timeline alike: a root's, a child's (its flow control band included,
+ * which holds the child's flow-control elements), a virtual timeline's (its
+ * five bands, which also draw what its chunks' windows join to them). Each
  * row is the control of the band's own `display`, the rule `{element:
  * "band", addresses: [{id: T, facet}]}`, and, where `T` has descendants,
  * the same `within` `T`, `{element: "band", facet, within: T}` (`Reach`);
@@ -1183,7 +1185,7 @@ function timelineOf({ resolved }: Subject): string | null {
  * "From the sources" (`sourcesControl`), the same for every chunk: no
  * switch is offered per chunk. `null` for any other selection.
  */
-export function bandList(view: View, subjects: readonly Subject[]): BandRow[] | null {
+export function bandList(view: View, subjects: readonly Subject[], pane?: Pane): BandRow[] | null {
   const [first] = subjects;
   if (first === undefined) return null;
   const ids = new Set<string>();
@@ -1196,7 +1198,7 @@ export function bandList(view: View, subjects: readonly Subject[]): BandRow[] | 
   if (id === undefined || others.length > 0) return null;
   const block = view.blocks[first.block];
   if (block === undefined) return null;
-  const reading = new Reading(view, block);
+  const reading = new Reading(view, block, pane);
   const descendants = [...indexOf(reading.manifest).ancestry.values()].some(
     (ancestry) => ancestry.at(-1) !== id && ancestry.includes(id),
   );

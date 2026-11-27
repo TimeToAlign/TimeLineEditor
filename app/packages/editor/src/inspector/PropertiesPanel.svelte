@@ -148,7 +148,7 @@ const band = $derived(shown === null ? null : bandRows(inspected, shown));
 const controls = $derived(band === null ? null : bandControls(view, inspected));
 
 /** The bands of the selected timeline, each with its Visible checkbox; else `null`. */
-const bands = $derived(block === null ? null : bandList(view, inspected));
+const bands = $derived(block === null ? null : bandList(view, inspected, pane));
 
 /** The cards of the selected bundle, a virtual timeline's with its Visible checkbox; else `null`. */
 const timelines = $derived(block === null ? null : timelineList(view, inspected));

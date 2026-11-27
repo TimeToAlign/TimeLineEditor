@@ -32,6 +32,7 @@ import {
   lineAxes,
   manifestLayer,
   type Placement,
+  presentBands,
 } from "../src/index.ts";
 import {
   ARCS_ALONE,
@@ -264,6 +265,96 @@ describe("a child's shown regions band", () => {
     expect(drawing.elements.find((item) => sameAddress(item.address, at("c")))).toMatchObject({
       y: 38,
     });
+  });
+});
+
+describe("presentBands", () => {
+  const manifest = build("r", 8, child("r", "c", 2, 4), {
+    type: "add",
+    into: target("c"),
+    region: { id: "region_1", name: null, start: quarters(0), end: quarters(4), meta: {} },
+  });
+  /** A layer displaying what `select` selects. */
+  const showing = (select: object): Graphical =>
+    ({ rules: [{ select, set: { display: "inline" } }] }) as Graphical;
+  /** The present bands as `[timeline, facets]` pairs, in the drawing's order. */
+  const present = (drawing: Drawing) =>
+    [...presentBands(drawing)].map(([timeline, facets]) => [timeline, [...facets]]);
+
+  it("lists every drawn timeline with the facets of its recorded bands", () => {
+    expect(present(drawn(manifest))).toEqual([
+      ["r", ["children", "markers"]],
+      ["c", ["regions"]],
+    ]);
+    expect(present(drawn(manifest, [CHILD_REGIONS_HIDDEN]))).toEqual([
+      ["r", ["children", "markers"]],
+      ["c", []],
+    ]);
+    const hidden: Graphical = {
+      rules: [{ select: { addresses: [at("r")] }, set: { display: "none" } }],
+    };
+    expect(present(drawn(manifest, [hidden]))).toEqual([]);
+  });
+
+  it("lists empty bands shown explicitly, never a child's flow control band", () => {
+    const nested = loadFile("nested");
+    expect(
+      present(
+        drawn(nested, [showing({ element: "band", facet: "flow_control", within: "clt_1" })]),
+      ),
+    ).toEqual([
+      ["clt_1", ["children", "markers", "flow_control"]],
+      ["clt_3", ["children"]],
+      ["clt_2", []],
+    ]);
+  });
+
+  it("lists a band present in its row of one band order without a rule of its own", () => {
+    const siblings = loadFile("map_row_siblings");
+    expect(
+      present(
+        drawn(siblings, [
+          showing({ element: "band", addresses: [{ id: "ante", facet: "regions" }] }),
+        ]),
+      ),
+    ).toEqual([
+      ["piece", ["children", "markers"]],
+      ["ante", ["conversion_maps", "regions"]],
+      ["cons", ["conversion_maps", "regions"]],
+    ]);
+  });
+
+  it("gives a segment line what its segments join to it, the segments no key", () => {
+    expect(
+      present(
+        drawFixture("unknown_length_segments", [showing({ element: "band", facet: "regions" })]),
+      ),
+    ).toEqual([["form", ["markers", "regions"]]]);
+  });
+
+  it("gives a placed virtual timeline what its windows join to its bands", () => {
+    const V = "allegro_default";
+    const placed: Placement = { ...DEFAULT_PLACEMENT, places: { [V]: {} } };
+    expect(present(drawFixture("flow/virtual_cards"))).toEqual([["allegro", ["flow_control"]]]);
+    expect(present(drawFixture("flow/virtual_cards", [], placed))).toEqual([
+      ["allegro", ["flow_control"]],
+      [V, []],
+    ]);
+    const motto = edit("flow/virtual_cards", {
+      type: "add",
+      into: target("allegro"),
+      region: { id: "motto", name: "Motto", start: quarters(100), end: quarters(200) },
+    });
+    expect(present(drawn(motto, [], placed))).toEqual([
+      ["allegro", ["regions", "flow_control"]],
+      [V, []],
+    ]);
+    expect(
+      present(drawn(motto, [showing({ facet: "regions", inside: "chunk", within: V })], placed)),
+    ).toEqual([
+      ["allegro", ["regions", "flow_control"]],
+      [V, ["regions"]],
+    ]);
   });
 });
 

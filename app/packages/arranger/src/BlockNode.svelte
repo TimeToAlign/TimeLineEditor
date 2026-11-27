@@ -410,8 +410,6 @@ function glows(entry: Entry): boolean {
   return !isBoxShape(entry.role) && isSelected(entry);
 }
 
-/** The selection's colour, which a selected stroke and its halo take. */
-const SELECTION_COLOUR = "#0a84ff";
 /** How much wider than its stroke a selected stroke's halo is, and how opaque. */
 const HALO_WIDENING = 3;
 const HALO_OPACITY = "0.35";
@@ -430,20 +428,22 @@ function haloed(entry: Entry): boolean {
 
 /**
  * The halo of a selected stroke: a copy of its shape, no address, a wider
- * translucent stroke of the selection's colour and no fill, drawn under the
- * stroke where the stroke's layer allows it, so the selection follows the
- * stroke and never shows a box (no `filter`, which is rastered again at every
- * zoom step).
+ * translucent stroke and no fill, drawn under the stroke where the stroke's
+ * layer allows it, so the selection follows the stroke and never shows a box
+ * (no `filter`, which is rastered again at every zoom step). Its stroke's
+ * colour is the selection's, the canvas's token `--tilie-selection` its
+ * class `tilie-halo` takes (`canvas.css`), so it keeps no stroke of its own.
  */
 function haloOf(entry: Entry): Record<string, string> {
   const own = Number(entry.attributes["stroke-width"] ?? 1);
   const attributes = Object.fromEntries(
-    Object.entries(shapeOf(entry)).filter(([name]) => !name.startsWith("marker")),
+    Object.entries(shapeOf(entry)).filter(
+      ([name]) => !name.startsWith("marker") && name !== "stroke",
+    ),
   );
   return {
     ...attributes,
     fill: "none",
-    stroke: SELECTION_COLOUR,
     "stroke-opacity": HALO_OPACITY,
     "stroke-width": attributeText(own + HALO_WIDENING),
     "stroke-linecap": "round",

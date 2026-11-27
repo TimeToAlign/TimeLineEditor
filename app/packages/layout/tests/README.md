@@ -4134,6 +4134,28 @@ timeline and facet.
 | `unknown_length_segments`, regions shown (`x` 42.42431640625, width 435.916015625, `line` 24) | `form` markers −1, 2, `y` 24, 26.9765625; `form` regions −2, 2 (its segments' regions), 54.9765625, 18.4765625 |
 | `r` with an unlabelled break | `r` flow control −2, 1, `y` 53.37890625, 0 high |
 
+**Present bands.** `presentBands(drawing)` is what the editor reads to
+know whether a band is present (section 6.4, Levels and Empty bands), so
+it must say exactly what the band records say and nothing of its own: per
+timeline drawn with a line of its own (an axis with a coordinate marker),
+the facets of its recorded bands; no key for a timeline not drawn. What
+would break it is a band present without a record or recorded but not
+listed, a timeline drawn without a key (its bands would read as not
+drawn), or a key for one not drawn; so each case is one the presence rule
+decides differently from "holds a displayed element":
+
+| case | present bands |
+|---|---|
+| `r` with the child `c` and its region (above), defaults | `r` children, markers; `c` regions |
+| the same, `CHILD_REGIONS_HIDDEN` | `r` children, markers; `c` none (drawn, a key) |
+| the same, `r`'s line hidden | no key: nothing drawn |
+| `nested`, `{element: band, facet: flow_control, within: clt_1}` `inline` | `clt_1` children, markers, flow control (empty, shown explicitly); `clt_3` children; `clt_2` none: a child's flow control band is never present |
+| `map_row_siblings`, `ante`'s own regions rule `inline` | `piece` children, markers; `ante` conversion maps, regions; `cons` conversion maps, regions (no rule of its own: present in its row of one band order) |
+| `unknown_length_segments`, `{element: band, facet: regions}` `inline` | `form` markers, regions (its segments' regions); the segments `a`, `b`, `c`, no line of their own, no key |
+| `flow/virtual_cards`, nothing placed | `allegro` flow control; no virtual timeline drawn |
+| the same with `allegro_default` placed | also `allegro_default`, none |
+| the same with `allegro`'s region motto [100, 200] and the rule `{facet: regions, inside: chunk, within: allegro_default}` `inline` (the windows of section 8.10) | `allegro` regions, flow control; `allegro_default` regions, what its windows join to its band (none without the rule) |
+
 **Core's listing.** Over every manifest fixture, the block, frame and card
 records carry core's kind, address and holder (the holder's place key) in
 core's order, displayed or hidden, the ancestor cards included under the

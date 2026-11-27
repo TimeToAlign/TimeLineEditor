@@ -104,7 +104,10 @@ export interface DrawnBox {
     readonly facet: Facet;
     /** Signed and never 0: 1, 2, … above its timeline's line, outwards; −1, −2, … below it. */
     readonly level: number;
-    /** The number of displayed elements it holds directly; at least 1. */
+    /**
+     * The number of displayed elements it holds directly; 0 for a band present though it draws
+     * nothing (shown explicitly, or present in its row of one band order).
+     */
     readonly elements: number;
     /** The ordinate of its timeline's line, telling two drawings of one timeline apart. */
     readonly line: number;

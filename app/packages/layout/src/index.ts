@@ -27,6 +27,8 @@ export {
   timestampSegments,
   wedgeAt,
 } from "./axes.ts";
+export type { PresentBands } from "./bands.ts";
+export { presentBands } from "./bands.ts";
 export { draw } from "./block.ts";
 export type {
   AxisMap,
