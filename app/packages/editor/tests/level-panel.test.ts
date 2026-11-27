@@ -366,11 +366,21 @@ describe("the Flow control tab", () => {
     expect(options.map((option) => option.textContent)).toEqual([
       "Repeat start",
       "Repeat end",
+      "First and second ending",
       "Volta bracket start",
+      "Break between volta brackets",
+      "Da capo",
+      "Da capo al fine",
+      "Da capo al coda",
+      "Dal segno",
+      "Dal segno al fine",
+      "Dal segno al coda",
+      "To coda",
+      "Ossia fork",
       "Segno",
       "Coda",
-      "Da capo",
       "Fine",
+      "Ossia sign",
       "Section break",
       "Double barline",
       "Final barline",
@@ -378,6 +388,17 @@ describe("the Flow control tab", () => {
       "Jump target",
       "Break",
       "Barline",
+    ]);
+    expect(
+      [...document.querySelectorAll('[data-testid="flow-control-add"] optgroup')].map((group) =>
+        group.getAttribute("label"),
+      ),
+    ).toEqual([
+      "Repeats and endings",
+      "Jumps",
+      "Signs",
+      "Sections and barlines",
+      "Elements without a word",
     ]);
     expect(document.querySelectorAll('[data-testid="flow-control-add"] select').length).toBe(1);
     expect(position().value).toBe("");
@@ -423,13 +444,62 @@ describe("the Flow control tab", () => {
             manifestation: "da_capo",
             repeat_count: 1,
             determined: true,
-            reset: true,
+            reset: false,
             label: null,
           },
         ],
       },
     ]);
     expect(rows()).toHaveLength(6);
+  });
+
+  it("asks for a dal segno's segno and Fine, adds all three and selects them", () => {
+    const store = flowStore();
+    const pressed: (readonly Address[])[] = [];
+    show(store, undefined, undefined, false, NOTHING_SELECTED, (next) => pressed.push(next));
+    const kind = document.querySelector<HTMLSelectElement>(
+      '[data-testid="flow-control-add"] select',
+    );
+    if (kind === null) throw new Error("no element select");
+    kind.value = "dal_segno_al_fine";
+    kind.dispatchEvent(new Event("change"));
+    flushSync();
+    const field = (label: string): HTMLInputElement | HTMLSelectElement => {
+      const found = [...document.querySelectorAll('[data-testid="flow-control-add"] label')].find(
+        (item) => item.querySelector("span")?.textContent === label,
+      );
+      const control = found?.querySelector<HTMLInputElement | HTMLSelectElement>("input, select");
+      if (control === null || control === undefined) throw new Error(`no field ${label}`);
+      return control;
+    };
+    const optionsOf = (label: string) =>
+      [...(field(label) as HTMLSelectElement).options].map((option) => option.textContent);
+    expect(optionsOf("Segno")).toEqual(["New segno"]);
+    expect(optionsOf("Fine")).toEqual(["New Fine"]);
+    for (const [label, value] of [
+      ["Position", "1100"],
+      ["New segno at", "600"],
+      ["New Fine at", "1000"],
+    ] as const) {
+      const input = field(label);
+      input.value = value;
+      input.dispatchEvent(new Event("input"));
+    }
+    flushSync();
+    document
+      .querySelector<HTMLButtonElement>('[data-testid="flow-control-add"] button[type="submit"]')
+      ?.click();
+    flushSync();
+    expect(status()).toBe("");
+    const [segno, jump, fine] = storeMints("jump_target", "jump", "break");
+    expect(pressed).toEqual([
+      [
+        { block: A, id: segno },
+        { block: A, id: fine },
+        { block: A, id: jump },
+      ],
+    ]);
+    expect(rows()).toHaveLength(7);
   });
 
   it("refuses a position that is no value, and what the store refuses, storing nothing", () => {

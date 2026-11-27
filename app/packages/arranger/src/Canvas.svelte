@@ -574,10 +574,6 @@ setNodeActions({
   dispatch(command: Command) {
     dispatch(command);
   },
-  edit(target, commands) {
-    const error = store.edit(target, commands);
-    if (error !== null) onrefuse?.(error.message);
-  },
   select(address) {
     selection = selectionOf([address]);
   },

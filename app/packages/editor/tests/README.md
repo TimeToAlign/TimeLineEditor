@@ -2472,34 +2472,132 @@ real store (`storeOf`), its editors opened through the store.
    `volta_jump` at 953/2, `repeat_end` at 500, `second_ending` and
    `volta_break` at 500, in the manifest's order): the title line, the area
    "Add flow control" (`flow-control-add`) with the select "Element"
-   offering the fourteen kinds in order (Repeat start, Repeat end, Volta
-   bracket start, Segno, Coda, Da capo, Fine, Section break, Double
-   barline, Final barline, Jump, Jump target, Break, Barline), no
-   "Timeline" select (the tree is one timeline), the field "Position"
-   empty with nothing selected, and Add; then the area "Flow-control
-   elements" with the four rows in the manifest's order, the first "Jump
-   (volta, volta)", the second "Jump (repeat end)", each with its ID as its
-   name (none is named or labelled) and its coordinate ("953/2 ♩", "500
-   ♩"). Selecting `repeat_end` proposes "500" in Position; selecting
-   `section_a` (a region from 0) proposes "0". Adding "Repeat start" at
-   "100" stores one `add` into `allegro` of `{role: "jump_target",
-   coordinate: [100, 1], manifestation: "repeat_start"}` (read back from
-   the manifest: one more element, a JumpTarget at 100 with that
-   manifestation, its ID core's), and `onselect` is called with exactly
-   that element's address; adding "Da capo" at "1000" stores a Jump at
-   1000 whose one destination is `{to: allegro, manifestation: "da_capo",
-   repeat_count: 1}` (with `determined` and `reset` true, `label` null, as
-   the complete form writes them). Add with an empty Position, and with
-   "x", stores nothing (the journal keeps its length) and shows a
-   refusal in the status line ("type the position of the new element";
-   core's reading of "x", `"x" is no fraction value; write an integer, n/d,
-   a b/c or a decimal`); a second "Repeat end" at 500, where a Jump already
-   stands, is refused by the store, its message in the status line (`'repeat_end'
-   is a second jump at coordinate [500, 1] of 'allegro', after '<J>':
-   several signs at one place are destinations of one jump`, `<J>` the ID the
-   store's minter gives the refused element first, `storeMints("jump")`),
-   the snapshot unchanged. A row's press calls `onselect` with its
-   element's address.
+   offering the twenty-four kinds in order, in five groups (`optgroup`
+   labels "Repeats and endings", "Jumps", "Signs", "Sections and barlines",
+   "Elements without a word"): Repeat start, Repeat end, First and second
+   ending, Volta bracket start, Break between volta brackets; Da capo, Da
+   capo al fine, Da capo al coda, Dal segno, Dal segno al fine, Dal segno al
+   coda, To coda, Ossia fork; Segno, Coda, Fine, Ossia sign; Section break,
+   Double barline, Final barline; Jump, Jump target, Break, Barline. With
+   Repeat start chosen, no "Timeline" select (the tree is one timeline) and
+   no other select, the field "Position" empty with nothing selected, and
+   Add; then the area "Flow-control elements" with the four rows in the
+   manifest's order, the first "Jump (volta, volta)", the second "Jump
+   (repeat end)", each with its ID as its name (none is named or labelled)
+   and its coordinate ("953/2 ♩", "500 ♩"). Selecting `repeat_end` proposes
+   "500" in Position; selecting `section_a` (a region from 0) proposes "0".
+   Choosing "Dal segno al fine" shows the selects "Segno" (only "New segno":
+   `allegro` holds no segno) and "Fine" ("New Fine"), each with its field
+   "New segno at", "New Fine at". Adding "Repeat start" at "100" stores one
+   `add` into `allegro` (read back from the manifest: one more element, a
+   JumpTarget at 100, `repeat_start`, its ID core's), and `onselect` is
+   called with exactly that element's address; adding "Da capo" at "1000"
+   stores a Jump at 1000 whose one destination is `{to: allegro,
+   manifestation: "da_capo", repeat_count: 1, reset: false}` (with
+   `determined` true and `label` null, as the complete form writes them).
+   Adding "Dal segno al fine" at "1100" with a new segno at "600" and a new
+   Fine at "1000" calls `onselect` once with the three elements' addresses in
+   the manifest's order (segno, Fine, jump), and the rows grow by three.
+   Add with an empty Position, and with "x", stores nothing (the journal
+   keeps its length) and shows a refusal in the status line ("type the
+   position of the new element"; core's reading of "x", `"x" is no fraction
+   value; write an integer, n/d, a b/c or a decimal`); a second "Repeat end"
+   at 500, where a Jump already stands, is refused by the store, its message
+   in the status line (`'repeat_end' is a second jump at coordinate [500, 1]
+   of 'allegro', after '<J>': several signs at one place are destinations
+   of one jump`, `<J>` the ID the store's minter gives the refused element
+   first, `storeMints("jump")`), the snapshot unchanged. A row's press calls
+   `onselect` with its element's address.
+
+## Adding flow control (`flow-control-add.test.ts`)
+
+What the add control writes is the manifest's flow control a source
+notates, so each kind is proven by the elements it leaves in the store,
+read back from the manifest in the complete form (every default written
+out), compared exactly with the elements a loader writes for the same
+notation: the TimeToShare fixtures `flow/da_capo_al_fine`,
+`flow/dal_segno_al_coda`, `flow/volta_passes`, `flow/ossia` and
+`flow/repeat_end_and_dal_segno` are those elements, so the expected value
+of each kind is the fixture's form of it at the test's positions, with the
+IDs the store mints (`storeMints`, one per element in the order the
+elements are added, each prefixed by its role). Nothing is compared with
+the plan itself: a plan that wrote other elements than a source's would
+fail on the manifest. Every case runs in the flow-control editor of the
+root (`store.open(root, "flow")`) through `flowPlan` and
+`addFlowElements`, the two functions the tab's Add calls, so the store's
+checks and the editor's guard apply as in the app.
+
+The flow is the store's to compute; these tests prove what is written:
+
+1. **A sign or a plain element** (`allegro` of `flow/virtual_cards`, each
+   at 100 in a fresh store): Repeat start, Volta bracket start, Segno, Coda,
+   Ossia sign each one JumpTarget of that manifestation (`repeat_start`,
+   `volta`, `segno`, `coda`, `ossia`); Break between volta brackets a Break
+   `volta`; Fine a Break `fine` ending the flow from its second arrival
+   (`ends: {passes: {from: 2}}`, as a loader writes a Fine no leap names);
+   Section break a SectionBreak without manifestation; Double and Final
+   barline a Barline of that word; Jump a Jump with one destination
+   without a place, `repeat_count` 1; Jump target, Break, Barline the plain
+   element of the role. One element, one entry of the session.
+2. **Repeat end**: in `allegro`, which holds no repeat start, the select
+   "Back to" offers "Start of the section" and "New repeat start" and holds
+   the first; at 1200 it writes a Jump whose one destination is
+   `{manifestation: repeat_end, repeat_count: 1}` without a place. With a
+   new repeat start at 1100: the JumpTarget `repeat_start` at 1100 and the
+   Jump at 1200 `to` it, two elements. A later repeat end at 1300 holds the
+   existing repeat start by default (its option "<id> at 1100 ♩" first
+   after "Start of the section") and goes `to` it: one element.
+3. **First and second ending** at 1200, the second at 1300, back to the
+   start of the section: as `flow/volta_passes` writes brackets 1 and 2,
+   four elements: at 1200 a Jump with the destinations `{by: [0, 1],
+   manifestation: volta, passes: [1]}` and `{to: <second ending>,
+   manifestation: volta, passes: [2]}`; at 1300 the JumpTarget `volta`
+   (the second ending), a Break `volta` and a Jump `{manifestation:
+   repeat_end, repeat_count: 1}`.
+4. **Da capo** at 1000: a Jump `{to: allegro, manifestation: da_capo,
+   repeat_count: 1, reset: false}` (a loader's D.C., the place the
+   timeline itself). **Da capo al fine** at 1000 with a new Fine at 800, as
+   `flow/da_capo_al_fine`: the Jump `da_capo_al_fine` and a Break `fine` at
+   800 with `ends: {after: {jump: <the jump>}}`. On `flow/da_capo_al_fine`
+   itself (root `score`, its Fine `break_1` at 8, labelled "Fine"), the
+   select "Fine" offers "Fine at 8 ♩" (an option names its element by its
+   name, else its label, else its ID) and "New Fine", and a Da capo al fine
+   at 12 holds `break_1` by default and writes the Jump alone. **Da capo al
+   coda** at 1400, To Coda at 1100, a new coda at 1500: the JumpTarget
+   `coda`, the Jump `da_capo_al_coda` and the To Coda Jump at 1100 `{to:
+   <coda>, manifestation: to_coda, after: {jump: <the da capo>}}`.
+5. **Dal segno** at 1000 with a new segno at 600: the JumpTarget `segno`
+   and the Jump `{to: <segno>, manifestation: dal_segno, repeat_count: 1,
+   reset: false}`; on `flow/dal_segno_al_coda` (segno `jump_target_1` at 4)
+   a Dal segno at 28 holds that segno by default ("jump_target_1 at 4 ♩")
+   and writes the Jump alone. **Dal segno al fine** at 1100, a new segno at
+   600 and a new Fine at 1000: the three elements of
+   `flow/da_capo_al_fine`'s form with the segno. **Dal segno al coda** at
+   1400, a new segno at 600, To Coda at 1100, a new coda at 1500, as
+   `flow/dal_segno_al_coda` writes it: four elements.
+6. **To coda**: on `flow/dal_segno_al_coda` (its D.S. al coda `jump_2` to
+   `jump_target_1`, its coda `jump_target_2`) a To coda at 16 holds both by
+   default and writes one Jump `{to: jump_target_2, manifestation:
+   to_coda, after: {jump: jump_2, to: jump_target_1}}`. In `allegro`,
+   which holds no al coda, it is refused before dispatch: `'allegro' holds
+   no da capo al coda or dal segno al coda for a To Coda to follow`.
+7. **Ossia fork**: on `flow/ossia` (root `score`, its ossia sign
+   `jump_target_1` at 12 and its child `ossia`) the select "Ossia" offers
+   "jump_target_1 at 12 ♩", "Ossia (timeline)" and "New ossia sign"; the
+   fork at 8 to the child writes `{by: [0, 1]}` and `{to: ossia,
+   determined: false, manifestation: ossia}`, as the fixture's fork.
+8. **Refusals leave the store as it was**: a new segno with its position
+   left empty is refused before dispatch ("type the position of the new
+   segno"); a Dal segno at 500 with a new segno at 600, where a Jump
+   already stands at 500, is refused by the store's checks on the second
+   element (`'repeat_end' is a second jump at coordinate [500, 1] of
+   'allegro', after '<J>': …`, `<J>` the second ID the store mints), and the
+   snapshot is unchanged: the segno, whose `add` alone would be accepted,
+   is not stored either.
+9. **What is journalled**: each element is one `add` and one entry of the
+   flow-control editor's session (a Dal segno al fine with its segno and
+   Fine: three entries), since core's `add` puts one element into a
+   timeline and a jump names its segno by the ID core gave it.
 
 ## The Timestamp tab (`timestamp.test.ts`, `shell.test.ts`)
 

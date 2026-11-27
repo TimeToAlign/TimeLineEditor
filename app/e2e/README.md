@@ -2096,6 +2096,31 @@ opened with the editor, covers the canvas's right part) closes it too: the press
 on the line, which the pane takes for its carrying gesture, does not stop
 the double-click.
 
+**`jumps.spec.ts`** (Chromium) proves that the Flow control tab adds jumps
+with what they need, on `flow/virtual_cards` imported as one block, the
+flow-control editor of `allegro` opened as in `editors-flow.spec.ts`.
+`allegro`'s flow control band draws three elements before (the volta fork,
+the repeat end, the volta break; the second ending's jump target has no
+symbol, section 6.6 of the drawing specification). "Dal segno al fine" at
+"1100", its select "Segno" holding "New segno" (the only choice:
+`allegro` holds no segno) at "600" and its select "Fine" holding "New Fine"
+at "1000", stores three entries of the open session, and `allegro` then
+holds exactly three new elements, read back from the manifest and written
+by IDs read there: a JumpTarget `segno` at `[600, 1]`, a Break `fine` at
+`[1000, 1]` with `ends: {after: {jump: <the jump>}}`, a Jump at `[1100, 1]`
+whose one destination is `{to: <the segno>, manifestation:
+dal_segno_al_fine, repeat_count: 1, reset: false}`; the three are the
+selection, and the band draws six elements (a segno's symbol, the Fine's
+flow line, the jump's symbol and arc, section 6.4). Then "First and second
+ending" at "1200", "Second ending at" "1300", "Back to" holding "Start of
+the section", stores four entries and four new elements: at `[1200, 1]` a
+Jump with the destinations `{by: [0, 1], manifestation: volta, passes:
+[1]}` and `{to: <the second ending>, manifestation: volta, passes: [2]}`;
+at `[1300, 1]` the second ending, a JumpTarget `volta`, a Break `volta` and
+a Jump `{manifestation: repeat_end, repeat_count: 1}` without a place; the
+four are the selection, and the band draws nine elements (the fork, the
+break's flow line and the repeat end's symbol; the jump target none).
+
 **`editors-children.spec.ts`** (Chromium, Firefox, WebKit) proves the
 children editor on `nested`, imported as one block, at viewport (40, 40),
 zoom 1: a double-click on a free spot of `clt_1`'s children band gives the

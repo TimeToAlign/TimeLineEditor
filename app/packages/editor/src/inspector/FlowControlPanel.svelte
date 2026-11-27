@@ -1,18 +1,31 @@
 <script lang="ts">
 /**
  * The Flow control tab's own part (`flowControl.ts`): "Add flow control",
- * the kind of element, the timeline of the root's tree and the position on
- * its axis (proposed from the selection, `proposedPosition`, typed text
- * kept until the selection proposes another), and Add, which sends one
- * `add` and selects the element it gave on the canvas; then the tree's
- * flow-control elements, each row selecting its element, the selected ones
- * marked. A refusal, before dispatch or by the store, stands in the status
- * line below Add.
+ * the kind (`FLOW_KINDS`, grouped), the timeline of the root's tree, the
+ * jump's position on its axis (proposed from the selection,
+ * `proposedPosition`, typed text kept until the selection proposes
+ * another), and what the kind asks for beside it: each destination chosen
+ * among the timeline's elements or created at a position of its own
+ * (`slotOptions`), each second position typed; then Add, which adds every
+ * element of the kind (`flowPlan`, `addFlowElements`) and selects them all
+ * on the canvas; then the tree's flow-control elements, each row selecting
+ * its element, the selected ones marked. A refusal, before dispatch or by
+ * the store, stands in the status line below Add.
  */
 import type { Address, Store } from "@timetoalign/tilie-core";
 import { addressKey } from "@timetoalign/tilie-core";
-import type { FlowControlShown } from "./flowControl.ts";
-import { addedFlowElement, addFlowCommand, FLOW_KINDS, proposedPosition } from "./flowControl.ts";
+import type { FlowControlShown, FlowSlotKey, SlotInput } from "./flowControl.ts";
+import {
+  addFlowElements,
+  defaultPick,
+  FLOW_GROUPS,
+  FLOW_KINDS,
+  FLOW_SLOTS,
+  flowPlan,
+  PICK_NEW,
+  proposedPosition,
+  slotOptions,
+} from "./flowControl.ts";
 
 let {
   store,
@@ -25,7 +38,7 @@ let {
   shown: FlowControlShown;
   /** The selected addresses, in order. */
   selected: readonly Address[];
-  /** Select `addresses` on the canvas: a row's element, an added element. */
+  /** Select `addresses` on the canvas: a row's element, the elements added. */
   onselect?: (addresses: readonly Address[]) => void;
 } = $props();
 
@@ -40,9 +53,27 @@ const proposedTimeline = $derived(proposed.timeline);
 const proposedText = $derived(proposed.text);
 
 /** The kind, timeline and position chosen; the latter two follow the selection until typed over. */
-let kind = $state(FLOW_KINDS[0]?.key ?? "");
+let kind: string = $state(FLOW_KINDS[0]?.key ?? "");
 let timeline = $derived(proposedTimeline);
 let text = $derived(proposedText);
+
+/** The options chosen and the positions typed for the slots, by slot. */
+let picks: { [key in FlowSlotKey]?: string } = $state({});
+let slotTexts: { [key in FlowSlotKey]?: string } = $state({});
+
+const chosen = $derived(FLOW_KINDS.find((item) => item.key === kind));
+
+/** The chosen kind's slots in the form's order: each with its options and the option it holds. */
+const slots = $derived(
+  (chosen?.slots ?? []).map((key) => {
+    const options = slotOptions(shown, timeline, key);
+    const asked = picks[key];
+    const pick = options.some((option) => option.value === asked)
+      ? (asked ?? "")
+      : defaultPick(options);
+    return { slot: FLOW_SLOTS[key], options, pick };
+  }),
+);
 
 /** The unit of the chosen timeline's axis. */
 const unit = $derived(shown.timelines.find((item) => item.id === timeline)?.unit ?? "");
@@ -50,22 +81,41 @@ const unit = $derived(shown.timelines.find((item) => item.id === timeline)?.unit
 /** The refusal of the last Add; `null` after one that was stored. */
 let problem: string | null = $state(null);
 
-/** Add the chosen element, then select it. */
+/** Add the chosen kind's elements, then select them. */
 function add(): void {
-  const command = addFlowCommand(shown, kind, { timeline, text });
-  if (!command.ok) {
-    problem = command.problems[0]?.message ?? "the element cannot be added";
+  const given: { [key in FlowSlotKey]?: SlotInput } = {};
+  for (const { slot, pick } of slots) given[slot.key] = { pick, text: slotTexts[slot.key] ?? "" };
+  const plan = flowPlan(shown, { kind, timeline, text, slots: given });
+  if (!plan.ok) {
+    problem = plan.problems[0]?.message ?? "the element cannot be added";
     return;
   }
-  const before = store.view.blocks[shown.block.id]?.manifest;
-  const refusal = store.dispatch(command.value);
-  problem = refusal?.message ?? null;
-  const after = store.view.blocks[shown.block.id]?.manifest;
-  if (refusal !== null || before === undefined || after === undefined) return;
-  const added = addedFlowElement(shown.block.id, before, after, timeline);
-  if (added !== null) onselect([added]);
+  const added = addFlowElements(store, shown.block.id, plan.value);
+  if (!added.ok) {
+    problem = added.problems[0]?.message ?? "the element cannot be added";
+    return;
+  }
+  problem = null;
+  slotTexts = {};
+  onselect(added.value);
 }
 </script>
+
+{#snippet position(label: string, value: string, oninput: (value: string) => void)}
+  <label class="field">
+    <span>{label}</span>
+    <span class="value">
+      <input
+        type="text"
+        inputmode="decimal"
+        bind:value={() => value, oninput}
+        aria-invalid={problem !== null}
+        aria-describedby="{uid}-problem"
+      />
+      {#if unit !== ""}<span class="unit">{unit}</span>{/if}
+    </span>
+  </label>
+{/snippet}
 
 <section class="area" aria-labelledby="{uid}-add" data-testid="flow-control-add">
   <h3 id="{uid}-add">Add flow control</h3>
@@ -79,8 +129,12 @@ function add(): void {
     <label class="field">
       <span>Element</span>
       <select bind:value={kind}>
-        {#each FLOW_KINDS as item (item.key)}
-          <option value={item.key}>{item.label}</option>
+        {#each FLOW_GROUPS as entry (entry.group)}
+          <optgroup label={entry.group}>
+            {#each entry.kinds as item (item.key)}
+              <option value={item.key}>{item.label}</option>
+            {/each}
+          </optgroup>
         {/each}
       </select>
     </label>
@@ -94,19 +148,32 @@ function add(): void {
         </select>
       </label>
     {/if}
-    <label class="field">
-      <span>Position</span>
-      <span class="value">
-        <input
-          type="text"
-          inputmode="decimal"
-          bind:value={text}
-          aria-invalid={problem !== null}
-          aria-describedby="{uid}-problem"
-        />
-        {#if unit !== ""}<span class="unit">{unit}</span>{/if}
-      </span>
-    </label>
+    {@render position(chosen?.at ?? "Position", text, (value) => (text = value))}
+    {#each slots as { slot, options, pick } (slot.key)}
+      {#if slot.kind === "choice"}
+        <label class="field">
+          <span>{slot.label}</span>
+          <select bind:value={() => pick, (next) => (picks[slot.key] = next)}>
+            {#each options as option (option.value)}
+              <option value={option.value}>{option.label}</option>
+            {/each}
+          </select>
+        </label>
+        {#if pick === PICK_NEW}
+          {@render position(
+            `New ${slot.noun} at`,
+            slotTexts[slot.key] ?? "",
+            (value) => (slotTexts[slot.key] = value),
+          )}
+        {/if}
+      {:else}
+        {@render position(
+          slot.label,
+          slotTexts[slot.key] ?? "",
+          (value) => (slotTexts[slot.key] = value),
+        )}
+      {/if}
+    {/each}
     <button type="submit">Add</button>
   </form>
   <p class="problem" id="{uid}-problem" role="status">{problem ?? ""}</p>

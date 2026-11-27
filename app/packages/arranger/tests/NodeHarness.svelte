@@ -12,7 +12,6 @@ import { setNodeActions } from "../src/nodeActions.ts";
 /** Actions that do nothing, for a node no test edits. */
 const IDLE: NodeActions = {
   dispatch() {},
-  edit() {},
   refuse() {},
   select() {},
   preview() {},
@@ -41,7 +40,6 @@ const current = () => actions ?? IDLE;
 // Every call reads the actions of the moment, as a node reads the canvas's.
 setNodeActions({
   dispatch: (command) => current().dispatch(command),
-  edit: (target, commands) => current().edit(target, commands),
   refuse: (message) => current().refuse(message),
   select: (address) => current().select(address),
   preview: (block, preview) => current().preview(block, preview),
