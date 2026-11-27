@@ -83,15 +83,19 @@ function change(event: Event & { currentTarget: HTMLInputElement }, box: Box, re
 </span>
 
 <style>
-  /* The two boxes joined in one outline, the tree's after a divider. */
+  /*
+   * The two boxes joined in one outline, the tree's after a divider: an opaque
+   * face and its edge, in the editor's flag colours (`--tilie-flag-background`,
+   * `--tilie-flag-border`), the ones the canvas's name flags are drawn in.
+   */
   .reach {
     display: inline-flex;
     align-items: center;
     gap: 0.2rem;
     padding: 0 0.2rem;
-    border: 1px solid #c8c8c8;
+    border: 1px solid var(--tilie-flag-border);
     border-radius: 3px;
-    background: #fff;
+    background: var(--tilie-flag-background);
   }
 
   .tree {
@@ -99,7 +103,7 @@ function change(event: Event & { currentTarget: HTMLInputElement }, box: Box, re
     align-items: center;
     gap: 0.1rem;
     padding-inline-start: 0.2rem;
-    border-inline-start: 1px solid #c8c8c8;
+    border-inline-start: 1px solid var(--tilie-flag-border);
     cursor: pointer;
   }
 
@@ -107,9 +111,10 @@ function change(event: Event & { currentTarget: HTMLInputElement }, box: Box, re
     margin: 0.15rem 0;
   }
 
+  /* The tree drawn in the label's colour. */
   .mark {
-    fill: #595959;
-    stroke: #595959;
+    fill: currentColor;
+    stroke: currentColor;
     stroke-width: 1;
   }
 

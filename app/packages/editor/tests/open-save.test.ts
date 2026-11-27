@@ -194,6 +194,83 @@ describe("Open… with a manifest", () => {
     ]);
   });
 
+  it("refuses a manifest held already without leaving the open editors", async () => {
+    start();
+    hook().load(workspaceOf("nested"));
+    const [nested] = Object.keys(hook().store().view.blocks);
+    await openBare();
+    await vi.waitFor(() => expect(openDialog()).toEqual(QUESTION));
+    answer("Add");
+    await vi.waitFor(() => expect(blocks()).toBe(2));
+    const [, added] = Object.keys(hook().store().view.blocks);
+    if (nested === undefined || added === undefined) throw new Error("two blocks expected");
+    const dismiss = () => {
+      for (const button of document.querySelectorAll<HTMLButtonElement>(
+        '[data-testid="message"] button',
+      ))
+        button.click();
+      flushSync();
+    };
+
+    expect(hook().open({ block: added })).toBe(null);
+    flushSync();
+    hook().select([]);
+    await openBare();
+    await vi.waitFor(() => expect(openDialog()).toEqual(QUESTION));
+    answer("Add");
+    await vi.waitFor(() => expect(shownMessages()).toHaveLength(1));
+    expect([
+      hook()
+        .editing()
+        .map(({ target, kind }) => ({ target, kind })),
+      hook().selection(),
+      blocks(),
+      hook().store().journal.length,
+      shownMessages(),
+    ]).toEqual([
+      [{ target: { block: added }, kind: "bundle" }],
+      [{ block: added }],
+      2,
+      2,
+      [
+        [
+          "warning",
+          'bare.yaml was not imported: the workspace holds it already, in the block "Anonymous bundle", which is now selected.',
+        ],
+      ],
+    ]);
+    dismiss();
+    hook().done();
+    flushSync();
+
+    expect(hook().open({ block: nested })).toBe(null);
+    flushSync();
+    await openBare();
+    await vi.waitFor(() => expect(openDialog()).toEqual(QUESTION));
+    answer("Add");
+    await vi.waitFor(() => expect(shownMessages()).toHaveLength(1));
+    expect([
+      hook()
+        .editing()
+        .map(({ target, kind }) => ({ target, kind })),
+      hook().selection(),
+      blocks(),
+      hook().store().journal.length,
+      shownMessages(),
+    ]).toEqual([
+      [{ target: { block: nested }, kind: "bundle" }],
+      [{ block: nested }],
+      2,
+      2,
+      [
+        [
+          "warning",
+          'bare.yaml was not imported: the workspace holds it already, in the block "Anonymous bundle".',
+        ],
+      ],
+    ]);
+  });
+
   it("opens it in a new workspace at once from a saved one, and not at all when the save is cancelled", async () => {
     start();
     const downloads = interceptDownloads();

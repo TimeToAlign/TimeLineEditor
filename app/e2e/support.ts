@@ -488,6 +488,29 @@ export function entriesLength(page: Page): Promise<number> {
 }
 
 /**
+ * The commands of the open editor's session from entry `from` on, as JSON
+ * (a `bigint` written as its digits); a closed session's entry is `null`.
+ */
+export function entryCommands(page: Page, from: number): Promise<unknown[]> {
+  return page.evaluate(
+    (start) =>
+      window.__tilie
+        .store()
+        .entries.slice(start)
+        .map((entry) =>
+          "command" in entry
+            ? JSON.parse(
+                JSON.stringify(entry.command, (_key, value) =>
+                  typeof value === "bigint" ? value.toString() : value,
+                ),
+              )
+            : null,
+        ),
+    from,
+  );
+}
+
+/**
  * The command of the newest entry of the open editor's session (of the
  * journal with no editor open), as JSON; `null` when there is none or it is
  * a closed session.

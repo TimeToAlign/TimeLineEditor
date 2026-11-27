@@ -15,6 +15,7 @@ import {
   done,
   editing,
   entriesLength,
+  entryCommands,
   importFixture,
   part,
   settledDrawing,
@@ -54,29 +55,6 @@ async function opened(page: Page): Promise<{ block: string; view: View; pane: Lo
 /** The row of the FlowMap `id` in `pane`. */
 function rowOf(pane: Locator, id: string): Locator {
   return pane.locator(`[data-testid="flow-row"][data-flow-map="${id}"]`);
-}
-
-/**
- * The commands of the open editor's session from entry `from` on, as JSON
- * (a `bigint` written as its digits); a closed session's entry is `null`.
- */
-function entryCommands(page: Page, from: number): Promise<unknown[]> {
-  return page.evaluate(
-    (start) =>
-      window.__tilie
-        .store()
-        .entries.slice(start)
-        .map((entry) =>
-          "command" in entry
-            ? JSON.parse(
-                JSON.stringify(entry.command, (_key, value) =>
-                  typeof value === "bigint" ? value.toString() : value,
-                ),
-              )
-            : null,
-        ),
-    from,
-  );
 }
 
 /** The rectangle of `locator` on screen; throws where it is not laid out. */

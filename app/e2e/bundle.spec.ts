@@ -5,9 +5,9 @@
  * MIDI and score files, imported and arranged Horizontal in its bundle
  * editor. The groups stand in name order; the three tracks that two groups
  * each hang on (tracks 1, 3 and 4) are drawn once, on one line under the
- * row, the six groups holding their excerpts hanging from it; every other
- * group, the one whose excerpt lies on track 2 among them, stands at the
- * row's top. Derivation in `README.md` ("bundle.spec.ts").
+ * row, the six groups holding their excerpts hanging from it, every frame
+ * at the row's top; the frames' `x` and `y` and the line's ordinate as the
+ * writer prints them. Derivation in `README.md` ("bundle.spec.ts").
  *
  * The dataset is not part of this repository: `MUSICAL_THEMES_DATASET`
  * names its directory, and without it the test does not run.
@@ -77,23 +77,59 @@ function childrenOf(text: string): Map<string, string[]> {
   );
 }
 
-/** The drawn `x` and `y` of a frame's rectangle (its last part). */
-function frameAt(frame: Locator): Promise<{ x: number; y: number }> {
-  return frame
-    .last()
-    .evaluate((rect) => ({ x: Number(rect.getAttribute("x")), y: Number(rect.getAttribute("y")) }));
+/** The drawn `x` and `y` of a frame's rectangle (its last part), as the writer prints them. */
+function frameAt(frame: Locator): Promise<(string | null)[]> {
+  return frame.last().evaluate((rect) => [rect.getAttribute("x"), rect.getAttribute("y")]);
 }
 
-/** The ordinates of every horizontal `line` part of the drawn elements `drawn`. */
-function lineOrdinates(drawn: Locator): Promise<number[]> {
+/** The ordinate of every horizontal `line` part of the drawn elements `drawn`, as printed. */
+function lineOrdinates(drawn: Locator): Promise<(string | null)[]> {
   return drawn.evaluateAll((parts) =>
     parts.flatMap((part) =>
       part.tagName === "line" && part.getAttribute("y1") === part.getAttribute("y2")
-        ? [Number(part.getAttribute("y1"))]
+        ? [part.getAttribute("y1")]
         : [],
     ),
   );
 }
+
+/** The row's top, every frame's drawn `y` (README). */
+const ROW_TOP = "28.8047";
+
+/** The drawn `x` of the 28 frames, in name order (README). */
+const FRAME_XS = [
+  "209.966",
+  "934.4763",
+  "1634.5461",
+  "2506.8127",
+  "3446.4016",
+  "4168.101",
+  "4868.1708",
+  "5740.4374",
+  "6664.4732",
+  "14201.543",
+  "14901.6129",
+  "15773.8795",
+  "16725.6906",
+  "17447.6053",
+  "18147.6752",
+  "19019.9418",
+  "19942.864",
+  "20664.4628",
+  "21364.5326",
+  "22064.6024",
+  "22937.1913",
+  "23657.2373",
+  "24357.3071",
+  "25229.5737",
+  "26155.5262",
+  "26875.4499",
+  "27575.5198",
+  "28447.7864",
+];
+
+/** The ordinate of the line tracks 1, 3 and 4 lie on (README). */
+const TRACK_LINE = "82.0117";
 
 /** Choose Horizontal in the Arrange menu: one entry more, the choice shown pressed. */
 async function chooseHorizontal(page: Page): Promise<void> {
@@ -145,35 +181,17 @@ test("op. 2 no. 1 side by side: its groups in name order, three tracks on one li
     "B691 (MTD 0809), EDM-alig",
   ]);
 
-  // The groups stand left to right in name order, once the motion has come to rest.
-  const places = async () => Promise.all(frames.map(frameAt));
+  // The groups stand left to right in name order at the row's top, once the motion has come to rest.
+  expect(groups).toHaveLength(FRAME_XS.length);
   await expect
-    .poll(async () => {
-      const xs = (await places()).map((place) => place.x);
-      return xs.every((x, index) => index === 0 || x > (xs[index - 1] ?? x));
-    })
-    .toBe(true);
+    .poll(() => Promise.all(frames.map(frameAt)))
+    .toEqual(FRAME_XS.map((x) => [x, ROW_TOP]));
 
   // Tracks 1, 3 and 4 lie on one line: every horizontal part of their lines, each once card's and
-  // each ancestor line in the frames hanging on them, at one ordinate.
-  const trackLines = async () =>
-    (
-      await Promise.all(
-        SHARED_TRACKS.map((track) => lineOrdinates(element(page, block, idAddress(track)))),
-      )
-    ).flat();
-  await expect.poll(async () => new Set(await trackLines()).size).toBe(1);
-  const [line] = await trackLines();
-  expect((await trackLines()).length).toBeGreaterThan(SHARED_TRACKS.length);
-
-  // Every group hanging on no shared track at one top, the row's, as high as the highest frame;
-  // each of the six hanging groups lower, its track's ancestor line in it on the tracks' line.
-  const tops = new Map(groups.map((group, index) => [group.id, index]));
-  const all = await places();
-  const at = (group: Group) => all[tops.get(group.id) ?? -1]?.y ?? Number.NaN;
-  const others = groups.filter((group) => !hanging.includes(group));
-  const rowTop = Math.min(...all.map((place) => place.y));
-  expect(new Set(others.map(at))).toEqual(new Set([rowTop]));
-  for (const group of hanging) expect(at(group), group.name).toBeGreaterThanOrEqual(rowTop);
-  expect(line).toBeGreaterThan(rowTop);
+  // each ancestor line in the frames hanging on them, four for each track, at one ordinate.
+  expect(
+    await Promise.all(
+      SHARED_TRACKS.map((track) => lineOrdinates(element(page, block, idAddress(track)))),
+    ),
+  ).toEqual(SHARED_TRACKS.map(() => [TRACK_LINE, TRACK_LINE, TRACK_LINE, TRACK_LINE]));
 });
