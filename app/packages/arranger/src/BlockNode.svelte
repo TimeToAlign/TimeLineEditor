@@ -37,7 +37,7 @@ import {
   showsSelection,
 } from "./boxes.ts";
 import { LEVELS } from "./containers.ts";
-import { affordancesOf } from "./coordinates.ts";
+import { affordancesOf, HIT_TOLERANCE } from "./coordinates.ts";
 import { raisedLayers } from "./drawing.ts";
 import { addressParts, bandTimelineOf } from "./editing.ts";
 import { flowOverlays, OVERLAY_LABEL_SIZE } from "./flowOverlay.ts";
@@ -54,7 +54,7 @@ import type { BlockNode as BlockNodeType } from "./node.ts";
 import { getNodeActions } from "./nodeActions.ts";
 import Ribbons from "./Ribbons.svelte";
 import type { ChunkRef, LitBrace } from "./ribbons.ts";
-import { allLights, chunkOf } from "./ribbons.ts";
+import { allLights, chunkOf, chunksAt, chunkZones } from "./ribbons.ts";
 import { type Owner, ownerOf } from "./selectionRules.ts";
 
 /** Svelte Flow passes every node prop; the node reads only its data. */
@@ -280,22 +280,41 @@ function onpointermove(event: PointerEvent & { currentTarget: SVGSVGElement }) {
   // A band is highlighted in every view, where the press lies inside the edited element.
   const inside = pressSelection(hit, data.editing, data.inside) !== null;
   show(hoverOf(hit, inside ? bandUnder(data.drawing, hit, point, data.editing) : null));
-  hoverChunk(
-    source === null || isAffordance(source) ? null : chunkOf(data.block.manifest, source.address),
+  const chunk =
+    source === null || isAffordance(source) ? null : chunkOf(data.block.manifest, source.address);
+  hoverChunks(
+    chunk !== null
+      ? [chunk]
+      : chunksAt(zones, point, HIT_TOLERANCE / (actions.zoom() * data.block.scale)),
   );
 }
 
 function onpointerleave() {
   show(NO_HOVER);
-  hoverChunk(null);
+  hoverChunks([]);
 }
 
-/** The chunk of a virtual card under the pointer (its brace, label, leader or boundary), else `null`. */
-let hoveredChunk: ChunkRef | null = $state.raw(null);
+/** Where the pointer shows a chunk (`chunkZones`), read once per drawing. */
+const zones = $derived(chunkZones(data.block.manifest, data.drawing));
 
-function hoverChunk(next: ChunkRef | null): void {
-  if (next?.timeline !== hoveredChunk?.timeline || next?.index !== hoveredChunk?.index) {
-    hoveredChunk = next;
+/**
+ * The chunks of virtual cards under the pointer: the chunk of the element
+ * hit (its brace, label, leader or boundary), else every chunk whose zone
+ * holds the pointer, its line widened by the canvas's hit tolerance
+ * (`chunksAt`): a chunk's stretch of its virtual line, its brace and the
+ * space between, or a written stretch of its source, every chunk playing it.
+ */
+let hoveredChunks: readonly ChunkRef[] = $state.raw([]);
+
+function hoverChunks(next: readonly ChunkRef[]): void {
+  if (
+    next.length !== hoveredChunks.length ||
+    next.some(
+      (chunk, at) =>
+        chunk.timeline !== hoveredChunks[at]?.timeline || chunk.index !== hoveredChunks[at]?.index,
+    )
+  ) {
+    hoveredChunks = next;
   }
 }
 
@@ -492,14 +511,14 @@ const overlays = $derived(
 
 /**
  * The chunks of virtual cards whose ribbons are drawn (`ribbons.ts`): the
- * selected ones, then the one under the pointer, each once.
+ * selected ones, then those under the pointer, each once.
  */
 const shownChunks: readonly ChunkRef[] = $derived.by(() => {
   const chunks: ChunkRef[] = [];
   const found = [...data.selectedElements.values()].map((address) =>
     chunkOf(data.block.manifest, address),
   );
-  for (const chunk of [...found, hoveredChunk]) {
+  for (const chunk of [...found, ...hoveredChunks]) {
     if (chunk === null) continue;
     if (chunks.some((one) => one.timeline === chunk.timeline && one.index === chunk.index))
       continue;

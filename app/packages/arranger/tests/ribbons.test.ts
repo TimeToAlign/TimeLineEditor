@@ -13,8 +13,16 @@ import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { BlockNodeData } from "../src/node.ts";
 import { project } from "../src/project.ts";
-import type { Ribbon, RibbonEnd } from "../src/ribbons.ts";
-import { allLights, chunkLights, chunkOf, NO_LIGHTS, ribbonPath } from "../src/ribbons.ts";
+import type { ChunkRef, ChunkZone, Ribbon, RibbonEnd } from "../src/ribbons.ts";
+import {
+  allLights,
+  chunkLights,
+  chunkOf,
+  chunksAt,
+  chunkZones,
+  NO_LIGHTS,
+  ribbonPath,
+} from "../src/ribbons.ts";
 import type { Selection } from "../src/selection.ts";
 import { NOTHING_SELECTED, selectionOf } from "../src/selection.ts";
 import {
@@ -146,6 +154,98 @@ describe("chunkLights", () => {
   });
 });
 
+describe("chunkZones and chunksAt", () => {
+  const ZONES = chunkZones(MANIFEST, DRAWING);
+  const ROOT_Y = lineOf(DRAWING, ROOT)[1].y;
+  const DEFAULT_Y = lineOf(DRAWING, DEFAULT)[1].y;
+  const BY_HAND_Y = lineOf(DRAWING, BY_HAND, 0)[1].y;
+
+  /** The regions band of `timeline` as the drawing records it: its top and bottom. */
+  function bandOf(timeline: string): { top: number; bottom: number } {
+    const box = DRAWING.boxes.find(
+      (one) =>
+        one.kind === "band" && one.address.id === timeline && one.address.facet === "regions",
+    );
+    if (box === undefined) throw new Error(`${timeline} draws no regions band`);
+    return { top: box.y, bottom: box.y + box.height };
+  }
+
+  /** The zone of chunk `index` of `id` on its virtual card: its brace's ends, out to its band. */
+  function onCard(id: string, index: number, y: number): ChunkZone {
+    const { x1, x2 } = braceEnds(DRAWING, id, index);
+    return { chunk: { timeline: id, index }, x1, x2, line: y, top: y, bottom: bandOf(id).bottom };
+  }
+
+  /** The zone of chunk `index` of `id` on `allegro`'s line, over the written `[s, e)`. */
+  function onRoot(id: string, index: number, s: number, e: number): ChunkZone {
+    const { x1, x2 } = written(DRAWING, ROOT, s, e);
+    return { chunk: { timeline: id, index }, x1, x2, line: ROOT_Y, top: ROOT_Y, bottom: ROOT_Y };
+  }
+
+  const chunk = (timeline: string, index: number): ChunkRef => ({ timeline, index });
+
+  it("lays a zone over every drawn brace and every written stretch it plays", () => {
+    expect([DEFAULT_Y, bandOf(DEFAULT)]).toEqual([216, { top: 228, bottom: 246.4765625 }]);
+    expect(
+      DRAWING.boxes.some(
+        (box) => box.kind === "band" && box.address.id === ROOT && box.address.facet === "regions",
+      ),
+    ).toBe(false);
+    expect(ZONES).toEqual([
+      onCard(BY_HAND, 0, BY_HAND_Y),
+      onRoot(BY_HAND, 0, 0, 476.5),
+      onCard(BY_HAND, 5, BY_HAND_Y),
+      onRoot(BY_HAND, 5, 500, 1644),
+      onCard(DEFAULT, 0, DEFAULT_Y),
+      onRoot(DEFAULT, 0, 0, 476.5),
+      onCard(DEFAULT, 1, DEFAULT_Y),
+      onRoot(DEFAULT, 1, 476.5, 500),
+      onCard(DEFAULT, 2, DEFAULT_Y),
+      onRoot(DEFAULT, 2, 0, 476.5),
+      onCard(DEFAULT, 3, DEFAULT_Y),
+      onRoot(DEFAULT, 3, 500, 1644),
+    ]);
+  });
+
+  it("shows a chunk on its segment, its brace and the space between", () => {
+    const brace2 = DRAWING.elements.find(
+      (element) =>
+        element.type === "region" &&
+        element.address.id === DEFAULT &&
+        element.address.part?.length === 1 &&
+        element.address.part[0] === 2,
+    );
+    if (brace2?.type !== "region") throw new Error("no brace 2");
+    const x = (brace2.x1 + brace2.x2) / 2;
+    for (const y of [DEFAULT_Y, brace2.yb, (DEFAULT_Y + brace2.yb) / 2]) {
+      expect(chunksAt(ZONES, { x, y }, 0)).toEqual([chunk(DEFAULT, 2)]);
+    }
+    expect(chunksAt(ZONES, { x: brace2.x2, y: DEFAULT_Y }, 0)).toEqual([chunk(DEFAULT, 3)]);
+    expect(chunksAt(ZONES, { x, y: bandOf(DEFAULT).bottom + 1 }, 0)).toEqual([]);
+    expect(chunksAt(ZONES, { x, y: DEFAULT_Y - 1 }, 0)).toEqual([]);
+    expect(chunksAt(ZONES, { x, y: DEFAULT_Y - 1 }, 2)).toEqual([chunk(DEFAULT, 2)]);
+  });
+
+  it("shows every chunk playing a written section on the source's line", () => {
+    const at = (value: number) => written(DRAWING, ROOT, value, value).x1;
+    expect(chunksAt(ZONES, { x: at(953 / 4), y: ROOT_Y }, 0)).toEqual([
+      chunk(BY_HAND, 0),
+      chunk(DEFAULT, 0),
+      chunk(DEFAULT, 2),
+    ]);
+    expect(chunksAt(ZONES, { x: at(1072), y: ROOT_Y }, 0)).toEqual([
+      chunk(BY_HAND, 5),
+      chunk(DEFAULT, 3),
+    ]);
+    expect(chunksAt(ZONES, { x: at(488.25), y: ROOT_Y }, 0)).toEqual([chunk(DEFAULT, 1)]);
+  });
+
+  it("has no zones in a block placing no virtual card", () => {
+    const view = viewOf({ id: A, fixture: "flow/virtual_cards" });
+    expect(chunkZones(blockIn(view, A).manifest, drawingIn(view))).toEqual([]);
+  });
+});
+
 describe("the block node's ribbons", () => {
   let mounted: ReturnType<typeof mount> | undefined;
 
@@ -226,6 +326,26 @@ describe("the block node's ribbons", () => {
     flushSync();
     const lights = chunkLights(MANIFEST, DRAWING, { timeline: DEFAULT, index: 1 });
     expect(shown(svg)).toEqual({ ribbons: lights.ribbons.map((ribbon) => ribbon.d), lit: [] });
+  });
+
+  it("draws them where the pointer lies in a chunk's zone, off any element", () => {
+    const svg = mountOn(VIEW);
+    const { x1, x2 } = braceEnds(DRAWING, DEFAULT, 2);
+    pointer(svg, "pointermove", (x1 + x2) / 2, lineOf(DRAWING, DEFAULT)[1].y);
+    const two = chunkLights(MANIFEST, DRAWING, { timeline: DEFAULT, index: 2 });
+    expect(shown(svg).ribbons).toEqual(two.ribbons.map((ribbon) => ribbon.d));
+    const [, root] = lineOf(DRAWING, ROOT);
+    pointer(svg, "pointermove", written(DRAWING, ROOT, 953 / 4, 953 / 4).x1, root.y);
+    const playing = [
+      { timeline: BY_HAND, index: 0 },
+      { timeline: DEFAULT, index: 0 },
+      { timeline: DEFAULT, index: 2 },
+    ];
+    expect(shown(svg)).toEqual({
+      ribbons: allLights(MANIFEST, DRAWING, playing).ribbons.map((ribbon) => ribbon.d),
+      lit: [],
+    });
+    expect(shown(svg).ribbons).toHaveLength(3);
   });
 
   it("draws them for a selected chunk without a pointer", () => {

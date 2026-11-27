@@ -8,6 +8,9 @@
  * cards), and lights the other chunks of the same source on every virtual
  * card drawn. Everything is read from the drawing: a brace's ends are its
  * element's, a written stretch's ends are where the drawn line places them.
+ * A chunk is hovered on its stretch of the virtual line, its brace and the
+ * space between, and on its written stretch of a source line, where every
+ * chunk playing it is hovered at once (`chunkZones`, `chunksAt`).
  */
 
 import type { ElementAddress, Manifest, PlaceKey, PlayedStretch } from "@timetoalign/tilie-core";
@@ -94,6 +97,134 @@ export function allLights(
 
 /** Nothing shown: no chunk hovered or selected. */
 export const NO_LIGHTS: ChunkLights = { ribbons: [], lit: [] };
+
+/**
+ * Where the pointer shows the chunk `chunk`: on the line at the ordinate
+ * `line`, from `x1` (held) to `x2` (left out), and from `top` to `bottom`,
+ * the line and the regions band drawn on it, the line's ordinate alone
+ * where none is.
+ */
+export interface ChunkZone {
+  readonly chunk: ChunkRef;
+  readonly x1: number;
+  readonly x2: number;
+  readonly line: number;
+  readonly top: number;
+  readonly bottom: number;
+}
+
+/**
+ * Where the pointer shows a chunk in `drawing`, the drawing of `manifest`,
+ * in drawing order of the braces: for every drawn brace of a chunk that is
+ * no gap, of a virtual timeline resolving through a FlowMap of its own root,
+ * a zone on its card's line of that virtual timeline over the brace's ends,
+ * out to that line's regions band; and, once per chunk, a zone on every line
+ * of the source root drawn in a card that is not switched, over the written
+ * stretches it plays clipped to what that line draws, out to the root's
+ * regions band on that line. Read once per drawing; a pointer reads them
+ * with `chunksAt`.
+ */
+export function chunkZones(manifest: Manifest, drawing: Drawing): readonly ChunkZone[] {
+  const virtuals = new Set((manifest.virtual_timelines ?? []).map((item) => item.id));
+  if (virtuals.size === 0) return [];
+  const lines = [...lineAxes(drawing)];
+  const bands = drawing.boxes.flatMap((box) =>
+    box.kind === "band" && box.band?.facet === "regions"
+      ? [
+          {
+            timeline: box.band.timeline,
+            line: box.band.line,
+            top: box.y,
+            bottom: box.y + box.height,
+          },
+        ]
+      : [],
+  );
+  const zoneOn = (
+    chunk: ChunkRef,
+    timeline: string,
+    axis: LineAxis,
+    x1: number,
+    x2: number,
+  ): ChunkZone => {
+    const band = bands.find((one) => one.timeline === timeline && one.line === axis.y);
+    return {
+      chunk,
+      x1,
+      x2,
+      line: axis.y,
+      top: Math.min(axis.y, band?.top ?? axis.y),
+      bottom: Math.max(axis.y, band?.bottom ?? axis.y),
+    };
+  };
+  const resolved = new Map<string, ReturnType<typeof stretchesOf>>();
+  const sourceLines = new Map<string, readonly LineAxis[]>();
+  const placed = new Set<string>();
+  const zones: ChunkZone[] = [];
+  drawing.elements.forEach((element, index) => {
+    if (element.type !== "region") return;
+    const { id, facet, part } = element.address;
+    const at = part?.[0];
+    if (id === undefined || !virtuals.has(id) || facet !== "regions") return;
+    if (part?.length !== 1 || typeof at !== "number") return;
+    if (!resolved.has(id)) resolved.set(id, stretchesOf(manifest, id));
+    const flow = resolved.get(id);
+    const source = flow?.sources[at];
+    if (flow === null || flow === undefined || source === null || source === undefined) return;
+    const chunk: ChunkRef = { timeline: id, index: at };
+    const card = cardHolding(drawing, index);
+    const line = lines.find(
+      ([, axis]) => axis.timeline === id && card !== null && samePlaceKey(axis.card, card),
+    );
+    if (line !== undefined) zones.push(zoneOn(chunk, id, line[1], element.x1, element.x2));
+    const key = `${id}#${at}`;
+    if (placed.has(key)) return;
+    placed.add(key);
+    let axes = sourceLines.get(flow.source);
+    if (axes === undefined) {
+      const switched = new Set(switchedCards(drawing, flow.source));
+      axes = lines
+        .map(([, axis]) => axis)
+        .filter((axis) => axis.timeline === flow.source && !switched.has(placeKeyText(axis.card)));
+      sourceLines.set(flow.source, axes);
+    }
+    for (const stretch of flow.flow) {
+      if (stretch.chunk !== at || stretch.written === null) continue;
+      const start = realOf(stretch.written.start);
+      const end = realOf(stretch.written.end);
+      for (const axis of axes) {
+        const ends = clippedOn(axis, start, end);
+        if (ends !== null) zones.push(zoneOn(chunk, flow.source, axis, ends[0], ends[1]));
+      }
+    }
+  });
+  return zones;
+}
+
+/**
+ * The chunks the pointer at `point` (in the drawing's units) shows: the
+ * chunk of every zone of `zones` whose span holds its abscissa and that
+ * holds its ordinate, the zone's line widened by `reach` either way, each
+ * chunk once, in the zones' order.
+ */
+export function chunksAt(
+  zones: readonly ChunkZone[],
+  point: { readonly x: number; readonly y: number },
+  reach: number,
+): readonly ChunkRef[] {
+  const found: ChunkRef[] = [];
+  for (const zone of zones) {
+    if (point.x < zone.x1 || point.x >= zone.x2) continue;
+    const top = Math.min(zone.top, zone.line - reach);
+    const bottom = Math.max(zone.bottom, zone.line + reach);
+    if (point.y < top || point.y > bottom) continue;
+    const { chunk } = zone;
+    if (!found.some((one) => one.timeline === chunk.timeline && one.index === chunk.index)) {
+      found.push(chunk);
+    }
+  }
+  return found;
+}
 
 /** The chunk `address` names: `{id: V, facet: "regions", part: [k, ...]}` of a virtual timeline `V`; else `null`. */
 export function chunkOf(manifest: Manifest, address: ElementAddress): ChunkRef | null {
