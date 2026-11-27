@@ -108,17 +108,17 @@ function drawnPlaces(block: string, pane?: PaneSource): Record<string, { x: numb
 /**
  * How far right of its node's left edge `bmixed0000`'s place origin lies in its drawing at the
  * canvas's pane `pane`: its ancestor card of `recording` reaches that far left of its items. The
- * card is elided by default, at the automatic proportion, which reads the pane (section 8.9), so
- * the shift is the drawing's origin abscissa at that pane; at layout's default view it is
- * 121.70361328125 (the arranger's tests README, "`bundle_mixed`'s `score`", With `recording`'s
- * ancestor card), which `MIXED_DEFAULT_SHIFT` states and the bundle editor's first case checks.
+ * card derives no elision and holds no stored one, so the initial `elision-mode` `custom` draws it
+ * whole (section 8.9) and the shift reads nothing of the pane: 271.70361328125 at every pane (the
+ * arranger's tests README, "`bundle_mixed`'s `score`", With `recording`'s ancestor card), which
+ * `MIXED_SHIFT` states and the bundle editor's first case checks at layout's default view.
  */
 function mixedShift(pane: PaneSource): number {
   return bundlesDrawing(MIXED, pane).origin.x;
 }
 
-/** `mixedShift` at layout's default view, derived in the arranger's tests README. */
-const MIXED_DEFAULT_SHIFT = 121.70361328125;
+/** `mixedShift` at every pane, derived in the arranger's tests README. */
+const MIXED_SHIFT = 271.70361328125;
 
 /**
  * The canvas's pane in an editor: the arranger's size at the page's 1600 × 1000 with the
@@ -126,19 +126,17 @@ const MIXED_DEFAULT_SHIFT = 121.70361328125;
  */
 const EDITOR_PANE = { view: { width: 1087, height: 968 } };
 
-/** `mixedShift` at `EDITOR_PANE`: layout's record at that pane (README, "editors.spec.ts"). */
-const MIXED_EDITOR_SHIFT = 117.44561314174106;
-
 /**
  * `mixedShift` in the editor open now: the canvas's pane is `EDITOR_PANE`, and the editor's
- * drawing code gives `MIXED_EDITOR_SHIFT` there, which is returned. A value read from the page
- * then waits for the drawing at that pane, which settles `PANE_SETTLE` after the drawer opened.
+ * drawing code gives `MIXED_SHIFT` there as at the default view, which is returned. A value read
+ * from the page then waits for the drawing at that pane, which settles `PANE_SETTLE` after the
+ * drawer opened.
  */
 async function editorShift(page: Page): Promise<number> {
   const pane = await paneOf(page);
   expect(pane).toEqual(EDITOR_PANE);
-  expect(mixedShift(pane)).toBe(MIXED_EDITOR_SHIFT);
-  return MIXED_EDITOR_SHIFT;
+  expect(mixedShift(pane)).toBe(MIXED_SHIFT);
+  return MIXED_SHIFT;
 }
 
 /**
@@ -586,33 +584,35 @@ test.describe("on bundles", () => {
     }
     expect(annotations.x).toBe(8);
     expect([annotations.x, annotations.y].every(onFreeGrid)).toBe(true);
-    expect(bundlesDrawing(MIXED).origin.x).toBe(MIXED_DEFAULT_SHIFT);
+    expect(bundlesDrawing(MIXED).origin.x).toBe(MIXED_SHIFT);
 
     // The view leaves room left of the block for the drag.
-    const view = { ...VIEW, x: VIEW.x + 300 };
+    const view = { ...VIEW, x: VIEW.x + 400 };
     await enter(page, BUNDLE, view);
-    // `recording`'s ancestor card reaches `shift − P` left of the place origin; a card moved 200
-    // left, to −192, lies `192 − (shift − P)` beyond it, so the box grows left by that much.
+    // `recording`'s ancestor card reaches `shift − P` left of the place origin; a card moved 300
+    // left, to −292, lies `292 − (shift − P)` = 28.29638671875 beyond it, so the box grows left
+    // by that much.
     const shift = await editorShift(page);
     expect(drawnPlaces(MIXED, EDITOR_PANE)).toEqual(drawn);
-    const grown = 192 - (shift - 8);
+    const grown = 292 - (shift - 8);
+    expect(grown).toBe(28.29638671875);
     await expect.poll(async () => (await frameRect(page)).x).toBe(drawnX(8 + shift));
     // The node, at the block's place (0, 0) less the drawing's origin, in canvas units.
     expect(await nodeTransform(page, MIXED)).toBe(await placedAt(page, -shift, 0));
     const frameBefore = await frameRect(page);
 
-    await drag(page, await framePoint(page, MIXED, cardAddress("annotations")), -200, 16);
+    await drag(page, await framePoint(page, MIXED, cardAddress("annotations")), -300, 16);
     await expect.poll(() => entriesLength(page)).toBe(1);
     expect(await places(page, MIXED)).toEqual({
       group_1: { x: first.x, y: first.y },
       group_2: { x: second.x, y: second.y },
-      annotations: { x: -192, y: annotations.y + 16 },
+      annotations: { x: -292, y: annotations.y + 16 },
     });
     const { x, y } = await placement(page, MIXED);
     expect({ x, y }).toEqual({ x: 0, y: 0 });
-    // The drawing's origin is now the moved card's left edge and the padding, 192 + 8 left of
-    // the place origin: the node lies at −200.
-    await expect.poll(() => nodeTransform(page, MIXED)).toBe(await placedAt(page, -200, 0));
+    // The drawing's origin is now the moved card's left edge and the padding, 292 + 8 left of
+    // the place origin: the node lies at −300.
+    await expect.poll(() => nodeTransform(page, MIXED)).toBe(await placedAt(page, -300, 0));
     // In drawing units at scale 1: the frame lies `grown` further right in a node as much further left.
     expect(await frameRect(page)).toEqual({ ...frameBefore, x: drawnX(8 + shift + grown) });
   });
@@ -977,8 +977,8 @@ test.describe("leaving by a double-click, and the view when the canvas changes s
     if (block === undefined) throw new Error(`block ${MIXED} is missing`);
     /**
      * The bundle editor's viewport for the arranger's size now: the block's bounds as the
-     * canvas draws it at that size, its pane (its ancestor card of `recording` is elided at the
-     * automatic proportion, which reads the pane: section 8.9).
+     * canvas draws it at that size, its pane (its ancestor card of `recording` is drawn whole,
+     * so the bounds keep their size and only the centring follows the arranger's size).
      */
     const focused = async () => {
       const size = await arranger(page).evaluate((element) => ({

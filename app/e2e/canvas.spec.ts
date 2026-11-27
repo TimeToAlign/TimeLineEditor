@@ -511,9 +511,13 @@ test.describe("click", () => {
       .poll(() => bandMarks(page, SMALL.map))
       .toEqual(keysOf([{ id: "melody", facet: "children" }]));
     expect(await selectedAddresses(page)).toEqual(keysOf([cardAddress("melody")]));
-    const glow = await glows.evaluate((rect) => getComputedStyle(rect).filter);
-    expect(glow).toContain("rgb(10, 132, 255)");
-    expect(glow).not.toContain("rgb(156, 200, 255)");
+    // The mark is drawn by its stroke, no filter: the selection's colour, not the hover's.
+    expect(
+      await glows.evaluate((rect) => {
+        const style = getComputedStyle(rect);
+        return [style.stroke, style.strokeWidth, style.filter];
+      }),
+    ).toEqual(["rgb(10, 132, 255)", "2px", "none"]);
     await expect(element(page, SMALL.map, { id: "melody" }).first()).toHaveAttribute(
       "data-affected",
       "",

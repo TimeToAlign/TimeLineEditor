@@ -2,8 +2,9 @@
  * The flow subeditor's pane as drawn: each FlowMap of the edited root drawn
  * as its virtual timeline on the card's scale, by layout's own drawing of a
  * virtual card (`docs/drawing.md` in TimeToShare, section 8.10): its line
- * with its gap lines, its chunks as braces named by their source, their
- * boundaries, a run drawn once as "× n"; never the card's rectangle, name,
+ * with its gap lines, its chunks as segments of the line, each labelled
+ * above the line by its source, their boundaries, a run drawn once as
+ * "× n"; never the card's rectangle, name,
  * markers or any band of its own. Each row is named in a name column of
  * the pane's own, its name cut as a drawing cuts a row's name (section
  * 6.6), and its line starts at least `G'` right of that column (section
@@ -86,8 +87,8 @@ export function rowPlace(
 }
 
 /**
- * Where an entry of a row is drawn, in pane coordinates: a drawn brace's
- * span, or a gap's; `index` its entry, `last` the last entry of the run it
+ * Where an entry of a row is drawn, in pane coordinates: a drawn chunk's
+ * segment, or a gap's; `index` its entry, `last` the last entry of the run it
  * is drawn once for (`index` itself outside a run).
  */
 export interface ChunkSpan {

@@ -23,6 +23,7 @@
     },
     "exact": "http://www.w3.org/2004/02/skos/core#exactMatch",
     "false": "https://timetoalign.github.io/timetoshare/ns#False",
+    "gndo": "https://d-nb.info/standards/elementset/gnd#",
     "groups": "@included",
     "id": "@id",
     "imported": "https://timetoalign.github.io/timetoshare/ns#Imported",
@@ -34,6 +35,8 @@
       "@id": "https://timetoalign.github.io/timetoshare/ns#match",
       "@type": "@vocab"
     },
+    "mbw": "http://musicbrainz.org/work/",
+    "melod": "https://lod.academy/melod/vocab/ontology#",
     "method": {
       "@id": "https://timetoalign.github.io/timetoshare/ns#method",
       "@type": "@vocab"
@@ -51,6 +54,7 @@
     "reconciled": "https://timetoalign.github.io/timetoshare/ns#Reconciled",
     "regions": "@included",
     "related": "http://www.w3.org/2004/02/skos/core#relatedMatch",
+    "schema": "http://schema.org/",
     "service": {
       "@id": "https://timetoalign.github.io/timetoshare/ns#service",
       "@type": "@id"
@@ -65,85 +69,62 @@
     "tts": "https://timetoalign.github.io/timetoshare/ns#",
     "type": "@type",
     "unlikely": "https://timetoalign.github.io/timetoshare/ns#Unlikely",
-    "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"
+    "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
+    "viaf": "http://viaf.org/viaf/",
+    "wd": "http://www.wikidata.org/entity/",
+    "wdt": "http://www.wikidata.org/prop/direct/"
   },
   "flow_maps": [
     {
-      "chunks": ["#region_1", "#region_2", "#region_1", "#region_3"],
+      "chunks": ["#region_2x9oxswmcvytl"],
       "convention": "default",
-      "id": "#flow_map_1",
-      "name": "Allegro, default",
-      "provenance": [
-        {
-          "method": "inferred"
-        }
-      ],
-      "timeline": "#clt_1"
-    },
-    {
-      "chunks": ["#region_1", "#region_3"],
-      "convention": "single",
-      "id": "#flow_map_2",
-      "name": "Allegro, single",
-      "provenance": [
-        {
-          "method": "inferred"
-        }
-      ],
-      "timeline": "#clt_1"
-    },
-    {
-      "chunks": ["#region_1", "#region_2", "#region_3"],
-      "convention": "printed",
-      "id": "#flow_map_3",
-      "name": "Allegro, printed",
-      "provenance": [
-        {
-          "method": "inferred"
-        }
-      ],
-      "timeline": "#clt_1"
-    },
-    {
-      "chunks": ["#region_4"],
-      "convention": "default",
-      "id": "#flow_map_4",
-      "name": "Scherzo. Assai vivace, default",
-      "provenance": [
-        {
-          "method": "inferred"
-        }
-      ],
-      "timeline": "#clt_1"
-    },
-    {
-      "chunks": ["#region_5"],
-      "convention": "default",
-      "id": "#flow_map_5",
-      "name": "Adagio sostenuto, default",
-      "provenance": [
-        {
-          "method": "inferred"
-        }
-      ],
-      "timeline": "#clt_1"
-    },
-    {
-      "chunks": ["#region_6"],
-      "convention": "default",
-      "id": "#flow_map_6",
+      "id": "#flow_0bonv9bfrru96",
       "name": "Introduzione. Largo – Allegro risoluto, default",
       "provenance": [
         {
           "method": "inferred"
         }
       ],
-      "timeline": "#clt_1"
+      "timeline": "#clt_0is8auvrgrzyd"
+    },
+    {
+      "chunks": ["#region_16y85avdli4cg"],
+      "convention": "default",
+      "id": "#flow_15ttob7biobxt",
+      "name": "Scherzo. Assai vivace, default",
+      "provenance": [
+        {
+          "method": "inferred"
+        }
+      ],
+      "timeline": "#clt_0is8auvrgrzyd"
+    },
+    {
+      "chunks": [
+        "#region_24arjfx0l94ez",
+        "#region_28nbivuc8svi6",
+        "#region_24arjfx0l94ez",
+        "#region_192oiyrgpc0j3"
+      ],
+      "convention": "default",
+      "id": "#flow_1au7daz48kjh4",
+      "name": "Allegro, default",
+      "provenance": [
+        {
+          "method": "inferred"
+        }
+      ],
+      "timeline": "#clt_0is8auvrgrzyd"
     },
     {
       "canonical": true,
-      "chunks": ["#clt_2", "#clt_3", "#clt_4", "#clt_5"],
-      "id": "#flow_map_7",
+      "chunks": [
+        "#clt_1krr1fd62fulu",
+        "#clt_2um4zmzhvdmiz",
+        "#clt_3opbddrcd7p0z",
+        "#clt_2hpwfng54ddxs"
+      ],
+      "id": "#flow_1pxp4jlnodtwh",
       "name": "Vienna 1819 (Artaria): I–II–III–IV",
       "provenance": [
         {
@@ -151,11 +132,28 @@
           "method": "manual"
         }
       ],
-      "timeline": "#clt_1"
+      "timeline": "#clt_0is8auvrgrzyd"
     },
     {
-      "chunks": ["#clt_2", "#clt_4", "#clt_3", "#clt_5"],
-      "id": "#flow_map_8",
+      "chunks": ["#region_24arjfx0l94ez", "#region_192oiyrgpc0j3"],
+      "convention": "single",
+      "id": "#flow_1z66t0483945p",
+      "name": "Allegro, single",
+      "provenance": [
+        {
+          "method": "inferred"
+        }
+      ],
+      "timeline": "#clt_0is8auvrgrzyd"
+    },
+    {
+      "chunks": [
+        "#clt_1krr1fd62fulu",
+        "#clt_3opbddrcd7p0z",
+        "#clt_2um4zmzhvdmiz",
+        "#clt_2hpwfng54ddxs"
+      ],
+      "id": "#flow_29b39c1i90yi9",
       "name": "London 1819 (Regent's Harmonic Institution): I–III–II, then IV as a part of its own",
       "provenance": [
         {
@@ -163,91 +161,163 @@
           "method": "manual"
         }
       ],
-      "timeline": "#clt_1"
-    }
-  ],
-  "graphical": {
-    "rules": [
-      {
-        "select": {
-          "element": "band",
-          "facet": "regions",
-          "inside": "band"
-        },
-        "set": {
-          "display": "inline"
-        }
-      },
-      {
-        "select": {
-          "element": "band",
-          "facet": "flow_control",
-          "inside": "band"
-        },
-        "set": {
-          "display": "inline"
-        }
-      }
-    ]
-  },
-  "links": [
+      "timeline": "#clt_0is8auvrgrzyd"
+    },
     {
-      "assertion": {
-        "asserted_on": "2026-11-17",
-        "based_on": [
-          "README.md",
-          "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
-          "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
-        ],
-        "method": "manual",
-        "status": "unconfirmed"
-      },
-      "identifiers": [
+      "chunks": ["#region_1iahuecczxlev"],
+      "convention": "default",
+      "id": "#flow_3ks3e1zplmfxj",
+      "name": "Adagio sostenuto, default",
+      "provenance": [
         {
-          "scheme": "http://www.wikidata.org/entity/P839",
-          "value": "Piano_Sonata_No.29,_Op.106_(Beethoven,_Ludwig_van)"
-        },
-        {
-          "scheme": "mb_beethoven_opus",
-          "value": "op. 106"
+          "method": "inferred"
         }
       ],
-      "label": "Piano Sonata No. 29 in B♭ major, Op. 106",
-      "level": "work",
-      "parts": [
+      "timeline": "#clt_0is8auvrgrzyd"
+    },
+    {
+      "chunks": ["#region_24arjfx0l94ez", "#region_28nbivuc8svi6", "#region_192oiyrgpc0j3"],
+      "convention": "printed",
+      "id": "#flow_3lpxofmn927p1",
+      "name": "Allegro, printed",
+      "provenance": [
         {
-          "absent": "not_represented",
-          "label": "I. Allegro",
-          "uri": ["http://musicbrainz.org/work/80cbaf7b-a1da-3fc5-b650-6eb72a803980"]
-        },
-        {
-          "absent": "not_represented",
-          "label": "II. Scherzo. Assai vivace",
-          "uri": ["http://musicbrainz.org/work/7813c9cf-6054-3ef3-b9ed-8ae4690581c9"]
-        },
-        {
-          "absent": "not_represented",
-          "label": "III. Adagio sostenuto",
-          "uri": ["http://musicbrainz.org/work/7d110747-f011-41d4-9ce5-a1fad9abed2f"]
-        },
-        {
-          "absent": "not_represented",
-          "label": "IV. Introduzione. Largo – Allegro risoluto",
-          "uri": ["http://musicbrainz.org/work/cfa82cd6-bcb5-39dd-9beb-c98e275c7c84"]
+          "method": "inferred"
         }
       ],
-      "parts_relation": "has_part",
-      "relation": "pertains_to",
-      "uri": [
-        "http://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
-        "http://www.wikidata.org/entity/Q146730",
-        "http://viaf.org/viaf/186299955"
-      ]
+      "timeline": "#clt_0is8auvrgrzyd"
     }
   ],
+  "id": "#op106",
   "measure_maps": [
     {
-      "id": "#measuremap_1",
+      "id": "#measure_map_1est31i7mk1wy",
+      "rows": [
+        {
+          "actual_length": [1, 1],
+          "count": 1,
+          "end_repeat": false,
+          "name": "0",
+          "next": ["2"],
+          "nominal_length": [3, 1],
+          "number": 0,
+          "offset_within_measure": [2, 1],
+          "qstamp": [0, 1],
+          "start_repeat": false,
+          "time_signature": "3/4"
+        },
+        {
+          "actual_length": [2, 1],
+          "count": 47,
+          "end_repeat": false,
+          "name": "46",
+          "next": ["48"],
+          "nominal_length": [3, 1],
+          "number": 46,
+          "qstamp": [136, 1],
+          "start_repeat": false,
+          "time_signature": "3/4"
+        },
+        {
+          "actual_length": [1, 1],
+          "count": 48,
+          "end_repeat": false,
+          "name": "46",
+          "next": ["49"],
+          "nominal_length": [3, 1],
+          "number": 46,
+          "offset_within_measure": [2, 1],
+          "qstamp": [138, 1],
+          "start_repeat": false,
+          "time_signature": "3/4"
+        },
+        {
+          "actual_length": [2, 1],
+          "count": 83,
+          "end_repeat": false,
+          "name": "81",
+          "next": ["84"],
+          "nominal_length": [2, 1],
+          "number": 81,
+          "qstamp": [241, 1],
+          "start_repeat": false,
+          "time_signature": "2/4"
+        },
+        {
+          "actual_length": [1, 1],
+          "count": 114,
+          "end_repeat": false,
+          "name": "112",
+          "next": ["115"],
+          "nominal_length": [2, 1],
+          "number": 112,
+          "qstamp": [303, 1],
+          "start_repeat": false,
+          "time_signature": "2/4"
+        },
+        {
+          "actual_length": [19, 1],
+          "count": 115,
+          "end_repeat": false,
+          "name": "112",
+          "next": ["116"],
+          "nominal_length": [2, 1],
+          "number": 112,
+          "qstamp": [304, 1],
+          "start_repeat": false,
+          "time_signature": "2/4"
+        },
+        {
+          "actual_length": [1, 1],
+          "count": 116,
+          "end_repeat": false,
+          "name": "112",
+          "next": ["117"],
+          "nominal_length": [3, 1],
+          "number": 112,
+          "qstamp": [323, 1],
+          "start_repeat": false,
+          "time_signature": "3/4"
+        },
+        {
+          "actual_length": [4, 1],
+          "count": 172,
+          "end_repeat": false,
+          "name": "168",
+          "next": ["173"],
+          "nominal_length": [4, 1],
+          "number": 168,
+          "qstamp": [489, 1],
+          "start_repeat": false,
+          "time_signature": "2/2"
+        },
+        {
+          "actual_length": [3, 1],
+          "count": 176,
+          "end_repeat": false,
+          "name": "172",
+          "next": ["177"],
+          "nominal_length": [3, 1],
+          "number": 172,
+          "qstamp": [505, 1],
+          "start_repeat": false,
+          "time_signature": "3/4"
+        },
+        {
+          "actual_length": [2, 1],
+          "count": 179,
+          "end_repeat": false,
+          "name": "175",
+          "nominal_length": [3, 1],
+          "number": 175,
+          "qstamp": [514, 1],
+          "start_repeat": false,
+          "time_signature": "3/4"
+        }
+      ]
+    },
+    {
+      "id": "#measure_map_2jp48qjhqouij",
       "rows": [
         {
           "actual_length": [1, 2],
@@ -418,133 +488,7 @@
       ]
     },
     {
-      "id": "#measuremap_2",
-      "rows": [
-        {
-          "actual_length": [1, 1],
-          "count": 1,
-          "end_repeat": false,
-          "name": "0",
-          "next": ["2"],
-          "nominal_length": [3, 1],
-          "number": 0,
-          "offset_within_measure": [2, 1],
-          "qstamp": [0, 1],
-          "start_repeat": false,
-          "time_signature": "3/4"
-        },
-        {
-          "actual_length": [2, 1],
-          "count": 47,
-          "end_repeat": false,
-          "name": "46",
-          "next": ["48"],
-          "nominal_length": [3, 1],
-          "number": 46,
-          "qstamp": [136, 1],
-          "start_repeat": false,
-          "time_signature": "3/4"
-        },
-        {
-          "actual_length": [1, 1],
-          "count": 48,
-          "end_repeat": false,
-          "name": "46",
-          "next": ["49"],
-          "nominal_length": [3, 1],
-          "number": 46,
-          "offset_within_measure": [2, 1],
-          "qstamp": [138, 1],
-          "start_repeat": false,
-          "time_signature": "3/4"
-        },
-        {
-          "actual_length": [2, 1],
-          "count": 83,
-          "end_repeat": false,
-          "name": "81",
-          "next": ["84"],
-          "nominal_length": [2, 1],
-          "number": 81,
-          "qstamp": [241, 1],
-          "start_repeat": false,
-          "time_signature": "2/4"
-        },
-        {
-          "actual_length": [1, 1],
-          "count": 114,
-          "end_repeat": false,
-          "name": "112",
-          "next": ["115"],
-          "nominal_length": [2, 1],
-          "number": 112,
-          "qstamp": [303, 1],
-          "start_repeat": false,
-          "time_signature": "2/4"
-        },
-        {
-          "actual_length": [19, 1],
-          "count": 115,
-          "end_repeat": false,
-          "name": "112",
-          "next": ["116"],
-          "nominal_length": [2, 1],
-          "number": 112,
-          "qstamp": [304, 1],
-          "start_repeat": false,
-          "time_signature": "2/4"
-        },
-        {
-          "actual_length": [1, 1],
-          "count": 116,
-          "end_repeat": false,
-          "name": "112",
-          "next": ["117"],
-          "nominal_length": [3, 1],
-          "number": 112,
-          "qstamp": [323, 1],
-          "start_repeat": false,
-          "time_signature": "3/4"
-        },
-        {
-          "actual_length": [4, 1],
-          "count": 172,
-          "end_repeat": false,
-          "name": "168",
-          "next": ["173"],
-          "nominal_length": [4, 1],
-          "number": 168,
-          "qstamp": [489, 1],
-          "start_repeat": false,
-          "time_signature": "2/2"
-        },
-        {
-          "actual_length": [3, 1],
-          "count": 176,
-          "end_repeat": false,
-          "name": "172",
-          "next": ["177"],
-          "nominal_length": [3, 1],
-          "number": 172,
-          "qstamp": [505, 1],
-          "start_repeat": false,
-          "time_signature": "3/4"
-        },
-        {
-          "actual_length": [2, 1],
-          "count": 179,
-          "end_repeat": false,
-          "name": "175",
-          "nominal_length": [3, 1],
-          "number": 175,
-          "qstamp": [514, 1],
-          "start_repeat": false,
-          "time_signature": "3/4"
-        }
-      ]
-    },
-    {
-      "id": "#measuremap_3",
+      "id": "#measure_map_38f6l8ojbnosz",
       "rows": [
         {
           "actual_length": [3, 1],
@@ -572,7 +516,7 @@
       ]
     },
     {
-      "id": "#measuremap_4",
+      "id": "#measure_map_3ognoimky7kx8",
       "rows": [
         {
           "actual_length": [23, 4],
@@ -746,35 +690,244 @@
     }
   ],
   "name": "Beethoven, Piano Sonata No. 29, Op. 106",
-  "schemes": [
+  "provenance": [
     {
-      "id": "mb_beethoven_opus",
-      "name": "Works of Ludwig van Beethoven by opus number",
-      "uri": ["https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"]
+      "basis": [
+        "README.md",
+        "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+        "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+      ],
+      "date": "2026-11-17",
+      "method": "manual",
+      "property": "schema:about",
+      "value": {
+        "id": "mbw:4a622b0d-b0c0-405e-b49e-05b70c108284"
+      }
     }
   ],
+  "statements": {
+    "schema:about": [
+      {
+        "gndo:opusNumericDesignationOfMusicalWork": ["op. 106"],
+        "id": "mbw:4a622b0d-b0c0-405e-b49e-05b70c108284",
+        "label": "Piano Sonata No. 29 in B♭ major, Op. 106",
+        "provenance": [
+          {
+            "basis": [
+              "README.md",
+              "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+              "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+            ],
+            "date": "2026-11-17",
+            "method": "manual",
+            "property": "rdf:type",
+            "value": {
+              "id": "melod:Work"
+            }
+          },
+          {
+            "basis": [
+              "README.md",
+              "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+              "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+            ],
+            "date": "2026-11-17",
+            "method": "manual",
+            "property": "schema:sameAs",
+            "value": {
+              "id": "wd:Q146730"
+            }
+          },
+          {
+            "basis": [
+              "README.md",
+              "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+              "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+            ],
+            "date": "2026-11-17",
+            "method": "manual",
+            "property": "schema:sameAs",
+            "value": {
+              "id": "viaf:186299955"
+            }
+          },
+          {
+            "basis": [
+              "README.md",
+              "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+              "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+            ],
+            "date": "2026-11-17",
+            "method": "manual",
+            "property": "wdt:P839",
+            "value": "Piano_Sonata_No.29,_Op.106_(Beethoven,_Ludwig_van)"
+          },
+          {
+            "basis": [
+              "README.md",
+              "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+              "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+            ],
+            "date": "2026-11-17",
+            "method": "manual",
+            "property": "gndo:opusNumericDesignationOfMusicalWork",
+            "value": "op. 106"
+          },
+          {
+            "basis": [
+              "README.md",
+              "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+              "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+            ],
+            "date": "2026-11-17",
+            "method": "manual",
+            "property": "schema:includedComposition",
+            "value": {
+              "id": "mbw:80cbaf7b-a1da-3fc5-b650-6eb72a803980"
+            }
+          },
+          {
+            "basis": [
+              "README.md",
+              "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+              "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+            ],
+            "date": "2026-11-17",
+            "method": "manual",
+            "property": "schema:includedComposition",
+            "value": {
+              "id": "mbw:7813c9cf-6054-3ef3-b9ed-8ae4690581c9"
+            }
+          },
+          {
+            "basis": [
+              "README.md",
+              "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+              "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+            ],
+            "date": "2026-11-17",
+            "method": "manual",
+            "property": "schema:includedComposition",
+            "value": {
+              "id": "mbw:7d110747-f011-41d4-9ce5-a1fad9abed2f"
+            }
+          },
+          {
+            "basis": [
+              "README.md",
+              "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+              "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+            ],
+            "date": "2026-11-17",
+            "method": "manual",
+            "property": "schema:includedComposition",
+            "value": {
+              "id": "mbw:cfa82cd6-bcb5-39dd-9beb-c98e275c7c84"
+            }
+          }
+        ],
+        "schema:includedComposition": [
+          {
+            "id": "mbw:80cbaf7b-a1da-3fc5-b650-6eb72a803980",
+            "label": "I. Allegro",
+            "provenance": [
+              {
+                "basis": [
+                  "README.md",
+                  "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+                  "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+                ],
+                "date": "2026-11-17",
+                "method": "manual",
+                "property": "schema:position",
+                "value": 1
+              }
+            ],
+            "schema:position": [1]
+          },
+          {
+            "id": "mbw:7813c9cf-6054-3ef3-b9ed-8ae4690581c9",
+            "label": "II. Scherzo. Assai vivace",
+            "provenance": [
+              {
+                "basis": [
+                  "README.md",
+                  "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+                  "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+                ],
+                "date": "2026-11-17",
+                "method": "manual",
+                "property": "schema:position",
+                "value": 2
+              }
+            ],
+            "schema:position": [2]
+          },
+          {
+            "id": "mbw:7d110747-f011-41d4-9ce5-a1fad9abed2f",
+            "label": "III. Adagio sostenuto",
+            "provenance": [
+              {
+                "basis": [
+                  "README.md",
+                  "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+                  "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+                ],
+                "date": "2026-11-17",
+                "method": "manual",
+                "property": "schema:position",
+                "value": 3
+              }
+            ],
+            "schema:position": [3]
+          },
+          {
+            "id": "mbw:cfa82cd6-bcb5-39dd-9beb-c98e275c7c84",
+            "label": "IV. Introduzione. Largo – Allegro risoluto",
+            "provenance": [
+              {
+                "basis": [
+                  "README.md",
+                  "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+                  "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+                ],
+                "date": "2026-11-17",
+                "method": "manual",
+                "property": "schema:position",
+                "value": 4
+              }
+            ],
+            "schema:position": [4]
+          }
+        ],
+        "schema:sameAs": [
+          {
+            "id": "wd:Q146730"
+          },
+          {
+            "id": "viaf:186299955"
+          }
+        ],
+        "type": ["melod:Work"],
+        "wdt:P839": ["Piano_Sonata_No.29,_Op.106_(Beethoven,_Ludwig_van)"]
+      }
+    ]
+  },
   "timelines": [
     {
       "children": [
         {
           "conversion_maps": [
             {
-              "id": "#cmap_1",
-              "measure_map": "#measuremap_1",
+              "id": "#cmap_2svejvhxtu0za",
+              "measure_map": "#measure_map_2jp48qjhqouij",
               "source_unit": "quarters",
               "target_unit": null,
               "type": "MeasureRecordMap"
             },
             {
-              "id": "#cmap_2",
-              "scalar": 480,
-              "source_unit": "quarters",
-              "target_unit": "ticks",
-              "type": "LinearMap"
-            },
-            {
-              "id": "#tmap_1",
-              "measure_map": "#measuremap_1",
+              "id": "#cmap_3kapzfh3hlacx",
+              "measure_map": "#measure_map_2jp48qjhqouij",
               "source_unit": "quarters",
               "target_unit": "floating_measures",
               "type": "FloatingMeasureMap"
@@ -783,7 +936,7 @@
           "flow_control": [
             {
               "coordinate": [953, 2],
-              "id": "#jump_1",
+              "id": "#jump_3h5fsxxkqo8jq",
               "role": "jump",
               "targets": [
                 {
@@ -794,19 +947,19 @@
                 {
                   "manifestation": "volta",
                   "passes": [2],
-                  "to": "#jump_target_1"
+                  "to": "#jump_target_1su73a9une6qv"
                 }
               ]
             },
             {
               "coordinate": [500, 1],
-              "id": "#break_1",
+              "id": "#break_0102c4h16tv5y",
               "manifestation": "volta",
               "role": "break"
             },
             {
               "coordinate": [500, 1],
-              "id": "#jump_2",
+              "id": "#jump_1y60cvj88dgt9",
               "role": "jump",
               "targets": [
                 {
@@ -817,32 +970,47 @@
             },
             {
               "coordinate": [500, 1],
-              "id": "#jump_target_1",
+              "id": "#jump_target_1su73a9une6qv",
               "manifestation": "volta",
               "role": "jump_target"
             },
             {
               "coordinate": [824, 1],
-              "id": "#barline_1",
+              "id": "#barline_0rnb7bkapw8ho",
               "manifestation": "double_barline",
               "role": "barline"
             },
             {
               "coordinate": [1644, 1],
-              "id": "#barline_2",
+              "id": "#barline_32mym4batbpbx",
               "manifestation": "final_barline",
               "role": "barline"
             }
           ],
-          "id": "#clt_2",
+          "id": "#clt_1krr1fd62fulu",
           "length": [1644, 1],
           "locked": true,
           "name": "Allegro",
           "offset": [0, 1],
+          "provenance": [
+            {
+              "basis": [
+                "README.md",
+                "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+                "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+              ],
+              "date": "2026-11-17",
+              "method": "manual",
+              "property": "schema:exampleOfWork",
+              "value": {
+                "id": "mbw:80cbaf7b-a1da-3fc5-b650-6eb72a803980"
+              }
+            }
+          ],
           "regions": [
             {
               "end": [953, 2],
-              "id": "#region_1",
+              "id": "#region_24arjfx0l94ez",
               "name": "A",
               "provenance": [
                 {
@@ -860,7 +1028,7 @@
             },
             {
               "end": [500, 1],
-              "id": "#region_2",
+              "id": "#region_28nbivuc8svi6",
               "name": "B",
               "provenance": [
                 {
@@ -878,7 +1046,7 @@
             },
             {
               "end": [1644, 1],
-              "id": "#region_3",
+              "id": "#region_192oiyrgpc0j3",
               "name": "C",
               "provenance": [
                 {
@@ -895,85 +1063,28 @@
               }
             }
           ],
-          "unit": "quarters"
-        },
-        {
-          "conversion_maps": [
-            {
-              "id": "#cmap_3",
-              "scalar": 480,
-              "source_unit": "quarters",
-              "target_unit": "ticks",
-              "type": "LinearMap"
-            },
-            {
-              "id": "#cmap_4",
-              "measure_map": "#measuremap_2",
-              "source_unit": "quarters",
-              "target_unit": null,
-              "type": "MeasureRecordMap"
-            }
-          ],
-          "flow_control": [
-            {
-              "coordinate": [138, 1],
-              "id": "#barline_3",
-              "manifestation": "double_barline",
-              "role": "barline"
-            },
-            {
-              "coordinate": [516, 1],
-              "id": "#barline_4",
-              "manifestation": "final_barline",
-              "role": "barline"
-            }
-          ],
-          "id": "#clt_3",
-          "length": [516, 1],
-          "locked": true,
-          "name": "Scherzo. Assai vivace",
-          "offset": [1644, 1],
-          "regions": [
-            {
-              "end": [516, 1],
-              "id": "#region_4",
-              "name": "A",
-              "provenance": [
-                {
-                  "method": "inferred",
-                  "property": "rdf:type",
-                  "value": {
-                    "id": "tts:AtomicSection"
-                  }
-                }
-              ],
-              "start": [0, 1],
-              "statements": {
-                "type": ["tts:AtomicSection"]
+          "statements": {
+            "schema:exampleOfWork": [
+              {
+                "id": "mbw:80cbaf7b-a1da-3fc5-b650-6eb72a803980",
+                "label": "I. Allegro"
               }
-            }
-          ],
+            ]
+          },
           "unit": "quarters"
         },
         {
           "conversion_maps": [
             {
-              "id": "#cmap_5",
-              "scalar": 480,
-              "source_unit": "quarters",
-              "target_unit": "ticks",
-              "type": "LinearMap"
-            },
-            {
-              "id": "#cmap_6",
-              "measure_map": "#measuremap_3",
+              "id": "#cmap_0luj9nhvt3yfb",
+              "measure_map": "#measure_map_1est31i7mk1wy",
               "source_unit": "quarters",
               "target_unit": null,
               "type": "MeasureRecordMap"
             },
             {
-              "id": "#tmap_2",
-              "measure_map": "#measuremap_3",
+              "id": "#cmap_3r3ka64nkhw40",
+              "measure_map": "#measure_map_1est31i7mk1wy",
               "source_unit": "quarters",
               "target_unit": "floating_measures",
               "type": "FloatingMeasureMap"
@@ -981,21 +1092,42 @@
           ],
           "flow_control": [
             {
-              "coordinate": [561, 1],
-              "id": "#barline_5",
+              "coordinate": [138, 1],
+              "id": "#barline_229udszamq23a",
+              "manifestation": "double_barline",
+              "role": "barline"
+            },
+            {
+              "coordinate": [516, 1],
+              "id": "#barline_0q5wrexdcqzzx",
               "manifestation": "final_barline",
               "role": "barline"
             }
           ],
-          "id": "#clt_4",
-          "length": [561, 1],
+          "id": "#clt_2um4zmzhvdmiz",
+          "length": [516, 1],
           "locked": true,
-          "name": "Adagio sostenuto",
-          "offset": [2160, 1],
+          "name": "Scherzo. Assai vivace",
+          "offset": [1644, 1],
+          "provenance": [
+            {
+              "basis": [
+                "README.md",
+                "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+                "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+              ],
+              "date": "2026-11-17",
+              "method": "manual",
+              "property": "schema:exampleOfWork",
+              "value": {
+                "id": "mbw:7813c9cf-6054-3ef3-b9ed-8ae4690581c9"
+              }
+            }
+          ],
           "regions": [
             {
-              "end": [561, 1],
-              "id": "#region_5",
+              "end": [516, 1],
+              "id": "#region_16y85avdli4cg",
               "name": "A",
               "provenance": [
                 {
@@ -1012,20 +1144,28 @@
               }
             }
           ],
+          "statements": {
+            "schema:exampleOfWork": [
+              {
+                "id": "mbw:7813c9cf-6054-3ef3-b9ed-8ae4690581c9",
+                "label": "II. Scherzo. Assai vivace"
+              }
+            ]
+          },
           "unit": "quarters"
         },
         {
           "conversion_maps": [
             {
-              "id": "#cmap_7",
-              "scalar": 480,
+              "id": "#cmap_1jjnsku3ujmtm",
+              "measure_map": "#measure_map_38f6l8ojbnosz",
               "source_unit": "quarters",
-              "target_unit": "ticks",
-              "type": "LinearMap"
+              "target_unit": "floating_measures",
+              "type": "FloatingMeasureMap"
             },
             {
-              "id": "#cmap_8",
-              "measure_map": "#measuremap_4",
+              "id": "#cmap_3t9roc62g69pz",
+              "measure_map": "#measure_map_38f6l8ojbnosz",
               "source_unit": "quarters",
               "target_unit": null,
               "type": "MeasureRecordMap"
@@ -1033,33 +1173,36 @@
           ],
           "flow_control": [
             {
-              "coordinate": [75, 4],
-              "id": "#barline_6",
-              "manifestation": "double_barline",
-              "role": "barline"
-            },
-            {
-              "coordinate": [269, 4],
-              "id": "#barline_7",
-              "manifestation": "double_barline",
-              "role": "barline"
-            },
-            {
-              "coordinate": [4949, 4],
-              "id": "#barline_8",
+              "coordinate": [561, 1],
+              "id": "#barline_0jivwjbxqptj1",
               "manifestation": "final_barline",
               "role": "barline"
             }
           ],
-          "id": "#clt_5",
-          "length": [4949, 4],
+          "id": "#clt_3opbddrcd7p0z",
+          "length": [561, 1],
           "locked": true,
-          "name": "Introduzione. Largo – Allegro risoluto",
-          "offset": [2721, 1],
+          "name": "Adagio sostenuto",
+          "offset": [2160, 1],
+          "provenance": [
+            {
+              "basis": [
+                "README.md",
+                "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+                "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+              ],
+              "date": "2026-11-17",
+              "method": "manual",
+              "property": "schema:exampleOfWork",
+              "value": {
+                "id": "mbw:7d110747-f011-41d4-9ce5-a1fad9abed2f"
+              }
+            }
+          ],
           "regions": [
             {
-              "end": [4949, 4],
-              "id": "#region_6",
+              "end": [561, 1],
+              "id": "#region_1iahuecczxlev",
               "name": "A",
               "provenance": [
                 {
@@ -1076,10 +1219,105 @@
               }
             }
           ],
+          "statements": {
+            "schema:exampleOfWork": [
+              {
+                "id": "mbw:7d110747-f011-41d4-9ce5-a1fad9abed2f",
+                "label": "III. Adagio sostenuto"
+              }
+            ]
+          },
+          "unit": "quarters"
+        },
+        {
+          "conversion_maps": [
+            {
+              "id": "#cmap_1cc4igwc957yx",
+              "measure_map": "#measure_map_3ognoimky7kx8",
+              "source_unit": "quarters",
+              "target_unit": null,
+              "type": "MeasureRecordMap"
+            },
+            {
+              "id": "#cmap_2xt3pfbe1kd7h",
+              "measure_map": "#measure_map_3ognoimky7kx8",
+              "source_unit": "quarters",
+              "target_unit": "floating_measures",
+              "type": "FloatingMeasureMap"
+            }
+          ],
+          "flow_control": [
+            {
+              "coordinate": [75, 4],
+              "id": "#barline_22torwmrf58ax",
+              "manifestation": "double_barline",
+              "role": "barline"
+            },
+            {
+              "coordinate": [269, 4],
+              "id": "#barline_3lv8tjms97ri6",
+              "manifestation": "double_barline",
+              "role": "barline"
+            },
+            {
+              "coordinate": [4949, 4],
+              "id": "#barline_0995ltxo7do31",
+              "manifestation": "final_barline",
+              "role": "barline"
+            }
+          ],
+          "id": "#clt_2hpwfng54ddxs",
+          "length": [4949, 4],
+          "locked": true,
+          "name": "Introduzione. Largo – Allegro risoluto",
+          "offset": [2721, 1],
+          "provenance": [
+            {
+              "basis": [
+                "README.md",
+                "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+                "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+              ],
+              "date": "2026-11-17",
+              "method": "manual",
+              "property": "schema:exampleOfWork",
+              "value": {
+                "id": "mbw:cfa82cd6-bcb5-39dd-9beb-c98e275c7c84"
+              }
+            }
+          ],
+          "regions": [
+            {
+              "end": [4949, 4],
+              "id": "#region_2x9oxswmcvytl",
+              "name": "A",
+              "provenance": [
+                {
+                  "method": "inferred",
+                  "property": "rdf:type",
+                  "value": {
+                    "id": "tts:AtomicSection"
+                  }
+                }
+              ],
+              "start": [0, 1],
+              "statements": {
+                "type": ["tts:AtomicSection"]
+              }
+            }
+          ],
+          "statements": {
+            "schema:exampleOfWork": [
+              {
+                "id": "mbw:cfa82cd6-bcb5-39dd-9beb-c98e275c7c84",
+                "label": "IV. Introduzione. Largo – Allegro risoluto"
+              }
+            ]
+          },
           "unit": "quarters"
         }
       ],
-      "id": "#clt_1",
+      "id": "#clt_0is8auvrgrzyd",
       "length": [15833, 4],
       "name": "Op. 106",
       "unit": "quarters"
@@ -1088,12 +1326,12 @@
   "timetoshare": "0.2.0",
   "virtual_timelines": [
     {
-      "id": "#clt_6",
+      "id": "#clt_34r2nh8p0a7pj",
       "length": [4241, 2],
-      "map": "#flow_map_1",
+      "map": "#flow_1au7daz48kjh4",
       "name": "Allegro, as played",
       "number_type": "fraction",
-      "timeline": "#clt_1",
+      "timeline": "#clt_0is8auvrgrzyd",
       "unit": "quarters"
     }
   ]

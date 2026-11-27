@@ -540,12 +540,15 @@ move by exactly `Wb + S`:
    the inner half of its row that edge and the outer half `p / 2 = 7`, is
    `7 + 23.9765625 = 30.9765625` wide. `verse`'s flow control band, shown
    by the same rule, is never present. The same numbers hold on Op. 106
-   itself (`data/op106.manifest.json`, below), whose root `clt_1` holds no
+   itself (`data/op106.manifest.json`, below), whose root `clt_0is8auvrgrzyd` holds no
    region, map, flow-control element or named timestamp: without a rule its
-   flow control band, gathering its movements', lies at −1 from `c = 5.5`;
-   with `{facet: regions, within: clt_1}` its regions band lies at −1, 0
-   elements, `c = 5.5`, `Wb` wide, and the flow control band at −2 from
-   `27.9765625`, holding as many elements and as wide as before.
+   flow control band, gathering its movements', lies at −1 from `c = 5.5`,
+   holding 11 elements (the break, the eight barlines and the two jumps;
+   the jump target draws none) and `Hs + Hf = 17.96875 + 20.8009383552 =
+   38.7696883552` wide (below); with `{facet: regions, within:
+   clt_0is8auvrgrzyd}` its regions band lies at −1, 0 elements, `c = 5.5`,
+   `Wb` wide, and the flow control band at −2 from `27.9765625`, holding as
+   many elements and as wide as before.
 2. **Not shown explicitly**: the rule `{facet: regions}` (`inline`, naming
    neither) draws every band as no rule does; so does `bare`'s own regions
    rule (point 3) when a later layer states `{facet: regions}` `inline`,
@@ -1118,10 +1121,11 @@ solid, 1, and a fork black, 1 wide, its texts at the font size 9.
 - **Op. 106** (`data/op106.manifest.json`, a copy of the manifest of
   Beethoven's Piano Sonata No. 29 in the public repository
   `TimeToAlign/beethoven_piano_sonatas`, `sonata_29_op106/manifest.json`
-  at `7db6693`), drawn with the default layer alone at the default
-  placement: the root `clt_1` (`Op. 106`, quarters, length 15833/4) holds
-  no flow control, its four movements `clt_2` (at 0, 1644 long), `clt_3`
-  (at 1644, 516), `clt_4` (at 2160, 561) and `clt_5` (at 2721, 4949/4)
+  at `58cf425`, its IDs minted, every movement holding a
+  `MeasureRecordMap` and a `FloatingMeasureMap`), drawn with the default
+  layer alone at the default placement: the root `clt_0is8auvrgrzyd` (`Op. 106`, quarters, length 15833/4) holds
+  no flow control, its four movements `clt_1krr1fd62fulu` (at 0, 1644 long), `clt_2um4zmzhvdmiz`
+  (at 1644, 516), `clt_3opbddrcd7p0z` (at 2160, 561) and `clt_2hpwfng54ddxs` (at 2721, 4949/4)
   hold it all; every region is an atomic section, hidden. So the root's
   band is the one flow control band of the drawing, at level −1 from `c =
   1.5 + 4 = 5.5` below the root's line `yl` (the drawing's root line; its
@@ -1129,24 +1133,24 @@ solid, 1, and a fork black, 1 wide, its texts at the font size 9.
   holds no stack (every `label` is null): `f0 = 5.5`, `yf = yl + 5.5`.
   With `x(t) = x0 + 400 × u`, `u` the double nearest `t / (15833/4)`
   (`x0` the drawing's root line's start), the flow lines, in the band's
-  order (`clt_2` before `clt_3` before …, each in canonical order), are
-  the break `break_1` at 500 (`400u = 50.527379523779445`), red `#D62728`,
-  1.5, dashed `1.5 1.5`, and the barlines `barline_1` at 824
-  (83.26912145518854), `barline_2` at 1644 (166.13402387418682),
-  `barline_3` at 1644 + 138 = 1782 (180.07958062274994), `barline_4` at
-  2160 (218.2782795427272), `barline_5` at 2721 (274.96999936840774),
-  `barline_6` at 2721 + 75/4 (276.8647761005495), `barline_7` at 2721 +
-  269/4 (281.7659319143561) and `barline_8` at 15833/4 (400), each grey
+  order (`clt_1krr1fd62fulu` before `clt_2um4zmzhvdmiz` before …, each in canonical order), are
+  the break `break_0102c4h16tv5y` at 500 (`400u = 50.527379523779445`), red `#D62728`,
+  1.5, dashed `1.5 1.5`, and the barlines `barline_0rnb7bkapw8ho` at 824
+  (83.26912145518854), `barline_32mym4batbpbx` at 1644 (166.13402387418682),
+  `barline_229udszamq23a` at 1644 + 138 = 1782 (180.07958062274994), `barline_0q5wrexdcqzzx` at
+  2160 (218.2782795427272), `barline_0jivwjbxqptj1` at 2721 (274.96999936840774),
+  `barline_22torwmrf58ax` at 2721 + 75/4 (276.8647761005495), `barline_3lv8tjms97ri6` at 2721 +
+  269/4 (281.7659319143561) and `barline_0995ltxo7do31` at 15833/4 (400), each grey
   `#6B7280`, 1, solid, each from `yf` to the card's top plus the padding,
   `28.8046875 + 8 = 36.8046875` (the manifest's title above the card, as
   in the flow fixtures). The symbols, in the band's order, at the
   baseline `(yl + (5.5 + 2)) + a(12) = (yl + 7.5) + 11.138671875`, the
-  symbol gap 2 beyond the flow row: 𝄇 (U+1D107) of `jump_2` at
-  500, then 𝄁 of `barline_1`, 𝄂 of `barline_2`, 𝄁 of `barline_3`, 𝄂 of
-  `barline_4`, 𝄂 of `barline_5`, 𝄁 of `barline_6` and `barline_7`, 𝄂 of
-  `barline_8`; the volta break and jump target draw none. `Hs = 2 + h(12)
-  + 2 = 2 + 13.96875 + 2 = 17.96875`. `jump_1` at 953/2 holds `by` 0
-  (passes `[1]`, place 953/2) and `to` `jump_target_1` at 500 (passes
+  symbol gap 2 beyond the flow row: 𝄇 (U+1D107) of `jump_1y60cvj88dgt9` at
+  500, then 𝄁 of `barline_0rnb7bkapw8ho`, 𝄂 of `barline_32mym4batbpbx`, 𝄁 of `barline_229udszamq23a`, 𝄂 of
+  `barline_0q5wrexdcqzzx`, 𝄂 of `barline_0jivwjbxqptj1`, 𝄁 of `barline_22torwmrf58ax` and `barline_3lv8tjms97ri6`, 𝄂 of
+  `barline_0995ltxo7do31`; the volta break and jump target draw none. `Hs = 2 + h(12)
+  + 2 = 2 + 13.96875 + 2 = 17.96875`. `jump_3h5fsxxkqo8jq` at 953/2 holds `by` 0
+  (passes `[1]`, place 953/2) and `to` `jump_target_1su73a9une6qv` at 500 (passes
   `[2]`): its fork has two branches, `1.` (place 953/2) then `2.` (place
   500), and is the band's one fork: `N = 2`, `zf = 9`, `sM = s(35°) =
   0.5735764364`, `Hf = (10.4765625 / 2 + 18 × 0.5735764364) + 10.4765625
@@ -1165,9 +1169,9 @@ solid, 1, and a fork black, 1 wide, its texts at the font size 9.
   18 × 0.5735764364) − 5.23828125 = 33.7931258552`, so each text sits at
   its own tip. No bracket and no arc: the band is `0 + 17.96875 +
   20.8009383552` wide, from `yl + 5.5`, and draws no `jump` element. With the
-  rule `{element: jump} display: inline` it draws one arc, `jump_2`'s
-  repeat 500 → 0 (the start of its section, `clt_2`'s 0, the root's 0);
-  `jump_1`'s two destinations are `volta`, branches of its fork, and draw
+  rule `{element: jump} display: inline` it draws one arc, `jump_1y60cvj88dgt9`'s
+  repeat 500 → 0 (the start of its section, `clt_1krr1fd62fulu`'s 0, the root's 0);
+  `jump_3h5fsxxkqo8jq`'s two destinations are `volta`, branches of its fork, and draw
   none.
 - **No band but the root's.** In `child_flow_control` (`piece` 16 long,
   its child `verse` at 4, 8 long, holding the break `fine` at 4 and the
@@ -1282,9 +1286,10 @@ none. On `flow/virtual_cards` with its three virtual timelines placed,
 every name at size 11 under the defaults' `max-width` 160, that is an
 advance sum of at most `160 × 2048 / 11 = 29789.09…` (`…` is 2048), each
 virtual card's whole name (`V · unfolded from T`, section 8.10) is cut as
-one text, so its suffix gives way first: `"Allegro, practice ·
-unfolded…"` (sum 29777, the next space 651 too many), `"Allegro, default
-· unfolded …"` (29353, the next `f` 721 too many) and `"Allegro, single ·
+one text, so its suffix gives way first, the cards in the order of their
+names (section 8.1): `"Allegro, default · unfolded …"` (29353, the next
+`f` 721 too many), `"Allegro, practice · unfolded…"` (sum 29777, the next
+space 651 too many) and `"Allegro, single ·
 unfolded fr…"` (29773, the next `o` 1253 too many), whole `"Allegro, practice
 · unfolded from Allegro"` and so on; `"Allegro"` and the title "Virtual
 cards" are whole and carry none. The name column `N` is measured on the

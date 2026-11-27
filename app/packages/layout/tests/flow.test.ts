@@ -624,26 +624,28 @@ describe("Op. 106 drawn with the defaults", () => {
       y2: END,
     });
     expect(ofTypes(drawing, "break", "section_break", "barline")).toEqual([
-      line("break", "break_1", at500),
-      line("barline", "barline_1", 83.26912145518854),
-      line("barline", "barline_2", 166.13402387418682),
-      line("barline", "barline_3", 180.07958062274994),
-      line("barline", "barline_4", 218.2782795427272),
-      line("barline", "barline_5", 274.96999936840774),
-      line("barline", "barline_6", 276.8647761005495),
-      line("barline", "barline_7", 281.7659319143561),
-      line("barline", "barline_8", 400),
+      line("break", "break_0102c4h16tv5y", at500),
+      line("barline", "barline_0rnb7bkapw8ho", 83.26912145518854),
+      line("barline", "barline_32mym4batbpbx", 166.13402387418682),
+      line("barline", "barline_229udszamq23a", 180.07958062274994),
+      line("barline", "barline_0q5wrexdcqzzx", 218.2782795427272),
+      line("barline", "barline_0jivwjbxqptj1", 274.96999936840774),
+      line("barline", "barline_22torwmrf58ax", 276.8647761005495),
+      line("barline", "barline_3lv8tjms97ri6", 281.7659319143561),
+      line("barline", "barline_0995ltxo7do31", 400),
     ]);
     const stroke = (id: string) =>
       drawing.elements
         .filter((item) => item.address.id === id && item.address.part === undefined)
         .map(({ style }) => [style.stroke, style["stroke-width"], style["stroke-dasharray"]]);
-    expect(stroke("break_1")).toEqual([["#D62728", 1.5, "1.5 1.5"]]);
-    expect(stroke("barline_1")).toEqual([["#6B7280", 1, "none"]]);
+    expect(stroke("break_0102c4h16tv5y")).toEqual([["#D62728", 1.5, "1.5 1.5"]]);
+    expect(stroke("barline_0rnb7bkapw8ho")).toEqual([["#6B7280", 1, "none"]]);
     const bands = drawing.boxes.filter(
       (box) => box.kind === "band" && box.address.facet === "flow_control",
     );
-    expect(bands.map((box) => box.address)).toEqual([{ id: "clt_1", facet: "flow_control" }]);
+    expect(bands.map((box) => box.address)).toEqual([
+      { id: "clt_0is8auvrgrzyd", facet: "flow_control" },
+    ]);
   });
 
   it("draws the symbols on the symbol row, 2 beyond the flow row, and no arc", () => {
@@ -657,15 +659,15 @@ describe("Op. 106 drawn with the defaults", () => {
     });
     const [double, final] = ["\u{1D101}", "\u{1D102}"];
     expect(ofTypes(drawing, "symbol")).toEqual([
-      symbol("jump_2", at500, "\u{1D107}"),
-      symbol("barline_1", 83.26912145518854, double),
-      symbol("barline_2", 166.13402387418682, final),
-      symbol("barline_3", 180.07958062274994, double),
-      symbol("barline_4", 218.2782795427272, final),
-      symbol("barline_5", 274.96999936840774, final),
-      symbol("barline_6", 276.8647761005495, double),
-      symbol("barline_7", 281.7659319143561, double),
-      symbol("barline_8", 400, final),
+      symbol("jump_1y60cvj88dgt9", at500, "\u{1D107}"),
+      symbol("barline_0rnb7bkapw8ho", 83.26912145518854, double),
+      symbol("barline_32mym4batbpbx", 166.13402387418682, final),
+      symbol("barline_229udszamq23a", 180.07958062274994, double),
+      symbol("barline_0q5wrexdcqzzx", 218.2782795427272, final),
+      symbol("barline_0jivwjbxqptj1", 274.96999936840774, final),
+      symbol("barline_22torwmrf58ax", 276.8647761005495, double),
+      symbol("barline_3lv8tjms97ri6", 281.7659319143561, double),
+      symbol("barline_0995ltxo7do31", 400, final),
     ]);
     expect(ofTypes(drawing, "jump")).toEqual([]);
   });
@@ -689,7 +691,7 @@ describe("Op. 106 drawn with the defaults", () => {
     expect(ofTypes(drawing, "fork")).toEqual([
       {
         type: "fork",
-        address: at("jump_1", "fork"),
+        address: at("jump_3h5fsxxkqo8jq", "fork"),
         stem: [X - 8, yl + e],
         point: [X, yl + e],
         branches: [
@@ -698,7 +700,7 @@ describe("Op. 106 drawn with the defaults", () => {
         ],
       },
     ]);
-    const style = styles(drawing, "jump_1").find((item) => item.type === "fork")?.style;
+    const style = styles(drawing, "jump_3h5fsxxkqo8jq").find((item) => item.type === "fork")?.style;
     expect([style?.stroke, style?.["stroke-width"], style?.fill, style?.["font-size"]]).toEqual([
       "#000000",
       1,
@@ -726,7 +728,7 @@ describe("Op. 106 drawn with the defaults", () => {
         const { address, start, tip } = arc as JumpElement;
         return [address, start[0], tip[0]];
       }),
-    ).toEqual([[at("jump_2"), x(at500), x0]]);
+    ).toEqual([[at("jump_1y60cvj88dgt9"), x(at500), x0]]);
   });
 });
 

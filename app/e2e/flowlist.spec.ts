@@ -9,9 +9,10 @@
  *
  * - with `allegro`'s card selected the list stands in the resize toolbar's
  *   row, right of Scale, Box and Stretch: its panel's left edge is the
- *   modes' toolbar's right edge, both panels share their top, and the
- *   select's box lies right of Stretch's box with both centred on one
- *   line;
+ *   modes' toolbar's right edge, 3 right of Stretch's box (a menu's padding
+ *   and border), both panels share their top, the panel's name starts 2 in
+ *   and the select 2 beyond the name, and the select and Stretch are
+ *   centred on one line;
  * - it lists exactly "As written" and the root's four FlowMaps, each once,
  *   no virtual timeline, `default` chosen; choosing `single` journals
  *   exactly the `style` command setting `flow` to `single` on `{id:
@@ -69,9 +70,14 @@ test("the list stands right of Scale, Box and Stretch, on their row", async ({ p
   const panel = await boxOf(page, 'label:has([data-testid="flow-switch"])');
   const stretch = await boxOf(page, '[data-testid="mode-stretch"]');
   const list = await boxOf(page, '[data-testid="flow-switch"]');
+  const name = await boxOf(page, 'label:has([data-testid="flow-switch"]) > .name');
   expect(panel.x).toBe(modes.x + modes.width);
   expect(panel.y).toBe(modes.y);
-  expect(list.x).toBeGreaterThan(stretch.x + stretch.width);
+  // A menu's padding 2 and border 1 (menu.css): Stretch ends 3 before the modes' right edge; the
+  // panel, its left border dropped, holds its name from 2 in and the list 2 (the gap) beyond it.
+  expect(modes.x + modes.width).toBe(stretch.x + stretch.width + 3);
+  expect(name.x).toBe(panel.x + 2);
+  expect(list.x).toBe(name.x + name.width + 2);
   expect(list.y + list.height / 2).toBe(stretch.y + stretch.height / 2);
 });
 
