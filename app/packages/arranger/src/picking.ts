@@ -37,6 +37,7 @@ function pickedId(resolved: ResolvedElement | undefined): string | null {
     case "virtual_card":
     case "virtual_band":
     case "chunk":
+    case "chunk_band":
       return null;
     default:
       return assertNever(resolved);

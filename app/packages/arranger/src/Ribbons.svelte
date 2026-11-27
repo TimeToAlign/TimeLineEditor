@@ -8,11 +8,11 @@
  * pointer through, never part of the drawing or its exports. The ribbons
  * fade in, at once under reduced motion.
  */
-import type { LitBrace, Ribbon } from "./ribbons.ts";
+import type { LitChunk, Ribbon } from "./ribbons.ts";
 
 interface Props {
   ribbons: readonly Ribbon[];
-  lit: readonly LitBrace[];
+  lit: readonly LitChunk[];
 }
 
 let { ribbons, lit }: Props = $props();
@@ -23,8 +23,8 @@ let { ribbons, lit }: Props = $props();
     {#each ribbons as ribbon (ribbon.key)}
       <path class="tilie-ribbon" data-ribbon={ribbon.key} d={ribbon.d} />
     {/each}
-    {#each lit as brace (brace.key)}
-      <svelte:element this={brace.tag} {...brace.attributes} class="tilie-lit" data-lit={brace.key} />
+    {#each lit as label (label.key)}
+      <svelte:element this={label.tag} {...label.attributes} class="tilie-lit" data-lit={label.key} />
     {/each}
   </g>
 {/if}

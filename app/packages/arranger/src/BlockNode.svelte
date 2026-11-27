@@ -55,8 +55,8 @@ import { nameFlagOf } from "./nameFlag.ts";
 import type { BlockNode as BlockNodeType } from "./node.ts";
 import { getNodeActions } from "./nodeActions.ts";
 import Ribbons from "./Ribbons.svelte";
-import type { ChunkRef, LitBrace } from "./ribbons.ts";
-import { allLights, chunkOf, chunksAt, chunkZones } from "./ribbons.ts";
+import type { ChunkRef, LitChunk } from "./ribbons.ts";
+import { allLights, chunkOf, chunksAt, chunkZones, litSpans } from "./ribbons.ts";
 import { type Owner, ownerOf } from "./selectionRules.ts";
 
 /** Svelte Flow passes every node prop; the node reads only its data. */
@@ -324,10 +324,10 @@ const zones = $derived(chunkZones(data.block.manifest, data.drawing));
 
 /**
  * The chunks of virtual cards under the pointer: the chunk of the element
- * hit (its brace, label, leader or boundary), else every chunk whose zone
- * holds the pointer, its line widened by the canvas's hit tolerance
- * (`chunksAt`): a chunk's stretch of its virtual line, its brace and the
- * space between, or a written stretch of its source, every chunk playing it.
+ * hit (its label, leader or boundary), else every chunk whose zone holds
+ * the pointer, its line widened by the canvas's hit tolerance (`chunksAt`):
+ * a chunk's stretch of its virtual line, its label and the space between,
+ * or a written stretch of its source, every chunk playing it.
  */
 let hoveredChunks: readonly ChunkRef[] = $state.raw([]);
 
@@ -552,17 +552,9 @@ const shownChunks: readonly ChunkRef[] = $derived.by(() => {
   return chunks;
 });
 
-/** The ribbons of the shown chunks and the braces they light (`allLights`), an overlay like the marks. */
+/** The ribbons of the shown chunks and the chunks they light (`allLights`), an overlay like the marks. */
 const lights = $derived(allLights(data.block.manifest, data.drawing, shownChunks));
-const litBraces: readonly LitBrace[] = $derived.by(() => {
-  if (lights.lit.length === 0) return [];
-  const keys = new Set(lights.lit.map(addressKey));
-  return entries.flatMap((entry) =>
-    entry.descriptor.source.type === "region" && keys.has(entry.addressKey)
-      ? [{ key: entry.key, tag: entry.descriptor.tag, attributes: shapeOf(entry) }]
-      : [],
-  );
-});
+const litChunks: readonly LitChunk[] = $derived(litSpans(data.drawing, lights.lit));
 
 /** The timeline whose bands this block offers (`bandTimelineOf`), else `null`. */
 const bandTimeline = $derived(bandTimelineOf(data.block.id, data.editing));
@@ -887,7 +879,7 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         </g>
       </g>
     {/each}
-    <Ribbons ribbons={lights.ribbons} lit={litBraces} />
+    <Ribbons ribbons={lights.ribbons} lit={litChunks} />
     {#each holdingMarks as entry (entry.key)}
       <rect
         {...shapeOf(entry)}

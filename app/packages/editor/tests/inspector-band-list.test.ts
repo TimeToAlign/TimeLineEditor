@@ -126,11 +126,12 @@ describe("the selections listing bands", () => {
     expect(rowsOf(store, { id: "score", facet: "regions" })).toEqual(ALL_SHOWN);
     expect(rowsOf(store, card("score"), { id: "score" })).toEqual(ALL_SHOWN);
     expect(rowsOf(store, { id: "b" })).toEqual(ALL_SHOWN);
+    // A virtual timeline has the five bands of every timeline (drawing.md section 8.10).
     const virtual = storeOf("flow/virtual_cards");
-    const bands = [
-      ["Markers", true],
-      ["Regions", true],
-    ];
+    // In the default band order, every one shown.
+    const bands = ["Children", "Conversion maps", "Markers", "Regions", "Flow control"].map(
+      (band) => [band, true],
+    );
     expect(rowsOf(virtual, { id: "allegro_by_hand" })).toEqual(bands);
     expect(rowsOf(virtual, card("allegro_by_hand"))).toEqual(bands);
     expect(rowsOf(virtual, { id: "allegro_by_hand", facet: "regions" })).toEqual(bands);
@@ -319,9 +320,15 @@ describe("a hint", () => {
 
   it("is a virtual timeline's band holding nothing", () => {
     const store = storeOf("flow/virtual_cards");
+    // Its own bands hold nothing but its named timestamps; its chunks' windows are no part of
+    // them, and no box is disabled for it.
+    const holds = (what: string) => `Virtual timeline 'Allegro, practice' holds no ${what}.`;
     expect(hintsOf(store, { id: "allegro_by_hand" })).toEqual([
-      ["Markers", "Virtual timeline 'Allegro, practice' holds no named timestamps."],
-      ["Regions", null],
+      ["Children", holds("children")],
+      ["Conversion maps", holds("conversion maps")],
+      ["Markers", holds("named timestamps")],
+      ["Regions", holds("regions")],
+      ["Flow control", holds("flow-control elements")],
     ]);
     expect(rowOf(store, "allegro_by_hand", "markers").tree).toBeNull();
   });

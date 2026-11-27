@@ -132,6 +132,7 @@ function namedBy(resolved: ResolvedAddress): Named | null {
     case "virtual_card":
     case "virtual_band":
     case "chunk":
+    case "chunk_band":
       return null;
     default:
       return assertNever(resolved);

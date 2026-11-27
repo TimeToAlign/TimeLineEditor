@@ -1,8 +1,8 @@
 /**
  * Virtual cards are cards (README, "Virtual cards, ribbons, the flow flag
  * and the flow switch"): a press hits one as a card, a move and a resize
- * store what they store for a root's card, and a press on a chunk's brace
- * hits the chunk.
+ * store what they store for a root's card, and a press on a chunk's label
+ * hits that label, a part of the chunk.
  */
 
 import type { PlaceKey } from "@timetoalign/tilie-core";
@@ -12,7 +12,7 @@ import { hitOf, keyedBox } from "../src/boxes.ts";
 import { itemMoveCommand, itemResizeCommand, itemResizeValues } from "../src/items.ts";
 import type { Handle, ResizeMode } from "../src/resize.ts";
 import { A, blockIn, changed, metrics, sourceOf } from "./support.ts";
-import { brace, DEFAULT, drawingIn, ROOT, virtualView } from "./virtualCards.ts";
+import { DEFAULT, drawingIn, ROOT, virtualView } from "./virtualCards.ts";
 
 const VIEW = virtualView();
 const DRAWING = drawingIn(VIEW);
@@ -28,9 +28,10 @@ describe("a virtual card", () => {
     ]);
   });
 
-  it("hits its chunk by a press on a brace", () => {
-    const hit = hitOf(A, DRAWING, sourceOf(DRAWING, brace(DEFAULT, 1)));
-    expect([hit.kind, hit.address]).toEqual(["element", inBlock(A, brace(DEFAULT, 1))]);
+  it("hits its chunk's label by a press on it", () => {
+    const label = { id: DEFAULT, part: [1, "label"] as const };
+    const hit = hitOf(A, DRAWING, sourceOf(DRAWING, label));
+    expect([hit.kind, hit.address]).toEqual(["element", inBlock(A, label)]);
   });
 
   it("moves as an item", () => {

@@ -221,6 +221,7 @@ export function targetOf(view: View, address: Address): Target | CommandError {
     case "virtual_card":
     case "virtual_band":
     case "chunk":
+    case "chunk_band":
     case "part":
       return namesNothing(view, address);
     default:

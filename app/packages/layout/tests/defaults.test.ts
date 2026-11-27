@@ -149,6 +149,10 @@ describe("the constants", () => {
       "gap line of a FlowMap's gap (section 6.6): stroke colour, stroke width, dash pattern",
       `\`${GAP_LINE_STROKE}\`, \`w\` and the \`stroke-dasharray\` of its line, \`w\` the stroke width of its line`,
     ],
+    [
+      "**least gap width** `Gm`: the narrowest drawn width of a FlowMap's gap in a card that is an item of the block (section 8.10)",
+      `${STANDARD_GAP}, the standard gap of an elision`,
+    ],
     ["group frame padding `Q`", `${Q}`],
     ["card padding `K`", `${K}`],
     ["gap after the manifest's title `F`", `${F}`],

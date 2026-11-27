@@ -811,9 +811,9 @@ Properties tab offers the same as "Delete virtual timeline" (the editor's
 README). A virtual card hidden beside an element deleted is refused whole
 with `Virtual cards are hidden apart from what is deleted; select the
 virtual cards alone to hide them.`: `{A: allegro_default [card], A:
-section_b}`. A chunk, `{A: allegro_default [regions] [1]}` (its brace) or
-its label `[1, label]`, is changed in its FlowMap, never deleted on the
-canvas: alone it is refused with `A chunk is changed in its FlowMap; open
+section_b}`. A chunk, `{A: allegro_default [1]}`, its label `[1, label]`
+or a band of its window `{A: allegro_default [regions] [1]}`, is changed
+in its FlowMap, never deleted on the canvas: alone it is refused with `A chunk is changed in its FlowMap; open
 the flow-control editor of its root to change it.`, beside `section_b` it is
 left out (`remove` [`A: section_b`]). On `groups/virtual_member` the
 card of `allegro_default` in `performance`'s frame has no place of its
@@ -2632,8 +2632,8 @@ draws its run of four As once: one span for entries 0 to 3 (`index` 0,
 its texts `A × 4`, `4 ♩` and `C`; its line runs `D` short of its length
 (section 8.10, Runs). Rows carry no address attribute (an overlay), and
 draw no card rectangle, name or band of their own: every item a row draws
-is a line, a brace, a label, a leader or a boundary of the row's virtual
-card. A unit of `allegro`'s axis takes `unit = 1 × 400 / 1644` drawing
+is a line, a label, a leader or a boundary of the row's virtual card
+(each chunk's span read off its line and boundaries, `drawnChunks`). A unit of `allegro`'s axis takes `unit = 1 × 400 / 1644` drawing
 units on every row (scale 1, item length 400), the scale a gap's handle
 is dragged on (layout draws the rows at it, section "The pane as drawn"
 above). **Where "Place as
@@ -5248,8 +5248,17 @@ one `set` of its place, so both cards are drawn after `allegro`'s, by ID.
 500), A again over [500, 1953/2), C over [1953/2, 4241/2). `by_hand` plays
 A at 0, 953/2, 953 and 2859/2, the gap over [1906, 1910), C over [1910,
 3054). Its first four entries are a run drawn once in a card of its own
-(section 8.10, Runs): only entry 0's brace is drawn, labelled `A × 4`, and
-entries 1 to 3 draw nothing.
+(section 8.10, Runs): only entry 0 is drawn, labelled `A × 4`, and
+entries 1 to 3 draw nothing; the gap entry is widened to 32 (Widened
+gaps).
+
+**A chunk draws nothing of its own** (section 8.10, Chunks): its **drawn
+span** is read off the drawing as the specification places it, from its
+boundary `{id: V, part: [k, "start"]}` (the line's start for chunk 0) to
+the next drawn chunk's boundary (the line's end after the last), on its
+line's ordinate; its label `[k, "label"]` stands above the line, its top
+the baseline less the font size. The tests read the span so
+(`virtualCards.ts`, `chunkSpan`), independently of `drawnChunks`.
 
 **Virtual cards are cards** (`virtual-cards.test.ts`). Nothing in the
 arranger tells a virtual card from a root's: what proves it is that the
@@ -5263,21 +5272,22 @@ plus 60 (Box, right handle) and `length` 460 (Stretch, right handle), and
 from the bottom-right handle (Scale) the `scale` the same gesture gives
 `allegro`'s card, which is as wide; each applied by core lands in its
 place beside its `x` and `y`, and `allegro`'s card gets the same values
-from the same gestures. A press on a chunk's brace
-hits the element `{id: "allegro_default", facet: "regions", part: [k]}`,
-as a press on a region hits the region.
+from the same gestures. A press on a chunk's label hits the element
+`{id: "allegro_default", part: [k, "label"]}`, a part of the chunk, as a
+press on a region's label hits that label.
 
 **Ribbons** (`ribbons.test.ts`). `chunkOf` reads a chunk from an address
-of a virtual timeline's regions facet whose part starts with a chunk
-index (the brace, `[k, "label"]`, `[k, "leader"]`, `[k, "start"]`) and
-nothing else: not `{id: "allegro", facet: "regions"}`, not a timeline
-line, not a region of `allegro`. A chunk's ribbon geometry is derived from
+of a virtual timeline whose part starts with a chunk index (the chunk
+`[k]`, `[k, "label"]`, `[k, "leader"]`, `[k, "start"]`, and a band of its
+window `{facet: F, part: [k]}`) and nothing else: not `{id: "allegro",
+facet: "regions"}`, not a timeline line, not a region of `allegro`, not a
+chunk of a switched card (`{id: "allegro", part: [0]}`). A chunk's ribbon geometry is derived from
 the drawing alone:
 
 - its **virtual end** lies on the line of its virtual timeline in the card
-  drawing its brace, at that line's ordinate `y`, from the brace element's
-  `x1` to its `x2` (one stretch per chunk here; a chunk naming a virtual
-  timeline plays several, each over its share of the brace);
+  drawing it, at that line's ordinate `y`, over its drawn span (one
+  stretch per chunk here; a chunk naming a virtual timeline plays several,
+  each over its share of the span);
 - its **written end** lies on every line of the root in the block, at that
   line's `y`, from `xStart + (s − start) / L × (xEnd − xStart)` to the same
   of `e`, `[s, e)` the written stretch, `start` and `L` the line's own
@@ -5288,80 +5298,83 @@ the drawing alone:
 
 `allegro_default`'s chunk 1 (B) has one ribbon to [953/2, 500) on
 `allegro`'s line and lights nothing (no other chunk names B). Its chunk 0
-(A) has one ribbon to [0, 953/2) and lights `allegro_by_hand`'s brace 0
-(`A × 4`) and `allegro_default`'s brace 2, in that order (drawing order;
+(A) has one ribbon to [0, 953/2) and lights `allegro_by_hand`'s chunk 0
+(`A × 4`) and `allegro_default`'s chunk 2, in that order (drawing order;
 the cards are drawn by ID). `allegro_by_hand`'s chunk 5 (C) reaches
-`allegro` over [500, 1644) from its brace, which lies after the run's
-shrink: its `x1` is the brace element's, never the linear abscissa of
-1910 over the drawn line from its `xs` to its `xe`; it lights `allegro_default`'s brace 3, the other C. Its chunk 1, the second entry of the run, draws no
-brace, so no ribbon, and lights `allegro_by_hand`'s brace 0 and
-`allegro_default`'s braces 0 and 2. Its chunk 4 (the gap) shows nothing.
+`allegro` over [500, 1644) from its drawn span, which lies after the
+run's shrink and the widened gap: its `x1` is its boundary's, never the
+linear abscissa of 1910 over the drawn line from its `xs` to its `xe`;
+it lights `allegro_default`'s chunk 3, the other C. Its chunk 1, the
+second entry of the run, is not drawn, so no ribbon, and lights
+`allegro_by_hand`'s chunk 0 and `allegro_default`'s chunks 0 and 2. Its
+chunk 4 (the gap) shows nothing.
 In `groups/virtual_member` chunk 1 of the member card reaches `allegro`'s
 card from the member card's line. Several chunks shown at once give the
 ribbons of each in turn, each key prefixed by its chunk's address key,
-and light each other brace once, never one of the shown chunks.
+and light each other chunk once, never one of the shown chunks.
 
-**Where the pointer shows a chunk** (`chunkZones`, `chunksAt`). A brace is
-a thin curve; a pointer has to show the chunk wherever a reader takes it
-to be: on the stretch of the virtual line the brace spans, on the brace
-and its label, and in the space between them; and on the source's side on
-the written stretch the chunk plays, its region's brace and the space
+**Where the pointer shows a chunk** (`chunkZones`, `chunksAt`). A chunk
+draws nothing of its own; a pointer has to show it wherever a reader takes
+it to be: on the stretch of the virtual line it spans, on its label above
+the line, and in the space between them; and on the source's side on the
+written stretch the chunk plays, its region's brace and the space
 between, there showing every chunk that plays it at once. What proves it
 is the geometry read off the drawing alone, independently of how the zones
-are stored: for every drawn brace of a chunk (`{id: V, facet: "regions",
-part: [k]}`, a chunk of a virtual timeline resolving through a FlowMap of
-its own root, never a gap) one zone on its card's line of `V`, from the
-brace's `x1` (held) to its `x2` (left out), from the line's ordinate to
-the far edge of `V`'s regions band on that line (the band box whose
-`band.line` is that ordinate); and, once per chunk, one zone on every line
-of the source root in a card that is not switched, over the chunk's
-written stretch clipped to what that line draws (the ribbon's written
-end), out to the edge of the root's regions band on that line, or the
-line alone where none is drawn. A point lies in a zone where its abscissa
-does and its ordinate lies between the zone's outer edge and the line
-widened by the reach the caller gives (the canvas's `HIT_TOLERANCE` in
-screen pixels, in drawing units); `chunksAt` gives the chunk of every zone
-holding the point, each once, in drawing order of the braces.
+are stored: for every drawn chunk of a virtual timeline resolving through
+a FlowMap of its own root, never a gap, one zone on its card's line of `V`
+over its drawn span (`chunkSpan`), from `x1` (held) to `x2` (left out),
+from the top of its label to the line's ordinate; and, once per chunk,
+one zone on every line of the source root in a card that is not
+switched, over the chunk's written stretch clipped to what that line
+draws (the ribbon's written end), out to the edge of the root's regions
+band on that line, or the line alone where none is drawn. A point lies in
+a zone where its abscissa does and its ordinate lies between the zone's
+outer edge and the line widened by the reach the caller gives (the
+canvas's `HIT_TOLERANCE` in screen pixels, in drawing units); `chunksAt`
+gives the chunk of every zone holding the point, each once, in drawing
+order of the chunks.
 
-In `virtual_cards` (both cards placed): `allegro_default`'s line lies at
-216, its regions band from 228 to 228 + 18.4765625; the zones of its four
-braces run from 216 to 246.4765625, each over its brace's ends.
-`allegro`'s card draws no regions band, so its zones are its line's
-ordinate alone. A point on `allegro_default`'s line over the middle of
-brace 2 (reach 0), a point on the brace's arm ordinate `yb` and one
-halfway between the line and the arms each give chunk 2 alone; a point at
-brace 2's `x2` gives chunk 3 (half-open spans: one chunk at a shared end);
-a point 1 unit below the band gives nothing, and 1 unit above the line
-gives nothing with reach 0 and chunk 2 with reach 2. A point on
-`allegro`'s line over A's written middle, 953/4, gives the chunks playing
-A whose braces are drawn: `allegro_by_hand`'s 0 (the run `A × 4`), then
-`allegro_default`'s 0 and 2, drawing order (the cards by ID); over C's
-middle 1072 it gives `allegro_by_hand`'s 5 and `allegro_default`'s 3; over
-B, `allegro_default`'s 1 alone. A block placing no virtual card has no
-zones.
+In `virtual_cards` (both cards placed): a chunk's label lies in tier 1 of
+`allegro_default`'s line, which has boundaries, so its baseline is `y −
+(k + 2) − d(9)` and its top 9 above that. `allegro`'s card draws no
+regions band, so its zones are its line's ordinate alone. A point on
+`allegro_default`'s line over the middle of chunk 2 (reach 0), a point at
+the top of its label and one halfway between each give chunk 2 alone; a
+point at chunk 2's `x2` gives chunk 3 (half-open spans: one chunk at a
+shared end); a point 1 unit above the label's top gives nothing, and 1
+unit below the line gives nothing with reach 0 and chunk 2 with reach 2.
+A point on `allegro`'s line over A's written middle, 953/4, gives the
+chunks playing A that are drawn: `allegro_by_hand`'s 0 (the run `A × 4`),
+then `allegro_default`'s 0 and 2, drawing order (the cards by ID); over
+C's middle 1072 it gives `allegro_by_hand`'s 5 and `allegro_default`'s
+3; over B, `allegro_default`'s 1 alone. A block placing no virtual card
+has no zones.
 
 On the node (`ribbons.test.ts`, `NodeHarness`): a pointer moving onto a
-chunk's brace draws one `path.tilie-ribbon` per ribbon, its `d` the
+chunk's label draws one `path.tilie-ribbon` per ribbon, its `d` the
 ribbon's path, inside one `g.tilie-ribbons` that lets the pointer through
-and carries no address attribute, and one `.tilie-lit` copy per lit brace,
-its `d` the brace's, without `data-id`, `data-facet` or `data-part`;
-leaving the node removes them. A pointer moving over the node's own
-background at a point of a zone (on the virtual line over brace 2) draws
-chunk 2's ribbons; at the point over A's written middle on `allegro`'s
-line, the ribbons of the three chunks playing A, in that order (`allLights`
-of them), and no lit copy, every A being shown. With the brace's address
-among the selected elements they are drawn without a pointer; with nothing
-hovered or selected the node draws no `g.tilie-ribbons`.
+and carries no address attribute, and one `.tilie-lit` copy per lit
+chunk, a `line` over its drawn span at its line's ordinate (`x1`, `x2`,
+`y1` = `y2`), without `data-id`, `data-facet` or `data-part`; leaving the
+node removes them. A pointer moving over the node's own background at a
+point of a zone (on the virtual line over chunk 2) draws chunk 2's
+ribbons; at the point over A's written middle on `allegro`'s line, the
+ribbons of the three chunks playing A, in that order (`allLights` of
+them), and no lit copy, every A being shown. With the chunk's address
+among the selected elements they are drawn without a pointer; with
+nothing hovered or selected the node draws no `g.tilie-ribbons`. With
+only `allegro_default` placed, the pointer on C's label lights nothing
+(the other C is on no card drawn) and draws one ribbon.
 
 In the browser (`e2e/tunnels.spec.ts`, `allegro_default` placed alone, its
-card selected as in the report): the pointer on the segment of chunk 2 (the
-brace's middle abscissa on the line), on the brace's arms and halfway
-between the line and the arms each draws exactly one ribbon, from brace
-2's `x1`..`x2` at the line's ordinate to A's written stretch [0, 953/2) on
-`allegro`'s line (`abscissaOf` over its axis, as derived above), and one
-lit copy, brace 0's; the pointer on `allegro`'s line over A's middle draws
-two, from braces 0 and 2, both to that stretch, and no lit copy; moving
-off the block removes them.
+card selected as in the report): the pointer on chunk 2's stretch of the
+line (the middle of its drawn span), on its label and halfway between the
+line and the label each draws exactly one ribbon, from chunk 2's `x1`..`x2`
+at the line's ordinate to A's written stretch [0, 953/2) on `allegro`'s
+line (`abscissaOf` over its axis, as derived above), and one lit copy,
+chunk 0's; the pointer on `allegro`'s line over A's middle draws two, from
+chunks 0 and 2, both to that stretch, and no lit copy; moving off the
+block removes them.
 
 **The flag** (`flow-flag.test.ts`). The pin is read on a line of the
 drawing (`crossSectionSpec`, core's `timestampAt`), as the canvas reads
@@ -5424,21 +5437,21 @@ hover: the select's `title` is the chosen entry's label (`default`, "As
 written"), each option's its own label.
 
 **The switch's motion.** Where a card becomes switched its chunks move from
-their written stretch on the card's line to their brace on the virtual
-axis (`switchMorphs`); between two drawings of the same manifest nothing
-moves (the switched drawing against itself). `flow/switched_card` drawn as written (its rule's `flow` removed
+their written stretch on the card's line to their drawn span on the
+virtual axis (`switchMorphs`); between two drawings of the same manifest
+nothing moves (the switched drawing against itself). `flow/switched_card` drawn as written (its rule's `flow` removed
 by the switch's own command) and as switched moves four chunks, in chunk
 order, `default`'s A B A C, each its elements in the switched drawing
-(every element addressed `{id: "allegro", facet: "regions", part: [k,
-…]}`, in drawing order: its brace `[k]`, from k = 1 its boundary `[k,
-"start"]`, its label `[k, "label"]`), from its written stretch on the as-written card's line
+(every element addressed `{id: "allegro", part: [k, …]}`, no facet, parts
+of the line, in drawing order: from k = 1 its boundary `[k, "start"]`,
+its label `[k, "label"]`), from its written stretch on the as-written card's line
 (`xs + (s / 1644) × 400` to the same of `e`, the line's `xs` and its 400
-units as drawn, layout's `abscissaOf`) to its brace on the switched line
+units as drawn, layout's `abscissaOf`) to its drawn span on the switched line
 (`x(t) = x0 + 400 × u`, `x0` that line's start, `u = t / (4241/2)`,
 layout's README, Switched cards, 2): A from `[0, 953/2]` to `[x(0),
 x(953/2)]`, B from `[953/2, 500]` to `[x(953/2), x(500)]`, A again from
 `[0, 953/2]` to `[x(500), x(1953/2)]`, C from `[500, 1644]` to
-`[x(1953/2), x(4241/2)]`. A moving brace or boundary at progress `t` is stretched onto the
+`[x(1953/2), x(4241/2)]`. A moving boundary at progress `t` is stretched onto the
 span `from + (to − from) × t`: `matrix(s 0 0 1 x1(t) − to.x1 × s 0)`, `s` the
 span's width at `t` over `to`'s; a text moves by its span's middle; at
 `t = 1` nothing.

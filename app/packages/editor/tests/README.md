@@ -1527,8 +1527,9 @@ are the fixtures' own speaking ones.
    lines of `score` and `b` together list none (`null`). On
    `flow/virtual_cards`, the virtual timeline `allegro_by_hand` by its
    line (`{id: "allegro_by_hand"}`), its card (`{id: "allegro_by_hand",
-   part: ["card"]}`) or its regions band lists Markers and Regions, the
-   bands a virtual timeline has (core's `VIRTUAL_FACETS`).
+   part: ["card"]}`) or its regions band lists the five bands of every
+   timeline in the default order, Children, Conversion maps, Markers,
+   Regions and Flow control, each shown (drawing.md section 8.10).
 2. **Rows in the band order.** `score` states `graphical.order`
    `["children", "markers", "line", "conversion_maps", "flow_control",
    "regions"]`, so its rows are, in order, Children, Markers, Conversion
@@ -1605,9 +1606,13 @@ are the fixtures' own speaking ones.
      (Children, Markers, Conversion maps, Flow control, Regions, the
      order `a` inherits) are each checked and hinted "Timeline 'a' is
      hidden.".
-   - A virtual timeline: on `flow/virtual_cards`, `allegro_by_hand`'s
-     Markers "Virtual timeline 'Allegro, practice' holds no named
-     timestamps.", its Regions (its chunks' braces) no hint; no tree box.
+   - A virtual timeline: on `flow/virtual_cards`, `allegro_by_hand` has
+     the five bands of every timeline, in the default order, each hinted
+     that it holds nothing of its own ("Virtual timeline 'Allegro,
+     practice' holds no children.", "… no conversion maps.", "… no named
+     timestamps.", "… no regions.", "… no flow-control elements."): its
+     chunks are parts of its line and their windows no part of its bands;
+     no tree box.
    - `score` of `styled_score_flow_inner`, holding and showing all of its
      facets: no hint on any own box.
 7. **The panel.** With the card of `score` of `styled_score_flow_inner`

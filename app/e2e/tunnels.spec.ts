@@ -7,13 +7,14 @@
  * derived from the block's drawing as the arranger's README derives them
  * ("Where the pointer shows a chunk"):
  *
- * - the pointer on chunk 2's segment (its brace's middle abscissa on the
- *   virtual line), on its brace's arms, and halfway between the line and the
- *   arms each draws exactly one ribbon, from brace 2's `x1`..`x2` at the
- *   virtual line's ordinate to A's written stretch on `allegro`'s line, and
- *   lights brace 0, the other A;
+ * - the pointer on chunk 2's stretch of the virtual line (the middle of its
+ *   drawn span, which runs from its boundary to the next chunk's), on its
+ *   label above the line, and halfway between the line and the label each
+ *   draws exactly one ribbon, from chunk 2's `x1`..`x2` at the virtual
+ *   line's ordinate to A's written stretch on `allegro`'s line, and lights
+ *   chunk 0, the other A, as a line over its drawn span;
  * - the pointer on `allegro`'s line over A's middle draws two ribbons, from
- *   braces 0 and 2, both to that stretch, and lights nothing;
+ *   chunks 0 and 2, both to that stretch, and lights nothing;
  * - moving off the block removes them.
  */
 
@@ -24,7 +25,7 @@ import { isLoadError, readWorkspace } from "../packages/core/src/index.ts";
 import type { Drawing, LineAxis } from "../packages/layout/src/index.ts";
 import { lineAxes } from "../packages/layout/src/index.ts";
 import { FONT_METRICS } from "./schema.ts";
-import { dispatch, importFixture, node, paneOf, part, select, settledDrawing } from "./support.ts";
+import { dispatch, importFixture, node, paneOf, select, settledDrawing } from "./support.ts";
 
 test.use({ viewport: { width: 1600, height: 1000 }, reducedMotion: "reduce" });
 
@@ -69,17 +70,34 @@ function lineOf(drawing: Drawing, timeline: string): LineAxis {
   return one;
 }
 
-/** The brace of chunk `index` of `allegro_default` in `drawing`. */
-function braceOf(drawing: Drawing, index: number): { x1: number; x2: number; yb: number } {
-  const found = drawing.elements.find(
-    (element) =>
-      element.type === "region" &&
-      element.address.id === DEFAULT &&
-      element.address.part?.length === 1 &&
-      element.address.part[0] === index,
+/**
+ * The drawn span of chunk `index` of `allegro_default` in `drawing` (a chunk draws nothing of its
+ * own): from its boundary `[index, "start"]`, the line's start for chunk 0, to the next chunk's
+ * boundary, the line's end after the last; with the middle of its label above the line.
+ */
+function chunkOf(drawing: Drawing, index: number): { x1: number; x2: number; label: number } {
+  const own = drawing.elements.filter(
+    (element) => element.address.id === DEFAULT && element.address.facet === undefined,
   );
-  if (found?.type !== "region") throw new Error(`no brace ${index}`);
-  return { x1: found.x1, x2: found.x2, yb: found.yb };
+  const line = own.find((element) => element.type === "timeline");
+  const label = own.find(
+    (element) => element.address.part?.[0] === index && element.address.part[1] === "label",
+  );
+  if (line?.type !== "timeline" || label?.type !== "label") throw new Error(`no chunk ${index}`);
+  const startOf = (k: number) =>
+    own.find(
+      (element) =>
+        element.type === "boundary" &&
+        element.address.part?.[0] === k &&
+        element.address.part[1] === "start",
+    );
+  const start = startOf(index);
+  const next = startOf(index + 1);
+  return {
+    x1: index === 0 || start?.type !== "boundary" ? line.xs : start.x,
+    x2: next?.type === "boundary" ? next.x : line.xe,
+    label: label.baseline - label.style["font-size"] / 2,
+  };
 }
 
 /** Where `[s, e)` lies on `axis` (its start 0, its drawn length 1644), as layout's `abscissaOf` places it. */
@@ -121,26 +139,30 @@ async function ribbonEnds(page: Page): Promise<{ from: End; to: End }[]> {
   });
 }
 
-test("a chunk's segment, its brace and the space between show its ribbon", async ({ page }) => {
+test("a chunk's stretch of the line, its label and the space between show its ribbon", async ({
+  page,
+}) => {
   const block = await start(page);
   const drawing = await drawingNow(page, block);
   const line = lineOf(drawing, DEFAULT);
-  const brace = braceOf(drawing, 2);
+  const two = chunkOf(drawing, 2);
+  const zero = chunkOf(drawing, 0);
   const to = stretchOn(lineOf(drawing, ROOT), 0, 953 / 2);
   const ribbons = page.locator(".tilie-block g.tilie-ribbons");
   const lit = ribbons.locator(".tilie-lit");
-  const zero = part(page, block, { id: DEFAULT, facet: "regions", part: [0] });
-  const x = (brace.x1 + brace.x2) / 2;
-  for (const y of [line.y, brace.yb, (line.y + brace.yb) / 2]) {
+  const x = (two.x1 + two.x2) / 2;
+  for (const y of [line.y, two.label, (line.y + two.label) / 2]) {
     await page.mouse.move(1, 1);
     await expect(ribbons).toHaveCount(0);
     await hover(page, block, x, y);
     await expect(ribbons.locator("path.tilie-ribbon")).toHaveCount(1);
-    expect(await ribbonEnds(page)).toEqual([
-      { from: { x1: brace.x1, x2: brace.x2, y: line.y }, to },
-    ]);
+    expect(await ribbonEnds(page)).toEqual([{ from: { x1: two.x1, x2: two.x2, y: line.y }, to }]);
     await expect(lit).toHaveCount(1);
-    expect(await lit.getAttribute("d")).toBe(await zero.getAttribute("d"));
+    // The other A lit: a line over chunk 0's drawn span, at the line's ordinate.
+    const copy = await lit.evaluate((drawn) =>
+      ["x1", "x2", "y1", "y2"].map((name) => Number(drawn.getAttribute(name))),
+    );
+    expect(copy).toEqual([zero.x1, zero.x2, line.y, line.y]);
   }
   await page.mouse.move(1, 1);
   await expect(ribbons).toHaveCount(0);
@@ -157,7 +179,7 @@ test("a written section shows the ribbons of every chunk playing it", async ({ p
   await expect(ribbons.locator("path.tilie-ribbon")).toHaveCount(2);
   expect(await ribbonEnds(page)).toEqual(
     [0, 2].map((index) => {
-      const { x1, x2 } = braceOf(drawing, index);
+      const { x1, x2 } = chunkOf(drawing, index);
       return { from: { x1, x2, y: line.y }, to };
     }),
   );

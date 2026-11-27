@@ -73,14 +73,15 @@ function linesOf(drawing: Drawing, id: string) {
   );
 }
 
-/** The chunk elements of the line of `id`: type, part and their x or text. */
+/**
+ * The elements of the chunks of the line of `id` (`{id, part: [k, …]}`): type, part, and a
+ * label's text and x, a boundary's x and ends.
+ */
 function chunksOf(drawing: Drawing, id: string) {
   const at = (item: DrawnElement) => {
     switch (item.type) {
-      case "region":
-        return [item.x1, item.x2];
       case "label":
-        return [item.text];
+        return [item.text, item.x];
       case "boundary":
         return [item.x, item.y1, item.y2];
       default:
@@ -88,9 +89,31 @@ function chunksOf(drawing: Drawing, id: string) {
     }
   };
   return drawing.elements
-    .filter((item) => item.address.id === id && item.address.facet === "regions")
+    .filter(
+      (item) =>
+        item.address.id === id &&
+        item.address.facet === undefined &&
+        typeof item.address.part?.[0] === "number",
+    )
     .map((item) => [item.type, item.address.part, ...at(item)]);
 }
+
+/** Whether every chunk label of the line of `id` lies above that line. */
+function labelsAbove(drawing: Drawing, id: string): boolean {
+  const line = drawing.elements.find(
+    (item) => item.type === "timeline" && item.address.id === id && item.address.part === undefined,
+  );
+  if (line?.type !== "timeline") throw new Error(`${id} draws no line`);
+  const labels = drawing.elements.flatMap((item) =>
+    item.type === "label" && item.address.id === id && typeof item.address.part?.[0] === "number"
+      ? [item]
+      : [],
+  );
+  return labels.length > 0 && labels.every((label) => label.baseline < line.y);
+}
+
+/** The ends of a boundary on a line at the ordinate `y`: `k` = 8 to either side. */
+const ends = (y: number) => [y - 8, y + 8];
 
 /** The IDs of the flow control of `flow/switched_card`. */
 const FLOW_CONTROL = ["volta_jump", "repeat_end", "second_ending", "volta_break"];
@@ -189,11 +212,14 @@ describe("a switched card", () => {
     const lineElement = element(drawing, { id: "allegro" });
     const y = lineElement.type === "timeline" ? lineElement.y : 0;
     const starts = [0, 953 / 2, 500, 1953 / 2, 4241 / 2];
+    const middle = (k: number) => ((starts[k] ?? 0) + (starts[k + 1] ?? 0)) / 2;
     expect(chunksOf(drawing, "allegro")).toEqual([
-      ...[0, 1, 2, 3].map((k) => ["region", [k], x(starts[k] ?? 0), x(starts[k + 1] ?? 0)]),
       ...[1, 2, 3].map((k) => ["boundary", [k, "start"], x(starts[k] ?? 0), y - 8, y + 8]),
-      ...["A", "B", "A", "C"].map((text, k) => ["label", [k, "label"], text]),
+      ...["A", "B", "A", "C"].map((text, k) => ["label", [k, "label"], text, x(middle(k))]),
     ]);
+    expect(labelsAbove(drawing, "allegro")).toBe(true);
+    // No brace: no band holds a chunk.
+    expect(drawing.elements.filter((item) => item.address.facet !== undefined)).toEqual([]);
     expect(textAt(drawing, { id: "allegro", part: ["name"] })).toBe("Allegro · default");
   });
 
@@ -216,9 +242,9 @@ describe("a switched card", () => {
     const [line] = linesOf(drawing, "allegro");
     if (line === undefined) throw new Error("allegro's line");
     const x = (t: number) => line.xs + lx(t, 3241 / 2);
-    expect(chunksOf(drawing, "allegro").filter(([type]) => type === "region")).toEqual([
-      ["region", [0], x(0), x(953 / 2)],
-      ["region", [1], x(953 / 2), x(3241 / 2)],
+    expect(chunksOf(drawing, "allegro").filter(([type]) => type !== "boundary")).toEqual([
+      ["label", [0, "label"], "A", x(953 / 4)],
+      ["label", [1, "label"], "C", x((953 / 2 + 3241 / 2) / 2)],
     ]);
     expect(textAt(drawing, { id: "allegro", part: ["name"] })).toBe("Allegro · Allegro, single");
   });
@@ -229,19 +255,17 @@ describe("a switched card", () => {
     );
     const [line] = linesOf(drawing, "allegro");
     if (line === undefined) throw new Error("allegro's line");
-    const u = (t: number) => lx(t, 3054);
-    expect(line.xe).toBe(line.xs + (u(953 / 2) + (L - u(1906))));
-    expect(chunksOf(drawing, "allegro").filter(([type]) => type !== "boundary")).toEqual([
-      ["region", [0], line.xs, line.xs + u(953 / 2)],
-      [
-        "region",
-        [5],
-        line.xs + (u(953 / 2) + (u(1910) - u(1906))),
-        line.xs + (u(953 / 2) + (L - u(1906))),
-      ],
-      ["label", [0, "label"], "A × 4"],
-      ["label", [4, "label"], "4 ♩"],
-      ["label", [5, "label"], "C"],
+    // The numbers of the worked example of section 8.10 (Widened gaps): the gap entry over
+    // `[1906, 1910]` is widened to 32, its shrink negative.
+    expect(line.xe).toBe(line.xs + 244.2462344466274);
+    const own = element(drawing, { id: "allegro" });
+    const y = own.type === "timeline" ? own.y : Number.NaN;
+    expect(chunksOf(drawing, "allegro")).toEqual([
+      ["boundary", [4, "start"], line.xs + 62.40995415848069, ...ends(y)],
+      ["boundary", [5, "start"], line.xs + 94.40995415848069, ...ends(y)],
+      ["label", [0, "label"], "A × 4", line.xs + 31.204977079240344],
+      ["label", [4, "label"], "4 ♩", line.xs + 78.40995415848069],
+      ["label", [5, "label"], "C", line.xs + 169.328094302554],
     ]);
   });
 
@@ -399,7 +423,9 @@ describe("a switched card's bands", () => {
     const drawing = drawn({ ...source, timelines } as Manifest);
     const x = xOf(drawing);
     const boundaries = drawing.elements.flatMap((item) =>
-      item.type === "boundary" && item.address.facet === undefined ? [[item.address, item.x]] : [],
+      item.type === "boundary" && typeof item.address.part?.[0] !== "number"
+        ? [[item.address, item.x]]
+        : [],
     );
     expect(boundaries).toEqual([
       [{ id: "s2", part: ["start"] }, x(500)],
@@ -474,7 +500,9 @@ describe("a switched frame", () => {
     expect(linesOf(drawing, "allegro_default")).toHaveLength(2);
     const parts = (id: string, type: DrawnElement["type"]) =>
       chunksOf(drawing, id).flatMap(([kind, part]) => (kind === type ? [part] : []));
-    expect(parts("allegro_default", "region")).toEqual([0, 1, 2, 3, 0, 1, 2, 3].map((k) => [k]));
+    expect(parts("allegro_default", "label")).toEqual(
+      [0, 1, 2, 3, 0, 1, 2, 3].map((k) => [k, "label"]),
+    );
     expect(parts("allegro_default", "boundary")).toEqual(
       [1, 2, 3, 1, 2, 3].map((k) => [k, "start"]),
     );
@@ -482,10 +510,8 @@ describe("a switched frame", () => {
     if (recording === undefined) throw new Error("recording's line");
     const x = (t: number) => recording.xs + lx(t, 1405);
     expect(chunksOf(drawing, "recording").filter(([type]) => type !== "boundary")).toEqual([
-      ["region", [0], x(0), x(702.5)],
-      ["region", [1], x(702.5), x(1405)],
-      ["label", [0, "label"], "Take"],
-      ["label", [1, "label"], "Take"],
+      ["label", [0, "label"], "Take", x(702.5 / 2)],
+      ["label", [1, "label"], "Take", x((702.5 + 1405) / 2)],
     ]);
   });
 
@@ -496,10 +522,8 @@ describe("a switched frame", () => {
     if (recording === undefined) throw new Error("recording's line");
     const x = (t: number) => recording.xs + L * (t / 20.0);
     expect(chunksOf(drawing, "recording").filter(([type]) => type !== "boundary")).toEqual([
-      ["region", [0], x(0), x(10)],
-      ["region", [1], x(10), x(20)],
-      ["label", [0, "label"], "Take"],
-      ["label", [1, "label"], "Take"],
+      ["label", [0, "label"], "Take", x(5)],
+      ["label", [1, "label"], "Take", x(15)],
     ]);
     expect(linesOf(drawing, "second-half")).toHaveLength(2);
     const ancestors = drawing.elements.flatMap((item) => (item.type === "ancestor" ? [item] : []));

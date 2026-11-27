@@ -29,6 +29,7 @@ import { styleLayers } from "./drawing.ts";
 import type { FlowEntry, FlowRow } from "./flowEditor.ts";
 import type { OverlayItem } from "./flowOverlay.ts";
 import { overlayItem } from "./flowOverlay.ts";
+import { drawnChunks } from "./ribbons.ts";
 
 /** The gap between the card's bottom edge and the pane, in the block's drawing units. */
 export const PANE_GAP = 6;
@@ -163,10 +164,9 @@ export interface FlowPane {
   readonly rows: readonly PaneRow[];
 }
 
-/** The types a row draws of its virtual card: its line, its chunks' braces, labels, leaders, boundaries. */
+/** The types a row draws of its virtual card: its line, its chunks' labels, leaders, boundaries. */
 const DRAWN: ReadonlySet<DrawnElement["type"]> = new Set([
   "timeline",
-  "region",
   "label",
   "leader",
   "boundary",
@@ -175,7 +175,8 @@ const DRAWN: ReadonlySet<DrawnElement["type"]> = new Set([
 /** Whether `element`, drawn in the card of the row `id`, is one a row draws. */
 function drawnInRow(element: DrawnElement, id: string): boolean {
   if (element.address.id !== id || !DRAWN.has(element.type)) return false;
-  return element.type === "timeline" || element.address.facet === "regions";
+  const { facet, part } = element.address;
+  return element.type === "timeline" || (facet === undefined && typeof part?.[0] === "number");
 }
 
 /** The name of the timeline `id` that `drawing` draws within `range` (its card's); `undefined` where none is drawn. */
@@ -379,15 +380,15 @@ export function flowPaneOf(
         chunks.push({ index, last: index, x1: cut[0] - viewX, x2: cut[1] - viewX, gap: true });
       }
     }
-    for (const element of rowsDrawing.elements) {
-      if (element.type !== "region" || element.address.id !== id) continue;
-      const [index] = element.address.part ?? [];
-      if (typeof index !== "number") continue;
+    for (const drawnChunk of drawnChunks(rowsDrawing)) {
+      const { index } = drawnChunk;
+      if (drawnChunk.timeline !== id || gapIndices.includes(index)) continue;
+      if (!samePlaceKey(drawnChunk.card, { item: id })) continue;
       chunks.push({
         index,
         last: ends.get(index) ?? index,
-        x1: element.x1 - viewX,
-        x2: element.x2 - viewX,
+        x1: drawnChunk.x1 - viewX,
+        x2: drawnChunk.x2 - viewX,
         gap: false,
       });
     }

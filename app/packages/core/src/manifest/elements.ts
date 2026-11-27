@@ -28,7 +28,6 @@ import {
   partAddress,
   sameAddress,
   TITLE_ADDRESS,
-  VIRTUAL_FACETS,
 } from "./address.ts";
 import { ELISION_LABELS, elisionsOn, elisionsUnder, groupElisions } from "./elisions.ts";
 import type { GroupFrame, MemberDrawing } from "./files.ts";
@@ -41,8 +40,8 @@ import {
 } from "./files.ts";
 import { FLOW_LINE_ROLES, type FlowLineRole, flowSymbols } from "./flow.ts";
 import { FlowMapError, resolveFlowMap } from "./flowmaps.ts";
-import type { Unfolding } from "./switched.ts";
-import { piecesHolding, piecesReached, switchOf, unfoldingOf } from "./switched.ts";
+import type { Piece, Unfolding, Windows } from "./switched.ts";
+import { piecesHolding, piecesReached, switchOf, unfoldingOf, windowsOf } from "./switched.ts";
 import { findTimeline, groupsHolding, memberAncestry } from "./tree.ts";
 import type {
   ChildTimeline,
@@ -96,6 +95,12 @@ export interface ElementKey {
    * the selector member `class` matches (section 2.3); absent on every other element.
    */
   readonly types?: readonly string[];
+  /**
+   * For a drawing held, at any depth, by the window of a chunk of a virtual timeline (section
+   * 8.10, Windows), that virtual timeline's ID, which a selector's `within` naming it matches
+   * (section 2.3); absent on every other drawing. Carried from holder to held as `inside` is.
+   */
+  readonly window?: string;
 }
 
 /** Which of a named timestamp's coordinates a wedge or a label marks (sections 2 and 2.3). */
@@ -211,6 +216,44 @@ export function elementKey(
     class: map === undefined ? own : map.type,
     facet: null,
     inside: holdersOf(holder),
+    ...windowOf(holder),
+  };
+}
+
+/** The `window` an element held by `holder` carries: its holder's, where it has one. */
+const windowOf = (holder: ElementKey): Pick<ElementKey, "window"> =>
+  holder.window === undefined ? {} : { window: holder.window };
+
+/**
+ * The key of the chunk at index `index` of the FlowMap drawn on the line of
+ * `timeline` (section 8.10), a virtual timeline or a switched card's
+ * timeline, held by that line `line`: of type `chunk`, at `{id, part:
+ * [index]}`.
+ */
+export function chunkKey(timeline: TimelineManifest, index: number, line: ElementKey): ElementKey {
+  return elementKey("chunk", { id: timeline.id, part: [index] }, timeline, line);
+}
+
+/**
+ * The key of the band of the facet `facet` of the window of the chunk
+ * `chunk` (`chunkKey`) of the virtual timeline `virtual` (section 8.10,
+ * Windows), held by the chunk: of type `band`, at `{id: V, facet, part:
+ * [k]}`, belonging to `V`, with its facet and no domain, modality or class,
+ * carrying `V` as its `window`, as everything it holds does.
+ */
+export function windowBandKey(virtual: string, facet: Facet, chunk: ElementKey): ElementKey {
+  const [index] = chunk.address.part ?? [];
+  if (typeof index !== "number") throw new Error("a window band is held by a chunk");
+  return {
+    type: "band",
+    address: { id: virtual, facet, part: [index] },
+    timeline: virtual,
+    domain: null,
+    modality: null,
+    class: null,
+    facet,
+    inside: holdersOf(chunk),
+    window: virtual,
   };
 }
 
@@ -277,8 +320,8 @@ function selectorClassIri(context: unknown, text: string): string {
 
 /**
  * The key of an element's own text, `name` or `label`, which the element
- * holds: at the element's address with `type` appended to its `part`, a
- * chunk's keeping its facet (section 2.2).
+ * holds: at the element's address with `type` appended to its `part`
+ * (section 2.2).
  */
 export function textKey(owner: ElementKey, type: "name" | "label"): ElementKey {
   const { coordinates: _marks, types: _types, ...held } = owner;
@@ -286,16 +329,14 @@ export function textKey(owner: ElementKey, type: "name" | "label"): ElementKey {
 }
 
 /**
- * `address` with `word` appended to its `part`: an owner's address, or a
- * chunk's, whose `part` begins with its chunk index and which keeps its
- * facet; a band, which has no part, has no text and no leader.
+ * `address` with `word` appended to its `part`: an owner's address, a
+ * chunk's among them, whose `part` begins with its chunk index; a band,
+ * which states a facet, has no text and no leader.
  */
 function wordAddress(address: ElementAddress, word: "name" | "label" | "leader"): ElementAddress {
   const { facet, ...owner } = address;
-  if (facet === undefined) return partAddress(owner, word);
-  const [head] = address.part ?? [];
-  if (typeof head !== "number") throw new Error("a band has no text");
-  return { ...address, part: [head, word] };
+  if (facet !== undefined) throw new Error("a band has no text");
+  return partAddress(owner, word);
 }
 
 /**
@@ -305,13 +346,17 @@ function wordAddress(address: ElementAddress, word: "name" | "label" | "leader")
  */
 export function leaderKey(label: ElementKey): ElementKey {
   const { coordinates: _marks, types: _types, ...held } = label;
-  const { id, facet } = label.address;
+  const { id, part = [] } = label.address;
   if (id === undefined) throw new Error("a leader joins the label of an element with an ID");
-  const address =
-    facet === undefined
-      ? partAddress(idAddress(id), "leader")
-      : wordAddress({ id, facet, part: label.address.part?.slice(0, 1) ?? [] }, "leader");
-  return { ...held, type: "leader", address, inside: holdersOf(label) };
+  // A chunk's leader keeps its chunk index: `{id: V, part: [k, "leader"]}`.
+  const [head] = part;
+  const owner = typeof head === "number" ? { id, part: [head] } : idAddress(id);
+  return {
+    ...held,
+    type: "leader",
+    address: partAddress(owner, "leader"),
+    inside: holdersOf(label),
+  };
 }
 
 /**
@@ -329,6 +374,7 @@ export function bandKey(timeline: string, facet: Facet, holder: ElementKey): Ele
     class: null,
     facet,
     inside: holdersOf(holder),
+    ...windowOf(holder),
   };
 }
 
@@ -395,8 +441,11 @@ export function selectorMatches(
   if (select.inside !== undefined && !element.inside.includes(select.inside)) return false;
   if (select.coordinates !== undefined && select.coordinates !== element.coordinates) return false;
   if (select.within !== undefined) {
-    if (element.timeline === null) return false;
-    if (!(ancestry.get(element.timeline) ?? []).includes(select.within)) return false;
+    // A virtual timeline's `within` also matches the drawings its chunks' windows show.
+    if (element.window !== select.within) {
+      if (element.timeline === null) return false;
+      if (!(ancestry.get(element.timeline) ?? []).includes(select.within)) return false;
+    }
   }
   return true;
 }
@@ -474,16 +523,19 @@ function gapElements(
  * a member's card in a frame draws none, nor does any card draw a group
  * elision on a timeline of its own (`manifestElements` lists those).
  *
- * A virtual timeline's drawing (`virtualDrawing`, section 8.10), `chunks`
- * the entries of its FlowMap as its card draws them (`chunkEntries`, null
- * where it does not resolve), has its markers and regions bands only
- * (`VIRTUAL_FACETS`); its regions band holds, before anything else, every
- * drawn entry `k`: a chunk's brace `{id: V, facet: "regions", part: [k]}`
- * of type `region` with its label `[k, "label"]`, and a gap's label alone,
- * keyed as the label of a brace that is not drawn; its line holds, after
- * its name, the boundary `[k, "start"]` of every entry that draws one. The
- * card a block holds of it draws a root whole (`elides`): its line holds,
- * after its two bands, the gaps of the stored elisions lying on `V`
+ * The line of a card drawing a FlowMap's entries `chunks` (a virtual
+ * timeline's, `virtualDrawing`, or a switched card's, section 8.10) holds,
+ * after its name, every drawn entry `k` as a chunk `{id, part: [k]}` of
+ * type `chunk` (`chunkKey`), its label `[k, "label"]`, its leader `[k,
+ * "leader"]` and, where it draws one, its boundary `[k, "start"]`; on a
+ * virtual card each chunk that is no gap then holds the five bands of its
+ * window `{id: V, facet, part: [k]}` (`windowBandKey`), in `FACETS` order,
+ * and each band what the chunk's sources hold of its facet, piece by piece
+ * (`windowsOf`), keyed as their own bands hold them but held by the window
+ * band, its own region left out, each carrying `V` as its `window`. A
+ * virtual timeline's own five bands hold nothing but its named timestamps.
+ * The card a block holds of it draws a root whole (`elides`): its line
+ * holds, after its five bands, the gaps of the stored elisions lying on `V`
  * (`elisionsUnder` `V`), in canonical order, as an ungrouped root's card
  * holds its card elisions; a member's card in a frame draws none, its
  * elisions being group elisions of the frame.
@@ -524,19 +576,25 @@ function memberElements(
   const extents = new Map(
     drawn.timelines.filter((item) => !item.ancestor).map((item) => [item.timeline, item]),
   );
-  const startOf = (timeline: TimelineManifest) => extents.get(timeline)?.start ?? zeroOf(timeline);
-  const extentTimes = (timeline: TimelineManifest) => {
-    const extent = extents.get(timeline);
-    return extent === undefined || extent.end === null ? 1 : overSpan(extent.start, extent.end);
-  };
   const positions = new Map(
     drawn.stamps.flatMap(({ timestamp, position, source }) =>
       source === "member" ? [[timestamp, position] as const] : [],
     ),
   );
-  const stampTimes = (timestamp: NamedTimestamp) => {
-    const position = positions.get(timestamp);
-    return position === undefined ? 1 : atPoint(position);
+  // How often the card's own tree draws each element: positions on the axis of its tree's root.
+  const cardCounter: Counter = {
+    startOf: (timeline) => extents.get(timeline)?.start ?? zeroOf(timeline),
+    atPoint,
+    overSpan,
+    extentTimes: (timeline) => {
+      const extent = extents.get(timeline);
+      return extent === undefined || extent.end === null ? 1 : overSpan(extent.start, extent.end);
+    },
+    stampTimes: (timestamp) => {
+      const position = positions.get(timestamp);
+      return position === undefined ? 1 : atPoint(position);
+    },
+    windowed: false,
   };
   // The wedge and the labels its `display` lists of a coordinate of `timestamp` on `timeline`,
   // held by `band` (a markers band or an ancestor line); no `coordinate` label where the
@@ -627,7 +685,10 @@ function memberElements(
       times(count, elementKey("fork", partAddress(at, "fork"), timeline, holder));
     }
   };
-  const visit = (key: ElementKey, timeline: TimelineManifest) => {
+  // What each band of `timeline` holds, held by `band`, `key` the line (or node) holding the
+  // timeline's bands, or the chunk holding a window's bands of that timeline.
+  const heldOf = (key: ElementKey, timeline: TimelineManifest, counter: Counter) => {
+    const { startOf, atPoint, overSpan, extentTimes, stampTimes } = counter;
     const labelled = (
       type: ElementType,
       at: ElementAddress,
@@ -657,14 +718,16 @@ function memberElements(
               times(atPoint(startOf(own)), boundary);
             }
             times(count, elementKey("label", partAddress(segment, "label"), own, key));
-            visit(node, own);
+            visit(node, own, counter);
           } else {
             const node = elementKey("child", idAddress(own.id), own, band);
             const count = extentTimes(own);
-            // A row names its timeline once, however many pieces draw it.
+            // A row names its timeline once, however many pieces and windows draw it.
             times(count, node);
-            times(Math.min(count, 1), textKey(node, "name"));
-            visit(node, own);
+            const named = counter.windowed && windowNamed.has(own.id);
+            if (!named) times(Math.min(count, 1), textKey(node, "name"));
+            if (counter.windowed && count > 0) windowNamed.add(own.id);
+            visit(node, own, counter);
           }
         });
       },
@@ -677,7 +740,7 @@ function memberElements(
       },
       markers: (band) => {
         for (const timestamp of namedTimestamps(manifest, timeline.id)) {
-          const count = stampTimes(timestamp);
+          const count = stampTimes(timestamp, timeline);
           marks(timestamp, timeline, band, "primary", true, count);
           if (timestamp.display.includes("cross_section")) {
             const at = partAddress(idAddress(timestamp.id), "line");
@@ -687,14 +750,6 @@ function memberElements(
         secondary(timeline, band);
       },
       regions: (band) => {
-        for (const chunk of timeline === root ? (chunks ?? []) : []) {
-          if (!chunk.drawn) continue;
-          const brace = elementKey("region", chunkAddress(root.id, chunk.index), root, band);
-          const count =
-            carriedOnly === null ? 1 : piecesReached(carriedOnly, chunk.start, chunk.end);
-          if (!chunk.gap) times(count, brace);
-          times(count, textKey(brace, "label"));
-        }
         const start = startOf(timeline);
         for (const region of timeline.regions) {
           const count = overSpan(
@@ -719,7 +774,7 @@ function memberElements(
           if (item.role === "jump_target") flowElement(item, null, timeline, band, at(item));
         }
         // A member that is a child timeline: the elements of its root's tree outside its own.
-        if (timeline !== root || member.ancestors.length === 0) return;
+        if (counter.windowed || timeline !== root || member.ancestors.length === 0) return;
         const own = new Set<TimelineManifest>();
         const collect = (each: TimelineManifest) => {
           own.add(each);
@@ -742,27 +797,120 @@ function memberElements(
         }
       },
     };
-    const facets = virtual ? VIRTUAL_FACETS : FACETS;
-    for (const facet of facets) {
+    return held;
+  };
+  const visit = (key: ElementKey, timeline: TimelineManifest, counter: Counter) => {
+    const held = heldOf(key, timeline, counter);
+    for (const facet of FACETS) {
       const band = bandKey(timeline.id, facet, key);
       keys.push(band);
       held[facet](band);
     }
-    if (cardElisions === undefined) return;
+    // A window never shows its source's elisions (section 8.10, Sources).
+    if (cardElisions === undefined || counter.windowed) return;
     for (const elision of elisionsOn(manifest, timeline.id)) {
       if (cardElisions.has(elision)) gapElements(elision, timeline, key, keys, true);
     }
   };
+  // The children the windows show, each named once on the card (section 8.10, Windows).
+  const windowNamed = new Set<string>();
   // A carried member's line is drawn once in every piece reaching it, named once.
   times(carriedOnly === null ? 1 : piecesReached(carriedOnly, onMember(from), onMember(to)), line);
   keys.push(textKey(line, "name"));
+  // The chunks of its line, each with its label, its leader and its boundary, parts of the line
+  // (section 8.10, Chunks), once in every piece reaching it on a carried card; on a virtual
+  // card each chunk that is no gap with the five bands of its window, each holding what the
+  // chunk's sources hold of its facet (Windows).
   for (const chunk of chunks ?? []) {
-    if (!chunk.boundary) continue;
-    const at = { ...chunkAddress(root.id, chunk.index), part: [chunk.index, "start"] as const };
-    const count = carriedOnly === null ? 1 : piecesHolding(carriedOnly, chunk.start);
-    times(count, elementKey("boundary", at, root, line));
+    if (!chunk.drawn) continue;
+    const own = chunkKey(root, chunk.index, line);
+    const count = carriedOnly === null ? 1 : piecesReached(carriedOnly, chunk.start, chunk.end);
+    const label = elementKey("label", { id: root.id, part: [chunk.index, "label"] }, root, line);
+    times(count, own, label, leaderKey(label));
+    if (chunk.boundary) {
+      const at: ElementAddress = { id: root.id, part: [chunk.index, "start"] };
+      const starts = carriedOnly === null ? 1 : piecesHolding(carriedOnly, chunk.start);
+      times(starts, elementKey("boundary", at, root, line));
+    }
+    const pieces = virtual ? (flow.windows?.chunks.get(chunk.index) ?? []) : [];
+    if (chunk.gap || pieces.length === 0) continue;
+    const bands = FACETS.map((facet) => windowBandKey(root.id, facet, own));
+    keys.push(...bands);
+    for (const { piece, source, origin, region } of pieces) {
+      const shown =
+        region === null
+          ? source
+          : { ...source, regions: source.regions.filter((item) => item.id !== region) };
+      const held = heldOf(own, shown, windowCounter(manifest, piece, source, origin));
+      FACETS.forEach((facet, index) => {
+        const band = bands[index];
+        if (band !== undefined) held[facet](band);
+      });
+    }
   }
-  visit(line, root);
+  visit(line, root, cardCounter);
+}
+
+/**
+ * How often `memberElements` lists each element of a timeline's bands: by
+ * the start of each timeline on the axis positions are counted on, how
+ * many drawings a position, an extent, a timeline's own extent and a named
+ * timestamp get; `windowed` for what a chunk's window shows.
+ */
+interface Counter {
+  readonly startOf: (timeline: TimelineManifest) => Real;
+  readonly atPoint: (position: Real) => number;
+  readonly overSpan: (start: Real, end: Real) => number;
+  readonly extentTimes: (timeline: TimelineManifest) => number;
+  readonly stampTimes: (timestamp: NamedTimestamp, timeline: TimelineManifest) => number;
+  readonly windowed: boolean;
+}
+
+/**
+ * The counter of what one stretch piece `piece` of a chunk's window shows of
+ * its source `source` (section 8.10, Windows), which starts at `origin` on
+ * the axis of the FlowMap's root: once what lies in the piece (a position
+ * `t` where `a ≤ t < b`, or `t = b` in a closed piece; an extent where
+ * `max(s, a) < min(e, b)`), never what lies outside it; each descendant of
+ * the source starting at its parent's start plus its offset and ending at
+ * its start plus its length, or its reach where that is not known.
+ */
+function windowCounter(
+  manifest: Manifest,
+  piece: Piece,
+  source: TimelineManifest,
+  origin: Real,
+): Counter {
+  const one: Unfolding = {
+    pieces: [piece],
+    length: piece.b,
+    carry: (value) => value,
+    uncarry: (value) => value,
+  };
+  const spans = new Map<string, { readonly start: Real; readonly end: Real }>();
+  const reaches = new WeakMap<TimelineManifest, Real>();
+  const walk = (timeline: TimelineManifest, start: Real) => {
+    const end = addReal(start, lengthOf(timeline) ?? reachOf(timeline, manifest, reaches));
+    spans.set(timeline.id, { start, end });
+    for (const child of timeline.children)
+      walk(child, addReal(start, value(child.offset, timeline)));
+  };
+  walk(source, origin);
+  const startOf = (timeline: TimelineManifest) => spans.get(timeline.id)?.start ?? origin;
+  const atPoint = (position: Real) => piecesHolding(one, position);
+  const overSpan = (start: Real, end: Real) => piecesReached(one, start, end);
+  return {
+    startOf,
+    atPoint,
+    overSpan,
+    extentTimes: (timeline) => {
+      const span = spans.get(timeline.id);
+      return span === undefined ? 0 : overSpan(span.start, span.end);
+    },
+    stampTimes: (timestamp, timeline) =>
+      atPoint(addReal(startOf(timeline), value(timestamp.coordinate, timeline))),
+    windowed: true,
+  };
 }
 
 /**
@@ -778,15 +926,12 @@ interface DrawnFlow {
   readonly chunks: readonly ChunkEntry[] | null;
   readonly unfolding: Unfolding | null;
   readonly switched: boolean;
+  /** What the windows of a virtual card's chunks show; null on every other card. */
+  readonly windows?: Windows | null;
 }
 
 /** A card drawn as written, with no FlowMap's entries. */
 const AS_WRITTEN: DrawnFlow = { chunks: null, unfolding: null, switched: false };
-
-/** The address of the entry `index` of the FlowMap drawn on the line of `timeline` (section 2.2). */
-function chunkAddress(timeline: string, index: number): ElementAddress {
-  return { id: timeline, facet: "regions", part: [index] };
-}
 
 /** Whether `member` is the drawing of a virtual timeline of `manifest` (`virtualDrawing`). */
 function isVirtualDrawing(manifest: Manifest, member: MemberDrawing): boolean {
@@ -831,20 +976,22 @@ function flowEntries(manifest: Manifest, flowMap: string, once: boolean): readon
 }
 
 /**
- * The entries of the FlowMap the virtual timeline `id` of `manifest`
- * applies, as its card draws them (`flowEntries`); `null` where the virtual
- * timeline does not resolve: its `map` is no FlowMap that resolves, its
- * `timeline` is not that FlowMap's, or it states `through`.
+ * How the card of the virtual timeline `id` of `manifest` draws the FlowMap
+ * it applies: its entries as its card draws them (`flowEntries`) and what
+ * their windows show (`windowsOf`); no entries and no windows where the
+ * virtual timeline does not resolve: its `map` is no FlowMap that resolves,
+ * its `timeline` is not that FlowMap's, or it states `through`.
  */
-function chunkEntries(manifest: Manifest, id: string, once: boolean): readonly ChunkEntry[] | null {
+function virtualFlowOf(manifest: Manifest, id: string, once: boolean): DrawnFlow {
   const virtual = (manifest.virtual_timelines ?? []).find((item) => item.id === id);
-  if (virtual === undefined || virtual.through !== undefined) return null;
+  if (virtual === undefined || virtual.through !== undefined) return AS_WRITTEN;
   const flowMap = (manifest.flow_maps ?? []).find((item) => item.id === virtual.map);
-  if (flowMap === undefined || flowMap.timeline !== virtual.timeline) return null;
+  if (flowMap === undefined || flowMap.timeline !== virtual.timeline) return AS_WRITTEN;
   try {
-    return flowEntries(manifest, flowMap.id, once);
+    const chunks = flowEntries(manifest, flowMap.id, once);
+    return { ...AS_WRITTEN, chunks, windows: windowsOf(manifest, flowMap.id) };
   } catch (error) {
-    if (error instanceof FlowMapError) return null;
+    if (error instanceof FlowMapError) return AS_WRITTEN;
     throw error;
   }
 }
@@ -871,8 +1018,8 @@ function frameFlows(manifest: Manifest, frame: GroupFrame): Map<MemberDrawing, D
   const switched = only !== undefined && more.length === 0 ? only : null;
   return new Map(
     frame.members.map((member): [MemberDrawing, DrawnFlow] => {
-      const own = chunkEntries(manifest, member.timeline.id, false);
-      if (switched === null) return [member, { ...AS_WRITTEN, chunks: own }];
+      const own = virtualFlowOf(manifest, member.timeline.id, false);
+      if (switched === null) return [member, own];
       if (member === switched.member) {
         const chunks = flowEntries(manifest, switched.flowMap, false);
         const unfolding = unfoldingOf(manifest, switched.flowMap);
@@ -881,7 +1028,8 @@ function frameFlows(manifest: Manifest, frame: GroupFrame): Map<MemberDrawing, D
       const lambdaT = lambdaOf(manifest, switched.member.timeline);
       const lambdaM = lambdaOf(manifest, member.timeline);
       const unfolding = unfoldingOf(manifest, switched.flowMap, { lambdaT, lambdaM });
-      return [member, { chunks: own, unfolding, switched: false }];
+      // A carried virtual member unfolds its chunks with its line, and draws no window.
+      return [member, { chunks: own.chunks, unfolding, switched: false }];
     }),
   );
 }
@@ -994,7 +1142,7 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
   for (const id of placeable) {
     const member = virtualDrawing(ordered, id);
     if (member === undefined) throw new Error(`'${id}' is a virtual timeline`);
-    const flow = { ...AS_WRITTEN, chunks: chunkEntries(ordered, id, true) };
+    const flow = virtualFlowOf(ordered, id, true);
     memberElements(ordered, member, BLOCK_KEY, keys, "card", null, true, flow);
   }
   // A switched frame draws no group elision (section 8.10).

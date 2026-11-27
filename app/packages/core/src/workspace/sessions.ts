@@ -277,6 +277,7 @@ function defaultKindOf(view: View, address: Address): EditorKind | CommandError 
     case "virtual_card":
     case "virtual_band":
     case "chunk":
+    case "chunk_band":
     case "part":
       return problem(ErrorCode.noEditor, `${addressWords(view, address)} has no editor`, [
         addressKey(address),

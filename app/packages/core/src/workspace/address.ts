@@ -202,6 +202,7 @@ export type ResolvedAddress =
   | ({ readonly kind: "virtual_card"; readonly block: Block } & VirtualFound)
   | ({ readonly kind: "virtual_band"; readonly block: Block } & VirtualBandFound)
   | ({ readonly kind: "chunk"; readonly block: Block } & ChunkFound)
+  | ({ readonly kind: "chunk_band"; readonly block: Block } & ChunkBandFound)
   | {
       readonly kind: "part";
       readonly block: Block;
@@ -243,6 +244,7 @@ export type ResolvedElement =
   | ({ readonly kind: "virtual_card" } & VirtualFound)
   | ({ readonly kind: "virtual_band" } & VirtualBandFound)
   | ({ readonly kind: "chunk" } & ChunkFound)
+  | ({ readonly kind: "chunk_band" } & ChunkBandFound)
   | { readonly kind: "part"; readonly owner: ResolvedElement; readonly word: Part };
 
 /** A stored elision, found in a manifest's `graphical.elisions` with the timeline it lies on. */
@@ -274,7 +276,7 @@ export interface FlowMapFound {
  * member, or its one block-held card in no group (`containersOf`). The
  * address `{id: V}` names the virtual timeline, `{id: V, part: ["card"]}`
  * its cards (`virtual_card`) and `{id: V, facet}` the drawings of one of its
- * bands, markers or regions (`virtual_band`).
+ * five bands (`virtual_band`).
  */
 export interface VirtualFound {
   /** Its index in the manifest's `virtual_timelines`. */
@@ -290,12 +292,11 @@ export interface VirtualBandFound extends VirtualFound {
 }
 
 /**
- * An entry of the FlowMap drawn on the line of a virtual timeline or of a
- * timeline whose card is switched (`docs/drawing.md` section 8.10), in its
- * regions band: the brace of a chunk, or a gap, which draws no brace and is
- * reached by its label; addressed `{id, facet: "regions", part: [k]}` by the
- * ID of that line, its label `[k, "label"]` and its boundary `[k, "start"]`
- * its parts.
+ * A chunk: an entry of the FlowMap drawn on the line of a virtual timeline
+ * or of a timeline whose card is switched (`docs/drawing.md` section 8.10),
+ * a segment of that line, a gap's included; addressed `{id, part: [k]}` by
+ * the ID of that line, its label `[k, "label"]`, its leader `[k, "leader"]`
+ * and its boundary `[k, "start"]` its parts.
  */
 export interface ChunkFound {
   /** The entry's index in the FlowMap's `chunks`, from 0. */
@@ -304,6 +305,14 @@ export interface ChunkFound {
   readonly flowMap: FlowMapFound;
   /** The line it is drawn on: the virtual timeline, or the switched card's timeline. */
   readonly line: ChunkLine;
+}
+
+/**
+ * A band of the window of a chunk of a virtual timeline `V` (section 8.10,
+ * Windows), `{id: V, facet, part: [k]}`: the chunk and the band's facet.
+ */
+export interface ChunkBandFound extends ChunkFound {
+  readonly facet: Facet;
 }
 
 /** The line a chunk is drawn on: a virtual timeline, or a timeline whose card is switched. */
@@ -528,6 +537,7 @@ export function resolvedPath(resolved: ResolvedAddress): readonly PathSegment[] 
     case "virtual_band":
       return ["virtual_timelines", resolved.index];
     case "chunk":
+    case "chunk_band":
       return ["flow_maps", resolved.flowMap.index, "chunks", resolved.chunk];
     case "part":
       return resolvedPath(resolved.owner);
@@ -661,7 +671,8 @@ function switchedChunkOf(
 ): ResolvedElement | undefined {
   const found = catalogueOf(manifest).get(id);
   const flowMap = switchOf(manifest, id)?.flowMap;
-  if (found?.kind !== "timeline" || facet === undefined || flowMap === undefined) return undefined;
+  // A switched card's chunks have no window, so no band.
+  if (found?.kind !== "timeline" || facet !== undefined || flowMap === undefined) return undefined;
   const cards = containersOf(manifest).cards.get(id) ?? [];
   return chunkOf(manifest, { kind: "timeline", at: found.at, cards }, flowMap, facet, part);
 }
@@ -670,12 +681,12 @@ function switchedChunkOf(
  * What an address of a virtual timeline names: the virtual timeline
  * itself (`{id: V}`) and its parts (its name), its cards (`{id: V, part:
  * ["card"]}`), one of their
- * bands (`{id: V, facet}`, markers or regions, where a card holds it), an
- * entry of its FlowMap (`{id: V, facet: "regions", part: [k]}`, a `chunk`)
- * and the parts of one (`[k, "label"]`, `[k, "start"]`); a part only where
- * the manifest's drawing lists it (`ManifestIndex.drawn`), as every part,
- * and a gap, which draws no brace, as the owner of its label. `undefined`
- * for any other part or facet.
+ * bands (`{id: V, facet}`, where a card holds it), an entry of its FlowMap
+ * (`{id: V, part: [k]}`, a `chunk`), the parts of one (`[k, "label"]`, `[k,
+ * "leader"]`, `[k, "start"]`) and the bands of its window (`{id: V, facet,
+ * part: [k]}`, a `chunk_band`); a part only where the manifest's drawing
+ * lists it (`ManifestIndex.drawn`), as every part. `undefined` for any other
+ * part or facet.
  */
 function virtualOf(
   manifest: Manifest,
@@ -687,11 +698,12 @@ function virtualOf(
   const containers = containersOf(manifest);
   const cards = containers.cards.get(virtual.id) ?? [];
   if (part.length > 0 && !indexOf(manifest).drawn.has(addressKey(element))) return undefined;
+  if (typeof part[0] === "number") {
+    const line: ChunkLine = { kind: "virtual_timeline", index, virtual, cards };
+    return chunkOf(manifest, line, virtual.map, facet, part);
+  }
   if (facet !== undefined) {
-    if (part.length > 0) {
-      const line: ChunkLine = { kind: "virtual_timeline", index, virtual, cards };
-      return chunkOf(manifest, line, virtual.map, facet, part);
-    }
+    if (part.length > 0) return undefined;
     const drawn = containers.bands.get(virtual.id)?.get(facet);
     if (drawn === undefined) return undefined;
     return { kind: "virtual_band", index, virtual, cards, facet, containers: drawn };
@@ -707,20 +719,20 @@ function virtualOf(
 }
 
 /**
- * The entry `part[0]` of the FlowMap `flowMap` drawn on `line`, in its
- * regions band, with the part word that follows it, if any, read as its
- * part.
+ * The entry `part[0]` of the FlowMap `flowMap` drawn on `line`, with the
+ * part word that follows it, if any, read as its part; with `facet` and no
+ * word, the band of that facet of its window.
  */
 function chunkOf(
   manifest: Manifest,
   line: ChunkLine,
   flowMap: string,
-  facet: Facet,
+  facet: Facet | undefined,
   part: readonly PartItem[],
 ): ResolvedElement | undefined {
   const [chunk, word, ...more] = part;
-  if (facet !== "regions" || typeof chunk !== "number" || more.length > 0) return undefined;
-  if (word !== undefined && !isPart(word)) return undefined;
+  if (typeof chunk !== "number" || more.length > 0) return undefined;
+  if (word !== undefined && (facet !== undefined || !isPart(word))) return undefined;
   const flowMaps = manifest.flow_maps ?? [];
   const index = flowMaps.findIndex((item) => item.id === flowMap);
   const found = flowMaps[index];
@@ -731,6 +743,7 @@ function chunkOf(
     flowMap: { index, flowMap: found },
     line,
   };
+  if (facet !== undefined) return { ...resolved, kind: "chunk_band", facet };
   return word === undefined ? resolved : { kind: "part", owner: resolved, word };
 }
 
@@ -916,6 +929,11 @@ function elementWords(resolved: ResolvedAddress): {
     case "chunk": {
       const line = elementWords({ ...resolved.line, block: resolved.block });
       return { words: `chunk ${resolved.chunk + 1} of ${line.words}`, bundled: false };
+    }
+    case "chunk_band": {
+      const line = elementWords({ ...resolved.line, block: resolved.block });
+      const chunk = `chunk ${resolved.chunk + 1} of ${line.words}`;
+      return { words: `the ${facetWord(resolved.facet)} band of ${chunk}`, bundled: false };
     }
     case "part": {
       const owner = elementWords(resolved.owner);

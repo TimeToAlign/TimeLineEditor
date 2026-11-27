@@ -7,8 +7,9 @@
  * and the flow switch"):
  *
  * - the pointer on the label of chunk 0 (A) draws one ribbon, to A's
- *   stretch on `allegro`'s line, and lights the brace of chunk 2, the other
- *   A; leaving the block takes both away;
+ *   stretch on `allegro`'s line, and lights chunk 2, the other A, as a
+ *   line over its drawn span (from its boundary to the next chunk's);
+ *   leaving the block takes both away;
  * - with Show coordinates on, the pointer on the virtual card's line over
  *   chunk 2 shows the written position in the flag's part `written
  *   allegro_default`, named "Allegro", its occurrence `2 of 2` (A is played
@@ -30,6 +31,10 @@
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import { drawingOf } from "../packages/arranger/src/drawing.ts";
+import { isLoadError, readWorkspace } from "../packages/core/src/index.ts";
+import type { Drawing } from "../packages/layout/src/index.ts";
+import { FONT_METRICS } from "./schema.ts";
 import {
   arranger,
   dispatch,
@@ -37,7 +42,7 @@ import {
   journalLength,
   newestCommand,
   panel,
-  part,
+  paneOf,
   partCentre,
   select,
   settledDrawing,
@@ -47,6 +52,15 @@ import {
 test.use({ viewport: { width: 1600, height: 1000 }, reducedMotion: "reduce" });
 
 const DEFAULT = "allegro_default";
+
+/** Block `block`'s drawing as the canvas draws it now (`settledDrawing` waited for it). */
+async function drawingNow(page: Page, block: string): Promise<Drawing> {
+  const workspace = readWorkspace(await page.evaluate(() => window.__tilie.text()));
+  if (isLoadError(workspace)) throw new Error("the workspace is refused");
+  const found = workspace.view.blocks[block];
+  if (found === undefined) throw new Error(`block ${block} is missing`);
+  return drawingOf(found, workspace.view.graphical, FONT_METRICS, undefined, await paneOf(page));
+}
 
 /** Import the fixture and place `allegro_default` at (0, 200); the block. */
 async function start(page: Page): Promise<string> {
@@ -67,17 +81,27 @@ test("a chunk's ribbons and the other chunks of its source follow the pointer", 
   const block = await start(page);
   const ribbons = page.locator(".tilie-block g.tilie-ribbons");
   await expect(ribbons).toHaveCount(0);
-  const label = await partCentre(page, block, {
-    id: DEFAULT,
-    facet: "regions",
-    part: [0, "label"],
-  });
+  const label = await partCentre(page, block, { id: DEFAULT, part: [0, "label"] });
   await page.mouse.move(label.x, label.y);
   await expect(ribbons.locator("path.tilie-ribbon")).toHaveCount(1);
   const lit = ribbons.locator(".tilie-lit");
   await expect(lit).toHaveCount(1);
-  const brace = part(page, block, { id: DEFAULT, facet: "regions", part: [2] });
-  expect(await lit.getAttribute("d")).toBe(await brace.getAttribute("d"));
+  // Chunk 2's drawn span: from its boundary to chunk 3's, on the line's ordinate.
+  const drawing = await drawingNow(page, block);
+  const at = (wanted: readonly (string | number)[] | null) =>
+    drawing.elements.find(
+      (element) =>
+        element.address.id === DEFAULT &&
+        element.address.facet === undefined &&
+        JSON.stringify(element.address.part ?? null) === JSON.stringify(wanted),
+    );
+  const [two, three, line] = [at([2, "start"]), at([3, "start"]), at(null)];
+  if (two?.type !== "boundary" || three?.type !== "boundary" || line?.type !== "timeline") {
+    throw new Error("chunk 2's boundaries and the line");
+  }
+  expect(
+    await lit.evaluate((drawn) => ["x1", "x2", "y1", "y2"].map((name) => drawn.getAttribute(name))),
+  ).toEqual([two.x, three.x, line.y, line.y].map(String));
   await page.mouse.move(1, 1);
   await expect(ribbons).toHaveCount(0);
 });
@@ -85,7 +109,8 @@ test("a chunk's ribbons and the other chunks of its source follow the pointer", 
 test("the flag on a virtual card names the written position's occurrence", async ({ page }) => {
   const block = await start(page);
   await page.getByRole("button", { name: "Show coordinates" }).click();
-  const chunk = await partCentre(page, block, { id: DEFAULT, facet: "regions", part: [2] });
+  // The label of chunk 2 is centred on its drawn span.
+  const chunk = await partCentre(page, block, { id: DEFAULT, part: [2, "label"] });
   const line = await partCentre(page, block, { id: DEFAULT });
   await page.mouse.move(chunk.x, line.y);
   const written = page.getByTestId("coordinate-flag").locator(`[data-flow="written ${DEFAULT}"]`);

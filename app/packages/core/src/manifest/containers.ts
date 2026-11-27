@@ -19,14 +19,7 @@
 
 import type { ElementType } from "@timetoalign/timetoshare";
 import type { ElementAddress, Facet } from "./address.ts";
-import {
-  BUNDLE_ADDRESS,
-  bandAddress,
-  cardAddress,
-  FACETS,
-  idAddress,
-  VIRTUAL_FACETS,
-} from "./address.ts";
+import { BUNDLE_ADDRESS, bandAddress, cardAddress, FACETS, idAddress } from "./address.ts";
 import { orderedChildren } from "./elements.ts";
 import type { AncestorCard } from "./files.ts";
 import { memberDrawings, ungroupedVirtuals } from "./files.ts";
@@ -299,7 +292,7 @@ const BLOCK: ContainerRef = {
  * virtual timeline in no group has a block-held card after the ungrouped
  * roots', in name order (`ungroupedVirtuals`), keyed by its ID: the block draws it where its `places`
  * states that key, and a `set` of its place states it. A virtual card holds
- * its markers and regions bands (`VIRTUAL_FACETS`).
+ * its five bands, as every card holds its timeline's.
  */
 export function containersOf(manifest: Manifest): Containers {
   const known = listed.get(manifest);
@@ -364,7 +357,7 @@ export function containersOf(manifest: Manifest): Containers {
     bandsOf(cardOf(timeline.id, holder, key), timeline);
   };
   const virtualCard = (id: string, holder: ContainerRef, key: PlaceKey) => {
-    facetsOf(cardOf(id, holder, key), id, VIRTUAL_FACETS);
+    facetsOf(cardOf(id, holder, key), id, FACETS);
   };
   const virtualIds = new Set((manifest.virtual_timelines ?? []).map(({ id }) => id));
   const ancestorCards = drawn.ancestorCards.map((card): AncestorCardRef => {

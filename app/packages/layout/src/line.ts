@@ -1,8 +1,9 @@
 /**
  * Level 0 of a timeline (`docs/drawing.md` in TimeToShare, sections 6.4,
- * Level 0 and Segment lines, and 6.6): its line, the boundaries and labels of
- * its segments, which belong to the line and to no band, and how far the
- * line reaches on each side.
+ * Level 0 and Segment lines, 6.6 and 8.10): its line, the boundaries and
+ * labels of its segments and of the chunks of the FlowMap it draws, which
+ * belong to the line and to no band, and how far the line reaches on each
+ * side.
  */
 
 import type { TimelineManifest } from "@timetoalign/tilie-core";
@@ -159,12 +160,16 @@ export function drawnEntries(scope: Scope, line: Entry): readonly Entry[] {
 }
 
 /**
- * Level 0 of the timeline drawn with the line `line` (sections 6.1, 6.4 and
- * 6.6): its segments are its children when it is a segment line, every one
- * of them, with a line of its own or not; their labels are placed by one
- * first fit, in canonical order, into the segment-label tiers above the
- * line. A segment's boundary and label are held by its segment line,
- * directly and in no band (section 2.1), and drawn only with that line.
+ * Level 0 of the timeline drawn with the line `line` (sections 6.1, 6.4, 6.6
+ * and 8.10): its segments are its children when it is a segment line, every
+ * one of them, with a line of its own or not, and, on the root's line of a
+ * virtual or switched card, the drawn chunks of its FlowMap, each over its
+ * drawn span; their labels are placed by one first fit into the
+ * segment-label tiers above the line, the chunks' first in the order of
+ * the FlowMap's entries (`{id, part: [k, "label"]}`, the text `chunk.text`),
+ * then the segments' in canonical order. A segment's or chunk's boundary
+ * and label are held by the line, directly and in no band (section 2.1),
+ * and drawn only with that line.
  */
 export function levelZero(scope: Scope, line: Entry): StagedZero {
   const { index, rootEntry, member, styled, measured, relativeX, relativeEnd, h, d } = scope;
@@ -190,27 +195,36 @@ export function levelZero(scope: Scope, line: Entry): StagedZero {
           ...part(segment, "start"),
         }))
   ).filter((boundary) => shown(boundary.style));
-  // The line of a virtual timeline or of a switched card holds the boundaries at the drawn starts
-  // of the chunks of its FlowMap (section 8.10), and draws a gap line over every gap's span.
+  // The line of a virtual timeline or of a switched card is a segment line of the chunks of its
+  // FlowMap (section 8.10): it holds the boundaries at their drawn starts and their labels, the
+  // chunks' labels before its segments', and draws a gap line over every gap's span.
   const { flow } = scope;
   const chunked = flow !== null && line === rootEntry && drawn ? flow : null;
+  const chunkPart = (index: number, word: "start" | "label") => {
+    const address = { id: chunked?.timeline ?? line.manifest.id, part: [index, word] };
+    const key = elementKey(
+      word === "start" ? "boundary" : "label",
+      address,
+      line.manifest,
+      line.key,
+    );
+    return { ...styled(key, line.style), key };
+  };
   const chunkBoundaries =
     chunked === null
       ? []
       : chunkStarts(scope)
-          .map(({ chunk, at }) => {
-            const address = {
-              id: chunked.timeline,
-              facet: "regions",
-              part: [chunk.index, "start"],
-            } as const;
-            const key = elementKey("boundary", address, line.manifest, line.key);
-            return { segment: line, at, ...styled(key, line.style), key };
-          })
+          .map(({ chunk, at }) => ({ segment: line, at, ...chunkPart(chunk.index, "start") }))
           .filter((boundary) => shown(boundary.style));
-  const flowGaps = chunked === null ? [] : chunkSpans(scope).filter(({ chunk }) => chunk.gap);
+  const spans = chunked === null ? [] : chunkSpans(scope);
+  const flowGaps = spans.filter(({ chunk }) => chunk.gap);
   const bounded = boundaries.length > 0 || chunkBoundaries.length > 0;
-  const labels = segments.flatMap((segment) => {
+  const chunkLabels = spans.flatMap(({ chunk, start, end }) => {
+    const label = chunkPart(chunk.index, "label");
+    if (!shown(label.style)) return [];
+    return [{ segment: line, label, ...measured(label, chunk.text), at: midpoint(start, end) }];
+  });
+  const segmentLabels = segments.flatMap((segment) => {
     const text = segment.manifest.name;
     const label = part(segment, "label");
     if (text === null || !shown(label.style)) return [];
@@ -223,6 +237,7 @@ export function levelZero(scope: Scope, line: Entry): StagedZero {
       },
     ];
   });
+  const labels = [...chunkLabels, ...segmentLabels];
   const w = line.style["stroke-width"];
   const end = relativeEnd(line);
   const lineExtent: Extent = [relativeX(line.start), line.open ? end + 9.5 * w : end];

@@ -214,8 +214,17 @@ function gathered(scope: Scope, line: Entry): readonly Gathered[] {
           }
           return [of(element, timeline, start, own)];
         });
+  // What the windows of a virtual card show, each in its piece (section 8.10, Windows).
+  const windowed = scope.index.windows.filter(shownEntry).flatMap((entry) =>
+    entry.manifest.flow_control.flatMap((element) => {
+      const item = of(element, entry.manifest, entry.written.start, entry.bands.flow_control);
+      const play = (value: Real) => scope.play(entry, value);
+      const at = play(item.at);
+      return at === undefined ? [] : [{ ...item, at, play }];
+    }),
+  );
   const { unfolding } = scope;
-  if (unfolding === null) return written;
+  if (unfolding === null) return [...written, ...windowed];
   return rootPieces(scope).flatMap(({ piece }) => {
     if (piece === null) return [];
     const play = (value: Real) => playedAt(unfolding, piece, value);

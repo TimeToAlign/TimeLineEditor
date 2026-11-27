@@ -232,7 +232,7 @@ describe("the switch's motion", () => {
     expect(switchMorphs(manifest(SWITCHED), drawing, drawing)).toEqual([]);
   });
 
-  it("moves each chunk of a card switched from its written stretch to its brace", () => {
+  it("moves each chunk of a card switched from its written stretch to its drawn span", () => {
     const after = drawingIn(SWITCHED);
     const asWritten = flowCommands(
       A,
@@ -252,15 +252,20 @@ describe("the switch's motion", () => {
     // Switched: `x(t) = x0 + 400 × u`, `u = t / (4241/2)` (layout's README, Switched cards, 2).
     const x0 = Math.min(...linesOf(after).map((axis) => axis.xStart));
     const x = (t: number) => x0 + 400 * (t / 2120.5);
-    // Each chunk's elements in drawing order: its brace, its boundary from k = 1, its label.
-    const parts = (k: number) =>
-      k === 0 ? [[0], [0, "label"]] : [[k], [k, "start"], [k, "label"]];
+    // Each chunk's elements, parts of the line, in drawing order: its boundary from k = 1, its
+    // label (a chunk draws nothing of its own, section 8.10).
     const elementsOf = (k: number) =>
-      parts(k).map((part) =>
+      (k === 0
+        ? [[0, "label"]]
+        : [
+            [k, "start"],
+            [k, "label"],
+          ]
+      ).map((part) =>
         after.elements.findIndex(
           (element) =>
             element.address.id === ROOT &&
-            element.address.facet === "regions" &&
+            element.address.facet === undefined &&
             JSON.stringify(element.address.part) === JSON.stringify(part),
         ),
       );
@@ -279,7 +284,7 @@ describe("the switch's motion", () => {
     expect(morphs.flatMap((item) => item.elements)).not.toContain(-1);
   });
 
-  it("stretches a brace and moves a text onto the span at its progress", () => {
+  it("stretches an element and moves a text onto the span at its progress", () => {
     const morph = { elements: [3], from: { x1: 10, x2: 30 }, to: { x1: 50, x2: 60 } };
     expect(spanAt(morph.from, morph.to, 0.5)).toEqual({ x1: 30, x2: 45 });
     // At 0.5 the span is [30, 45]: 15 wide over 10, so s = 1.5 and x1 30 − 50 × 1.5 = −45.

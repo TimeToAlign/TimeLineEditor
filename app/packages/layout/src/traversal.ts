@@ -10,6 +10,7 @@
 import {
   type ConversionMap,
   type ElementAddress,
+  FACETS,
   type Facet,
   type FlowReading,
   idAddress,
@@ -20,6 +21,7 @@ import {
 } from "@timetoalign/tilie-core";
 import {
   bandKey,
+  chunkKey,
   type ElementKey,
   elementKey,
   type GroupFrame,
@@ -33,6 +35,8 @@ import {
   reachOf,
   textKey,
   type Unfolding,
+  type Windows,
+  windowBandKey,
 } from "@timetoalign/tilie-core/drawing";
 import type { Rational, Real } from "@timetoalign/tilie-core/numbers";
 import type { ElementType } from "@timetoalign/timetoshare";
@@ -110,6 +114,14 @@ export interface Entry extends Holder {
    * root draws nothing of its own.
    */
   readonly drawn: boolean;
+  /**
+   * The index of the chunk of a virtual card whose window shows it (section 8.10, Windows), on
+   * the window itself and every drawing it holds; null on every timeline of the card's own tree.
+   * A window is a node of the tree with no line of its own: its source's drawing in one stretch
+   * piece, its key the chunk's and its five bands the window's, which join the virtual
+   * timeline's line as a segment's without a line join its segment line's.
+   */
+  readonly window: number | null;
 }
 
 /** An element a timeline's band holds: a map, a region, a break, a section break, a barline, a jump or a wedge. */
@@ -137,6 +149,11 @@ export interface TraversalIndex {
   readonly sourcesByLine: ReadonlyMap<Entry, readonly Entry[]>;
   /** The segments of each segment line, in traversal order, its pieces' on a switched card's root. */
   readonly segmentsByLine: ReadonlyMap<Entry, readonly Entry[]>;
+  /**
+   * The drawings the windows of a virtual card's chunks show (section 8.10, Windows), the windows
+   * themselves and everything under them, in traversal order; none on any other card.
+   */
+  readonly windows: readonly Entry[];
 }
 
 /**
@@ -158,14 +175,23 @@ export interface DrawnChunk {
 /**
  * The chunks a line draws (section 8.10): `timeline` the ID its chunks'
  * addresses carry (a virtual timeline's, or a switched card's timeline's),
- * its entries in the order of `chunks`, and the run gaps of its runs drawn
- * once, each over `[a, b]`, the end of a run's first entry to the end of its
- * last, from the left.
+ * its entries in the order of `chunks`, the run gaps of its runs drawn once,
+ * each over `[a, b]`, the end of a run's first entry to the end of its last,
+ * from the left, the spans of the gap entries that may be widened (section
+ * 8.10, Widened gaps: in a card that is an item of the block, those no stored
+ * elision the card draws reaches into), from the left, and on a virtual card
+ * what its chunks' windows show (null for none).
  */
 export interface DrawnFlow {
+  /** The FlowMap drawn. */
+  readonly flowMap: string;
   readonly timeline: string;
+  /** Its card is an item of the block, where runs are drawn once and gaps widened. */
+  readonly once: boolean;
   readonly chunks: readonly DrawnChunk[];
   readonly runGaps: readonly (readonly [Real, Real])[];
+  readonly widened: readonly (readonly [Real, Real])[];
+  readonly windows: Windows | null;
 }
 
 /** What every member drawing of one manifest shares. */
@@ -182,6 +208,8 @@ export interface Context {
 /** One timeline drawn as a root, traversed, with the measures of its axis and its texts. */
 export interface Scope extends Context {
   readonly member: MemberDrawing;
+  /** What holds its root's line: the block, or its group's frame. */
+  readonly holder: Holder;
   /**
    * The chunks of the FlowMap its root's line draws (section 8.10): a virtual timeline's, or a
    * switched card's; null for a line that draws none.
@@ -218,7 +246,10 @@ export interface Scope extends Context {
   readonly play: (entry: Entry, value: Real) => Real | undefined;
   /** The timeline drawn as the root. */
   readonly root: TimelineManifest;
-  /** Every timeline of its tree in traversal order, the root first. */
+  /**
+   * Every timeline of its tree in traversal order, the root first; never the drawings its chunks'
+   * windows show, which belong to other trees (`index` holds them).
+   */
   readonly entries: readonly Entry[];
   readonly rootEntry: Entry;
   /** Its children by parent and its lines' sources, built once by the traversal. */
@@ -348,8 +379,10 @@ export interface Gap {
 export interface CardAxis {
   readonly gaps: readonly Gap[];
   /**
-   * The positions of its seams, from the left: an ancestor card's room under its frame's borders
-   * (section 8.8, step 2), where its axis jumps right by the seam's width and nothing is left out.
+   * The positions of its seams, from the left, where its axis changes its scale and a line's axes
+   * are cut: an ancestor card's room under its frame's borders (section 8.8, step 2), where its
+   * axis jumps right by the seam's width and nothing is left out, and the two ends of each
+   * widened gap of a card with a FlowMap's chunks (section 8.10, Widened gaps), drawn `Gm` wide.
    */
   readonly seams: readonly Real[];
   readonly runs: readonly Run[];
@@ -453,6 +486,13 @@ export function endOf(timeline: TimelineManifest, topLevel: boolean, open = fals
  * 8.10): the root holds nothing and spans the virtual axis, named `name`
  * where that is given, and every element of its tree is visited once per
  * stretch piece it reaches into, clipped to it, in the order of the pieces.
+ * Otherwise, where `flow` holds windows (a virtual card, section 8.10,
+ * Windows), every drawn chunk that is no gap holds its window after the
+ * root, chunk after chunk: one node per stretch piece of its entry, its
+ * source's drawing in that piece, the chunk's own region left out, and the
+ * source's children visited under it, clipped to the piece; a chunk none of
+ * whose window bands is displayed holds none, and a window whose children
+ * band is not displayed visits no child.
  */
 export function traverse(
   context: Context,
@@ -467,6 +507,9 @@ export function traverse(
   const { manifest, placement, cascade, measure, reading } = context;
   const root = member.timeline;
   const unfolding = switched?.unfolding ?? null;
+  // The pieces the windows of a virtual card are unfolded over, on its own axis: no carry.
+  const windows = switched === null ? (flow?.windows ?? null) : null;
+  const windowed = windows?.unfolding ?? null;
   const L = placement.length;
   const h = (size: number) => measure.lineHeight(size);
   const a = (size: number) => measure.ascent(size);
@@ -559,6 +602,7 @@ export function traverse(
       drawn:
         shown(style) &&
         (parent === undefined || (shown(parent.bands.children.style) && parent.drawn)),
+      window: parent?.window ?? null,
     };
     endings.set(entry, ended);
     entries.push(entry);
@@ -588,16 +632,81 @@ export function traverse(
     piece: Piece | null,
   ) => {
     const ended = ending(timeline, parent, start, next);
-    if (unfolding === null || piece === null) {
+    const pieces = unfolding ?? windowed;
+    if (pieces === null || piece === null) {
       const whole = { start, ...ended, piece: null, startCut: false, endCut: false };
       visitChildren(timeline, entryOf(timeline, parent, start, ended, whole, first), start, null);
       return;
     }
-    // On a switched card, drawn once in its piece where it reaches into it, cut to it.
-    const span = playedSpan(unfolding, piece, start, ended.end);
+    // On a switched card or in a window, drawn once in its piece where it reaches into it, cut
+    // to it.
+    const span = playedSpan(pieces, piece, start, ended.end);
     if (span === undefined) return;
     const drawnAs = { ...span, open: ended.open && !span.endCut, rootEnd: false, piece };
     visitChildren(timeline, entryOf(timeline, parent, start, ended, drawnAs, first), start, piece);
+  };
+  /**
+   * The windows of the chunks of `flow` on the virtual card whose root is `top` (section 8.10,
+   * Windows): for every drawn chunk that is no gap, its key held by the line, the five bands
+   * of its window held by it, each hidden where the virtual timeline's band of its facet is
+   * not displayed (section 2.4); then one node per stretch piece of its entry, its source drawn
+   * in it, the chunk's region left out, and the source's children under it.
+   */
+  const windowsOf = (top: Entry, found: Windows, pieces: Unfolding, drawn: DrawnFlow) => {
+    for (const chunk of drawn.chunks) {
+      if (!chunk.drawn || chunk.gap) continue;
+      const key = chunkKey(root, chunk.index, top.key);
+      const style = cascade.resolve(key, top.style);
+      const band = (facet: Facet): Holder => {
+        const own = windowBandKey(root.id, facet, key);
+        const resolved = cascade.resolve(own, style);
+        return {
+          key: own,
+          style: shown(top.bands[facet].style) ? resolved : { ...resolved, display: "none" },
+        };
+      };
+      const bands = {
+        children: band("children"),
+        conversion_maps: band("conversion_maps"),
+        markers: band("markers"),
+        regions: band("regions"),
+        flow_control: band("flow_control"),
+      } satisfies Record<Facet, Holder>;
+      if (!FACETS.some((facet) => shown(bands[facet].style))) continue;
+      for (const { piece, source, origin: from, region } of found.chunks.get(chunk.index) ?? []) {
+        const length = lengthValue(source);
+        const ended: Ending =
+          length !== null
+            ? { end: add(from, length), open: false, rootEnd: false }
+            : { end: add(from, reachOf(source, manifest, reaches)), open: true, rootEnd: false };
+        const span = playedSpan(pieces, piece, from, ended.end);
+        if (span === undefined) continue;
+        const node: Entry = {
+          manifest:
+            region === null
+              ? source
+              : { ...source, regions: source.regions.filter((item) => item.id !== region) },
+          parent: top,
+          ...span,
+          written: { start: from, end: ended.end },
+          piece,
+          open: ended.open && !span.endCut,
+          rootEnd: false,
+          key,
+          style,
+          name: { address: partAddress(idAddress(source.id), "name"), style },
+          segment: false,
+          first: false,
+          line: false,
+          bands,
+          drawn: shown(style) && top.drawn,
+          window: chunk.index,
+        };
+        endings.set(node, ended);
+        entries.push(node);
+        if (shown(bands.children.style)) visitChildren(source, node, from, piece);
+      }
+    }
   };
   const origin = zero(root.number_type);
   const rootEnding = ending(root, undefined, origin, undefined);
@@ -636,6 +745,9 @@ export function traverse(
     }
   }
   const rootEntry = nth(entries, 0);
+  if (windows !== null && windowed !== null && flow !== null) {
+    windowsOf(rootEntry, windows, windowed, flow);
+  }
   const childrenByParent = new Map<Entry, Entry[]>();
   const sourcesByLine = new Map<Entry, Entry[]>();
   const segmentsByLine = new Map<Entry, Entry[]>();
@@ -650,27 +762,43 @@ export function traverse(
     entry.line || entry.parent === undefined ? entry : lineOf(entry.parent);
   for (const entry of entries) {
     if (entry.parent !== undefined) append(childrenByParent, entry.parent, entry);
-    if (entry.segment && entry.parent !== undefined) {
+    // The segments of a window's source join no line: the source's line is not drawn there.
+    const inWindow =
+      entry.parent !== undefined && !entry.parent.line && entry.parent.window !== null;
+    if (entry.segment && entry.parent !== undefined && !inWindow) {
       append(segmentsByLine, lineOf(entry.parent), entry);
     }
     // A segment that is no line, and a piece, join the line of their parent.
     append(sourcesByLine, lineOf(entry), entry);
   }
-  const index: TraversalIndex = { childrenByParent, sourcesByLine, segmentsByLine };
+  const index: TraversalIndex = {
+    childrenByParent,
+    sourcesByLine,
+    segmentsByLine,
+    windows: entries.filter((entry) => entry.window !== null),
+  };
   const traversal = new Map(entries.map((entry, index) => [entry, index]));
   const byTraversal = (left: Entry, right: Entry) =>
     known(traversal, left) - known(traversal, right);
   const u = (value: Real) => proportion(value, lambda);
   const relativeX = (value: Real) => L * u(value);
   const relativeEnd = (entry: Entry) => (entry.rootEnd ? L : relativeX(entry.end));
+  // How each entry is drawn: as written; on a switched card in its piece, the root holding
+  // nothing; on a virtual card as written but in a window, in that window's piece.
+  const unfoldingAt = (entry: Entry): Unfolding | null =>
+    unfolding ?? (entry.piece === null ? null : windowed);
   const play = (entry: Entry, value: Real): Real | undefined => {
-    if (unfolding === null) return value;
-    return entry.piece === null ? undefined : playedAt(unfolding, entry.piece, value);
+    const pieces = unfoldingAt(entry);
+    if (pieces === null) return value;
+    return entry.piece === null ? undefined : playedAt(pieces, entry.piece, value);
   };
   const at = (entry: Entry, value: Real): Real | undefined =>
-    unfolding === null ? add(entry.start, value) : play(entry, add(entry.written.start, value));
+    unfoldingAt(entry) === null
+      ? add(entry.start, value)
+      : play(entry, add(entry.written.start, value));
   const over = (entry: Entry, start: Real, end: Real): PlayedSpan | undefined => {
-    if (unfolding === null) {
+    const pieces = unfoldingAt(entry);
+    if (pieces === null) {
       return {
         start: add(entry.start, start),
         end: add(entry.start, end),
@@ -680,7 +808,7 @@ export function traverse(
     }
     if (entry.piece === null) return undefined;
     const from = entry.written.start;
-    return playedSpan(unfolding, entry.piece, add(from, start), add(from, end));
+    return playedSpan(pieces, entry.piece, add(from, start), add(from, end));
   };
 
   const held = (
@@ -717,6 +845,7 @@ export function traverse(
     measure,
     reading,
     member,
+    holder,
     flow,
     frame,
     unfolding,
@@ -725,7 +854,7 @@ export function traverse(
     over,
     play,
     root,
-    entries,
+    entries: entries.filter((entry) => entry.window === null),
     rootEntry,
     index,
     byTraversal,

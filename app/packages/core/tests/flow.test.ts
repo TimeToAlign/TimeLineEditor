@@ -99,8 +99,10 @@ describe("the flow fixtures", () => {
 });
 
 describe("the drawn elements of flow control", () => {
+  // The drawings of the cards' own trees: a virtual card's windows show them again (section 8.10).
   const drawn = (name: string) =>
     manifestElements(load(name))
+      .filter((item) => item.window === undefined)
       .filter((item) => item.inside.at(-1) === "band" && item.address.facet === undefined)
       .filter((item) => !["label", "region", "symbol"].includes(item.type ?? ""))
       .map((item) => [item.type, item.address.id]);
@@ -146,6 +148,7 @@ describe("the drawn elements of flow control", () => {
   it("lists the symbols and the forks, a jump target's held by the band", () => {
     const parts = (name: string) =>
       manifestElements(load(name))
+        .filter((item) => item.window === undefined)
         .filter((item) => item.type === "symbol" || item.type === "fork")
         .map((item) => [item.type, item.address, item.inside.at(-1)]);
     const part = (id: string, word: "symbol" | "fork") => ({ id, part: [word] });

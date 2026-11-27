@@ -886,52 +886,64 @@ check of who holds what.
     dropped): every region's spellings are the IRI, `tts:AtomicSection` and
     `ex:AtomicSection`, and the three selectors `tts:AtomicSection`,
     `ex:AtomicSection` and the IRI each match the three regions.
-14. **The texts and leaders of chunks** (drawing.md section 2.2): a
-    chunk of a FlowMap drawn in a regions band is addressed `{id: V,
-    facet: "regions", part: [k]}`. `textKey` of a key at that address
-    gives its label at `{id: V, facet: "regions", part: [k, "label"]}`,
-    the key's other members kept and the chunk's type added to `inside`;
-    `leaderKey` of that label gives its leader at `{id: V, facet:
-    "regions", part: [k, "leader"]}`. An owner's text and leader keep
-    their forms (`{id: X, part: ["label"]}`, `{id: X, part: ["leader"]}`),
-    and a band's key (a facet, no part) has no text: `textKey` throws.
-15. **Virtual cards** (drawing.md §2.2, §8.10). Every virtual timeline is
-    drawn as a root holding nothing: in the frame of each group having it
-    as a member, at its place in the display order, and, in no group, in
-    a block-held card after the ungrouped roots', by ID. Core lists that
-    card whether `places` states it or not (the block draws it where
-    `places` does, which no manifest holds): a placed card is one place
-    away. Its card, line and name are a root's; it has only its markers
-    and regions bands; its line holds, after its name, the boundary
-    `{id: V, facet: "regions", part: [k, "start"]}` of every drawn entry
-    `k ≥ 1`; its regions band holds first, for each drawn entry, the brace
-    `{id: V, facet: "regions", part: [k]}` (a `region`, the class of its
-    unit's timeline, no `types`) followed by its label `[k, "label"]`
-    (held by the brace), a gap entry its label alone, keyed as the label
-    of a brace that is not listed. A run (two or more consecutive entries
-    naming one ID, gaps forming none) is drawn once in a block-held card,
-    its later entries neither listed nor bounded, and entry by entry in a
-    frame. Written out from the specification:
+14. **The keys of chunks and windows** (drawing.md sections 2.1, 2.2,
+    8.10): a chunk of a FlowMap drawn on a line is a `chunk` element
+    `{id: V, part: [k]}` held by that line (`chunkKey`); `textKey` of it
+    gives its label at `{id: V, part: [k, "label"]}` and `leaderKey` of
+    that label its leader at `{id: V, part: [k, "leader"]}`, the chunk
+    index kept. A band of its window (`windowBandKey`) is a `band` at
+    `{id: V, facet: F, part: [k]}`, belonging to `V`, with its facet and no
+    domain, modality or class, held by the chunk, and carries `V` as its
+    `window`, which everything held under it carries on (a `bandKey` held
+    by it has it too): a selector's `within` naming `V` matches those
+    drawings (section 2.3). An owner's text and leader keep their forms
+    (`{id: X, part: ["label"]}`, `{id: X, part: ["leader"]}`), and a band's
+    key (a facet) has no text: `textKey` throws.
+15. **Virtual cards** (drawing.md §2.1, §2.2, §8.10). Every virtual
+    timeline is drawn as a root holding nothing: in the frame of each group
+    having it as a member, at its place in the display order, and, in no
+    group, in a block-held card after the ungrouped roots', by ID. Core
+    lists that card whether `places` states it or not (the block draws it
+    where `places` does, which no manifest holds): a placed card is one
+    place away. Its card, line and name are a root's, and it has the five
+    bands every timeline has, holding nothing but its own named
+    timestamps; its line holds, after its name, each drawn entry `k` as a
+    chunk `[k]` with its label `[k, "label"]`, its leader `[k, "leader"]`,
+    its boundary `[k, "start"]` where `k ≥ 1`, and, where the entry is no
+    gap, the five bands of its window `{id: V, facet, part: [k]}` in
+    `FACETS` order. A run (two or more consecutive entries naming one ID,
+    gaps forming none) is drawn once in a block-held card, its later
+    entries not listed, and entry by entry in a frame. Written out from
+    the specification:
     - `flow/virtual_cards.yaml`, `allegro_by_hand` (Practice: A, A, A, A,
       a gap of 4, C), block-held: its card at `["block"]`, its line at
-      `["block"]` holding its name, the boundaries `[4, "start"]` and
-      `[5, "start"]`, the markers band (empty: it has no timestamps) and
-      the regions band, which holds the brace `[0]` (A × 4, the run drawn
-      once) with its label, the gap's label `[4, "label"]` and the brace
-      `[5]` (C) with its label: twelve keys.
+      `["block"]` holding its name, chunk 0 (A × 4) with its label, leader
+      and window, chunk 4 (the gap) with its label, leader and boundary and
+      no window, chunk 5 (C) with its label, leader, boundary and window,
+      then its five bands.
     - `groups/virtual_member.yaml`, `allegro_default` (A, B, A, C) in the
       frame of `performance`: every chain begins `["block", "frame"]`; the
-      boundaries `[1, "start"]` to `[3, "start"]`; the markers band holds
-      its named timestamps `timestamp_3` and `timestamp_4`, each a wedge
-      and its coordinate label (`display: [wedge, coordinate]`), of
-      `coordinates: "primary"`; the regions band the four braces each with
-      its label: twenty keys.
+      four chunks, each with its label, leader and window, the boundaries
+      of 1 to 3; then its bands, the markers band holding its named
+      timestamps `timestamp_3` and `timestamp_4`, each a wedge and its
+      coordinate label (`display: [wedge, coordinate]`), of `coordinates:
+      "primary"`.
+    - **What a window shows** is listed in the chunk's stretch alone,
+      under its band, never the chunk's own region. `groups/virtual_member`
+      with `allegro` given the region `motto` [100, 200] (inside A) and the
+      locked child `theme` [400, 600] (across A's end into B and B's end
+      into C): `motto` is listed twice (the windows of both A's), held
+      `block frame timeline chunk band`; no `section_*` at all (each lies
+      outside every other chunk's stretch, and the chunk's own is left
+      out); `theme` four times (it reaches into all four pieces), named
+      once; forty bands carry the window, the twenty window bands and the
+      five bands of each of `theme`'s four drawings.
     A virtual timeline that does not resolve to a FlowMap's entries (one
     applying a conversion map, one stating `through`) lists its card,
     line, name, bands and timestamps and no entry: on
     `bundles/bundle_mixed.yaml`, the virtual timeline `mapped` a command
     adds applying `cmap_2` (`score`'s map onto seconds) lists exactly its
-    card, its line, its name and its two bands, held by the block.
+    card, its line, its name and its five bands, held by the block.
 
 16. **Switched cards** (drawing.md §2.4, §8.10). A card's `flow` is read
     from the manifest's own `rules` alone (`cardFlow`, the one reading
@@ -946,7 +958,7 @@ check of who holds what.
     where that names a FlowMap of `T` that resolves, or a virtual
     timeline applying one to `T` without `through`. A switched card's
     line holds its FlowMap's entries as a virtual card's, addressed by
-    `T` (`{id: T, facet: "regions", part: [k]}`), its runs drawn once
+    `T` (`{id: T, part: [k]}`), with no window, its runs drawn once
     only on an ungrouped root's card; every other element of `T`'s tree
     is listed once in every stretch piece reaching it (a position `t`
     where `a ≤ t < b`, or `t = b` in a piece that is the last or is
@@ -966,9 +978,9 @@ check of who holds what.
     played position. Written out from the specification:
     - `flow/switched_card.yaml` (`allegro` switched to `default`: the
       pieces A [0, 953/2) at 0, B [953/2, 500) at 953/2, A again at 500,
-      C [500, 1644] at 1953/2): its card, line and name, the boundaries
-      `[1, "start"]` to `[3, "start"]`, the children, conversion maps,
-      markers and regions bands, the four braces with their labels, then
+      C [500, 1644] at 1953/2): its card, line and name, the four chunks
+      each with its label and leader and from 1 its boundary, the
+      children, conversion maps, markers and regions bands, then
       `section_a` twice, `section_b` and `section_c` once each, each with
       its label; then the flow control band; `volta_break` at 500 (held by
       B, whose end is followed by a stretch not starting at 500, and by C's
@@ -981,7 +993,7 @@ check of who holds what.
       of `map.yaml` added to `allegro`, it is listed four times (every
       piece lies on `allegro`).
     - `groups/switched_frame.yaml` (`performance`: `allegro` switched to
-      `default`, `recording` of 702.5 seconds carried): the brace `[2]`
+      `default`, `recording` of 702.5 seconds carried): the chunk `[2]`
       once, `section_a` twice; `timestamp_1` at 0 twice (pieces 1 and 3),
       `timestamp_2` at 1644 once (the last piece, closed); `recording`'s
       line four times, its name once; `timestamp_3` at 0.0 twice,
@@ -992,7 +1004,7 @@ check of who holds what.
       10.0] and the FlowMap `twice` (`take`, `take`) of `recording`, its
       card switched to `twice`, and the named timestamp `bar_7` "Bar 7" of
       `piece` at 12 (wedge and coordinate): two pieces [0.0, 10.0]. In the
-      frame: the braces `[0]` and `[1]` of `recording` once each;
+      frame: the chunks `[0]` and `[1]` of `recording` once each;
       `second-half`'s line twice, its name once; `piece`'s ancestor line
       twice (`[0, 8]` of `second-half` carried to `[0.0, 10.0]` reaches
       both), its name once; `bar_7` (4 of `second-half`, carried to 5.0)
@@ -1586,12 +1598,14 @@ string form is `addressKey`, and nothing splits or composes an ID.
    part, a part's words in another order, another facet, or a block on one
    side only. A chunk's address, whose part begins with its chunk index
    (drawing.md section 2.2), has its one form too: `{id: "virtual_1",
-   facet: "regions", part: [2, "label"]}` is
-   `{"facet":"regions","id":"virtual_1","part":[2,"label"]}`, and it
-   differs from the chunk `[2]`, from `[1, "label"]` and from the region
-   label `{id: "virtual_1", part: ["label"]}`. A chunk resolves only on a
-   virtual timeline's card (item 18): `resolveElement` names nothing at
-   `{id: "score", facet: "regions", part: [0]}` of `map.yaml`.
+   part: [2, "label"]}` is `{"id":"virtual_1","part":[2,"label"]}`, and it
+   differs from the chunk `[2]`, from `[1, "label"]`, from the region
+   label `{id: "virtual_1", part: ["label"]}` and from the window band
+   `{id: "virtual_1", facet: "regions", part: [2]}`, written
+   `{"facet":"regions","id":"virtual_1","part":[2]}`. A chunk resolves
+   only on a line drawing a FlowMap (item 18): `resolveElement` names
+   nothing at `{id: "score", part: [0]}` or `{id: "score", facet:
+   "regions", part: [0]}` of `map.yaml`.
 4. **Every kind resolves.** On a block of `bundles/bundle_mixed.yaml` (and
    one of `map.yaml`), one address per kind with its expected resolution
    written by hand: the workspace `{}`, a block `{block: A}`, the title
@@ -1655,8 +1669,9 @@ string form is `addressKey`, and nothing splits or composes an ID.
    elision (in a card, across a frame and carried into an ancestor card
    alike), its ellipsis and labels a part, every other line a timeline;
    a virtual timeline's card, bands and line their virtual kinds
-   (`virtual_card`, `virtual_band`, `virtual_timeline`) and the brace of
-   an entry of its FlowMap a `chunk`;
+   (`virtual_card`, `virtual_band`, `virtual_timeline`), a chunk of its
+   FlowMap a `chunk`, a band of a chunk's window a `chunk_band`, a leader
+   a part;
    `bundles/bundle_matchstamps.yaml` gives the anchors' lines and the
    label `{id: "anchor_1", part: ["name"]}`): the cross-check between the resolver and the
    elements. The bundle's address `{}` resolves to nothing there (the
@@ -1677,10 +1692,12 @@ string form is `addressKey`, and nothing splits or composes an ID.
    derives them beside stored ones and core reads no cascade). The
    candidates are built without the resolver, so a part the resolver names
    that nothing draws fails here; for every virtual timeline the
-   candidates include `{id: V, facet: "regions", part: [k]}` and `[k, w]`
-   for every entry `k` of its map and one past them and every part word
-   `w`, so an entry is resolved exactly where it is drawn (a gap by its
-   label and boundary only, a run's later entries in a block-held card not
+   candidates include `{id: V, part: [k]}`, `[k, w]` and the window
+   bands `{id: V, facet: F, part: [k]}` for every entry `k` of its map and
+   one past them, every part word `w` and every facet `F` (and the chunks
+   of every FlowMap on its root's line, no window), so an entry is
+   resolved exactly where it is drawn (a gap with its label, leader and
+   boundary and no window, a run's later entries in a block-held card not
    at all).
 8. **The registry** (`CONTAINERS`, `CONTAINER_KINDS` `block`, `frame`,
    `card`, `band`) states each container kind exactly: the block at the
@@ -1824,23 +1841,28 @@ string form is `addressKey`, and nothing splits or composes an ID.
     and the block lie nowhere (`null`).
 18. **Chunks and the timestamps of a virtual timeline** (drawing.md
     §2.2, §8.10). On a block of `flow/virtual_cards.yaml`:
-    `{id: "allegro_default", facet: "regions", part: [2]}` resolves to a
-    `chunk` of `allegro_default`, entry 2 of `default`, which lies at
+    `{id: "allegro_default", part: [2]}` resolves to a `chunk` of
+    `allegro_default`, entry 2 of `default`, which lies at
     `["flow_maps", 1, "chunks", 2]` (`resolvedPath`: the value there is
     `section_a`) and is worded "chunk 3 of virtual timeline 'Allegro,
-    default'"; its label `[2, "label"]` and its boundary `[2, "start"]`
-    resolve to parts of it ("the label of chunk 3 of …"); entry 1 of
+    default'"; its label `[2, "label"]`, its leader `[2, "leader"]` and its
+    boundary `[2, "start"]` resolve to parts of it ("the label of chunk 3
+    of …"); `{id: "allegro_default", facet: "children", part: [2]}` to the
+    `chunk_band` `children` of that chunk, worded "the children band of
+    chunk 3 of virtual timeline 'Allegro, default'". Entry 1 of
     `allegro_by_hand`, the second of its run `A × 4`, resolves to nothing
-    (not drawn), its gap's label `[4, "label"]` to the part `label` of the
-    chunk 4, and the gap itself `[4]` to nothing; `{id:
-    "allegro_by_hand", part: ["name"]}` to the part `name` of the
-    virtual timeline. No command aims at a chunk: `set` on one is
-    `unknown_target`. On a switched card (`flow/switched_card.yaml`,
-    `allegro` switched to `default`) the entries lie on `allegro`'s line:
-    `{id: "allegro", facet: "regions", part: [1]}` resolves to a chunk on
-    the timeline `allegro`, entry 1 of `default`, worded "chunk 2 of
-    timeline 'Allegro'"; on `groups/virtual_member.yaml`, where no card
-    of `allegro` is switched, it names nothing. On `groups/virtual_member.yaml` the named timestamp
+    (not drawn), nor does its label; the gap `[4]` is a chunk with its
+    label `[4, "label"]`, and has no window (`{facet: "regions", part:
+    [4]}` names nothing); `{id: "allegro_by_hand", part: ["name"]}` names
+    the part `name` of the virtual timeline. No command aims at a chunk:
+    `set` on one is `unknown_target`. On a switched card
+    (`flow/switched_card.yaml`, `allegro` switched to `default`) the
+    entries lie on `allegro`'s line: `{id: "allegro", part: [1]}` resolves
+    to a chunk on the timeline `allegro`, entry 1 of `default`, worded
+    "chunk 2 of timeline 'Allegro'", and a window band of it names nothing
+    (a switched card's chunks have no window); on
+    `groups/virtual_member.yaml`, where no card of `allegro` is switched,
+    it names nothing. On `groups/virtual_member.yaml` the named timestamp
     `timestamp_3` resolves to `timestamp` with its owner `allegro_default`
     (`indexOf(manifest).owners`).
 

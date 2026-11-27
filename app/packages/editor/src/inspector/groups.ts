@@ -100,6 +100,7 @@ function timelineIdOf(resolved: ResolvedAddress): string | null {
     case "flow_map":
     case "virtual_band":
     case "chunk":
+    case "chunk_band":
       return null;
     default:
       return assertNever(resolved);
@@ -130,6 +131,7 @@ function groupIdOf(resolved: ResolvedAddress): string | null {
     case "virtual_card":
     case "virtual_band":
     case "chunk":
+    case "chunk_band":
       return null;
     default:
       return assertNever(resolved);

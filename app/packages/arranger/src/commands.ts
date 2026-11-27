@@ -323,7 +323,7 @@ function deletedAs(view: View, block: BlockId, address: Address, owner: Address)
   if (!isCommandError(resolved)) {
     // A part (a chunk's label, leader or start) stands for what it is a part of.
     while (resolved.kind === "part") resolved = resolved.owner;
-    if (resolved.kind === "chunk") return { kind: "chunk" };
+    if (resolved.kind === "chunk" || resolved.kind === "chunk_band") return { kind: "chunk" };
     if (resolved.kind === "virtual_card") {
       const placed = view.blocks[block]?.places[resolved.virtual.id] !== undefined;
       return placed ? { kind: "hide", target: owner } : { kind: "framed" };
