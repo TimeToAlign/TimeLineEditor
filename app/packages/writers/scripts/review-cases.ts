@@ -23,7 +23,11 @@
  * is refused and drawn one under another; `flow/virtual_cards` with its
  * three virtual timelines placed; and `flow/switched_card`, its card
  * switched to a FlowMap. Each is also a drawing fixture of the schema
- * package (`fixtures/<version>/drawings/`).
+ * package (`fixtures/<version>/drawings/`). The drawings showing the
+ * elisions an ancestor card derives (six groups, the LayerIt suite and
+ * three of their variants) state `elision-mode` `auto` on every ancestor
+ * card first in their application layer, since the initial `custom`
+ * derives none.
  */
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -145,9 +149,26 @@ export function reviewCases(): ReviewCase[] {
   const natural = draw(loadFixture("nested"), DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
   add("nested__block", "nested", at({ width: natural.width + 120, height: natural.height + 60 }));
   add("nested__scale-2", "nested", DEFAULT_PLACEMENT, 2);
+  // The initial `elision-mode` `custom` derives no elision, so the drawings showing the elisions an
+  // ancestor card derives state `auto` on every ancestor card, first in their application layer.
+  const deriving = (rules: NonNullable<Graphical["rules"]> = []): Graphical[] => [
+    {
+      rules: [{ select: { element: "ancestor_card" }, set: { "elision-mode": "auto" } }, ...rules],
+    },
+  ];
+  const derives = new Set([
+    "group__group_child_member",
+    "group__group_parents_mixed",
+    "group__group_grandchild",
+    "group__group_grandchild_parent_on_top",
+    "group__group_elided_inside",
+    "group__group_elided_members",
+    "bundle__bundle_elided_layerit",
+  ]);
   for (const kind of ["group", "bundle"] as const) {
     for (const stem of stems(`${kind}s`)) {
-      add(`${kind}__${stem}`, `${kind}s/${stem}`, DEFAULT_PLACEMENT);
+      const name = `${kind}__${stem}`;
+      add(name, `${kind}s/${stem}`, DEFAULT_PLACEMENT, 1, derives.has(name) ? deriving() : []);
     }
   }
   // The virtual timelines of `flow/virtual_cards`, each placed at its default place.
@@ -231,17 +252,27 @@ export function reviewCases(): ReviewCase[] {
     "bundle__bundle_elided_layerit__view-1024x640",
     "bundles/bundle_elided_layerit",
     at({ view: { width: 1024, height: 640 } }),
+    1,
+    deriving(),
   );
   const piece = { addresses: [{ id: "piece", part: ["card"] }] } satisfies Selector;
-  add("group__group_elided_inside__labels", "groups/group_elided_inside", DEFAULT_PLACEMENT, 1, [
-    { rules: [{ select: piece, set: { "elision-display": "ellipsis name coordinate" } }] },
-  ]);
+  add(
+    "group__group_elided_inside__labels",
+    "groups/group_elided_inside",
+    DEFAULT_PLACEMENT,
+    1,
+    deriving([{ select: piece, set: { "elision-display": "ellipsis name coordinate" } }]),
+  );
   add("group__group_elided_inside__custom", "groups/group_elided_inside", DEFAULT_PLACEMENT, 1, [
     { rules: [{ select: piece, set: { "elision-mode": "custom" } }] },
   ]);
-  add("group__group_elided_members__full", "groups/group_elided_members", DEFAULT_PLACEMENT, 1, [
-    { rules: [{ select: { addresses: [{ id: "group_1" }] }, set: { "elision-mode": "full" } }] },
-  ]);
+  add(
+    "group__group_elided_members__full",
+    "groups/group_elided_members",
+    DEFAULT_PLACEMENT,
+    1,
+    deriving([{ select: { addresses: [{ id: "group_1" }] }, set: { "elision-mode": "full" } }]),
+  );
   add(
     "bundle__bundle_groupstamp_shared_member__scaled",
     "bundles/bundle_groupstamp_shared_member",

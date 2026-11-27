@@ -563,8 +563,9 @@ the score, so the row is refused and the block drawn one under another in
 the item order, which the empty order leaves the drawing order: its SVG
 equals `bundle__bundle_arranged_conflict`'s byte for byte).
 `bundle__bundle_shared_member` draws a timeline that two groups have as a
-member, once in each frame: the four member cards are written, shadow and
-card, with `data-id` `t`, `u`, `t`, `v` and `data-part="card"`, both cards
+member, once in each frame: the frames follow name order ("Page" before
+"Performance"), so the four member cards are written, shadow and card,
+with `data-id` `t`, `v`, `t`, `u` and `data-part="card"`, both cards
 of `t` alike, and the elements written after each card of `t` up to the
 next card carry the same address attributes in both, `t`'s line (`data-id`
 `t` alone) among them. `bundle__bundle_free_ids` draws IDs with a `/`, a
