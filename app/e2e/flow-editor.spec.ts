@@ -4,8 +4,8 @@
  * a double-click on what that band draws; its pane
  * under the card with one row per FlowMap and no axe-core violation, a new
  * FlowMap landed by a key and kept last, a row dragged out onto the canvas
- * as a card named as its row, Ctrl+wheel over the rows zooming the canvas
- * (a plain wheel there leaving it), and Done folding it all into one
+ * as a card named as its row, a plain wheel over the rows panning the
+ * canvas and Ctrl+wheel zooming it, and Done folding it all into one
  * journal entry. The expected values are
  * derived in `README.md` ("flow-editor.spec.ts"). A hand-made row is
  * edited in place: on the arranger's flow editor, the Edit button of
@@ -144,13 +144,14 @@ test("the flow editor opens from the flow control band, lands, places and folds"
   });
   expect(placed).toMatchObject({ type: "set" });
 
-  // Over the rows a plain wheel leaves the canvas as it is; Ctrl+wheel zooms it.
+  // Over the rows a plain wheel pans the canvas as anywhere else; Ctrl+wheel zooms it.
   await setViewport(page, view);
   const over = await rows.nth(0).locator(".drawing").boundingBox();
   if (over === null) throw new Error("the row is not laid out");
   await page.mouse.move(over.x + over.width / 2, over.y + over.height / 2);
   await page.mouse.wheel(0, 40);
-  expect(await viewportOf(page)).toEqual(view);
+  await expect.poll(() => viewportOf(page)).toEqual({ ...view, y: view.y - 20 });
+  await setViewport(page, view);
   await page.keyboard.down("Control");
   await page.mouse.wheel(0, -100);
   await page.keyboard.up("Control");

@@ -11,7 +11,12 @@ import { idAddress, inBlock } from "@timetoalign/tilie-core";
 import type { Viewport } from "@xyflow/svelte";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { drawingOf } from "../src/drawing.ts";
 import type { FlowServer } from "../src/flowEditor.svelte.ts";
+import { flowRows } from "../src/flowEditor.ts";
+import type { FlowPane } from "../src/flowEditorRows.ts";
+import { flowPaneOf, ROW_HEAD, rowPlace } from "../src/flowEditorRows.ts";
+import { GRID_FREE, quantize } from "../src/numbers.ts";
 import { type Selection, selectionOf } from "../src/selection.ts";
 import Harness from "./CanvasHarness.svelte";
 import { pointer, pressEscape, settle, stubCanvasGlobals, withScreenMatrix } from "./dom.ts";
@@ -52,6 +57,41 @@ async function show(): Promise<void> {
 }
 
 const manifest = (): Manifest => blockIn(store.view, A).manifest;
+
+/** The pane of `allegro`'s flow editor as the canvas draws it from the store now. */
+function paneNow(): FlowPane {
+  const block = blockIn(store.view, A);
+  const drawing = drawingOf(block, store.view.graphical, metrics);
+  const pane = flowPaneOf(
+    block,
+    drawing,
+    store.view.graphical,
+    metrics,
+    ROOT,
+    flowRows(block.manifest, ROOT),
+  );
+  if (pane === null) throw new Error("no pane");
+  return pane;
+}
+
+/** Where "Place as card" puts the card of the row `id`: `rowPlace` less the drawing's origin. */
+function placeOfRow(id: string): { x: number; y: number } {
+  const pane = paneNow();
+  const at = rowPlace(pane, pane.rows, id);
+  if (at === null) throw new Error(`no row ${id}`);
+  const { origin } = drawingOf(blockIn(store.view, A), store.view.graphical, metrics);
+  return { x: quantize(at.x - origin.x, GRID_FREE), y: quantize(at.y - origin.y, GRID_FREE) };
+}
+
+/** The virtual timelines `allegro`'s block gained over `before`. */
+function virtualAdded(before: readonly string[]): string[] {
+  return (manifest().virtual_timelines ?? [])
+    .map((item) => item.id)
+    .filter((id) => !before.includes(id));
+}
+
+/** The chunks of the FlowMap `id` as stored. */
+const chunksOf = (id: string) => manifest().flow_maps?.find((item) => item.id === id)?.chunks;
 
 /** The harness's exports, which `tsc` reads through Svelte's generic module declaration, untyped. */
 interface Mounted {
@@ -228,12 +268,18 @@ describe("the flow editor's pane", () => {
     expect(draft.map((item) => item.chunks)).toEqual([[regions[0]?.id]]);
   });
 
-  it("places a row dragged out past the editor's border as a card, and flies one back inside", async () => {
+  it("places a row once its twin's middle, not the pointer, is past the editor's border", async () => {
     await show();
     // The viewport at the identity: a client point is a canvas point.
     harness().showAt({ x: 0, y: 0, zoom: 1 });
     await settle();
     placeOnScreen(one('[data-testid="flow-pane"]'), { left: 0, top: 200, right: 800, bottom: 600 });
+    const row = paneNow().rows.find((item) => item.row.id === "printed");
+    if (row === undefined) throw new Error("no row printed");
+    // The row's drawing on screen from (0, 280): the twin lifted from there, its middle inside.
+    const svg = rowOf("printed").querySelector("svg");
+    if (svg === null) throw new Error("no drawing of printed");
+    placeOnScreen(svg, { left: 0, top: 280, right: 800, bottom: 280 + row.viewBox.height });
     const mark = store.entries.length;
     const name = one('[data-flow-map="printed"] .name');
     pointer(name, "pointerdown", 100, 300);
@@ -250,18 +296,57 @@ describe("the flow editor's pane", () => {
     await settle();
     expect(store.entries.length).toBe(mark);
 
-    const virtualBefore = (manifest().virtual_timelines ?? []).map((item) => item.id);
+    // The pointer past the pane's left border, the twin's middle still inside: back.
+    pointer(name, "pointerdown", 100, 300);
+    pointer(name, "pointermove", -20, 300);
+    pointer(name, "pointerup", -20, 300);
+    await settle();
+    expect(store.entries.length).toBe(mark);
+
+    // The pointer still inside the pane, the twin's middle past its right border: placed.
+    const before = (manifest().virtual_timelines ?? []).map((item) => item.id);
+    pointer(name, "pointerdown", 100, 300);
+    pointer(name, "pointermove", 700, 300);
+    pointer(name, "pointerup", 700, 300);
+    await settle();
+    expect(store.entries.length).toBe(mark + 2);
+    const [V] = virtualAdded(before);
+    if (V === undefined) throw new Error("no virtual timeline written");
+    // The twin's top left (700 − 100, 300 − 20) less the block's (40, 80), on the grid's 8.
+    expect(blockIn(store.view, A).places[V]).toEqual({ x: 560, y: 200 });
+
     pointer(name, "pointerdown", 100, 300);
     pointer(name, "pointermove", 900, 340);
     pointer(name, "pointerup", 900, 340);
     await settle();
+    expect(store.entries.length).toBe(mark + 3);
+    // The twin's top left (900 − 100, 340 − 20) less the block's (40, 80), on the grid's 8.
+    expect(blockIn(store.view, A).places[V]).toEqual({ x: 760, y: 240 });
+  });
+
+  it("places each row's card at the height of its row, one under another", async () => {
+    await show();
+    const before = (manifest().virtual_timelines ?? []).map((item) => item.id);
+    const printed = placeOfRow("printed");
+    const mark = store.entries.length;
+    button("Place as card", rowOf("printed")).click();
+    await settle();
     expect(store.entries.length).toBe(mark + 2);
-    const [V] = (manifest().virtual_timelines ?? [])
-      .map((item) => item.id)
-      .filter((id) => !virtualBefore.includes(id));
+    const [V] = virtualAdded(before);
     if (V === undefined) throw new Error("no virtual timeline written");
-    // The twin's top left (900 − 100, 340 − 300) less the block's (40, 80), on the grid's 8.
-    expect(blockIn(store.view, A).places[V]).toEqual({ x: 760, y: -40 });
+    expect(blockIn(store.view, A).places[V]).toEqual(printed);
+    const single = placeOfRow("single");
+    button("Place as card", rowOf("single")).click();
+    await settle();
+    expect(store.entries.length).toBe(mark + 3);
+    expect(blockIn(store.view, A).places.allegro_single).toEqual(single);
+    expect([printed.x, single.x]).toEqual([56, 56]);
+    const row = paneNow().rows.find((item) => item.row.id === "printed");
+    expect(single.y).toBe(quantize(printed.y + ROW_HEAD + (row?.viewBox.height ?? 0), GRID_FREE));
+    store.done();
+    await settle();
+    expect(blockIn(store.view, A).places[V]).toEqual(printed);
+    expect(blockIn(store.view, A).places.allegro_single).toEqual(single);
   });
 
   it("edits a hand-made row through its Edit button, computed rows having none", async () => {
@@ -329,41 +414,53 @@ describe("the flow editor's pane", () => {
     expect(rowOrder()).toEqual(["default", "printed", "single", F, "by_hand"]);
   });
 
-  it("types a gap's length in its row: + Gap proposes the last chunk's, a gap its own", async () => {
+  it("adds a gap at once on + Gap, selected, its length then typed in its row", async () => {
     await show();
     const before = (manifest().flow_maps ?? []).map((item) => item.id);
     button("Add +").click();
     await settle();
+    const opened = store.entries.length;
     button("+ Gap", one('[data-testid="flow-draft"]')).click();
     await settle();
-    const first = one('[data-testid="flow-gap"]', one('[data-testid="flow-draft"]'));
-    expect((first as HTMLInputElement).value).toBe("");
-    typeGap(one('[data-testid="flow-draft"]'), "4");
-    await settle();
+    expect(store.entries.length).toBe(opened + 1);
     const F = addedFlowMap(before);
-    expect(manifest().flow_maps?.find((item) => item.id === F)?.chunks).toEqual([{ gap: [4, 1] }]);
+    expect(chunksOf(F)).toEqual([{ gap: [1644, 1] }]);
+    const input = one('[data-testid="flow-gap"]', rowOf(F)) as HTMLInputElement;
+    expect(input.value).toBe("1644");
+    expect(document.activeElement).toBe(input);
+    const selected = () =>
+      [...rowOf(F).querySelectorAll('[data-testid="flow-entry"].selected')].map((item) =>
+        item.getAttribute("data-index"),
+      );
+    expect(selected()).toEqual(["0"]);
+    typeGap(rowOf(F), "4");
+    await settle();
+    expect(store.entries.length).toBe(opened + 2);
+    expect(chunksOf(F)).toEqual([{ gap: [4, 1] }]);
     expect(document.querySelector('[data-testid="flow-gap"]')).toBeNull();
     button("+ Gap", rowOf(F)).click();
     await settle();
+    expect(store.entries.length).toBe(opened + 3);
+    expect(chunksOf(F)).toEqual([{ gap: [4, 1] }, { gap: [4, 1] }]);
     expect((one('[data-testid="flow-gap"]', rowOf(F)) as HTMLInputElement).value).toBe("4");
-    const count = store.entries.length;
+    expect(selected()).toEqual(["1"]);
     press(one('[data-testid="flow-gap"]'), "Escape");
     await settle();
     expect(document.querySelector('[data-testid="flow-gap"]')).toBeNull();
-    expect(store.entries.length).toBe(count);
+    expect(store.entries.length).toBe(opened + 3);
     button("Done", rowOf(F)).click();
     await settle();
 
     button("Edit", rowOf("by_hand")).click();
     await settle();
+    const edited = store.entries.length;
     button("+ Gap", rowOf("by_hand")).click();
     await settle();
+    expect(store.entries.length).toBe(edited + 1);
+    expect(chunksOf("by_hand")?.[6]).toEqual({ gap: [1144, 1] });
     expect((one('[data-testid="flow-gap"]', rowOf("by_hand")) as HTMLInputElement).value).toBe(
       "1144",
     );
-    button("+ Gap", rowOf("by_hand")).click();
-    await settle();
-    expect(document.querySelector('[data-testid="flow-gap"]')).toBeNull();
     // A drag swallows the browser's click after it until the next task: let any go first.
     await new Promise((resolve) => setTimeout(resolve, 0));
     one('[data-testid="flow-entry"][data-index="4"]', rowOf("by_hand")).dispatchEvent(
@@ -375,25 +472,63 @@ describe("the flow editor's pane", () => {
     typeGap(rowOf("by_hand"), "8");
     await settle();
     expect(store.entries.length).toBe(mark + 1);
-    expect(manifest().flow_maps?.find((item) => item.id === "by_hand")?.chunks[4]).toEqual({
-      gap: [8, 1],
-    });
+    expect(chunksOf("by_hand")?.[4]).toEqual({ gap: [8, 1] });
     expect(document.querySelector('[data-testid="flow-gap"]')).toBeNull();
   });
 
-  it("zooms the canvas on Ctrl+wheel over the rows, a plain wheel left to the pane", async () => {
+  it("changes a gap's length by the handle at its right end, in one change per drag", async () => {
+    await show();
+    harness().showAt({ x: 0, y: 0, zoom: 1 });
+    await settle();
+    const handles = () => [...document.querySelectorAll('[data-testid="flow-gap-handle"]')];
+    expect(handles()).toEqual([]);
+    button("Edit", rowOf("by_hand")).click();
+    await settle();
+    expect(handles().map((item) => item.getAttribute("data-index"))).toEqual(["4"]);
+    expect(handles().every((item) => rowOf("by_hand").contains(item))).toBe(true);
+    const handle = one('[data-testid="flow-gap-handle"]', rowOf("by_hand"));
+    const mark = store.entries.length;
+    pointer(handle, "pointerdown", 300, 300);
+    pointer(handle, "pointermove", 340, 300);
+    await settle();
+    expect(one('[data-testid="flow-gap-flag"]').textContent).toBe("gap 168");
+    expect(store.entries.length).toBe(mark);
+    pointer(handle, "pointerup", 340, 300);
+    await settle();
+    expect(store.entries.length).toBe(mark + 1);
+    expect(chunksOf("by_hand")).toEqual([
+      "section_a",
+      "section_a",
+      "section_a",
+      "section_a",
+      { gap: [168, 1] },
+      "section_c",
+    ]);
+    expect(document.querySelector('[data-testid="flow-gap-flag"]')).toBeNull();
+
+    const again = one('[data-testid="flow-gap-handle"]', rowOf("by_hand"));
+    pointer(again, "pointerdown", 300, 300);
+    pointer(again, "pointermove", 360, 300);
+    pressEscape();
+    pointer(again, "pointerup", 360, 300);
+    await settle();
+    expect(store.entries.length).toBe(mark + 1);
+    expect(document.querySelector('[data-testid="flow-gap-flag"]')).toBeNull();
+  });
+
+  it("pans the canvas on a plain and a Shift wheel over the rows, and zooms it on Ctrl+wheel", async () => {
     await show();
     harness().showAt({ x: 0, y: 0, zoom: 1 });
     await settle();
     const drawing = one(".drawing", rowOf("default"));
     drawing.dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: 40 }));
     await settle();
-    expect(harness().current().viewport).toEqual({ x: 0, y: 0, zoom: 1 });
+    expect(harness().current().viewport).toEqual({ x: 0, y: -20, zoom: 1 });
     drawing.dispatchEvent(
       new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaX: 40, shiftKey: true }),
     );
     await settle();
-    expect(harness().current().viewport).toEqual({ x: 0, y: 0, zoom: 1 });
+    expect(harness().current().viewport).toEqual({ x: -20, y: -20, zoom: 1 });
     drawing.dispatchEvent(
       new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: -100, ctrlKey: true }),
     );

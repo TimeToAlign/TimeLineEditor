@@ -480,21 +480,47 @@ export function gapValue(text: string, root: TimelineManifest): AxisValue | stri
 }
 
 /**
- * The text "+ Gap" proposes on the row of the FlowMap `flowMap`: the
- * length its last chunk plays, exact in its root's number type, as
- * `typedValue` reads it back; empty for a FlowMap not yet written
- * (`null`), one without chunks, or one that does not resolve.
+ * The length "+ Gap" gives the gap it adds at once to the edited row of
+ * `root`'s flow editor, whose FlowMap is `flowMap`, as text `typedValue`
+ * reads back to the same value: the length its last chunk plays, exact in
+ * the root's number type; on a row without chunks (a new FlowMap not yet
+ * written, `null`, or one playing nothing) the root's own length, the
+ * stretch its line plays, empty where that is unknown; empty for a
+ * FlowMap that does not resolve. An empty text adds no gap: its length is
+ * typed first.
  */
-export function proposedGap(manifest: Manifest, flowMap: string | null): string {
-  if (flowMap === null) return "";
+export function proposedGap(manifest: Manifest, root: string, flowMap: string | null): string {
+  const whole = (): string => {
+    const length = manifest.timelines.find((item) => item.id === root)?.length ?? null;
+    return length === null ? "" : valueText(length);
+  };
+  if (flowMap === null) return whole();
   try {
     const last = resolveFlowMap(manifest, flowMap).chunks.at(-1);
-    if (last === undefined) return "";
+    if (last === undefined) return whole();
     return valueText(toAxisValue(subtractCoordinates(last.played.end, last.played.start)));
   } catch (error) {
     if (error instanceof FlowMapError) return "";
     throw error;
   }
+}
+
+/**
+ * The length a gap's handle dragged to `length` (a float on the root's
+ * axis, `perPixel` axis units per screen pixel) gives, as text `typedValue`
+ * reads back: `length` rounded to the coarsest power of ten not coarser
+ * than a pixel (`10 ^ floor(log10(perPixel))`; at least 1 on an integer
+ * axis) and never below that step, so a gap stays longer than 0; written
+ * with no more decimals than the step has, trailing zeros dropped.
+ */
+export function draggedGapText(length: number, perPixel: number, numberType: NumberType): string {
+  const power = Math.floor(Math.log10(perPixel));
+  const exponent = numberType === "int" ? Math.max(0, power) : power;
+  const decimals = Math.max(0, -exponent);
+  const step = 10 ** Math.max(0, exponent);
+  const steps = Math.max(1, Math.round(decimals > 0 ? length * 10 ** decimals : length / step));
+  if (decimals === 0) return String(steps * step);
+  return (steps / 10 ** decimals).toFixed(decimals).replace(/\.?0+$/, "");
 }
 
 /** The timeline `id` of `manifest` at any depth; `undefined` where none is. */

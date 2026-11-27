@@ -6,19 +6,21 @@
  * above its line; Add + and Recompute in its head; the edited row (a new
  * FlowMap's, or a hand-made one's, chosen by a press or Enter on one of its
  * entries or by its Edit button) with its own Done and Cancel and "+ Gap",
- * whose length is typed in the row itself, as a gap entry's is changed
- * there, every other row offering its Insert meanwhile; computed rows stay
- * read only. The rows keep the order first shown while the editor is open
- * (`keptOrder`). A plain wheel stays with the pane, a zooming one zooms the
- * canvas (`ownWheel`). The pane scrolls on its own when it is wider than
- * the canvas right of the card; the card does not move. Drags carry the
- * card's elements, a row's entries and whole rows into the edited row,
- * within it, or (a row) onto the canvas as a card of its own
- * (`gestures/flowDrag.ts`).
+ * which adds a gap at once, its length then typed in the row itself or
+ * set by dragging the handle at the gap's right end, every other row
+ * offering its Insert meanwhile; computed rows stay read only. The rows
+ * keep the order first shown while the editor is open (`keptOrder`). The
+ * wheel over the pane pans and zooms the canvas as anywhere else on it;
+ * the pane is as wide as the canvas right of the card allows, and wider
+ * rows scroll inside it. Drags carry the card's elements, a row's entries
+ * and whole rows into the edited row, within it, or (a row) onto the
+ * canvas as a card of its own (`gestures/flowDrag.ts`); "Place as card"
+ * places a row's card at the height of its row (`rowPlace`).
  * An overlay of the canvas: nothing in it is part of the drawing.
  */
 import type { Block, Granularity } from "@timetoalign/tilie-core";
 import { assertNever, findTimeline } from "@timetoalign/tilie-core";
+import { toFloat } from "@timetoalign/tilie-core/numbers";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { Viewport } from "@xyflow/svelte";
 import { ViewportPortal } from "@xyflow/svelte";
@@ -27,6 +29,7 @@ import type { Draft, FlowEditorSession, FlowTarget } from "./flowEditor.svelte.t
 import type { Dragged, FlowEntry } from "./flowEditor.ts";
 import {
   cardPress,
+  draggedGapText,
   entryText,
   exactValue,
   gapText,
@@ -34,8 +37,8 @@ import {
   proposedGap,
   sweptValue,
 } from "./flowEditor.ts";
-import type { FlowPane, PaneRow } from "./flowEditorRows.ts";
-import { EMPTY_DRAFT, PANE_GAP, PANE_HEAD, paneHeight, ROW_HEAD } from "./flowEditorRows.ts";
+import type { ChunkSpan, FlowPane, PaneRow } from "./flowEditorRows.ts";
+import { EMPTY_DRAFT, PANE_GAP, PANE_HEAD, ROW_HEAD, rowPlace } from "./flowEditorRows.ts";
 import type { GestureSlot, Point } from "./gesture.ts";
 import { drawingPoint, sourceAt } from "./gesture.ts";
 import type { ScreenRect } from "./gestures/flowDrag.ts";
@@ -45,11 +48,11 @@ import {
   FLY_DURATION,
   followDrag,
   insideDistance,
+  twinMiddle,
   twinOpacity,
   unionRect,
 } from "./gestures/flowDrag.ts";
-import { OWN_WHEEL, ownWheel } from "./gestures/wheel.ts";
-import { quantize } from "./numbers.ts";
+import { GRID_FREE, quantize } from "./numbers.ts";
 
 interface Props {
   pane: FlowPane;
@@ -130,9 +133,6 @@ const draftRow = $derived(
   draft?.flowMap == null ? null : (pane.rows.find((row) => row.row.id === draft.flowMap) ?? null),
 );
 
-/** The pane's height in drawing units: its head, every row and the new row's place. */
-const height = $derived(paneHeight(pane, draft !== null && draft.flowMap === null));
-
 /**
  * The widest the pane is shown, in canvas pixels: the canvas right of the
  * card's left edge, less a margin, never narrower than the card; wider
@@ -170,11 +170,20 @@ let sweep: { readonly x1: number; readonly x2: number; readonly y: number } | nu
   $state.raw(null);
 
 /**
- * The gap length typed in the edited row: a new gap's at its end ("+ Gap",
- * `index` null) or the length of its gap entry `index`; `null` while none
- * is typed.
+ * The gap length typed in the edited row: the length of its gap entry
+ * `index` (the one "+ Gap" has just added, which is selected, or one
+ * clicked), or a new gap's at its end (`index` null) where "+ Gap" has no
+ * length to propose; `null` while none is typed.
  */
 let gap: { index: number | null; text: string; error: string | null } | null = $state(null);
+
+/**
+ * A gap's handle being dragged: the gap entry `index`, where its right
+ * end is drawn meanwhile (pane coordinates) and the length it would be
+ * given; `null` while none is dragged.
+ */
+let gapDrag: { readonly index: number; readonly x: number; readonly text: string } | null =
+  $state.raw(null);
 
 /** The editor's area on screen: the card and the pane. */
 function editorRect(): ScreenRect | null {
@@ -204,10 +213,22 @@ function draftIndex(at: Point): number {
   return dropIndex(draftRow.chunks, x, draftRow.row.entries.length);
 }
 
-/** The twin's opacity with the pointer at `at`. */
+/** The twin's opacity with the point deciding its drop at `at`. */
 function opacityAt(at: Point): number {
   const rect = editorRect();
   return rect === null ? 1 : twinOpacity(insideDistance(rect, at));
+}
+
+/**
+ * The middle of the timeline `row` draws, lifted as a twin whose top left
+ * corner lies at `corner` (client pixels): halfway along its line, halfway
+ * down its drawing; the point that decides whether the row has been
+ * carried out of the editor.
+ */
+function rowMiddle(row: PaneRow, corner: Point): Point {
+  const k = s * viewport.zoom;
+  const start = { x: corner.x + row.lineStart * k, y: corner.y };
+  return twinMiddle(start, (row.lineEnd - row.lineStart) * k, row.viewBox.height * k);
 }
 
 /** Fly the twin back to where it was lifted, then remove it; at once under reduced motion. */
@@ -238,21 +259,24 @@ function drag(
 ): void {
   const grab = { x: event.clientX - home.x, y: event.clientY - home.y };
   const placed = (at: Point) => ({ x: at.x - grab.x, y: at.y - grab.y });
+  /** A row's twin's middle, which decides its leaving the editor; `null` for anything else. */
+  const middle = (at: Point) => (row === null ? null : rowMiddle(row, placed(at)));
+  const opacity = (at: Point) => opacityAt(middle(at) ?? at);
   followDrag(
     event,
     {
       start(at) {
-        twin = { text, row, ...placed(at), opacity: opacityAt(at), flying: false };
+        twin = { text, row, ...placed(at), opacity: opacity(at), flying: false };
       },
       move(at) {
-        if (twin !== null) twin = { ...twin, ...placed(at), opacity: opacityAt(at) };
+        if (twin !== null) twin = { ...twin, ...placed(at), opacity: opacity(at) };
       },
       drop(at, alt) {
         const editor = editorRect();
         const where =
           editor === null
             ? "back"
-            : dropAt(at, editor, draft === null ? null : draftRect(), row !== null);
+            : dropAt(at, middle(at), editor, draft === null ? null : draftRect());
         if (where === "draft") {
           twin = null;
           const index = draftIndex(at);
@@ -395,11 +419,16 @@ function pressRow(event: PointerEvent, row: PaneRow): void {
   );
 }
 
-/** "Place as card" without a pointer: the row's card below the pane, at the card's left edge. */
-function placeBelow(row: PaneRow): void {
-  const shown = paneElement === undefined ? height : paneElement.offsetHeight / s;
-  const x = quantize(pane.x - drawing.origin.x, step);
-  const y = quantize(pane.y + shown + PANE_GAP - drawing.origin.y, step);
+/**
+ * "Place as card": the row's card at the height of its row, indented
+ * (`rowPlace`), exactly where its row lies rather than on the grid, so the
+ * placed cards stand one under another as their rows do.
+ */
+function placeAtRow(row: PaneRow): void {
+  const at = rowPlace(pane, rows, row.row.id);
+  if (at === null) return;
+  const x = quantize(at.x - drawing.origin.x, GRID_FREE);
+  const y = quantize(at.y - drawing.origin.y, GRID_FREE);
   session.place(target, row.row.id, x, y);
 }
 
@@ -458,12 +487,67 @@ function clickEntry(row: PaneRow, index: number): void {
   }
 }
 
-/** "+ Gap": the length of the edited row's last chunk proposed; pressed again, closed. */
-function toggleGap(): void {
-  gap =
-    gap !== null && gap.index === null
-      ? null
-      : { index: null, text: proposedGap(manifest, draft?.flowMap ?? null), error: null };
+/**
+ * "+ Gap": a gap added at once at the edited row's end, as long as its last
+ * chunk plays (`proposedGap`), and selected, its length shown to be typed;
+ * where no length is proposed, its length is typed first.
+ */
+function addGap(): void {
+  const text = proposedGap(manifest, target.root, draft?.flowMap ?? null);
+  if (text === "") {
+    gap = { index: null, text, error: null };
+    return;
+  }
+  const error = session.gap(target, text);
+  if (error !== null) {
+    gap = { index: null, text, error };
+    return;
+  }
+  const now = session.draftOf(target);
+  gap = { index: now === null ? 0 : session.entriesOf(now).length - 1, text, error: null };
+}
+
+/**
+ * A press on the handle at the right end of the edited row's gap `span`:
+ * dragged, the gap's length follows the handle (`draggedGapText`, the
+ * root's axis at the rows' scale), shown in a flag beside it; released,
+ * the length is stored in one change of the row's chunks.
+ */
+function pressGapHandle(event: PointerEvent, row: PaneRow, span: ChunkSpan): void {
+  if (event.button !== 0 || !event.isPrimary) return;
+  const entry = row.row.entries[span.index];
+  const numberType = findTimeline(manifest, target.root)?.number_type;
+  if (entry === undefined || typeof entry === "string" || numberType === undefined) return;
+  if (!(pane.unit > 0)) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const k = s * viewport.zoom;
+  const perPixel = 1 / (pane.unit * k);
+  const start = toFloat(exactValue(entry.gap, numberType));
+  const index = span.index;
+  const lengthAt = (at: Point) =>
+    draggedGapText(start + (at.x - event.clientX) * perPixel, perPixel, numberType);
+  followDrag(
+    event,
+    {
+      start() {
+        gapDrag = { index, x: span.x2, text: gapText(entry) };
+      },
+      move(at) {
+        gapDrag = { index, x: span.x2 + (at.x - event.clientX) / k, text: lengthAt(at) };
+      },
+      drop(at) {
+        gapDrag = null;
+        const text = lengthAt(at);
+        const error = session.regap(target, index, text);
+        if (gap !== null && gap.index === index) gap = { index, text, error };
+      },
+      abort() {
+        gapDrag = null;
+      },
+    },
+    slot,
+  );
 }
 
 /** The edited row's Done or Cancel; the gap typed there goes with it. */
@@ -495,18 +579,15 @@ function gapKey(event: KeyboardEvent): void {
   event.preventDefault();
 }
 
-/** Focus the gap's input as it appears. */
+/** Focus the gap's input as it appears, its length selected so that typing replaces it. */
 function focusInput(element: HTMLInputElement): void {
   element.focus();
+  element.select();
 }
 </script>
 
 {#snippet gapControl()}
-  <button
-    type="button"
-    onclick={toggleGap}
-    aria-expanded={gap !== null && gap.index === null}>+ Gap</button
-  >
+  <button type="button" onclick={addGap}>+ Gap</button>
   {#if gap !== null}
     <label class="gap">
       {gap.index === null ? "Gap length" : `Length of gap ${gap.index + 1}`}
@@ -569,7 +650,7 @@ function focusInput(element: HTMLInputElement): void {
         {:else if !row.row.computed}
           <button type="button" onclick={() => edit(row)}>Edit</button>
         {/if}
-        <button type="button" onclick={() => placeBelow(row)}>Place as card</button>
+        <button type="button" onclick={() => placeAtRow(row)}>Place as card</button>
       {/if}
       {#if row.problem !== null}<span class="problem" role="status">{row.problem}</span>{/if}
     </div>
@@ -587,7 +668,7 @@ function focusInput(element: HTMLInputElement): void {
         {#if entry !== undefined}
           <button
             type="button"
-            class="entry"
+            class={["entry", own && gap?.index === span.index && "selected"]}
             data-testid="flow-entry"
             data-index={span.index}
             aria-label={entryLabel(row, entry, span.index)}
@@ -604,6 +685,26 @@ function focusInput(element: HTMLInputElement): void {
             }}
             onkeydown={(event) => entryKey(event, row, span.index)}
           ></button>
+          {#if own && span.gap && pane.unit > 0}
+            {@const end = gapDrag?.index === span.index ? gapDrag.x : span.x2}
+            <span
+              class="gap-handle"
+              role="presentation"
+              data-testid="flow-gap-handle"
+              data-index={span.index}
+              style:left="{end * s}px"
+              style:height="{row.viewBox.height * s}px"
+              onpointerdown={(event) => pressGapHandle(event, row, span)}
+            ></span>
+            {#if gapDrag?.index === span.index}
+              <span
+                class="gap-flag"
+                data-testid="flow-gap-flag"
+                style:left="{end * s}px"
+                style:top="{row.lineY * s}px">gap {gapDrag.text}</span
+              >
+            {/if}
+          {/if}
         {/if}
       {/each}
     </div>
@@ -612,7 +713,7 @@ function focusInput(element: HTMLInputElement): void {
 
 <ViewportPortal target="front" class="tilie-overlay">
   <section
-    class={["tilie-flow-pane", "nodrag", "nopan", OWN_WHEEL]}
+    class={["tilie-flow-pane", "nodrag", "nopan"]}
     aria-label="FlowMaps of {rootName}"
     data-testid="flow-pane"
     {@attach holdPane}
@@ -620,7 +721,6 @@ function focusInput(element: HTMLInputElement): void {
     style:top="{origin.y + pane.y * s}px"
     style:width="{Math.min(pane.width * s, maxWidth)}px"
     style:font-size="{9 * s}px"
-    onwheel={ownWheel}
   >
     <div class="pane-head" style:height="{PANE_HEAD * s}px">
       <button type="button" onclick={addRow} disabled={draft !== null}
@@ -707,7 +807,9 @@ function focusInput(element: HTMLInputElement): void {
     overflow-y: hidden;
     pointer-events: all;
     background: #fff;
-    border: 1px solid #c8c8c8;
+    /* Lines that take no room, so each row lies exactly where the pane's model puts it. */
+    outline: 1px solid #c8c8c8;
+    outline-offset: -1px;
     border-radius: 4px;
     /* biome-ignore lint/a11y/useGenericFontNames: the pane's drawing is laid out with these faces' advances alone. */
     font-family: "TiLiE DejaVu Sans", "TiLiE Noto Music";
@@ -729,7 +831,7 @@ function focusInput(element: HTMLInputElement): void {
 
   .pane-head {
     padding: 0 0.5em;
-    border-bottom: 1px solid #e0e0e0;
+    box-shadow: inset 0 -1px 0 #e0e0e0;
   }
 
   .row {
@@ -737,7 +839,7 @@ function focusInput(element: HTMLInputElement): void {
   }
 
   .row + .row {
-    border-top: 1px solid #eeeeee;
+    box-shadow: inset 0 1px 0 #eeeeee;
   }
 
   .row.draft {
@@ -777,6 +879,36 @@ function focusInput(element: HTMLInputElement): void {
 
   .entry:hover {
     background: rgb(10 132 255 / 0.08);
+  }
+
+  .entry.selected {
+    background: rgb(10 132 255 / 0.18);
+    outline: 1px solid #0a84ff;
+    outline-offset: -1px;
+  }
+
+  .gap-handle {
+    position: absolute;
+    top: 0;
+    z-index: 1;
+    box-sizing: border-box;
+    width: 6px;
+    margin-left: -3px;
+    border-right: 2px solid #0a84ff;
+    cursor: ew-resize;
+    touch-action: none;
+  }
+
+  .gap-flag {
+    position: absolute;
+    z-index: 2;
+    transform: translate(6px, -50%);
+    padding: 0 0.3em;
+    border: 1px solid #0a84ff;
+    border-radius: 3px;
+    background: #fff;
+    white-space: nowrap;
+    pointer-events: none;
   }
 
   .entry:focus-visible {

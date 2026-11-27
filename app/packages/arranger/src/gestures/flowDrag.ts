@@ -1,8 +1,8 @@
 /**
  * Dragging in the flow subeditor: an element of the edited card, an entry
  * or a whole row of the pane, carried by a translucent twin to the new
- * FlowMap's row, within it, or (a row) out onto the canvas. The pointer is
- * followed on the window from the press to the release, so the drag
+ * FlowMap's row, within it, or (a row) out onto the canvas, once the middle
+ * of its twin has crossed the editor's border. The pointer is followed on the window from the press to the release, so the drag
  * crosses the card, the pane and the canvas alike; a press released within
  * the click distance stays a click, and the click a browser fires after a
  * drag is swallowed. Escape (the canvas's `GestureSlot`) and a cancelled
@@ -54,8 +54,9 @@ export function insideDistance(rect: ScreenRect, point: Point): number {
 }
 
 /**
- * The twin's opacity with the pointer `distance` screen pixels inside the
- * editor's border (`insideDistance`): 1 on and beyond the border, so a row
+ * The twin's opacity with the point that decides its drop (the pointer, a
+ * row's twin's middle) `distance` screen pixels inside the editor's border
+ * (`insideDistance`): 1 on and beyond the border, so a row
  * carried out is shown as the card it will become; inside, it fades
  * linearly with the distance to `MIN_TWIN_OPACITY` at `FADE_DISTANCE` and
  * stays there deeper in: `MIN + (1 − MIN) × max(0, 1 − d / FADE)`.
@@ -86,19 +87,30 @@ export function holds(rect: ScreenRect, point: Point): boolean {
 }
 
 /**
- * Where a drag released at `point` lands: on the new FlowMap's row
- * (`draft`, when one is open) it inserts; inside the editor (`editor`, the
- * card and the pane) the twin flies back and nothing is stored; beyond the
- * editor's border a row becomes a card, anything else flies back.
+ * The middle of a twin whose top left corner lies at `corner` and which is
+ * `width` by `height` screen pixels: the point that decides whether a row
+ * carried out has left the editor.
+ */
+export function twinMiddle(corner: Point, width: number, height: number): Point {
+  return { x: corner.x + width / 2, y: corner.y + height / 2 };
+}
+
+/**
+ * Where a drag released with the pointer at `point` lands: on the new
+ * FlowMap's row (`draft`, when one is open) it inserts there, the pointer
+ * deciding; a row (`middle`, the middle of its twin, `twinMiddle`) becomes
+ * a card once that middle lies beyond the editor's border (`editor`, the
+ * card and the pane), wherever the pointer is; anything else, and a row
+ * whose twin's middle is still inside, flies back and nothing is stored.
  */
 export function dropAt(
   point: Point,
+  middle: Point | null,
   editor: ScreenRect,
   draft: ScreenRect | null,
-  row: boolean,
 ): "draft" | "back" | "canvas" {
   if (draft !== null && holds(draft, point)) return "draft";
-  if (holds(editor, point) || !row) return "back";
+  if (middle === null || holds(editor, middle)) return "back";
   return "canvas";
 }
 

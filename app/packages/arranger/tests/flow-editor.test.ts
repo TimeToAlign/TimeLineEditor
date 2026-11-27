@@ -17,17 +17,19 @@ import { editorOf, editorsUnder, editorTargetOf } from "../src/editors.ts";
 import { FlowEditorSession, type FlowServer, type FlowTarget } from "../src/flowEditor.svelte.ts";
 import type { FlowEntry } from "../src/flowEditor.ts";
 import {
+  draggedGapText,
   flowRows,
   keptOrder,
   proposedGap,
   recomputeCommands,
   sameEntries,
 } from "../src/flowEditor.ts";
-import { flowPaneOf } from "../src/flowEditorRows.ts";
+import { flowPaneOf, PANE_HEAD, ROW_HEAD, rowPlace } from "../src/flowEditorRows.ts";
 import {
   dropAt,
   dropIndex,
   insideDistance,
+  twinMiddle,
   twinOpacity,
   unionRect,
 } from "../src/gestures/flowDrag.ts";
@@ -334,6 +336,33 @@ describe("the pane as drawn", () => {
       expect(Object.keys(item.attributes).some((name) => name.startsWith("data-"))).toBe(false);
     }
   });
+
+  it("takes 400 / 1644 drawing units for a unit of the root's axis on every row", () => {
+    expect(pane?.unit).toBe((1 * 400) / 1644);
+  });
+
+  it("places each row's card at the height of its row, indented by the line start", () => {
+    if (pane === null) throw new Error("no pane");
+    const [first, second, third] = pane.rows;
+    if (first === undefined || second === undefined || third === undefined) {
+      throw new Error("fewer than three rows");
+    }
+    const top = pane.y + PANE_HEAD + ROW_HEAD;
+    expect(rowPlace(pane, pane.rows, "default")).toEqual({ x: 56, y: top });
+    expect(rowPlace(pane, pane.rows, "printed")).toEqual({
+      x: 56,
+      y: top + first.viewBox.height + ROW_HEAD,
+    });
+    expect(rowPlace(pane, pane.rows, "single")).toEqual({
+      x: 56,
+      y: top + first.viewBox.height + ROW_HEAD + second.viewBox.height + ROW_HEAD,
+    });
+    expect(rowPlace(pane, [second, first], "default")).toEqual({
+      x: 56,
+      y: top + second.viewBox.height + ROW_HEAD,
+    });
+    expect(rowPlace(pane, [first], "printed")).toBeNull();
+  });
 });
 
 /**
@@ -561,12 +590,12 @@ describe("what each action stores", () => {
         { id: "probe", name: null, timeline: ROOT, canonical: false, chunks },
       ],
     });
-    expect(proposedGap(manifest, "by_hand")).toBe("1144");
-    expect(proposedGap(playing(["section_a"]), "probe")).toBe("953/2");
-    expect(proposedGap(playing(["section_a", { gap: [4, 1] }]), "probe")).toBe("4");
-    expect(proposedGap(playing([]), "probe")).toBe("");
-    expect(proposedGap(playing(["nothing_here"]), "probe")).toBe("");
-    expect(proposedGap(manifest, null)).toBe("");
+    expect(proposedGap(manifest, ROOT, "by_hand")).toBe("1144");
+    expect(proposedGap(playing(["section_a"]), ROOT, "probe")).toBe("953/2");
+    expect(proposedGap(playing(["section_a", { gap: [4, 1] }]), ROOT, "probe")).toBe("4");
+    expect(proposedGap(playing([]), ROOT, "probe")).toBe("1644");
+    expect(proposedGap(playing(["nothing_here"]), ROOT, "probe")).toBe("");
+    expect(proposedGap(manifest, ROOT, null)).toBe("1644");
     const [root] = manifest.timelines;
     if (root === undefined) throw new Error("no root");
     const float: Manifest = {
@@ -585,9 +614,21 @@ describe("what each action stores", () => {
         },
       ],
     };
-    expect(proposedGap(float, "probe")).toBe("2");
+    expect(proposedGap(float, ROOT, "probe")).toBe("2");
     const typed = typedValue("2", float.timelines[0] ?? root);
     expect(typed).toEqual(new JsonFloat(2));
+    const unknown: Manifest = { ...manifest, timelines: [{ ...root, length: null }] };
+    expect(proposedGap(unknown, ROOT, null)).toBe("");
+  });
+
+  it("rounds a dragged gap's length to the coarsest power of ten within a pixel, never to 0", () => {
+    expect(draggedGapText(1308.4, 1644 / 400, "fraction")).toBe("1308");
+    expect(draggedGapText(0.3, 1644 / 400, "fraction")).toBe("1");
+    expect(draggedGapText(1144.123, 0.0411, "fraction")).toBe("1144.12");
+    expect(draggedGapText(1144.1, 0.0411, "fraction")).toBe("1144.1");
+    expect(draggedGapText(1308.4, 41.1, "int")).toBe("1310");
+    expect(draggedGapText(12.6, 0.0411, "int")).toBe("13");
+    expect(draggedGapText(7.25, 0.411, "float")).toBe("7.3");
   });
 
   it("refuses a negative gap", () => {
@@ -802,15 +843,20 @@ describe("carrying a twin", () => {
     expect(insideDistance(editor, { x: 100, y: 200 })).toBe(0);
   });
 
-  it("lands on the new row, flies back inside, and makes a row a card beyond the border", () => {
+  it("lands on the new row, and makes a row a card once its twin's middle is beyond the border", () => {
     const editor = { left: 100, top: 100, right: 500, bottom: 300 };
     const draft = { left: 100, top: 250, right: 500, bottom: 300 };
-    expect(dropAt({ x: 200, y: 260 }, editor, draft, true)).toBe("draft");
-    expect(dropAt({ x: 200, y: 260 }, editor, draft, false)).toBe("draft");
-    expect(dropAt({ x: 200, y: 150 }, editor, draft, true)).toBe("back");
-    expect(dropAt({ x: 600, y: 150 }, editor, draft, true)).toBe("canvas");
-    expect(dropAt({ x: 600, y: 150 }, editor, draft, false)).toBe("back");
-    expect(dropAt({ x: 200, y: 260 }, editor, null, true)).toBe("back");
+    const inside = { x: 480, y: 150 };
+    expect(dropAt({ x: 200, y: 260 }, inside, editor, draft)).toBe("draft");
+    expect(dropAt({ x: 200, y: 260 }, null, editor, draft)).toBe("draft");
+    expect(dropAt({ x: 200, y: 150 }, { x: 520, y: 150 }, editor, draft)).toBe("canvas");
+    expect(dropAt({ x: 600, y: 150 }, inside, editor, draft)).toBe("back");
+    expect(dropAt({ x: 600, y: 150 }, null, editor, draft)).toBe("back");
+    expect(dropAt({ x: 200, y: 260 }, inside, editor, null)).toBe("back");
+  });
+
+  it("finds a twin's middle from its top left corner and its size", () => {
+    expect(twinMiddle({ x: 10, y: 20 }, 200, 40)).toEqual({ x: 110, y: 40 });
   });
 
   it("inserts before the first drawn entry whose middle lies right of the pointer", () => {

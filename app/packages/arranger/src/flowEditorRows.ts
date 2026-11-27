@@ -35,6 +35,9 @@ export const PANE_HEAD = 18;
 /** The height of the new FlowMap's row before its first entry, below its head. */
 export const EMPTY_DRAFT = 34;
 
+/** How far right of the root's card "Place as card" puts a row's card, in the block's drawing units. */
+export const PLACE_INDENT = 48;
+
 /**
  * The pane's height in the block's drawing units: its head, each row's head
  * and drawing, and the new FlowMap's empty row where one is open
@@ -43,6 +46,29 @@ export const EMPTY_DRAFT = 34;
 export function paneHeight(pane: FlowPane, emptyDraft: boolean): number {
   const rows = pane.rows.reduce((sum, row) => sum + ROW_HEAD + row.viewBox.height, 0);
   return PANE_HEAD + rows + (emptyDraft ? ROW_HEAD + EMPTY_DRAFT : 0);
+}
+
+/**
+ * Where "Place as card" puts the card of the row `id` of `pane`, its rows
+ * shown in the order `rows`, in the block's drawing units from the
+ * drawing's top left corner: its top at the top of the row's drawing, so
+ * each card stands at the height of its row, one under another in the
+ * rows' order and never on another, and its left edge `PLACE_INDENT` right
+ * of the root card's, so its right end stands out of the pane while the
+ * editor is open and, once it is closed, the cards stand indented under
+ * the root's card. `null` for a row not shown.
+ */
+export function rowPlace(
+  pane: FlowPane,
+  rows: readonly PaneRow[],
+  id: string,
+): { readonly x: number; readonly y: number } | null {
+  let y = pane.y + PANE_HEAD;
+  for (const row of rows) {
+    if (row.row.id === id) return { x: pane.x + PLACE_INDENT, y: y + ROW_HEAD };
+    y += ROW_HEAD + row.viewBox.height;
+  }
+  return null;
 }
 
 /**
@@ -97,6 +123,12 @@ export interface FlowPane {
   readonly nameX: number;
   readonly lineStart: number;
   readonly width: number;
+  /**
+   * The drawing units a unit of the root's axis takes on every row, where
+   * nothing is elided (`scale × L / λ`, the card's scale and item length
+   * over the root's drawn length); 0 for a root of unknown length.
+   */
+  readonly unit: number;
   readonly rows: readonly PaneRow[];
 }
 
@@ -187,6 +219,7 @@ export function flowPaneOf(
   const nameX = name?.type === "name" ? name.x - card.x : PANE_PADDING;
 
   const timeline = block.manifest.timelines.find((item) => item.id === root);
+  const known = written > 0 && timeline?.length !== null;
   const ids = rowIds(block.manifest, rows.length);
   const virtual: VirtualTimeline[] = [];
   const problems = new Map<number, string>();
@@ -222,7 +255,7 @@ export function flowPaneOf(
     places[entry.id] = {
       x: 0,
       y: step * (index + 1),
-      length: written > 0 && timeline?.length !== null ? (length * lambda) / written : length,
+      length: known ? (length * lambda) / written : length,
       scale,
     };
   }
@@ -309,6 +342,7 @@ export function flowPaneOf(
     nameX,
     lineStart,
     width: Math.max(card.width, ...drawn.map((row) => row.width + PANE_PADDING)),
+    unit: known ? (scale * length) / written : 0,
     rows: drawn,
   };
 }

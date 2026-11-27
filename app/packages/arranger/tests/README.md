@@ -2633,7 +2633,19 @@ its texts `A × 4`, `4 ♩` and `C`; its line runs `D` short of its length
 (section 8.10, Runs). Rows carry no address attribute (an overlay), and
 draw no card rectangle, name or band of their own: every item a row draws
 is a line, a brace, a label, a leader or a boundary of the row's virtual
-card.
+card. A unit of `allegro`'s axis takes `unit = 1 × 400 / 1644` drawing
+units on every row (scale 1, item length 400), the scale a gap's handle
+is dragged on (layout draws the rows at it, section "The pane as drawn"
+above). **Where "Place as
+card" puts a row's card** (`rowPlace`, the rows in the pane's order):
+its left edge `PLACE_INDENT` (48) right of the root card's, `8 + 48 =
+56`, for every row; its top at the top of its row's drawing,
+the pane's y plus the pane's head (18) plus, for every row above it, its
+head (16) and its drawing's height, plus its own head (16): `default` at
+`pane.y + 34`, `printed` at `pane.y + 34 + 16 + h(default)`, `single`
+below `printed` by `16 + h(printed)` (`h` each row's drawing height, from
+layout's drawing of the row), so the cards stand one under another in the
+rows' order and never on one another; a row not shown has none.
 
 **What each action stores** (`FlowEditorSession` on a store opened in
 `allegro`'s flow editor), each command compared whole. The **edited row**
@@ -2665,18 +2677,33 @@ acts on it, whichever it is:
 6. Moving entry 0 before index 2 stores the entries with it moved
    (`[section_b, section_a, …]`), Alt copies it there
    (`[section_a, section_b, section_a, …]`); removing entry 0 drops it.
-7. "+ Gap" `4` stores a gap `{gap: [4, 1]}` at the end; `0` says "a gap
-   is longer than 0: 0", `-4` "a gap is longer than 0: -4", `x` the
-   parser's message, and nothing is stored. The text is read by the one
-   reader of a typed axis value, `typedValue`, which the inspector's
-   fields import from this package. "+ Gap" proposes the length of the
-   row's last chunk (`proposedGap`, from `resolveFlowMap`'s chunks, the
-   played stretch's end less its start, exact, written as the text
-   `typedValue` reads back to the same value): `by_hand` ends with C
-   [500, 1644): `1144`; a FlowMap playing `section_a` alone: `953/2`; one
-   ending with the gap `[4, 1]`: `4`; on a float axis a gap `{gap: 2.0}`
-   (an integral float): `2`, read back as the float 2; the new row before
-   its first entry, or a FlowMap that does not resolve: the empty text.
+7. A gap of the length `4` (the session's `gap`) stores a gap `{gap: [4,
+   1]}` at the end; `0` says "a gap is longer than 0: 0", `-4` "a gap is
+   longer than 0: -4", `x` the parser's message, and nothing is stored.
+   The text is read by the one reader of a typed axis value, `typedValue`,
+   which the inspector's fields import from this package. "+ Gap" adds a
+   gap at once, as long as the row's last chunk plays (`proposedGap`,
+   from `resolveFlowMap`'s chunks, the played stretch's end less its
+   start, exact, written as the text `typedValue` reads back to the same
+   value): `by_hand` ends with C [500, 1644): `1144`; a FlowMap playing
+   `section_a` alone: `953/2`; one ending with the gap `[4, 1]`: `4`; on a
+   float axis a gap `{gap: 2.0}` (an integral float): `2`, read back as the
+   float 2. A row without chunks (the new row before its first entry, a
+   FlowMap playing nothing) has no last chunk: the gap proposed is the
+   root's whole length, the stretch the root's line plays, `1644`; on a
+   root of unknown length, and for a FlowMap that does not resolve, the
+   empty text, which adds no gap (its length is typed first). **A gap's
+   handle dragged** (`draggedGapText`): the length it reaches (a float on
+   the root's axis) is rounded to the coarsest power of ten not coarser
+   than one screen pixel's worth of the axis (`10 ^ floor(log10(p))`, `p`
+   axis units per pixel; at least 1 on an integer axis), never below that
+   step, and written with no more decimals than the step, trailing zeros
+   dropped: at `p = 1644 / 400 = 4.11` (the rows' scale at zoom 1)
+   `1308.4` gives `1308` and `0.3` gives `1` (never below the step); at
+   `p = 0.0411` (zoom 100) `1144.123` gives `1144.12` and `1144.1` gives
+   `1144.1`; at `p = 41.1` on an integer axis `1308.4` gives `1310`, at
+   `p = 0.0411` on an integer axis `12.6` gives `13`; on a float axis at
+   `p = 0.411` `7.25` gives `7.3`.
    **A gap's length changed** (`regap`): on the edited `by_hand`, entry
    4 given `8` stores one `set` of its chunks with `{gap: [8, 1]}` at 4
    and every other entry as written; `0` says "a gap is longer than 0:
@@ -2745,9 +2772,20 @@ change the manifest and send none, the chip kept.
 24, 48, 72, 96, 200: 1, 1, 0.8, 0.6000000000000001, 0.4, 0.2, 0.2. The
 distance inside a rectangle is the nearest edge's (`insideDistance`), the
 editor's rectangle the union of the card's and the pane's. A release
-decides (`dropAt`): on the new row it inserts, inside the editor the twin
-flies back, beyond the border a row becomes a card and anything else
-flies back. An entry lands before the first drawn entry whose middle lies
+decides (`dropAt`): with the pointer on the new row it inserts; a row
+becomes a card once the middle of its twin (`twinMiddle`, a rectangle's
+top left corner plus half its width and height; for a row's twin the
+rectangle of the timeline it draws, from its line's start to its end and
+as high as its drawing) lies beyond the editor's border, wherever the pointer is, and
+flies back while that middle is inside, wherever the pointer is; anything
+else flies back. With the editor `{100, 100, 500, 300}` and the new row
+`{100, 250, 500, 300}`: the pointer at (200, 260) inserts, row or not; a
+row with the pointer at (200, 150) and its middle at (520, 150) becomes a
+card, its middle at (480, 150) with the pointer at (600, 150) flies back;
+anything but a row (no middle) at (600, 150) flies back; with no new row
+open the pointer at (200, 260) and a middle inside fly back. The middle of
+a twin at (10, 20), 200 × 40: (110, 40). A row's twin fades by the
+distance of its middle, any other twin by the pointer's. An entry lands before the first drawn entry whose middle lies
 right of the pointer (`dropIndex`), else at the end.
 
 **The pane on the canvas** (`flow-editor-pane.test.ts`, the canvas in
@@ -2764,13 +2802,30 @@ the store's entries as they were at Add +. The row `printed` lifted by its
 name and released inside the pane flies back and stores nothing; carried
 past the editor's right border (the pane from x 0 to 800 on screen) and
 brought back inside before the release it flies back too and stores
-nothing (the release decides, never the path); released past the border
-at (900, 340), pressed at (100, 300) with the row's drawing lying at
-(0, 0) on screen (jsdom lays nothing out), it stores its virtual
-timeline's `add` and its place's `set`, two entries, and the new virtual
-timeline's place is the twin's top left `(900 − 100, 340 − 300)` less the
-block's (40, 80), each rounded to the grid's 8: exactly `{x: 760, y:
--40}`. A hand-made row's Edit button makes it the edited row (class
+nothing (the release decides, never the path). With the row's drawing given the screen rectangle from (0, 280), as wide
+as the pane and as high as the row's drawing `h` (jsdom lays nothing
+out), the twin is lifted from (0, 280) and the middle of the timeline it
+carries lies `(54.6396484375 + 454.6396484375) / 2 = 254.6396484375` px
+right of its left edge (the row's line from 54.6396484375 to `54.6396484375
++ 400 × 1644 / 1644`) and `h / 2` below its top. The twin's middle
+decides, never the pointer: pressed at (100, 300), the pointer carried
+past the pane's left border to (−20, 300), the middle still inside (at x
+134.6396484375), the row flies back and nothing is stored; carried to (700,
+300), the pointer still inside the pane but the middle past its right
+border (at x 854.6396484375), it stores its virtual timeline's `add` and
+its place's `set`, two entries, and the new virtual timeline's place is
+the twin's top left `(700 − 100, 300 − 20)` less the block's (40, 80),
+each rounded to the grid's 8: exactly `{x: 560, y: 200}`; carried again
+to (900, 340) it stores one more `set`, the place `{x: 760, y: 240}`.
+**"Place as card"** on `printed` and then on `single` stores for
+`printed` its virtual timeline's `add` and its place's `set`, for
+`single` (which `allegro_single` applies) the `set` alone; their places
+are `rowPlace`'s points less the drawing's origin, each held to the
+canvas's finest step (`GRID_FREE`, never the grid's 8, so each card stands
+exactly at its row): x `56 − origin.x = 56` for both (the drawing's
+origin is (0, 0) here), y as `rowPlace` gives
+for each row, so `single`'s card stands below `printed`'s by `16 +
+h(printed)`; the editor closed, the places stay as stored. A hand-made row's Edit button makes it the edited row (class
 `draft`, its Done and Cancel shown, no Edit button left on any row);
 computed rows have none. The pane offers no list of the card's elements
 (no `select`): every row has its Insert button, and the card itself is
@@ -2784,23 +2839,37 @@ entry landed, change nothing in that order. Done, the flow editor closed
 (`store.done()`) and opened again: `default`, `printed`, `single`, F
 (`Aaa`), `by_hand` (`Zzz`), the order by name.
 
-**The gap control at its row.** "+ Gap" on the new row before its first
-entry shows the input inside that row (`[data-testid="flow-draft"]`),
-empty; `4` and Enter store `{gap: [4, 1]}` as the new FlowMap's first
-entry and close the input; "+ Gap" on that row (now drawn with its gap)
-shows the input in its row with `4`. `by_hand` edited: "+ Gap" shows
-`1144`; a click on its gap entry (index 4) shows the input with `4`, `8`
-and Enter store one entry, `by_hand`'s entry 4 `{gap: [8, 1]}`, and close
-the input. Escape closes it without storing.
+**The gap control at its row.** "+ Gap" adds the gap at once. On the
+new row before its first entry it stores `{gap: [1644, 1]}` (the root's
+whole length, no chunk to take it from) as the new FlowMap's first entry,
+one entry, and shows the input in that row with `1644`, the new gap
+(entry 0) marked selected (class `selected`); `4` and Enter store one
+more entry, the gap `{gap: [4, 1]}`, and close the input; "+ Gap" on that
+row again stores a second gap `{gap: [4, 1]}` (the last chunk, the gap,
+plays 4) at once, entry 1 selected, its input showing `4`; Escape closes
+the input and stores nothing more. `by_hand` edited: "+ Gap" stores one
+`set` with `{gap: [1144, 1]}` appended (entry 6, selected, its input
+showing `1144`); a click on its gap entry (index 4) shows the input with
+`4`, `8` and Enter store one entry, `by_hand`'s entry 4 `{gap: [8, 1]}`,
+and close the input. **The handle**: in the edited row each gap entry has
+a handle at its right end (`flow-gap-handle`), none on any other row;
+the handle of `by_hand`'s gap 4 (entry 4) pressed and moved 40 px right
+(the viewport at the identity, the rows' scale `400 / 1644` drawing units
+a quarter, so `p = 4.11` quarters a pixel, `4 + 40 × 4.11 = 168.4`), it
+shows a flag reading `gap 168` while dragging and stores nothing until
+released; released, it stores exactly one entry, a `set` of the row's
+chunks with that gap given `[168, 1]`, and the flag goes; Escape during
+the drag stores nothing.
 
-**Ctrl+scroll over the rows.** With the viewport at `{x: 0, y: 0, zoom:
-1}`, a wheel with Ctrl (`deltaY` −100, pixels) over a row's drawing zooms
-the canvas as anywhere else on it: Svelte Flow's pinch zoom, `2 ^ (100 ×
-0.002) = 2 ^ 0.2 = 1.148698354997035` outside macOS, about the pointer;
-the zoom read back is exactly that. A plain wheel (`deltaY` 40) and a
-Shift wheel reported as horizontal travel (`deltaX` 40, the form the
-canvas pans itself outside macOS, `shiftWheel`) over the same row, sent
-first, neither pan nor zoom: the viewport stays `{x: 0, y: 0, zoom: 1}`.
+**The wheel over the rows** acts as anywhere else on the canvas. With the
+viewport at `{x: 0, y: 0, zoom: 1}`, a plain wheel (`deltaY` 40) over a
+row's drawing pans the canvas up by `PAN_SPEED × 40 = 20`: `{x: 0, y:
+-20, zoom: 1}`; a Shift wheel reported as horizontal travel (`deltaX` 40,
+the form the canvas pans itself outside macOS, `shiftWheel`) pans it left
+by 20: `{x: -20, y: -20, zoom: 1}`; a wheel with Ctrl (`deltaY` −100,
+pixels) zooms it: Svelte Flow's pinch zoom, `2 ^ (100 × 0.002) = 2 ^ 0.2
+= 1.148698354997035` outside macOS, about the pointer; the zoom read back
+is exactly that.
 
 ## The editor's viewport (`focus.test.ts`)
 

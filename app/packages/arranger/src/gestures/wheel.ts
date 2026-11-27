@@ -1,6 +1,8 @@
 /**
- * The canvas's wheel: Svelte Flow's pan, the Shift wheel it gets wrong
- * outside macOS, and overlays that take the plain wheel themselves.
+ * The canvas's wheel: Svelte Flow's pan, and the Shift wheel it gets wrong
+ * outside macOS. Over the canvas's overlays (the flow editor's pane among
+ * them) the wheel pans and zooms the canvas as anywhere else on it; only an
+ * element of class `nowheel` keeps it.
  */
 
 import type { Attachment } from "svelte/attachments";
@@ -10,23 +12,6 @@ export const PAN_SPEED = 0.5;
 /** Firefox reports wheel travel in lines (`deltaMode` 1); Svelte Flow counts a line as 20 px. */
 const LINE = 20;
 const MAC = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac");
-
-/**
- * The class of an overlay of the canvas that takes the plain wheel itself
- * (`ownWheel`), so the canvas neither pans under it nor sees it; a zooming
- * wheel still zooms the canvas there.
- */
-export const OWN_WHEEL = "tilie-own-wheel";
-
-/**
- * The wheel listener of an overlay of class `OWN_WHEEL`: a wheel with Ctrl
- * or Cmd held (a touchpad pinch included) goes on to the canvas, which
- * zooms as anywhere else; any other wheel stays with the overlay, which
- * scrolls as the browser scrolls it.
- */
-export function ownWheel(event: WheelEvent): void {
-  if (!event.ctrlKey && !event.metaKey) event.stopPropagation();
-}
 
 /**
  * Shift+wheel pans horizontally. Svelte Flow, outside macOS, turns a Shift
@@ -41,10 +26,7 @@ export function shiftWheel(pan: (dx: number) => void): Attachment<HTMLElement> {
     function onwheel(event: WheelEvent): void {
       if (MAC || !event.shiftKey || event.ctrlKey || event.metaKey) return;
       if (event.deltaY !== 0 || event.deltaX === 0) return;
-      if (
-        event.target instanceof Element &&
-        event.target.closest(`.nowheel, .${OWN_WHEEL}`) !== null
-      ) {
+      if (event.target instanceof Element && event.target.closest(".nowheel") !== null) {
         return;
       }
       event.preventDefault();
