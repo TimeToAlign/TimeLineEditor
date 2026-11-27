@@ -71,6 +71,15 @@ export interface Draft extends FlowTarget {
   readonly mark: number;
 }
 
+/**
+ * The entry chosen in a row of an open flow editor: the FlowMap's ID and the
+ * entry's index, a chunk double-clicked on a virtual or switched card.
+ */
+export interface Chosen extends FlowTarget {
+  readonly flowMap: string;
+  readonly index: number;
+}
+
 /** Whether two targets are the same open flow editor. */
 const sameTarget = (left: FlowTarget, right: FlowTarget): boolean =>
   left.session === right.session && left.block === right.block && left.root === right.root;
@@ -83,6 +92,7 @@ const rootKey = (target: FlowTarget): string =>
 export class FlowEditorSession {
   readonly #host: FlowEditorHost;
   #draft: Draft | null = $state.raw(null);
+  #chosen: Chosen | null = $state.raw(null);
   #recomputing = $state(false);
   /** What the server last answered for a root, by the key of its address `{block, id: root}`. */
   readonly #findings = new SvelteMap<string, FlowFindings>();
@@ -95,6 +105,32 @@ export class FlowEditorSession {
   draftOf(target: FlowTarget | null): Draft | null {
     const draft = this.#draft;
     return target !== null && draft !== null && sameTarget(draft, target) ? draft : null;
+  }
+
+  /** The entry chosen in a row of the open flow editor `target`; `null` where none is. */
+  chosenOf(target: FlowTarget | null): Chosen | null {
+    const chosen = this.#chosen;
+    return target !== null && chosen !== null && sameTarget(chosen, target) ? chosen : null;
+  }
+
+  /**
+   * Choose the entry `index` of the FlowMap `flowMap` of the target's root,
+   * as a double-click on that chunk does: its row folded out as the edited
+   * row where it is hand-made and no other row is edited (`edit`), a
+   * computed row staying read only, and the entry chosen, which its row
+   * shows selected. Nothing for an entry the FlowMap does not hold.
+   */
+  choose(target: FlowTarget, flowMap: string, index: number): void {
+    const found = this.#manifest(target)?.flow_maps?.find((item) => item.id === flowMap);
+    if (found === undefined || found.timeline !== target.root) return;
+    if (index < 0 || index >= found.chunks.length) return;
+    if (!isComputedFlowMap(found)) this.edit(target, flowMap);
+    this.#chosen = { ...target, flowMap, index };
+  }
+
+  /** Let go of the chosen entry of the open flow editor `target`, as a press on another entry does. */
+  unchoose(target: FlowTarget): void {
+    if (this.chosenOf(target) !== null) this.#chosen = null;
   }
 
   /** Whether the computed FlowMaps are being recomputed. */
@@ -133,6 +169,7 @@ export class FlowEditorSession {
   /** Add +: the open flow editor `target` gets a new, empty FlowMap row; one edited row at a time. */
   add(target: FlowTarget): void {
     if (this.draftOf(target) !== null) return;
+    this.unchoose(target);
     this.#draft = { ...target, flowMap: null, mark: this.#host.store().entries.length };
   }
 
@@ -152,9 +189,10 @@ export class FlowEditorSession {
     return true;
   }
 
-  /** The edited row's Done: the FlowMap stays as written; the row becomes one of the others. */
+  /** The edited row's Done: the FlowMap stays as written; the row becomes one of the others; no entry stays chosen. */
   done(target: FlowTarget): void {
     if (this.draftOf(target) !== null) this.#draft = null;
+    this.unchoose(target);
   }
 
   /**
@@ -172,6 +210,7 @@ export class FlowEditorSession {
       if (store.entries.length >= before) break;
     }
     this.#draft = null;
+    this.unchoose(target);
   }
 
   /** The manifest of the target's block as stored now. */

@@ -128,8 +128,8 @@ export function existing(view: View, selection: Selection, editing: Editing | nu
  * What the selection holds once `editing` has opened in `view`: the edited
  * element, by the address a click on its box selects: the block for the
  * bundle editor, the group for the group editor (a press on its frame
- * selects the group), and for the timeline editor the timeline's cards
- * where it is drawn in a card (every card of a member of several groups
+ * selects the group), and for the timeline editor the timeline's cards, a
+ * virtual timeline's included, where it is drawn in a card (every card of a member of several groups
  * shares one address), else the timeline (a child, which has no card, is
  * selected by its line).
  */
@@ -138,6 +138,8 @@ export function editedSelection(view: View, editing: Editing): Selection {
   if (editing.kind !== "timeline" || target.id === undefined) return selectionOf([target]);
   const resolved = resolveAddress(view, target);
   const carded =
-    !isCommandError(resolved) && resolved.kind === "timeline" && resolved.cards.length > 0;
+    !isCommandError(resolved) &&
+    (resolved.kind === "timeline" || resolved.kind === "virtual_timeline") &&
+    resolved.cards.length > 0;
   return selectionOf([carded ? inBlock(blockOf(target), cardAddress(target.id)) : target]);
 }

@@ -25,6 +25,7 @@ import { NOTHING_SELECTED, type Selection, selectionOf } from "../src/selection.
 import Harness from "./CanvasHarness.svelte";
 import { pointer, recordingActions, settle, stubCanvasGlobals } from "./dom.ts";
 import { A, changed, metrics, storeOf, viewOf } from "./support.ts";
+import { DEFAULT, drawingIn, ROOT, virtualView } from "./virtualCards.ts";
 
 const REGION = viewOf({ id: A, fixture: "with_region" });
 /** `with_region` with the region `motif` of the child `clt_2`, 1–3 on its own axis. */
@@ -116,6 +117,50 @@ describe("a region's handles", () => {
     expect(command("start", -1.5 * k)).toEqual(set({ start: [1, 3] }));
     expect(command("end", 20 * k)).toEqual(set({ end: [12, 1] }));
     expect(command("start", 0)).toBeNull();
+  });
+});
+
+describe("a region a virtual card's windows show", () => {
+  /** `virtualView()` with `motto` [100, 200] in `allegro` and the sources' regions shown on `allegro_default`. */
+  const WINDOWED = changed(
+    changed(virtualView(), {
+      type: "add",
+      into: inBlock(A, idAddress(ROOT)),
+      region: { id: "motto", name: "Motto", start: [100, 1], end: [200, 1] },
+    }),
+    {
+      type: "style",
+      select: { facet: "regions", inside: "chunk", within: DEFAULT },
+      set: { display: "inline" },
+      blocks: [A],
+    },
+  );
+  const manifest = WINDOWED.blocks[A]?.manifest;
+  if (manifest === undefined) throw new Error("no block");
+  const subjects = regionSubjectsOf(manifest, drawingIn(WINDOWED), idAddress("motto"));
+
+  it("takes both handles on its source's brace and on each window's", () => {
+    expect(subjects.map((each) => [each.piece.card, each.piece.nth, each.edges])).toEqual([
+      [{ item: ROOT }, 0, ["start", "end"]],
+      [{ item: DEFAULT }, 0, ["start", "end"]],
+      [{ item: DEFAULT }, 1, ["start", "end"]],
+    ]);
+  });
+
+  it("drags a window's end along the source's axis", () => {
+    for (const subject of subjects.slice(1)) {
+      const { element } = subject.piece;
+      const unit = (element.x2 - element.x1) / 100;
+      const drag = (edge: RegionEdge, dx: number) =>
+        text(regionDrag(CONTEXT, subject, edge, dx, TOLERANCE, REACH));
+      expect([drag("end", 100 * unit), drag("start", -40 * unit)]).toEqual(["300/1", "60/1"]);
+      const value = regionDrag(CONTEXT, subject, "end", 100 * unit, TOLERANCE, REACH);
+      if (value === null) throw new Error("no value");
+      expect(regionCommand(WINDOWED, A, subject, "end", value)).toEqual({
+        type: "set",
+        changes: [{ target: inBlock(A, idAddress("motto")), values: { end: [300, 1] } }],
+      });
+    }
   });
 });
 

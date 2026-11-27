@@ -1900,14 +1900,37 @@ of `conversion_maps`, each one entry, each box then checked. The drawing
 the canvas draws, read through the hook, then holds within the virtual
 card two drawings of `motto` (the windows of the two chunks playing A) and
 four of `tempo` (a map spanning its timeline is drawn once in every
-stretch piece, and `default` plays four: A, B, A, C), none before. A
-double-click on the second label of `motto` on the page (the first
-window's), the inspector open, opens the timeline editor of `allegro`, where `motto` is written
-(`{target: {block, id: "allegro"}, kind: "timeline"}`); after Done, a
-click on the label of chunk 1 (`B`) shows its facts in the Properties tab
-(Entry `2 of 4`, Source `Region 'B'`), and a double-click on it opens the
-flow-control editor of `allegro` (`kind: "flow"`), where its FlowMap is
-edited.
+stretch piece, and `default` plays four: A, B, A, C), none before.
+
+A double-click on the second label of `motto` on the page (the first
+window's), the inspector open and the regions shown, opens the virtual
+card's editor, the timeline editor of `allegro_default` (`{target:
+{block, id: "allegro_default"}, kind: "timeline"}`), with `{block, id:
+"motto"}` selected; three end handles show (`allegro`'s brace, then the
+two windows'). The second, the first window's, dragged right by the
+window brace's own width on the screen (its `x2 − x1` in the drawing
+times the block's scale and the zoom: 100 quarters there) adds one entry
+to the editor's session, the one `set` of `motto` `{end: [300, 1]}`: the
+source region.
+Every brace of `motto` the canvas then draws, on `allegro`'s card and in
+both windows, three, equals the braces of the drawing core's `apply` of
+that `set` gives from the view before the drag, and differs from
+before. The editor stays open, and before and after the drag
+`allegro_default`'s card lies wholly in the window left of the
+inspector drawer: the canvas stays on the virtual card.
+
+A click on the label of chunk 1 (`B`) shows its facts in the Properties
+tab (Entry `2 of 4`, Source `Region 'B'`), and a double-click on it opens
+the flow-control editor of `allegro` (`kind: "flow"`), where its FlowMap is
+edited: in the row of `default` (computed, read only, so no row is the
+edited one) the entry of index 1 is chosen (`aria-current="true"`, class
+`selected`). After Done, with `allegro_by_hand` placed at (0,
+400), a double-click on the label of its chunk 5 (C; A A A A, a gap and C,
+the run of As drawn once) opens the same editor with the row of
+`by_hand`, hand-made, folded out as the edited one (`.row.draft`) and its
+entry 5 chosen. Done waits for the viewport the first editor was
+opened at, so the second card is pressed where the arranger shows it,
+the inspector drawer closed (the card reaches under it).
 
 **`editors.spec.ts`** (Chromium, Firefox, WebKit) proves the bundle, group
 and timeline editors on `bundles` (and `groups` for a reorder) at viewport

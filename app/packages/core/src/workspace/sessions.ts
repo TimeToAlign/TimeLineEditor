@@ -1,7 +1,7 @@
 /**
  * Editor sessions: the commands made in one editor (the bundle editor on a
- * block, the group editor on a group, the timeline editor on a root or a
- * child timeline, the children editor on a timeline's children, the
+ * block, the group editor on a group, the timeline editor on a root, a
+ * child or a virtual timeline, the children editor on a timeline's children, the
  * flow-control editor on a root timeline's flow control and FlowMaps)
  * between opening it and Done or Cancel. A closed session is journalled as
  * one entry on the level it was opened on; its target is stored once, with
@@ -27,8 +27,8 @@ export type SessionId = string;
 export const SESSION_ID = BLOCK_ID;
 
 /**
- * The editor of an element: of a block, of a group, of a root or child
- * timeline, the children editor (kind `children`) of a root or child
+ * The editor of an element: of a block, of a group, of a root, child or
+ * virtual timeline, the children editor (kind `children`) of a root or child
  * timeline, which edits the timeline's children with its children band in
  * view, and the flow-control editor (kind `flow`) of a root timeline,
  * which edits the flow control of its tree, its FlowMaps and the virtual
@@ -220,8 +220,11 @@ export function keepChanges(
 
 /**
  * The editor an address opens (`resolveAddress`): a block the bundle
- * editor, a group the group editor, a root or child timeline the timeline
- * editor; `no_editor` for the workspace and any other element or part;
+ * editor, a group the group editor, a root or child timeline and a virtual
+ * timeline the timeline editor (that of a virtual timeline edits what it
+ * contains, the regions, maps and named timestamps its windows show
+ * included, `contains`); `no_editor` for the workspace and
+ * any other element or part;
  * `unknown_target` for an address naming nothing. Asked for `kind`, the
  * editor of that kind: the children editor opens on a root or child
  * timeline, the flow-control editor on a root timeline only (`no_editor`
@@ -261,6 +264,7 @@ function defaultKindOf(view: View, address: Address): EditorKind | CommandError 
     case "frame":
       return "group";
     case "timeline":
+    case "virtual_timeline":
       return "timeline";
     case "workspace":
     case "title":
@@ -273,7 +277,6 @@ function defaultKindOf(view: View, address: Address): EditorKind | CommandError 
     case "matchstamp":
     case "anchor":
     case "flow_map":
-    case "virtual_timeline":
     case "virtual_card":
     case "virtual_band":
     case "chunk":

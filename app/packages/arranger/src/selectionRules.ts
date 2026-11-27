@@ -30,7 +30,7 @@ import type { Level } from "./containers.ts";
 import { resizes } from "./containers.ts";
 import type { Editing } from "./editing.ts";
 import { addressParts } from "./editing.ts";
-import type { EditorChoice } from "./editors.ts";
+import type { EditorChoice, Opening } from "./editors.ts";
 import { editorsUnder, editorTargetOf } from "./editors.ts";
 import { gapOf } from "./gaps.ts";
 import type { Point } from "./gesture.ts";
@@ -162,22 +162,24 @@ export function pressedIn(pressed: Pressed, editing: Editing | null): Address | 
 }
 
 /**
- * The editor target a double-click or a double tap on `pressed` opens
- * (`editorTargetOf`): `null` off every block, outside the edited element
- * and on the edited element itself. A pointer gives its drawing point, so
- * that the band under it (`bandUnder`) opens its timeline's editor, a
- * root's flow control band the root's flow-control editor, a chunk's label
- * or boundary the flow-control editor of its FlowMap's root, what a
- * virtual card's window shows the editor of the timeline where it is
- * written, and other text or a region the last drawn card or frame under
+ * The editor a double-click or a double tap on `pressed` opens
+ * (`editorTargetOf`), with the address hit (`Opening`): `null` off every
+ * block, outside the edited element and on the edited element itself. A
+ * pointer gives its drawing point, so that the band under it (`bandUnder`)
+ * opens its timeline's editor, a root's flow control band the root's
+ * flow-control editor, a chunk's label or boundary the flow-control editor
+ * of its FlowMap's root, a region, map or named timestamp a virtual card's
+ * window shows the virtual card's editor and a child's line there the
+ * child's, and other text or a region the last drawn card or frame under
  * it, the innermost where none overlap.
  */
-export function openableAt(view: View, pressed: Pressed, editing: Editing | null): Address | null {
+export function openableAt(view: View, pressed: Pressed, editing: Editing | null): Opening | null {
   const hit = hitAt(pressed, editing);
   const { node, point } = pressed;
   const at =
     node === undefined || point === null ? undefined : { drawing: node.data.drawing, point };
-  return hit === null ? null : editorTargetOf(view, hit, editing, at);
+  const target = hit === null ? null : editorTargetOf(view, hit, editing, at);
+  return hit === null || target === null ? null : { target, from: hit.address };
 }
 
 /**
@@ -247,8 +249,11 @@ export const DONE = Symbol("done");
 /** What a double-click on the edited element does: centre the view on it again, as opening does. */
 export const RECENTRE = Symbol("recentre");
 
-/** What a double-click or a double tap does: open an editor, close the innermost, or centre the view. */
-export type DoubleClick = Address | typeof DONE | typeof RECENTRE;
+/**
+ * What a double-click or a double tap does: open an editor (its target and
+ * the address hit, `Opening`), close the innermost, or centre the view.
+ */
+export type DoubleClick = Opening | typeof DONE | typeof RECENTRE;
 
 /**
  * What a double-click or a double tap on `pressed` does: outside the edited
@@ -350,10 +355,10 @@ export const DOUBLE_TAP_MS = 300;
 /** …and this many screen pixels, where a double-click would do the same. */
 export const DOUBLE_TAP_DISTANCE = 10;
 
-/** Whether two double-click actions are the same: the same symbol, or equal addresses. */
+/** Whether two double-click actions are the same: the same symbol, or the same editor opened. */
 function sameAction(left: DoubleClick, right: DoubleClick): boolean {
   if (typeof left === "symbol" || typeof right === "symbol") return left === right;
-  return sameAddress(left, right);
+  return sameAddress(left.target, right.target);
 }
 
 /**

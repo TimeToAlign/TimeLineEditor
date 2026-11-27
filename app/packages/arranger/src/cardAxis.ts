@@ -168,7 +168,6 @@ export function cardAxisAt(manifest: Manifest, drawing: Drawing, key: PlaceKey):
 }
 
 function makeAxis(manifest: Manifest, drawing: Drawing, exposure: ElisionExposure): CardAxis {
-  const { runs, x0, place } = exposure;
   const bases = basesOf(manifest, exposure);
   const lambdas = new Map<string, Real | null>();
   const lambdaFor = (base: string, card: PlaceKey): Real | null => {
@@ -190,6 +189,27 @@ function makeAxis(manifest: Manifest, drawing: Drawing, exposure: ElisionExposur
     based.set(timeline, found);
     return found;
   };
+  return axisOver(exposure, baseOf);
+}
+
+/**
+ * The map of a virtual card's axis `axis` read as a window shows the
+ * timeline `timeline` (TimeToShare's `docs/drawing.md`, section 8.10,
+ * Windows): `timeline` lying on it at `base` (the virtual timeline, its
+ * played start less the written start of the stretch piece plus
+ * `timeline`'s zero on its root's axis, and the virtual timeline's `λ`),
+ * every other timeline as `axis` reads it.
+ */
+export function windowAxis(axis: CardAxis, timeline: string, base: AxisBase): CardAxis {
+  return axisOver(axis.exposure, (id) => (id === timeline ? base : axis.baseOf(id)));
+}
+
+/** The map of the axis of the container `exposure` records, each timeline lying on it as `baseOf` says. */
+function axisOver(
+  exposure: ElisionExposure,
+  baseOf: (timeline: string) => AxisBase | null,
+): CardAxis {
+  const { runs, x0, place } = exposure;
   const xOf = (run: Run, u: number) => place.x + place.scale * (x0 + (run.L * u - run.D));
   const runAt = (u: number): Run | null => runs.find((run) => run.u0 <= u && u <= run.u1) ?? null;
   const proportionOf = (timeline: string, value: Real): number | null => {

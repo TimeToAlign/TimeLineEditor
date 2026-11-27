@@ -4,35 +4,45 @@
  * on the fixture `flow/virtual_cards`. Derivation in `README.md`
  * ("segment-ui.spec.ts"): the band list's switches "From the sources" turn
  * the sources' regions and conversion maps on in every window; a
- * double-click on a region a window shows opens the editor of the timeline
- * where it is written; a chunk's label shows the chunk's facts and opens the
- * flow-control editor of its FlowMap's root.
+ * double-click on a region a window shows opens the virtual card's editor
+ * with the region selected, and a drag of its end there changes the source
+ * region, every drawing of it at once, the canvas staying on the virtual
+ * card; a chunk's label shows the chunk's facts and opens the flow-control
+ * editor of its FlowMap's root, the FlowMap's row folded out and the chunk
+ * chosen.
  */
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { drawingOf } from "../packages/arranger/src/drawing.ts";
-import { isLoadError, readWorkspace } from "../packages/core/src/index.ts";
+import type { View } from "../packages/core/src/index.ts";
+import { apply, isCommandError, isLoadError, readWorkspace } from "../packages/core/src/index.ts";
+import type { Drawing } from "../packages/layout/src/index.ts";
 import { FONT_METRICS } from "./schema.ts";
 import {
   dispatch,
   done,
+  drawer,
   editing,
   element,
+  entriesLength,
   importFixture,
   journalLength,
   newestCommand,
   panel,
   paneOf,
   select,
+  selection,
   settledDrawing,
   tab,
+  viewportOf,
 } from "./support.ts";
 
 test.use({ viewport: { width: 1600, height: 1000 }, reducedMotion: "reduce" });
 
 const ROOT = "allegro";
 const DEFAULT = "allegro_default";
+const BY_HAND = "allegro_by_hand";
 
 /** Import the fixture, place `allegro_default` alone at (0, 200) and add `motto` and `tempo` to `allegro`; the block. */
 async function windowed(page: Page): Promise<string> {
@@ -137,7 +147,7 @@ test("From the sources shows the sources' regions and conversion maps in every w
   expect(await drawnInCard(page, block, "map", "tempo")).toBe(4);
 });
 
-test("a double-click edits a window's region at its source, a chunk in the flow-control editor", async ({
+test("a double-click on a window's region opens the virtual card's editor, its edits going to the source", async ({
   page,
 }) => {
   const block = await windowed(page);
@@ -150,9 +160,56 @@ test("a double-click edits a window's region at its source, a chunk in the flow-
   await page.mouse.dblclick(shown.x, shown.y);
   await expect
     .poll(() => editing(page))
-    .toEqual([{ target: { block, id: ROOT }, kind: "timeline" }]);
-  await done(page);
+    .toEqual([{ target: { block, id: DEFAULT }, kind: "timeline" }]);
+  await expect.poll(() => selection(page)).toEqual([{ block, id: "motto" }]);
+  await expectInView(page, block);
 
+  const handles = page.getByTestId("region-handle-end");
+  await expect(handles).toHaveCount(3);
+  const before = await drawingNow(page, block);
+  // 100 quarters of the window's brace (`motto` is [100, 200]), in screen pixels.
+  const [, piece] = before.drawing.elements.filter(
+    (item) => item.type === "region" && item.address.id === "motto",
+  );
+  if (piece?.type !== "region") throw new Error("motto draws no window brace");
+  const scale = before.view.blocks[block]?.scale ?? 1;
+  const brace = (piece.x2 - piece.x1) * scale * (await viewportOf(page)).zoom;
+  const handle = await handles.nth(1).boundingBox();
+  if (handle === null) throw new Error("the window's end handle is not shown");
+  const entries = await entriesLength(page);
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handle.x + handle.width / 2 + brace, handle.y + handle.height / 2, {
+    steps: 10,
+  });
+  await page.mouse.up();
+  const command = {
+    type: "set",
+    changes: [{ target: { block, id: "motto" }, values: { end: [300, 1] } }],
+  };
+  await expect.poll(() => entriesLength(page)).toBe(entries + 1);
+  expect(await newestCommand(page)).toEqual(command);
+  // Every drawing of `motto`, on `allegro`'s card and in both windows, is the one the stored set gives.
+  const expected = apply(before.view, command);
+  if (isCommandError(expected)) throw new Error(expected.message);
+  await settledDrawing(page, block);
+  const braces = (drawing: Drawing) =>
+    drawing.elements.filter((item) => item.type === "region" && item.address.id === "motto");
+  const after = await drawingNow(page, block);
+  expect(braces(after.drawing)).toEqual(braces(await drawingIn(page, expected, block)));
+  expect(braces(after.drawing).length).toBe(3);
+  expect(braces(after.drawing)).not.toEqual(braces(before.drawing));
+  await expect
+    .poll(() => editing(page))
+    .toEqual([{ target: { block, id: DEFAULT }, kind: "timeline" }]);
+  await expectInView(page, block);
+});
+
+test("a double-click on a chunk opens the flow-control editor, its row folded out and the chunk chosen", async ({
+  page,
+}) => {
+  const block = await windowed(page);
+  await page.getByRole("button", { name: "Open inspector" }).click();
   await settledDrawing(page, block);
   const chunk = await centreOf(page, block, { id: DEFAULT, part: [1, "label"] }, 0);
   await page.mouse.click(chunk.x, chunk.y);
@@ -168,6 +225,62 @@ test("a double-click edits a window's region at its source, a chunk in the flow-
   ]);
   await expect(rows.locator("dd").nth(0)).toHaveText("2 of 4");
   await expect(rows.locator("dd").nth(2)).toHaveText("Region 'B'");
+  const opening = await viewportOf(page);
   await page.mouse.dblclick(chunk.x, chunk.y);
   await expect.poll(() => editing(page)).toEqual([{ target: { block, id: ROOT }, kind: "flow" }]);
+  const row = page.locator('[data-testid="flow-row"][data-flow-map="default"]');
+  const chosen = row.locator('[data-testid="flow-entry"][aria-current="true"]');
+  await expect(chosen).toHaveCount(1);
+  await expect(chosen).toHaveAttribute("data-index", "1");
+  await expect(chosen).toHaveClass(/selected/);
+  // `default` is computed, so its row stays read only: no row is the edited one.
+  await expect(page.locator(".row.draft")).toHaveCount(0);
+  await done(page, opening);
+
+  expect(
+    await dispatch(page, {
+      type: "set",
+      changes: [{ target: { block, id: BY_HAND }, values: { place: { x: 0, y: 400 } } }],
+    }),
+  ).toBeNull();
+  await settledDrawing(page, block);
+  // Its card lies partly under the inspector drawer, which is closed for the press.
+  await page.getByRole("button", { name: "Close inspector" }).click();
+  // The label of C, chunk 5 of `by_hand` (A A A A, a gap, C), the run of As drawn once.
+  const practice = await centreOf(page, block, { id: BY_HAND, part: [5, "label"] }, 0);
+  await page.mouse.dblclick(practice.x, practice.y);
+  await expect.poll(() => editing(page)).toEqual([{ target: { block, id: ROOT }, kind: "flow" }]);
+  const edited = page.locator('.row.draft[data-flow-map="by_hand"]');
+  await expect(edited).toHaveCount(1);
+  const entry = edited.locator('[data-testid="flow-entry"][aria-current="true"]');
+  await expect(entry).toHaveAttribute("data-index", "5");
 });
+
+/** The workspace's view as stored now and block `block`'s drawing in it, as the canvas draws it. */
+async function drawingNow(page: Page, block: string): Promise<{ view: View; drawing: Drawing }> {
+  const workspace = readWorkspace(await page.evaluate(() => window.__tilie.text()));
+  if (isLoadError(workspace)) throw new Error("the workspace is refused");
+  return { view: workspace.view, drawing: await drawingIn(page, workspace.view, block) };
+}
+
+/** Block `block`'s drawing in `view`, at the canvas's pane. */
+async function drawingIn(page: Page, view: View, block: string): Promise<Drawing> {
+  const found = view.blocks[block];
+  if (found === undefined) throw new Error(`block ${block} is missing`);
+  return drawingOf(found, view.graphical, FONT_METRICS, undefined, await paneOf(page));
+}
+
+/** That `allegro_default`'s card lies wholly inside the window, left of the inspector drawer. */
+async function expectInView(page: Page, block: string): Promise<void> {
+  const card = await element(page, block, { id: DEFAULT, part: ["card"] })
+    .first()
+    .boundingBox();
+  const shelf = await drawer(page).boundingBox();
+  if (card === null || shelf === null) throw new Error("the card or the drawer is not shown");
+  expect([
+    card.x >= 0,
+    card.y >= 0,
+    card.x + card.width <= shelf.x,
+    card.y + card.height <= 1000,
+  ]).toEqual([true, true, true, true]);
+}
