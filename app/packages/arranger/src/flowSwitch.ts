@@ -25,6 +25,7 @@ import {
   resolveVirtualTimeline,
   samePlaceKey,
 } from "@timetoalign/tilie-core";
+import { switchOf } from "@timetoalign/tilie-core/drawing";
 import { realOf } from "@timetoalign/tilie-core/numbers";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import { lineAxes } from "@timetoalign/tilie-layout";
@@ -79,20 +80,16 @@ export function flowChoices(manifest: Manifest, box: DrawnBox): FlowChoice[] | n
 }
 
 /**
- * The entry the switch of `box` shows chosen: the FlowMap its card's
- * `flow` (core's `cardFlow`) names, or the one applied by the virtual
- * timeline it names where that applies a FlowMap of the card's root without
- * `through`; "As written" otherwise.
+ * The entry the switch of `box` shows chosen: the FlowMap its card is
+ * switched to (core's `switchOf`: its `flow` naming a FlowMap of the card's
+ * root that resolves, or a virtual timeline applying one without
+ * `through`); "As written" otherwise, as the card is then drawn.
  */
 export function chosenFlow(manifest: Manifest, box: DrawnBox): FlowChoice {
   const timeline = switchedBy(box);
-  const flow = timeline === null ? null : cardFlow(manifest, timeline);
-  if (timeline === null || flow === null) return AS_WRITTEN;
-  const virtual = (manifest.virtual_timelines ?? []).find(
-    (item) => item.id === flow && item.timeline === timeline && item.through === undefined,
-  );
-  const map = virtual?.map ?? flow;
-  return flowsOf(manifest, timeline).find((choice) => choice.flow === map) ?? AS_WRITTEN;
+  const flowMap = timeline === null ? undefined : switchOf(manifest, timeline)?.flowMap;
+  if (timeline === null || flowMap === undefined) return AS_WRITTEN;
+  return flowsOf(manifest, timeline).find((choice) => choice.flow === flowMap) ?? AS_WRITTEN;
 }
 
 /**

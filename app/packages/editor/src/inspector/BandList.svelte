@@ -6,6 +6,9 @@
  * order, its word and its Visible control (`ReachToggle`): the band's own
  * box, and where the timeline has descendants the tree's box beside it,
  * the same display `within` the timeline, mixed while its bands differ.
+ * A virtual timeline's list has the column "From the sources": per band
+ * one box showing that band of every chunk's window (`BandRow.sources`),
+ * a press sending its one `style` (`controlCommand`).
  * No box is ever disabled: a band showing nothing now has its hint under
  * its word. A change sends the press's `style`s (`bandCommands`): one is
  * dispatched, several are one step (`edit` of the timeline, or one after
@@ -14,7 +17,7 @@
 import type { Block, CommandError, Store, View } from "@timetoalign/tilie-core";
 import { postOf } from "../messages.svelte.ts";
 import type { BandRow, Control, Reach } from "./display.ts";
-import { bandCommands } from "./display.ts";
+import { bandCommands, controlCommand } from "./display.ts";
 import ReachToggle from "./ReachToggle.svelte";
 
 let {
@@ -49,8 +52,29 @@ function press(row: BandRow, reach: Reach): void {
   if (refusal !== null) post("info", refusal.message);
 }
 
-/** The ID of the hint of `row`'s box of `reach`. */
-const hintId = (row: BandRow, reach: Reach): string => `${uid}-${row.facet}-${reach}`;
+/** The ID of the hint of `row`'s box of `reach`, or of its "From the sources" box. */
+const hintId = (row: BandRow, reach: Reach | "sources"): string => `${uid}-${row.facet}-${reach}`;
+
+/** Whether the list shows the column "From the sources": a virtual timeline's rows hold its switch. */
+const fromSources = $derived(rows.some((row) => row.sources !== null));
+
+/** Send the press of the "From the sources" box `control`: its one `style`. */
+function pressSources(control: Control): void {
+  const refusal = store.dispatch(controlCommand(view, block, control));
+  if (refusal !== null) post("info", refusal.message);
+}
+
+/** The "From the sources" box of `row` as `ReachToggle` takes it. */
+function sourcesBox(row: BandRow, control: Control) {
+  const label = `${control.label} from the sources visible`;
+  return {
+    pressed: control.pressed,
+    mixed: control.mixed,
+    label,
+    describedby: control.hint === null ? undefined : hintId(row, "sources"),
+    title: control.hint ?? label,
+  };
+}
 
 /** A box of `row` as `ReachToggle` takes it. */
 function box(row: BandRow, control: Control, reach: Reach) {
@@ -73,12 +97,16 @@ function box(row: BandRow, control: Control, reach: Reach) {
       <tr>
         <th scope="col">Band</th>
         <th scope="col">Visible</th>
+        {#if fromSources}
+          <th scope="col">From the sources</th>
+        {/if}
       </tr>
     </thead>
     <tbody>
       {#each rows as row (row.facet)}
         {@const own = row.control}
         {@const tree = row.tree}
+        {@const sources = row.sources}
         <tr>
           <th scope="row">
             {own.label}
@@ -87,6 +115,9 @@ function box(row: BandRow, control: Control, reach: Reach) {
             {/if}
             {#if tree !== null && tree.hint !== null}
               <span class="reason" id={hintId(row, "tree")}>With its descendants: {tree.hint}</span>
+            {/if}
+            {#if sources !== null && sources.hint !== null}
+              <span class="reason" id={hintId(row, "sources")}>From the sources: {sources.hint}</span>
             {/if}
           </th>
           <td>
@@ -98,6 +129,20 @@ function box(row: BandRow, control: Control, reach: Reach) {
               onpress={(reach) => press(row, reach)}
             />
           </td>
+          {#if fromSources}
+            <td>
+              {#if sources !== null}
+                {@const control = sources}
+                <ReachToggle
+                  name="band-sources"
+                  value={row.facet}
+                  own={sourcesBox(row, control)}
+                  tree={null}
+                  onpress={() => pressSources(control)}
+                />
+              {/if}
+            </td>
+          {/if}
         </tr>
       {/each}
     </tbody>

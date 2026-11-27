@@ -166,9 +166,11 @@ export function pressedIn(pressed: Pressed, editing: Editing | null): Address | 
  * (`editorTargetOf`): `null` off every block, outside the edited element
  * and on the edited element itself. A pointer gives its drawing point, so
  * that the band under it (`bandUnder`) opens its timeline's editor, a
- * root's flow control band the root's flow-control editor, and text or a
- * region the last drawn card or frame under it, the innermost where none
- * overlap.
+ * root's flow control band the root's flow-control editor, a chunk's label
+ * or boundary the flow-control editor of its FlowMap's root, what a
+ * virtual card's window shows the editor of the timeline where it is
+ * written, and other text or a region the last drawn card or frame under
+ * it, the innermost where none overlap.
  */
 export function openableAt(view: View, pressed: Pressed, editing: Editing | null): Address | null {
   const hit = hitAt(pressed, editing);

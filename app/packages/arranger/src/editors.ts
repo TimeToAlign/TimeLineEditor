@@ -1,20 +1,28 @@
-/** The editors of the canvas: the bundle, group, timeline, children and flow-control editors on one element. */
+/**
+ * The editors of the canvas: the bundle, group, timeline, children and
+ * flow-control editors on one element, and the one rule naming the editor a
+ * double-click, Enter or the inspector's Edit button opens (`editorTargetOf`).
+ */
 
 import type {
   Address,
   EditorKind,
+  ElementAddress,
   Manifest,
+  ResolvedElement,
   StatedEditorKind,
   TimelineManifest,
   View,
 } from "@timetoalign/tilie-core";
 import {
   addressWords,
+  assertNever,
   contains,
   findTimeline,
   idAddress,
   inBlock,
   placedElement,
+  resolveElement,
   sameAddress,
 } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
@@ -82,7 +90,13 @@ export interface PressedPoint {
  * the editor of its timeline, but a timeline's children band its children
  * editor and a root's flow control band the flow-control editor of the
  * root (`editorOf`), each named by the band's own address (`{block, id: T,
- * facet: "children"}`, `{block, id: R, facet: "flow_control"}`). A free spot of a card opens the
+ * facet: "children"}`, `{block, id: R, facet: "flow_control"}`). A chunk
+ * (its label, leader or boundary) opens the flow-control editor of its
+ * FlowMap's root, where FlowMaps are edited (`chunkTarget`). An element a
+ * chunk's window shows on a virtual card (a region, a map, a named
+ * timestamp, a child's line, any part of them) is edited at its source: it
+ * opens the editor of the timeline that holds it, where it is written
+ * (`sourceTarget`). A free spot of a card opens the
  * card's timeline; anything else drawn (a name, a label, a region, a
  * stamp, a boundary) what the last drawn card or frame holding it stands
  * for, the innermost where none overlap (`hit.within`), and nothing
@@ -207,13 +221,17 @@ function openableIn(manifest: Manifest, target: Address, editing: Editing | null
 
 /**
  * What an element hit opens: a flow-control element the flow control band
- * of its root (`flowElementOf`), a timeline's line that timeline, anything
- * else what the card or frame holding it stands for (`standsFor` of
- * `hit.within`); `null` for nothing.
+ * of its root (`flowElementOf`), a chunk's part the flow control band of
+ * its FlowMap's root (`chunkTarget`), an element a window shows the
+ * timeline holding it (`sourceTarget`), a timeline's line that timeline,
+ * anything else what the card or frame holding it stands for (`standsFor`
+ * of `hit.within`); `null` for nothing.
  */
 function elementTarget(hit: Hit, manifest: Manifest): Address | null {
-  const flow = flowElementOf(hit, manifest);
+  const flow = flowElementOf(hit, manifest) ?? chunkTarget(hit, manifest);
   if (flow !== null) return flow;
+  const source = sourceTarget(hit, manifest);
+  if (source !== null) return source;
   const { element } = addressParts(hit.address);
   const line =
     element?.id !== undefined && element.facet === undefined && element.part === undefined;
@@ -279,6 +297,80 @@ function flowElementOf(hit: Hit, manifest: Manifest): Address | null {
     timeline.flow_control.some((item) => item.id === element.id) || timeline.children.some(holds);
   const root = manifest.timelines.find(holds);
   return root === undefined ? null : inBlock(hit.block, { id: root.id, facet: FLOW_BAND });
+}
+
+/** What `element` resolves to in `manifest`, a part read up to its owner; `undefined` for nothing. */
+function ownerElement(manifest: Manifest, element: ElementAddress): ResolvedElement | undefined {
+  let resolved = resolveElement(manifest, element);
+  while (resolved?.kind === "part") resolved = resolved.owner;
+  return resolved;
+}
+
+/**
+ * The flow control band a chunk's part stands for: where `hit` is the
+ * label, leader or boundary of a chunk drawn on a virtual timeline's line
+ * or a switched card's (`{id: V, part: [k, word]}`), the flow control band
+ * of the root its FlowMap unfolds, which opens that root's flow-control
+ * editor (`editorOf`), where FlowMaps are edited; `null` otherwise.
+ */
+function chunkTarget(hit: Hit, manifest: Manifest): Address | null {
+  const { element } = addressParts(hit.address);
+  if (element === null || typeof element.part?.[0] !== "number") return null;
+  const resolved = ownerElement(manifest, element);
+  if (resolved?.kind !== "chunk") return null;
+  return inBlock(hit.block, { id: resolved.flowMap.flowMap.timeline, facet: FLOW_BAND });
+}
+
+/** The timeline holding what `resolved` names: a timeline's own, an entry's, a stamp's, a band's; `null` for anything else. */
+function holdingTimeline(resolved: ResolvedElement): string | null {
+  switch (resolved.kind) {
+    case "timeline":
+    case "band":
+    case "entry":
+    case "timestamp":
+      return resolved.at.timeline.id;
+    case "title":
+    case "frame":
+    case "card":
+    case "measure_map":
+    case "elision":
+    case "matchstamp":
+    case "anchor":
+    case "flow_map":
+    case "virtual_timeline":
+    case "virtual_card":
+    case "virtual_band":
+    case "chunk":
+    case "chunk_band":
+    case "part":
+      return null;
+    default:
+      return assertNever(resolved);
+  }
+}
+
+/**
+ * Where an element a chunk's window shows is edited (TimeToShare's
+ * `docs/drawing.md`, section 8.10, Windows: every drawing keeps its
+ * element's address, and an edit of it is an edit of the source): where
+ * `hit` lies on the card of a virtual timeline `V` (`hit.within`) and names
+ * an element held by a timeline other than `V` (a region, a map, a named
+ * timestamp, a child's line, or a part of one), the address of that
+ * timeline, which opens its editor, the canvas moving to where the element
+ * is written; `null` otherwise, `V`'s own elements included.
+ */
+function sourceTarget(hit: Hit, manifest: Manifest): Address | null {
+  const virtual = standsFor(hit.within, manifest);
+  if (
+    typeof virtual !== "string" ||
+    !(manifest.virtual_timelines ?? []).some((item) => item.id === virtual)
+  ) {
+    return null;
+  }
+  const { element } = addressParts(hit.address);
+  const resolved = element === null ? undefined : ownerElement(manifest, element);
+  const holder = resolved === undefined ? null : holdingTimeline(resolved);
+  return holder === null || holder === virtual ? null : inBlock(hit.block, idAddress(holder));
 }
 
 /**
