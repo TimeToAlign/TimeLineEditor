@@ -377,7 +377,7 @@ test.describe("the Regions tab and the band list", () => {
     await tab(page, "Properties").click();
     await expect(
       (await panel(page, "Properties")).getByRole("table", { name: "Bands" }).getByRole("checkbox"),
-    ).toHaveCount(5);
+    ).toHaveCount(10);
     expect(await violations(page)).toEqual([]);
   });
 });

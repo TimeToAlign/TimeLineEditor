@@ -12,7 +12,8 @@
  *   modes' toolbar's right edge, 3 right of Stretch's box (a menu's padding
  *   and border), both panels share their top, the panel's name starts 2 in
  *   and the select 2 beyond the name, and the select and Stretch are
- *   centred on one line;
+ *   centred on one line, every box read in 1/960 px, a grid holding every
+ *   engine's layout unit (`GRID`);
  * - it lists exactly "As written" and the root's four FlowMaps, each once,
  *   no virtual timeline, `default` chosen; choosing `single` journals
  *   exactly the `style` command setting `flow` to `single` on `{id:
@@ -55,11 +56,22 @@ async function allegroSelected(page: Page, fixture: string): Promise<string> {
   return block;
 }
 
-/** The bounding box of the element `selector` finds, which must be shown. */
+/**
+ * Parts of a pixel the boxes are read in: 1/960, a grid holding both the 1/64 px layout unit of
+ * Chromium and WebKit and Firefox's 1/60 px. Firefox reports a box in single precision, a few
+ * ten-thousandths of a pixel off the place it laid out; read on this grid every engine's box is
+ * the one laid out, exactly (the toolbar's own offset, a translation each engine keeps as it
+ * stands, is the same in every box and cancels out in each comparison).
+ */
+const GRID = 960;
+
+/** The bounding box of the element `selector` finds, which must be shown, in parts of `GRID`. */
 async function boxOf(page: Page, selector: string) {
   const found = await page.locator(selector).boundingBox();
   if (found === null) throw new Error(`${selector} is not shown`);
-  return found;
+  const { x, y, width, height } = found;
+  const read = (value: number) => Math.round(value * GRID);
+  return { x: read(x), y: read(y), width: read(width), height: read(height) };
 }
 
 test("the list stands right of Scale, Box and Stretch, on their row", async ({ page }) => {
@@ -75,9 +87,9 @@ test("the list stands right of Scale, Box and Stretch, on their row", async ({ p
   expect(panel.y).toBe(modes.y);
   // A menu's padding 2 and border 1 (menu.css): Stretch ends 3 before the modes' right edge; the
   // panel, its left border dropped, holds its name from 2 in and the list 2 (the gap) beyond it.
-  expect(modes.x + modes.width).toBe(stretch.x + stretch.width + 3);
-  expect(name.x).toBe(panel.x + 2);
-  expect(list.x).toBe(name.x + name.width + 2);
+  expect(modes.x + modes.width).toBe(stretch.x + stretch.width + 3 * GRID);
+  expect(name.x).toBe(panel.x + 2 * GRID);
+  expect(list.x).toBe(name.x + name.width + 2 * GRID);
   expect(list.y + list.height / 2).toBe(stretch.y + stretch.height / 2);
 });
 

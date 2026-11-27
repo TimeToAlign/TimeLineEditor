@@ -28,6 +28,7 @@ import {
   entryCommands,
   importFixture,
   journalLength,
+  macUserAgent,
   partCentre,
   settledDrawing,
   setViewport,
@@ -113,14 +114,25 @@ test("the flow editor opens from the flow control band, lands, places and folds"
   await page.mouse.down();
   await page.mouse.move(from.x + 40, below.y + below.height + 80, { steps: 8 });
   await page.mouse.up();
-  await expect.poll(() => entriesLength(page)).toBe(placedFrom + 2);
-  const [virtual, placed] = await entryCommands(page, placedFrom);
+  // One step of the flow editor: a closed session of the virtual timeline's `add` and its place's `set`.
+  await expect.poll(() => entriesLength(page)).toBe(placedFrom + 1);
+  const step = await page.evaluate((start) => {
+    const store = window.__tilie.store();
+    const entry = store.entries[start];
+    return entry === undefined || "command" in entry
+      ? []
+      : (store.sessions[entry.session]?.entries ?? []).map((item) =>
+          "command" in item ? item.command : null,
+        );
+  }, placedFrom);
+  const [virtual, placed, ...more] = step;
   expect(virtual).toMatchObject({
     type: "add",
     into: { block },
     virtual_timeline: { map: "printed", timeline: "allegro", name: "printed" },
   });
   expect(placed).toMatchObject({ type: "set" });
+  expect(more).toEqual([]);
 
   // Over the rows a plain wheel pans the canvas as anywhere else; Ctrl+wheel zooms it.
   await setViewport(page, view);
@@ -133,7 +145,9 @@ test("the flow editor opens from the flow control band, lands, places and folds"
   await page.keyboard.down("Control");
   await page.mouse.wheel(0, -100);
   await page.keyboard.up("Control");
-  await expect.poll(async () => (await viewportOf(page)).zoom).toBe(2 ** 0.2);
+  // Svelte Flow's pinch zoom, 2 ** (100 × 0.002 × factor): the factor 10 under a Mac user agent.
+  const factor = (await macUserAgent(page)) ? 10 : 1;
+  await expect.poll(async () => (await viewportOf(page)).zoom).toBe(2 ** (0.2 * factor));
   await setViewport(page, view);
 
   // Done closes the flow editor, then the timeline editor: one journal entry each level.

@@ -126,7 +126,30 @@ test("the band list turns a band off and on", async ({ page }) => {
     "Flow control",
     "Regions",
   ]);
-  for (const box of await list.getByRole("checkbox").all()) await expect(box).toBeChecked();
+  // Each band's own box checked; its tree's box (`a` hidden, `b` holding only `motif`) checked for
+  // flow control alone, the bands of `a` and `b` showing nothing elsewhere but `b`'s regions: mixed.
+  const states = async () =>
+    await list
+      .getByRole("checkbox")
+      .evaluateAll((boxes) =>
+        (boxes as HTMLInputElement[]).map((box) => [
+          box.getAttribute("aria-label"),
+          box.checked,
+          box.indeterminate,
+        ]),
+      );
+  await expect.poll(states).toEqual([
+    ["Children visible", true, false],
+    ["Children with its descendants visible", false, true],
+    ["Markers visible", true, false],
+    ["Markers with its descendants visible", false, true],
+    ["Conversion maps visible", true, false],
+    ["Conversion maps with its descendants visible", false, true],
+    ["Flow control visible", true, false],
+    ["Flow control with its descendants visible", true, false],
+    ["Regions visible", true, false],
+    ["Regions with its descendants visible", false, true],
+  ]);
   const facets = async () => (await bandsOf(page, block, "score")).map((band) => band.facet);
   expect(await facets()).toContain("regions");
 

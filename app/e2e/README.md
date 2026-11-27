@@ -415,9 +415,11 @@ the drag's delta, with undo and redo restoring both placements exactly; two
 selected blocks move in one command with two changes; a snap to another
 block's left edge or plot origin shows one guide at the target; a locked
 canvas pans instead and allows no move, nudge or resize; the wheel pans by
-half its delta, Shift+wheel sideways and Ctrl+wheel zooms about the
-pointer; the marquee selects exactly the blocks wholly inside, keeps its
-start while it pans in the edge zone, and its toggle makes plain drags and
+half its delta, Shift+wheel sideways (reported as vertical or as
+horizontal travel, under every user agent, WebKit's naming a Mac
+included) and Ctrl+wheel zooms about the pointer; the marquee selects
+exactly the blocks wholly inside, keeps its start while it pans in the
+edge zone, and its toggle makes plain drags and
 clicks additive; a click selects an element, a card (marked by a selection
 overlay on the card's own rectangle, never its shadow, drawn by its stroke
 alone, `rgb(10, 132, 255)` 2 px wide and no filter, and no hover overlay
@@ -775,7 +777,14 @@ it; Escape shows "0" again; Remove on `intro` journals `{type: "remove",
 targets: [{block, id: "intro"}]}`, the row gone. On the Properties tab
 with the card of `score` selected: the table "Bands" lists Children,
 Markers, Conversion maps, Flow control and Regions (the band order the
-fixture states), every box checked; unchecking Regions journals `{type:
+fixture states), each with its own box, checked (every band of `score`
+draws what it holds), and its tree's box "… with its descendants visible"
+(`score` has descendants): checked for Flow control alone (`a`'s and `b`'s
+flow control bands are laid out in `score`'s, so displayed is there) and
+mixed, unchecked and indeterminate, for the other four (`a`'s line hidden,
+`b` holding only `motif`: their children, markers and conversion maps
+bands are empty, so absent, and `a`'s regions band too, while `score`'s
+show); unchecking Regions journals `{type:
 "style", select: {element: "band", addresses: [{id: "score", facet:
 "regions"}]}, set: {display: "none"}, blocks: [block]}`, the box then
 unchecked, and the hook no longer records `score`'s regions band (a band
@@ -1138,7 +1147,8 @@ elision's form shown with its Delete elision button. On
 Regions tab listing `intro` and, under the heading "b", the region
 `motif` the test adds (one `add` with its own ID), `intro`'s row marked
 once its head is pressed; then, the card selected again, the Properties tab with the table "Bands"
-and its five Visible checkboxes. The unnamed pin
+and its ten Visible checkboxes, each band's own box and its tree's box (`score` has the
+descendants `a` and `b`). The unnamed pin
 (the rotation's degree readout beside its disabled slider) and the
 Journal tab (an undone entry's text, time and author) are checked for
 contrast like every other state.
@@ -1894,7 +1904,7 @@ chunks playing A, over `[x(100), x(200)]` and `[x(600), x(700)]` of the
 virtual card, `x(t) = x0 + 400 × t / (4241/2)`, three braces and three
 labels on the page.
 
-**`segment-ui.spec.ts`** (Chromium) proves in a browser what the inspector
+**`segment-ui.spec.ts`** (Chromium, Firefox, WebKit) proves in a browser what the inspector
 and a double-click do with a virtual card's windows (section 8.10,
 Windows), on `flow/virtual_cards` with `allegro_default` placed alone at
 (0, 200), the region `motto` "Motto" over `[100, 200]` and the conversion
@@ -1915,9 +1925,15 @@ window's), the inspector open and the regions shown, opens the virtual
 card's editor, the timeline editor of `allegro_default` (`{target:
 {block, id: "allegro_default"}, kind: "timeline"}`), with `{block, id:
 "motto"}` selected; three end handles show (`allegro`'s brace, then the
-two windows'). The second, the first window's, dragged right by the
+two windows'). The second, the first window's, is dragged right by the
 window brace's own width on the screen (its `x2 − x1` in the drawing
-times the block's scale and the zoom: 100 quarters there) adds one entry
+times the block's scale and the zoom: 100 quarters there). Firefox and
+WebKit deliver a pointer at whole CSS pixels only, so a press and a
+travel of fractional pixels would land up to a pixel (here two quarters)
+off in them: the zoom is first set so that this width is a whole number
+of pixels (the width at the zoom shown, rounded, over the width in canvas
+units), and the handle pressed at its centre rounded to whole pixels;
+the travel is then exact in every engine. The drag adds one entry
 to the editor's session, the one `set` of `motto` `{end: [300, 1]}`: the
 source region.
 Every brace of `motto` the canvas then draws, on `allegro`'s card and in
@@ -2278,14 +2294,18 @@ row's Done the pane lists five rows, the first four as before, the new
 FlowMap's last (it keeps the place it appeared in while the editor is
 open). The row
 `printed` lifted by its name and released 80 px below the pane, past the
-editor's border, stores two entries: the `add` of its virtual timeline
-`{map: "printed", timeline: "allegro", name: "printed"}` (named as its
-row) and a `set` placing it. Back at that viewport, the pointer over the
+editor's border, stores one entry, one step of the flow editor (a
+closed session of exactly two commands): the `add` of its virtual
+timeline `{map: "printed", timeline: "allegro", name: "printed"}` (named
+as its row) and a `set` placing it. Back at that viewport, the pointer over the
 first row's drawing, a plain wheel (`deltaY` 40) pans the canvas up by
 `0.5 × 40 = 20`, as anywhere else on it; with Control held a wheel of
 `deltaY` −100 zooms the canvas as
 anywhere else on it (Svelte Flow's zoom on scroll with the activation key
-held, `2 ^ (100 × 0.002)`), to zoom exactly `2 ^ 0.2`. Done twice
+held, `2 ^ (100 × 0.002 × f)`), to zoom exactly `2 ^ (0.2 f)`: `f` is 1,
+and 10 under a user agent naming a Mac (WebKit's as Playwright drives it),
+where Svelte Flow takes a wheel with Ctrl for a trackpad pinch (`2 ^ 2`
+= 4), as `canvas.spec.ts` derives its zoom. Done twice
 closes both editors and the journal gains exactly one entry, the timeline
 editor's session holding the flow editor's. On the arranger, with no
 editor open and the drawing settled at viewport (40, 40), zoom 1, a double-click
@@ -2370,9 +2390,10 @@ so that the card, the pane and the points the drags reach left and right
 of the pane lie inside the 1280 × 800 window. **The wheel**: with the
 pointer over the first row's drawing, a plain wheel (`deltaY` 40) pans
 the canvas up by Svelte Flow's `0.5 × 40 = 20` and a wheel with Shift held
-pans it left by 20 (Svelte Flow's Shift wheel, or the canvas's own where
-the browser reports it as horizontal travel), the viewport read back
-exactly; the pane does not keep the wheel. **Place as card**: the button
+pans it left by 20 (the canvas's own Shift wheel, whichever axis the
+engine reports its travel on: WebKit, whose user agent names macOS, reports
+it as vertical travel, which Svelte Flow would pan up), the viewport read
+back exactly; the pane does not keep the wheel. **Place as card**: the button
 of `printed`, then of `single`, stores one entry each: for `printed` its
 virtual timeline's `add` and its place's `set` as one step (a session of
 the two), for `single` (which `allegro_single` applies) the `set` alone;
