@@ -27,6 +27,7 @@ import {
 } from "../src/index.ts";
 import {
   ARCS_ALONE,
+  AUTO_ELISIONS,
   at,
   BLOCK,
   boxesOf,
@@ -886,53 +887,53 @@ describe("no card overlaps another item's", () => {
   const bottomOf = (box: DrawnBox) => box.y + box.height;
 
   it("moves the item after a card reaching below its frame down by the reach", () => {
-    const drawing = drawFixture("bundles/bundle_mixed", [ARCS_ALONE]);
+    // "Facsimile" (`group_2`) is drawn first; its ancestor card, deriving its elisions, reaches
+    // below its frame, so "Performance" (`group_1`) lies the spacing 8 below the card.
+    const drawing = drawFixture("bundles/bundle_mixed", [AUTO_ELISIONS, ARCS_ALONE]);
     const card = behindOf(drawing, "group_2");
     const excerpt = drawing.boxes.find(
       (box) => box.key !== null && samePlaceKey(box.key, { item: "group_2", member: "excerpt" }),
     );
-    expect(card.y).toBe(288.3203125);
-    expect(excerpt?.y).toBe(288.3203125);
+    expect(card.y).toBe(111.0859375);
+    expect(excerpt?.y).toBe(111.0859375);
     expect(card.height).toBe(67.4765625 + 19.9765625);
     expect(card.height).toBe(87.453125);
-    expect(bottomOf(card)).toBe(375.7734375);
-    expect(bottomOf(itemOf(drawing, "group_2"))).toBe(363.796875);
-    expect(itemOf(drawing, "annotations").y).toBe(383.7734375);
+    expect(bottomOf(card)).toBe(198.5390625);
+    expect(bottomOf(itemOf(drawing, "group_2"))).toBe(186.5625);
+    expect(itemOf(drawing, "group_1").y).toBe(198.5390625 + 8);
     expect(drawing.height).toBe(465.62890625);
   });
 
-  it("moves nothing but the item after the card, by exactly the reach", () => {
-    const shownCard = drawFixture("bundles/bundle_mixed", [ARCS_ALONE]);
+  it("moves nothing but the items after the card, by exactly the reach", () => {
+    const shownCard = drawFixture("bundles/bundle_mixed", [AUTO_ELISIONS, ARCS_ALONE]);
     const whole = drawFixture("bundles/bundle_mixed", [FULL_CARDS, ARCS_ALONE]);
     expect(bottomOf(behindOf(whole, "group_2")) <= bottomOf(itemOf(whole, "group_2"))).toBe(true);
-    expect(itemOf(whole, "annotations").y).toBe(371.796875);
-    const annotations = itemOf(shownCard, "annotations");
-    const before = itemOf(whole, "annotations");
+    expect(itemOf(whole, "group_1").y).toBe(194.5625);
     const lower = 11.9765625;
-    expect(annotations.y - before.y).toBe(lower);
     const dx = shownCard.origin.x - whole.origin.x;
-    expect(annotations.item?.place.y).toBe(383.7734375);
-    expect(annotations.item?.stated).toEqual(before.item?.stated);
-    expect(annotations).toEqual({
-      ...placedBox(before, dx, lower),
-      range: annotations.range,
-      item: annotations.item,
-    });
-    expect(annotations.range.end - annotations.range.start).toBe(
-      before.range.end - before.range.start,
-    );
+    for (const id of ["group_1", "annotations"]) {
+      const moved = itemOf(shownCard, id);
+      const before = itemOf(whole, id);
+      expect(moved.y - before.y, id).toBe(lower);
+      expect(moved.item?.stated, id).toEqual(before.item?.stated);
+      expect(moved, id).toEqual({
+        ...placedBox(before, dx, lower),
+        range: moved.range,
+        item: moved.item,
+      });
+      expect(moved.range.end - moved.range.start, id).toBe(before.range.end - before.range.start);
+    }
+    expect(itemOf(shownCard, "annotations").item?.place.y).toBe(383.7734375);
+    // Every record of the items after the card moves by the reach, every other one not at all.
+    // Their ranges differ: the card's gaps draw elements of their own.
+    const placeOf = ({ range: _, item: __, ...rest }: DrawnBox) => rest;
+    const after = (box: DrawnBox) => box.key?.item === "group_1" || box.key?.item === "annotations";
     const others = (drawing: Drawing) =>
       drawing.boxes.filter(
-        (box) =>
-          box.kind !== "block" &&
-          box.ancestor === undefined &&
-          box.key !== null &&
-          box.key.item !== "annotations",
+        (box) => box.kind !== "block" && box.ancestor === undefined && box.key !== null,
       );
-    // Their ranges differ: the card's gaps draw elements of their own.
-    const placeOf = ({ range: _, ...rest }: DrawnBox) => rest;
     expect(others(shownCard).map(placeOf)).toEqual(
-      others(whole).map((box) => placeOf(placedBox(box, dx, 0))),
+      others(whole).map((box) => placeOf(placedBox(box, dx, after(box) ? lower : 0))),
     );
   });
 

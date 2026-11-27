@@ -1704,9 +1704,36 @@ Vertical chosen.
   `bungroup00` entered then, its Horizontal stands the cards side by side as
   in the first case.
 
-The same sequence on `musical_themes_dataset/beethoven/op2_no1/manifest.json`
-(28 groups on 17 roots) is not part of the suite: the file lies outside this
-repository and the schema package, where the test container cannot read it.
+The same sequence on a large bundle is `bundle.spec.ts`.
+
+**`bundle.spec.ts`** (Chromium) proves a large bundle side by side
+(TimeToShare's drawing specification, sections 8.1, 8.6 and 8.8, Drawn
+once) on `beethoven/op2_no1/manifest.json` of the musical themes dataset:
+28 groups of excerpts of four CD tracks of Brendel's recording, MIDI files
+and scores. The dataset is not part of this repository: the variable
+`MUSICAL_THEMES_DATASET` names its directory, `run.ts` passes it into the
+container and mounts the directory read-only at its own path
+(`container.ts`), and without it the spec does not run. The page is 1920 ×
+1080 at device scale 1, with full motion, every check polling until the
+drawing is at rest. The manifest is imported through File › Import
+manifest…, its bundle editor entered and Horizontal chosen in the Arrange
+menu (one entry more, shown pressed, the block's arrangement
+`horizontal`). The expectations are read from the manifest itself:
+
+- the groups are taken in name order (title, then ID, by code point,
+  section 8.1), and their frames' drawn `x` increase in that order;
+- tracks 1, 3 and 4 (`cpt_3856xdsl3z3hd`, `cpt_3p04tgywxp05z`,
+  `cpt_323f74gjyd6li`) each hold the excerpts of two groups, the six
+  EDM-alig groups of B689, B690, B692 to B695, so each is a shared root,
+  drawn once; their stretches lie apart along the row, so all three take
+  the first line: every horizontal part of their lines, each once card's
+  pieces and the ancestor line of the track in each hanging group's card,
+  lies at one ordinate, below the row's top;
+- track 2 (`cpt_18o5vli1d8q4n`) holds the excerpt of B691's EDM-alig group
+  alone: no shared root, its ancestor card stays behind that frame;
+- every group hanging on no shared track, B691's EDM-alig group among
+  them, has its frame at one `y`, the row's top, the smallest frame `y`;
+  each hanging group lies there or lower, as its anchor's line asks.
 
 **`segments.spec.ts`** (Chromium, Firefox, WebKit) proves in a browser the
 refusal to delete a segment: with the schema package's `segment_line`

@@ -61,9 +61,10 @@ import type { Context, Holder } from "./traversal.ts";
  *
  * An arranged block (sections 8.6 and 8.8) takes its items in the
  * arrangement's item order, each at its default place; side by side, in the
- * row core's `rowOf` gives, every root that groups hang on drawn once behind
- * it; where `rowOf` refuses the row, one under another in the item order. The
- * drawing states the arrangement.
+ * row core's `rowOf` gives, every root that two or more groups hang on drawn
+ * once behind it, a root that one group hangs on behind that group's frame;
+ * where `rowOf` refuses the row, one under another in the item order. The
+ * drawing states the arrangement, the shared roots line by line.
  *
  * `manifest` is in canonical order, as every manifest core reads or settles
  * is: the drawing follows the order of its arrays and never copies it. Its
@@ -96,13 +97,17 @@ export function draw(
   const margin = placement.margin ?? 0;
   const Pt = (title === undefined ? P : P + measure.lineHeight(title.size) + F) + margin;
 
-  const { arrangement, row } = arranged(manifest, placement);
+  const asked = arranged(manifest, placement);
+  const { row } = asked;
+  let { arrangement } = asked;
   let laid: readonly LaidItem[];
   let ancestors: readonly LaidAncestorCard[];
   if (row !== null) {
     const side = rowLayout(context, block, Pt, row, measure);
     laid = side.laid;
-    ancestors = side.once;
+    ancestors = side.ancestors;
+    // The shared roots as the drawing states them: line by line, on each line from the left.
+    if (arrangement !== undefined) arrangement = { ...arrangement, roots: side.roots };
   } else {
     // The member cards whose ancestor rows lie at their roots' heights (section 8.3) are laid out
     // again on the rows of the ancestor cards behind them, which read their frames as first laid
@@ -188,7 +193,8 @@ function reachesOf(cards: readonly LaidAncestorCard[]): Map<string, Reach> {
  * The arrangement `placement` asks of `manifest` (sections 1 and 8.6): none,
  * or what the drawing states of it, and for `horizontal` the row core's
  * `rowOf` gives, null where it refuses the row, which is then drawn
- * `vertical` in the item order and states the conflict.
+ * `vertical` in the item order and states the conflict. The shared roots it
+ * states are in core's order; the layout states them line by line.
  */
 function arranged(
   manifest: Manifest,

@@ -64,17 +64,18 @@ describe("the registry", () => {
 
 describe("the containers of a manifest", () => {
   it("lists frames and cards in drawing order, each with its holder", () => {
-    // The ancestor cards; groups by ID; members in display order (`graphical.order`); then the
-    // ungrouped roots. `recording` holds the member `excerpt`, so it is drawn as an ancestor line
-    // and in its ancestor card behind `group_2`, held by the block, and has no card of its own.
+    // The ancestor cards; groups in name order ("Facsimile" `group_2` before "Performance"
+    // `group_1`); members in display order (`graphical.order`); then the ungrouped roots.
+    // `recording` holds the member `excerpt`, so it is drawn as an ancestor line and in its
+    // ancestor card behind `group_2`, held by the block, and has no card of its own.
     expect(items(containersOf(load(MIXED)).all)).toEqual([
       ["card", { item: "group_2", member: "recording" }, null],
-      ["frame", { item: "group_1" }, null],
-      ["card", { item: "group_1", member: "score" }, { item: "group_1" }],
-      ["card", { item: "group_1", member: "performance" }, { item: "group_1" }],
       ["frame", { item: "group_2" }, null],
       ["card", { item: "group_2", member: "page" }, { item: "group_2" }],
       ["card", { item: "group_2", member: "excerpt" }, { item: "group_2" }],
+      ["frame", { item: "group_1" }, null],
+      ["card", { item: "group_1", member: "score" }, { item: "group_1" }],
+      ["card", { item: "group_1", member: "performance" }, { item: "group_1" }],
       ["card", { item: "annotations" }, null],
     ]);
   });
@@ -82,24 +83,24 @@ describe("the containers of a manifest", () => {
   it("addresses a frame by its group, a card by its timeline, and keys both by their place", () => {
     const { all, byKey, ancestorCards, frames, cards, block } = containersOf(load(MIXED));
     expect([...byKey.keys()]).toEqual([
-      '["group_1"]',
-      '["group_1","score"]',
-      '["group_1","performance"]',
       '["group_2"]',
       '["group_2","page"]',
       '["group_2","excerpt"]',
+      '["group_1"]',
+      '["group_1","score"]',
+      '["group_1","performance"]',
       '["annotations"]',
     ]);
     expect(
       all.filter((ref) => ref.kind !== "band").map((ref) => [ref.address, ref.timeline]),
     ).toEqual([
       [{ id: "recording", part: ["card"] }, "recording"],
-      [{ id: "group_1" }, null],
-      [{ id: "score", part: ["card"] }, "score"],
-      [{ id: "performance", part: ["card"] }, "performance"],
       [{ id: "group_2" }, null],
       [{ id: "page", part: ["card"] }, "page"],
       [{ id: "excerpt", part: ["card"] }, "excerpt"],
+      [{ id: "group_1" }, null],
+      [{ id: "score", part: ["card"] }, "score"],
+      [{ id: "performance", part: ["card"] }, "performance"],
       [{ id: "annotations", part: ["card"] }, "annotations"],
     ]);
     expect(ancestorCards.map(({ ref }) => ref)).toEqual([all[0]]);
@@ -110,13 +111,13 @@ describe("the containers of a manifest", () => {
         card.root.timeline.id,
       ]),
     ).toEqual([["group_2", "excerpt", "recording"]]);
-    expect([...frames.keys()]).toEqual(["group_1", "group_2"]);
+    expect([...frames.keys()]).toEqual(["group_2", "group_1"]);
     expect([...cards.keys()]).toEqual([
       "recording",
-      "score",
-      "performance",
       "page",
       "excerpt",
+      "score",
+      "performance",
       "annotations",
     ]);
     expect(block).toEqual({
@@ -187,29 +188,30 @@ describe("the containers of a manifest", () => {
     const { all, byKey, cards } = containersOf(manifest);
     const g1t = { item: "g1", member: "t" };
     const g2t = { item: "g2", member: "t" };
+    // "Page" `g2` comes before "Performance" `g1` in name order.
     expect(items(all)).toEqual([
-      ["frame", { item: "g1" }, null],
-      ["card", g1t, { item: "g1" }],
-      ["card", { item: "g1", member: "u" }, { item: "g1" }],
       ["frame", { item: "g2" }, null],
       ["card", g2t, { item: "g2" }],
       ["card", { item: "g2", member: "v" }, { item: "g2" }],
+      ["frame", { item: "g1" }, null],
+      ["card", g1t, { item: "g1" }],
+      ["card", { item: "g1", member: "u" }, { item: "g1" }],
     ]);
     expect([...byKey.keys()]).toEqual([
-      '["g1"]',
-      '["g1","t"]',
-      '["g1","u"]',
       '["g2"]',
       '["g2","t"]',
       '["g2","v"]',
+      '["g1"]',
+      '["g1","t"]',
+      '["g1","u"]',
     ]);
     expect((cards.get("t") ?? []).map((card) => [card.key, card.address])).toEqual([
-      [g1t, { id: "t", part: ["card"] }],
       [g2t, { id: "t", part: ["card"] }],
+      [g1t, { id: "t", part: ["card"] }],
     ]);
     const { bands } = containersOf(manifest);
     for (const facet of ["children", "conversion_maps", "markers", "regions", "flow_control"]) {
-      expect(holders(bands, "t", facet as "regions")).toEqual([g1t, g2t]);
+      expect(holders(bands, "t", facet as "regions")).toEqual([g2t, g1t]);
     }
     expect(holders(bands, "u", "regions")).toEqual([{ item: "g1", member: "u" }]);
     expect(isMember(manifest, "t")).toBe(true);
@@ -232,10 +234,10 @@ describe("the containers of a manifest", () => {
       shape("t", { facet: "regions" }),
       shape("g1", { part: ["card"] }),
     ]).toEqual([
-      ["timeline", [g1t, g2t]],
-      ["card", [g1t, g2t]],
+      ["timeline", [g2t, g1t]],
+      ["card", [g2t, g1t]],
       ["card", [{ item: "g1", member: "u" }]],
-      ["band", [g1t, g2t]],
+      ["band", [g2t, g1t]],
       undefined,
     ]);
   });

@@ -53,9 +53,9 @@ export interface Placement {
 
 /**
  * The arrangement a drawing states (section 1): its direction as asked, the IDs of its items in
- * the order they are drawn (for `horizontal` the row, else the item order), the roots drawn once,
- * top to bottom (none unless drawn side by side), and, where `horizontal` is refused and the block
- * drawn `vertical`, the conflict.
+ * the order they are drawn (for `horizontal` the row, else the item order), the shared roots drawn
+ * once, line by line from the top and on each line from the left (none unless drawn side by side),
+ * and, where `horizontal` is refused and the block drawn `vertical`, the conflict.
  */
 export interface DrawnArrangement {
   readonly direction: ItemDirection;

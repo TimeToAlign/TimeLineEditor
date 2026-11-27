@@ -382,12 +382,13 @@ describe("a timeline in several groups (bundle_shared_member)", () => {
         .filter((box) => box.kind === "frame" || box.kind === "card")
         .map((box) => [box.kind, box.key, box.address, box.holder]),
     ).toEqual([
-      ["frame", { item: "g1" }, at("g1"), null],
-      ["card", G1T, at("t", "card"), { item: "g1" }],
-      ["card", { item: "g1", member: "u" }, at("u", "card"), { item: "g1" }],
+      // In name order: "Page" `g2`, then "Performance" `g1`.
       ["frame", { item: "g2" }, at("g2"), null],
       ["card", G2T, at("t", "card"), { item: "g2" }],
       ["card", { item: "g2", member: "v" }, at("v", "card"), { item: "g2" }],
+      ["frame", { item: "g1" }, at("g1"), null],
+      ["card", G1T, at("t", "card"), { item: "g1" }],
+      ["card", { item: "g1", member: "u" }, at("u", "card"), { item: "g1" }],
     ]);
   });
 
@@ -404,8 +405,8 @@ describe("a timeline in several groups (bundle_shared_member)", () => {
         .filter((box) => box.band?.timeline === "t")
         .map((box) => [box.address, box.holder]),
     ).toEqual([
-      [bandAddress("t", "markers"), G1T],
       [bandAddress("t", "markers"), G2T],
+      [bandAddress("t", "markers"), G1T],
     ]);
   });
 
@@ -478,6 +479,10 @@ describe("the axes of the drawn lines", () => {
     expect(
       drawing.axes.map((axis) => [axis.address, axis.maps.map((map) => [map.id, map.owner])]),
     ).toEqual([
+      // The frames in name order: "Facsimile", then "Performance".
+      [at("page"), [["cmap_4", "page"]]],
+      [at("recording"), []],
+      [at("excerpt"), [["cmap_6", "excerpt"]]],
       [
         at("score"),
         [
@@ -486,9 +491,6 @@ describe("the axes of the drawn lines", () => {
         ],
       ],
       [at("performance"), [["cmap_3", "performance"]]],
-      [at("page"), [["cmap_4", "page"]]],
-      [at("recording"), []],
-      [at("excerpt"), [["cmap_6", "excerpt"]]],
       [at("annotations"), []],
     ]);
     // Each map's place is that of its drawn element.
@@ -507,9 +509,10 @@ describe("the axes of the drawn lines", () => {
     const keys = drawing.axes
       .filter((axis) => sameAddress(axis.address, at("t")))
       .map((axis) => axis.card);
+    // In name order: "Page" `g2`, then "Performance" `g1`.
     expect(keys).toEqual([
-      { item: "g1", member: "t" },
       { item: "g2", member: "t" },
+      { item: "g1", member: "t" },
     ]);
   });
 

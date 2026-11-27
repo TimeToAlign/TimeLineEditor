@@ -26,8 +26,8 @@ import {
   rootHidden,
 } from "@timetoalign/tilie-arranger";
 import type { Block, SetCommand, StyleCommand, View } from "@timetoalign/tilie-core";
-import { compareCodePoints, idAddress, inBlock } from "@timetoalign/tilie-core";
-import { memberDrawings } from "@timetoalign/tilie-core/drawing";
+import { idAddress, inBlock } from "@timetoalign/tilie-core";
+import { memberDrawings, ungroupedVirtuals } from "@timetoalign/tilie-core/drawing";
 
 /** What a row of the list is: a group's frame, a root's card, a virtual timeline's card. */
 export type TimelineRowKind = "group" | "timeline" | "virtual_timeline";
@@ -77,8 +77,8 @@ function rootVisibility(block: Block, id: string): Visibility {
 /**
  * The timeline list of the one bundle the subjects name, in `view`: its
  * groups' frames, its ungrouped roots and its virtual timelines no group
- * names, in that order (frames and roots in core's canonical order, virtual
- * timelines by ID). `null` unless the subjects are exactly one block.
+ * names, in that order, each in name order (core's `compareByName`), as the
+ * block draws them. `null` unless the subjects are exactly one block.
  */
 export function timelineList(view: View, subjects: readonly Subject[]): TimelineRow[] | null {
   const [subject, ...others] = subjects;
@@ -87,10 +87,7 @@ export function timelineList(view: View, subjects: readonly Subject[]): Timeline
   if (block === undefined) return null;
   const { manifest } = block;
   const { frames, ungrouped } = memberDrawings(manifest);
-  const grouped = new Set(manifest.groups.flatMap((group) => group.members));
-  const virtual = (manifest.virtual_timelines ?? [])
-    .filter((item) => !grouped.has(item.id))
-    .sort((left, right) => compareCodePoints(left.id, right.id));
+  const virtual = ungroupedVirtuals(manifest);
   return [
     ...frames.map(
       ({ group }): TimelineRow => ({

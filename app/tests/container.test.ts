@@ -72,4 +72,24 @@ describe("podmanArguments", () => {
       ...BEFORE.slice(6),
     ]);
   });
+
+  it("mounts a data directory outside the app directory read-only at its own path", () => {
+    const schemaPackage = "/w/app/node_modules/.pnpm/x/node_modules/y";
+    expect(
+      podmanArguments({
+        ...common,
+        schemaPackage,
+        dataset: "/data/themes",
+        env: ["MUSICAL_THEMES_DATASET"],
+      }),
+    ).toEqual([
+      ...BEFORE.slice(0, 6),
+      "--volume=/data/themes:/data/themes:ro,z",
+      BEFORE[6],
+      "--env=MUSICAL_THEMES_DATASET",
+      ...BEFORE.slice(7),
+    ]);
+    expect(podmanArguments({ ...common, schemaPackage, dataset: "/w/app/data" })).toEqual(BEFORE);
+    expect(podmanArguments({ ...common, schemaPackage, dataset: null })).toEqual(BEFORE);
+  });
 });

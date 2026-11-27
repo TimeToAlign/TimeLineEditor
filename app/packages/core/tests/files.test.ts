@@ -391,15 +391,7 @@ describe("the elements of a named manifest with two groups", () => {
       ...ofExcerpt,
       bandOf("recording", "regions"),
       bandOf("recording", "flow_control"),
-      id("group_1"),
-      id("group_1", "name"),
-      id("score", "card"),
-      ...drawn("score", 9, {
-        maps: [id("cmap_1"), id("cmap_2")],
-        flow: [id("jump_1"), id("jump_1", "id"), id("jump_1", "label"), id("jump_1", "symbol")],
-      }),
-      id("performance", "card"),
-      ...drawn("performance", 7, { maps: [id("cmap_3")] }),
+      // The frames in name order: "Facsimile" `group_2` before "Performance" `group_1`.
       id("group_2"),
       id("group_2", "name"),
       id("page", "card"),
@@ -410,6 +402,15 @@ describe("the elements of a named manifest with two groups", () => {
       id("recording", "name"),
       ...ofExcerpt,
       ...drawn("excerpt", 3, { maps: [id("cmap_6")] }, true),
+      id("group_1"),
+      id("group_1", "name"),
+      id("score", "card"),
+      ...drawn("score", 9, {
+        maps: [id("cmap_1"), id("cmap_2")],
+        flow: [id("jump_1"), id("jump_1", "id"), id("jump_1", "label"), id("jump_1", "symbol")],
+      }),
+      id("performance", "card"),
+      ...drawn("performance", 7, { maps: [id("cmap_3")] }),
       id("annotations", "card"),
       ...drawn("annotations", 1, {
         regions: [id("region_1"), id("region_1", "label"), id("region_2"), id("region_2", "label")],
@@ -447,18 +448,19 @@ describe("the elements of a named manifest with two groups", () => {
         ]),
       ]),
     ).toEqual([
-      [
-        "group_1",
-        [
-          ["score", []],
-          ["performance", []],
-        ],
-      ],
+      // In name order: "Facsimile" before "Performance".
       [
         "group_2",
         [
           ["page", []],
           ["excerpt", [["recording", recording?.children[0]?.offset]]],
+        ],
+      ],
+      [
+        "group_1",
+        [
+          ["score", []],
+          ["performance", []],
         ],
       ],
     ]);
