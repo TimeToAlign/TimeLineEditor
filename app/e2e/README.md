@@ -1574,6 +1574,51 @@ drawing's origin is `(0, 0)`, so the node lies at the block's stated place.
    its computed `transform`, compared with the one the browser computes for
    the exact position (`support.ts`, `placedAt`).
 
+**`arrange.spec.ts`** (Chromium, Firefox, WebKit) proves that a bundle's
+Horizontal stands its items side by side whatever arrangements came before
+it (TimeToShare's drawing specification, sections 8.6 and 8.8, Drawn once,
+step 3 Tops: every item that hangs on nothing has its top at the row's top),
+with full motion, as the editor runs by default, every check polling until
+the drawing is at rest; the page is 1920 × 1080 at device scale 1, the
+viewport at (40, 40), zoom 0.5. The Arrange menu is opened from the canvas
+controls as in `arrangement.spec.ts`, every choice one entry more and shown
+pressed. On `bundles` the arranger's Matrix stores `{direction: matrix,
+columns: 2}` (`⌈√4⌉`), then the bundle editor of a block is entered and its
+Vertical chosen.
+
+- `bungroup00` (`bundle_ungrouped`: the ungrouped roots `pages`,
+  `recording`, `score`, no group, so no item hangs on a root): Vertical
+  draws the three cards at `x` 8 and `y` 28.8046875, 100.2578125 and
+  157.734375 (the block drawn without an arrangement; README of the
+  layout package, Arrangements, item 6); Horizontal stores `{direction:
+  horizontal, order: [pages, recording, score]}`, Vertical is no longer
+  pressed, and the cards lie at one `y`, 28.8046875 (the first item's
+  default top), and `x` 8, 565.3271484375 and 1122.654296875 (each card
+  509.3271484375 wide, the row gap 48), one top on the screen too, the node
+  stated 1641.9814453125 × 120.7265625 canvas units (the layout package's
+  numbers: this block's placement is the default one). Before the fix the
+  row's top was the smallest of no tops, every ordinate `NaN`: the node grew
+  wide while the cards stayed one under another, the symptom reported.
+- `bshared000` (`bundle_shared_parent`: `group_1` and `group_2` hang on one
+  root): Vertical draws both frames at one `x`; Horizontal stores
+  `{direction: horizontal, order: [group_1, group_2, page]}` and draws
+  `group_1` at (167.4136, 35.8125) and `group_2` at (782.8037, 28.8047), as
+  the writer prints them: side by side, the values the arranger's drawing
+  code gives this block at the canvas's pane with the drawer open (its
+  ancestor card's automatic proportion reads the pane, section 8.9), as
+  `arrangement.spec.ts` reads its own.
+- The arranger's level: on `bundles` with Matrix chosen and `bungroup00`
+  selected, the arranger's Horizontal stores `{direction: horizontal}` on
+  the workspace and nothing on the block: the four nodes stand at one top,
+  and the bundle's cards stay at one `x`, one under another (the arranger's
+  menu arranges blocks, a bundle editor's its items). The bundle editor of
+  `bungroup00` entered then, its Horizontal stands the cards side by side as
+  in the first case.
+
+The same sequence on `musical_themes_dataset/beethoven/op2_no1/manifest.json`
+(28 groups on 17 roots) is not part of the suite: the file lies outside this
+repository and the schema package, where the test container cannot read it.
+
 **`segments.spec.ts`** (Chromium, Firefox, WebKit) proves in a browser the
 refusal to delete a segment: with the schema package's `segment_line`
 imported and its segment `b` selected, Delete and Backspace each show

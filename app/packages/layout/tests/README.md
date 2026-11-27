@@ -2302,6 +2302,22 @@ specification orders the operations.
    [score], reason: "\"Theme A\" and \"Theme B\" overlap on \"Score\"
    (8–16 ♩)"}}` and draws every element and record as the bundle drawn
    without an arrangement (the item order being the drawing order).
+6. **Side by side with nothing to hang on** (section 8.8, Vertically, step
+   3: every item that hangs on nothing has its top at the row's top `T0`,
+   and everything moves so that the highest item lies where the first item
+   would): `bundle_ungrouped`, three ungrouped roots and no group, asked
+   `horizontal` with the stored order `[score, pages]`, has no group top and
+   no once card, so no `T0` is found among them and every item lies at the
+   first item's default top, `28.8046875` (where `pages` lies drawn without
+   an arrangement). The drawing states the row `[score, pages, recording]`
+   (the stored order, then the item left out) and no roots; the three
+   cards, each `509.3271484375` wide as without an arrangement, lie at `x`
+   8, `8 + 509.3271484375 + 48 = 565.3271484375` and `1122.654296875`, the
+   row gap `max(S, 48) = 48`; no ancestor card is recorded; the block is
+   `1122.654296875 + 509.3271484375 + 2 + P = 1641.9814453125` wide and,
+   `score` the highest card (81.921875), `28.8046875 + 81.921875 + 2 + P =
+   120.7265625` high, every number finite (the defect this case guards:
+   the smallest of no tops is infinite and put every ordinate at `NaN`).
 
 ## Labels in tiers and leader lines (`labels.test.ts`)
 
