@@ -5,12 +5,13 @@
  * sections and whose root holds none), its conversion maps hidden and
  * shown again on every child, the root's own empty Regions band shown
  * (explicitly, so drawn though empty) and hidden, never disabled, a press
- * of several commands inside an open editor one undo step, and the two
- * boxes drawn as one control in the editor's flag colours. The expected values are derived in
- * `README.md` ("controls.spec.ts").
+ * of several commands inside an open editor one undo step, the two
+ * boxes drawn as one control in the editor's flag colours, and the halo of
+ * the selected line in the editor's selection colour. The expected values
+ * are derived in `README.md` ("controls.spec.ts").
  */
 
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import {
   arranger,
@@ -22,6 +23,7 @@ import {
   importFixture,
   journalLength,
   newestCommand,
+  node,
   panel,
   select,
   storeText,
@@ -253,4 +255,25 @@ test("draws the two boxes as one control with the editor's flag face and edge", 
     sides: [edge, edge, edge, edge],
     divider: edge,
   });
+});
+
+test("draws the selected line's halo in the editor's selection colour", async ({ page }) => {
+  const block = await importFixture(page, "unknown_length_child");
+  await select(page, [{ block, id: "score" }]);
+  const halos = node(page, block).locator(".tilie-halo");
+  const strokes = node(page, block).locator('[data-selected][stroke]:not(rect, [stroke="none"])');
+  await expect(halos).toHaveCount(1);
+  await expect(strokes).toHaveCount(1);
+  const paint = (item: Locator) =>
+    item.evaluate((shape) => {
+      const style = getComputedStyle(shape);
+      return [style.stroke, style.strokeOpacity];
+    });
+  expect(await paint(halos)).toEqual(["rgb(10, 132, 255)", "0.35"]);
+  // The halo and the stroke read the token the editor defines: changing it there repaints both.
+  await page.locator(".editor").evaluate((editor) => {
+    (editor as HTMLElement).style.setProperty("--tilie-selection", "rgb(200, 0, 0)");
+  });
+  expect(await paint(halos)).toEqual(["rgb(200, 0, 0)", "0.35"]);
+  expect((await paint(strokes))[0]).toBe("rgb(200, 0, 0)");
 });

@@ -253,10 +253,9 @@
 }
 
 /*
- * A box holding part of the selection is marked in the selection's colour,
- * more thinly the further out it lies: a card 3 px dashed, a frame 2 px
- * dashed, the block 1 px dotted, its widths and dashes divided by the canvas
- * zoom as every mark's are.
+ * A box holding part of the selection is marked in the selection's colour:
+ * a card and a frame 2 px dashed, the block outside them 1 px dotted, its
+ * widths and dashes divided by the canvas zoom as every mark's are.
  */
 .tilie-canvas .tilie-block .tilie-mark[data-mark="holding"] {
   --dash: calc(6px / var(--tilie-zoom, 1));
@@ -265,11 +264,9 @@
   stroke-dasharray: var(--dash) var(--gap);
 }
 
-.tilie-canvas .tilie-block .tilie-mark[data-mark="holding"][data-box="card"] {
-  stroke-width: calc(2px / var(--tilie-zoom, 1));
-}
-
-.tilie-canvas .tilie-block .tilie-mark[data-mark="holding"][data-box="frame"] {
+.tilie-canvas
+  .tilie-block
+  .tilie-mark[data-mark="holding"]:is([data-box="card"], [data-box="frame"]) {
   stroke-width: calc(2px / var(--tilie-zoom, 1));
 }
 
