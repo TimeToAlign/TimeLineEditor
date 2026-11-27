@@ -325,16 +325,19 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
       rotation: wedge.style.rotation ?? 0,
       wedge: banded && lists("wedge") ? drawn(wedge) : undefined,
       labels,
+      // A window holds its named timestamps' cross-section lines in its markers band (section
+      // 8.10, Windows), which hides them with the rest.
       line:
-        primary && lists("cross_section")
+        primary && lists("cross_section") && (banded || source.line || source.window === null)
           ? drawn(lineOf(scope, source, partAddress(address, "line")))
           : undefined,
     };
   };
-  // On a switched card each stamp is drawn at each of its played positions, in the order of the
-  // pieces (section 8.10).
-  const unfolded = scope.unfolding !== null;
+  // On a switched card, and in a window of a virtual card, each stamp is drawn at each of its
+  // played positions, in the order of the pieces, labelled with its written coordinate (section
+  // 8.10).
   const primaries = sources.flatMap((source) => {
+    const unfolded = scope.unfolding !== null || source.piece !== null;
     const timeline = source.manifest;
     return namedTimestamps(scope.manifest, timeline.id).flatMap((timestamp) => {
       const value = coordinateValue(timestamp.coordinate, timeline.number_type);

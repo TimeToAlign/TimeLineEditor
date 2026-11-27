@@ -2,15 +2,16 @@
  * The ribbons of a virtual card's chunk (TimeToShare's `docs/drawing.md`,
  * section 8.10, Overlays): an overlay of the editor, never part of the
  * drawing or its exports. Hovering or selecting a chunk of a virtual
- * timeline draws one translucent ribbon from every drawn brace of that
- * chunk to every stretch it plays on every line of its source timeline
- * drawn in the block (the source's own card, its ancestor cards, its member
- * cards), and lights the other chunks of the same source on every virtual
- * card drawn. Everything is read from the drawing: a brace's ends are its
- * element's, a written stretch's ends are where the drawn line places them.
- * A chunk is hovered on its stretch of the virtual line, its brace and the
- * space between, and on its written stretch of a source line, where every
- * chunk playing it is hovered at once (`chunkZones`, `chunksAt`).
+ * timeline draws one translucent ribbon from every drawn span of that chunk
+ * to every stretch it plays on every line of its source timeline drawn in
+ * the block (the source's own card, its ancestor cards, its member cards),
+ * and lights the spans of the other chunks of the same source on every
+ * virtual card drawn. Everything is read from the drawing: a chunk's drawn
+ * span from its line, its boundary and the next chunk's (`drawnChunks`), a
+ * written stretch's ends from where the drawn line places them. A chunk is
+ * hovered on its stretch of the virtual line, its label and the space
+ * between, and on its written stretch of a source line, where every chunk
+ * playing it is hovered at once (`chunkZones`, `chunksAt`).
  */
 
 import type { ElementAddress, Manifest, PlaceKey, PlayedStretch } from "@timetoalign/tilie-core";
@@ -19,11 +20,10 @@ import {
   FlowMapError,
   placeKeyText,
   resolveVirtualTimeline,
-  samePlaceKey,
 } from "@timetoalign/tilie-core";
 import type { Real } from "@timetoalign/tilie-core/numbers";
 import { addReal, compareReal, realOf, toFloat, toRational } from "@timetoalign/tilie-core/numbers";
-import type { Drawing, LineAxis, RegionElement } from "@timetoalign/tilie-layout";
+import type { Drawing, LineAxis, LineElement } from "@timetoalign/tilie-layout";
 import { abscissaOf, lineAxes } from "@timetoalign/tilie-layout";
 
 /** A chunk of a virtual timeline: the virtual timeline's ID and the chunk's index in its FlowMap. */
@@ -55,21 +55,39 @@ export interface Ribbon {
 /** What a hovered or selected chunk shows: its ribbons, and the other chunks of its source it lights. */
 export interface ChunkLights {
   readonly ribbons: readonly Ribbon[];
-  /** The addresses of the braces lit (`{id: W, facet: "regions", part: [j]}`), each drawn once at least. */
+  /** The addresses of the chunks lit (`{id: W, part: [j]}`), each drawn once at least. */
   readonly lit: readonly ElementAddress[];
 }
 
-/** A lit brace as a block node draws it: a copy of its descriptor's shape, its address left out. */
-export interface LitBrace {
-  /** Its descriptor's key in the node. */
+/** A drawn span of a lit chunk as a block node draws it: a line over the span, without an address. */
+export interface LitChunk {
+  /** Unique within a block: the chunk's address key and its card's place key. */
   readonly key: string;
   readonly tag: string;
   readonly attributes: Readonly<Record<string, string>>;
 }
 
+/** Every drawn span (`drawnChunks`) of the chunks `lit`, a line over it, in drawing order. */
+export function litSpans(drawing: Drawing, lit: readonly ElementAddress[]): readonly LitChunk[] {
+  if (lit.length === 0) return [];
+  const keys = new Set(lit.map(addressKey));
+  return drawnChunks(drawing).flatMap((chunk) => {
+    const own = addressKey(chunkAddress({ timeline: chunk.timeline, index: chunk.index }));
+    if (!keys.has(own)) return [];
+    const y = String(chunk.y);
+    return [
+      {
+        key: `${own}#${placeKeyText(chunk.card)}`,
+        tag: "line",
+        attributes: { x1: String(chunk.x1), y1: y, x2: String(chunk.x2), y2: y },
+      },
+    ];
+  });
+}
+
 /**
  * Every chunk's lights together: the ribbons of each in turn, each key
- * prefixed by its chunk's address key, and the braces they light, each once,
+ * prefixed by its chunk's address key, and the chunks they light, each once,
  * none of them one of `chunks`.
  */
 export function allLights(
@@ -100,9 +118,10 @@ export const NO_LIGHTS: ChunkLights = { ribbons: [], lit: [] };
 
 /**
  * Where the pointer shows the chunk `chunk`: on the line at the ordinate
- * `line`, from `x1` (held) to `x2` (left out), and from `top` to `bottom`,
- * the line and the regions band drawn on it, the line's ordinate alone
- * where none is.
+ * `line`, from `x1` (held) to `x2` (left out), and from `top` to `bottom`:
+ * on a virtual card the line and the chunk's label above it, on a source's
+ * line that line and its regions band, the line's ordinate alone where
+ * neither is drawn.
  */
 export interface ChunkZone {
   readonly chunk: ChunkRef;
@@ -115,11 +134,11 @@ export interface ChunkZone {
 
 /**
  * Where the pointer shows a chunk in `drawing`, the drawing of `manifest`,
- * in drawing order of the braces: for every drawn brace of a chunk that is
- * no gap, of a virtual timeline resolving through a FlowMap of its own root,
- * a zone on its card's line of that virtual timeline over the brace's ends,
- * out to that line's regions band; and, once per chunk, a zone on every line
- * of the source root drawn in a card that is not switched, over the written
+ * in drawing order of the chunks: for every drawn span of a chunk that is no
+ * gap (`drawnChunks`), of a virtual timeline resolving through a FlowMap of
+ * its own root, a zone on its card's line of that virtual timeline over the
+ * span, up to its label; and, once per chunk, a zone on every line of the
+ * source root drawn in a card that is not switched, over the written
  * stretches it plays clipped to what that line draws, out to the root's
  * regions band on that line. Read once per drawing; a pointer reads them
  * with `chunksAt`.
@@ -161,24 +180,17 @@ export function chunkZones(manifest: Manifest, drawing: Drawing): readonly Chunk
   const sourceLines = new Map<string, readonly LineAxis[]>();
   const placed = new Set<string>();
   const zones: ChunkZone[] = [];
-  drawing.elements.forEach((element, index) => {
-    if (element.type !== "region") return;
-    const { id, facet, part } = element.address;
-    const at = part?.[0];
-    if (id === undefined || !virtuals.has(id) || facet !== "regions") return;
-    if (part?.length !== 1 || typeof at !== "number") return;
+  for (const span of drawnChunks(drawing)) {
+    const { timeline: id, index: at } = span;
+    if (!virtuals.has(id)) continue;
     if (!resolved.has(id)) resolved.set(id, stretchesOf(manifest, id));
     const flow = resolved.get(id);
     const source = flow?.sources[at];
-    if (flow === null || flow === undefined || source === null || source === undefined) return;
+    if (flow === null || flow === undefined || source === null || source === undefined) continue;
     const chunk: ChunkRef = { timeline: id, index: at };
-    const card = cardHolding(drawing, index);
-    const line = lines.find(
-      ([, axis]) => axis.timeline === id && card !== null && samePlaceKey(axis.card, card),
-    );
-    if (line !== undefined) zones.push(zoneOn(chunk, id, line[1], element.x1, element.x2));
+    zones.push({ chunk, x1: span.x1, x2: span.x2, line: span.y, top: span.top, bottom: span.y });
     const key = `${id}#${at}`;
-    if (placed.has(key)) return;
+    if (placed.has(key)) continue;
     placed.add(key);
     let axes = sourceLines.get(flow.source);
     if (axes === undefined) {
@@ -197,8 +209,89 @@ export function chunkZones(manifest: Manifest, drawing: Drawing): readonly Chunk
         if (ends !== null) zones.push(zoneOn(chunk, flow.source, axis, ends[0], ends[1]));
       }
     }
-  });
+  }
   return zones;
+}
+
+/**
+ * One drawn span of a chunk of a line (section 8.10, Chunks): the line's
+ * timeline (a virtual timeline, or a switched card's timeline), the chunk's
+ * index, the card drawing it, its span on the line from `x1` to `x2` at the
+ * line's ordinate `y`, the top of what it draws above the line (its label
+ * and leader, else the line), and the indices of its elements in the
+ * drawing: its label, its leader and its boundary.
+ */
+export interface DrawnChunk {
+  readonly timeline: string;
+  readonly index: number;
+  readonly card: PlaceKey;
+  readonly x1: number;
+  readonly x2: number;
+  readonly y: number;
+  readonly top: number;
+  readonly elements: readonly number[];
+}
+
+/**
+ * The chunks `drawing` draws, card by card and line by line in drawing
+ * order, each chunk once on each line, in the order of its index. A chunk
+ * draws nothing of its own (section 8.10): its span runs on its line from
+ * its boundary, the line's start for the first chunk drawn, to the next
+ * drawn chunk's boundary, the line's end for the last; the chunks drawn are
+ * those whose label or boundary the card draws (`{id, part: [k, …]}`, no
+ * facet). The line is the card's `timeline` element of that ID, from the
+ * smallest start of its pieces to the largest end.
+ */
+export function drawnChunks(drawing: Drawing): readonly DrawnChunk[] {
+  type Line = { card: PlaceKey; timeline: string; line?: LineElement; parts: number[] };
+  const byLine = new Map<string, Line>();
+  drawing.elements.forEach((element, index) => {
+    const { id, facet, part } = element.address;
+    const chunkPart = facet === undefined && typeof part?.[0] === "number";
+    const ownLine = element.type === "timeline" && part === undefined && facet === undefined;
+    if (id === undefined || (!chunkPart && !ownLine)) return;
+    const card = cardHolding(drawing, index);
+    if (card === null) return;
+    const key = `${placeKeyText(card)} ${id}`;
+    const entry = byLine.get(key) ?? { card, timeline: id, parts: [] };
+    if (chunkPart) entry.parts.push(index);
+    else if (element.type === "timeline") {
+      const known = entry.line;
+      entry.line =
+        known === undefined
+          ? element
+          : { ...known, xs: Math.min(known.xs, element.xs), xe: Math.max(known.xe, element.xe) };
+    }
+    byLine.set(key, entry);
+  });
+  return [...byLine.values()].flatMap(({ card, timeline, line, parts }) => {
+    if (line === undefined || parts.length === 0) return [];
+    const byIndex = new Map<number, { start?: number; top: number; elements: number[] }>();
+    for (const index of parts) {
+      const element = drawing.elements[index];
+      const k = element?.address.part?.[0];
+      if (element === undefined || typeof k !== "number") continue;
+      const own = byIndex.get(k) ?? { top: line.y, elements: [] };
+      own.elements.push(index);
+      if (element.type === "boundary") own.start = element.x;
+      if (element.type === "label") {
+        own.top = Math.min(own.top, element.baseline - element.style["font-size"]);
+      }
+      if (element.type === "leader") own.top = Math.min(own.top, element.y1, element.y2);
+      byIndex.set(k, own);
+    }
+    const indices = [...byIndex.keys()].sort((left, right) => left - right);
+    return indices.flatMap((k, at): DrawnChunk[] => {
+      const own = byIndex.get(k);
+      if (own === undefined) return [];
+      const next = indices[at + 1];
+      const x1 = at === 0 ? line.xs : (own.start ?? line.xs);
+      const x2 = next === undefined ? line.xe : (byIndex.get(next)?.start ?? line.xe);
+      return [
+        { timeline, index: k, card, x1, x2, y: line.y, top: own.top, elements: own.elements },
+      ];
+    });
+  });
 }
 
 /**
@@ -226,18 +319,22 @@ export function chunksAt(
   return found;
 }
 
-/** The chunk `address` names: `{id: V, facet: "regions", part: [k, ...]}` of a virtual timeline `V`; else `null`. */
+/**
+ * The chunk `address` names of a virtual timeline `V`: `{id: V, part: [k, …]}`,
+ * the chunk or a part of it, or `{id: V, facet, part: [k]}`, a band of its
+ * window; else `null`.
+ */
 export function chunkOf(manifest: Manifest, address: ElementAddress): ChunkRef | null {
-  const { id, facet, part } = address;
+  const { id, part } = address;
   const index = part?.[0];
-  if (id === undefined || facet !== "regions" || typeof index !== "number") return null;
+  if (id === undefined || typeof index !== "number") return null;
   const virtual = (manifest.virtual_timelines ?? []).some((item) => item.id === id);
   return virtual ? { timeline: id, index } : null;
 }
 
-/** The address of a chunk's brace. */
+/** The address of a chunk, `{id: V, part: [k]}`. */
 export function chunkAddress(chunk: ChunkRef): ElementAddress {
-  return { id: chunk.timeline, facet: "regions", part: [chunk.index] };
+  return { id: chunk.timeline, part: [chunk.index] };
 }
 
 /** The stretches of a resolved FlowMap, keyed by the virtual timeline applying it; `null` where it does not resolve. */
@@ -264,21 +361,6 @@ function stretchesOf(
   }
 }
 
-/** Whether a drawn element is the brace of the chunk `chunk`. */
-function isBraceOf(
-  element: { readonly type: string; readonly address: ElementAddress },
-  chunk: ChunkRef,
-): boolean {
-  const { id, facet, part } = element.address;
-  return (
-    element.type === "region" &&
-    id === chunk.timeline &&
-    facet === "regions" &&
-    part?.length === 1 &&
-    part[0] === chunk.index
-  );
-}
-
 /** The card drawing the element at `index`: the innermost card box whose range holds it. */
 export function cardHolding(drawing: Drawing, index: number): PlaceKey | null {
   let found: { key: PlaceKey; size: number } | null = null;
@@ -299,18 +381,14 @@ function linesOf(drawing: Drawing, timeline: string): [string, LineAxis][] {
 
 /**
  * The cards drawing the line of `timeline` on a virtual axis (a switched card,
- * section 8.10): those holding a chunk brace addressed with its ID. Its line
- * there places played positions, so no written stretch is read off it.
+ * section 8.10): those drawing a chunk of a line addressed with its ID. Its
+ * line there places played positions, so no written stretch is read off it.
  */
 function switchedCards(drawing: Drawing, timeline: string): readonly string[] {
   const keys = new Set<string>();
-  drawing.elements.forEach((element, index) => {
-    const { id, facet, part } = element.address;
-    if (element.type !== "region" || id !== timeline || facet !== "regions") return;
-    if (typeof part?.[0] !== "number") return;
-    const card = cardHolding(drawing, index);
-    if (card !== null) keys.add(placeKeyText(card));
-  });
+  for (const chunk of drawnChunks(drawing)) {
+    if (chunk.timeline === timeline) keys.add(placeKeyText(chunk.card));
+  }
   return [...keys];
 }
 
@@ -361,19 +439,19 @@ export function ribbonPath(from: RibbonEnd, to: RibbonEnd): string {
  * through a FlowMap of its own root (`resolveVirtualTimeline`), or where the
  * chunk is a gap.
  *
- * For every brace of the chunk drawn (one per card drawing its virtual
- * timeline: a run drawn once draws only its first entry's, section 8.10)
- * and every stretch the chunk plays (one, or a virtual timeline's several),
- * the ribbon leaves the card's line of the virtual timeline over the
- * stretch's share of the brace, `x1 + share × (x2 − x1)` at the played
+ * For every drawn span of the chunk (`drawnChunks`, one per card drawing its
+ * virtual timeline: a run drawn once draws only its first entry, section
+ * 8.10) and every stretch the chunk plays (one, or a virtual timeline's
+ * several), the ribbon leaves the card's line of the virtual timeline over
+ * the stretch's share of the span, `x1 + share × (x2 − x1)` at the played
  * start and end, the chunk's span from its first stretch's played start to
  * its last's played end; and reaches every line of the source root drawn in
  * a card that is not switched, over the written stretch clipped to what
- * that line draws (`abscissaOf`). Ribbons come in the order of the braces,
+ * that line draws (`abscissaOf`). Ribbons come in the order of the spans,
  * then the stretches, then the source's lines.
  *
- * It lights the brace of every other chunk, of any virtual timeline drawn,
- * that names the same source.
+ * It lights every other chunk, of any virtual timeline drawn, that names the
+ * same source.
  */
 export function chunkLights(manifest: Manifest, drawing: Drawing, chunk: ChunkRef): ChunkLights {
   const resolved = stretchesOf(manifest, chunk.timeline);
@@ -389,21 +467,16 @@ export function chunkLights(manifest: Manifest, drawing: Drawing, chunk: ChunkRe
   const sourceLines = linesOf(drawing, resolved.source).filter(
     ([, axis]) => !switched.has(placeKeyText(axis.card)),
   );
-  const virtualLines = linesOf(drawing, chunk.timeline);
   const ribbons: Ribbon[] = [];
-  drawing.elements.forEach((element, index) => {
-    if (!isBraceOf(element, chunk)) return;
-    const brace = element as RegionElement;
-    const card = cardHolding(drawing, index);
-    const line = virtualLines.find(([, axis]) => card !== null && samePlaceKey(axis.card, card));
-    if (card === null || line === undefined) return;
-    const y = line[1].y;
+  for (const span of drawnChunks(drawing)) {
+    if (span.timeline !== chunk.timeline || span.index !== chunk.index) continue;
+    const { card, y } = span;
     played.forEach((stretch, at) => {
       if (stretch.written === null) return;
-      const width = brace.x2 - brace.x1;
+      const width = span.x2 - span.x1;
       const from: RibbonEnd = {
-        x1: brace.x1 + shareOf(realOf(stretch.played.start), spanStart, spanEnd) * width,
-        x2: brace.x1 + shareOf(realOf(stretch.played.end), spanStart, spanEnd) * width,
+        x1: span.x1 + shareOf(realOf(stretch.played.start), spanStart, spanEnd) * width,
+        x2: span.x1 + shareOf(realOf(stretch.played.end), spanStart, spanEnd) * width,
         y,
       };
       const written = { start: realOf(stretch.written.start), end: realOf(stretch.written.end) };
@@ -419,11 +492,11 @@ export function chunkLights(manifest: Manifest, drawing: Drawing, chunk: ChunkRe
         });
       }
     });
-  });
+  }
   return { ribbons, lit: litChunks(manifest, drawing, chunk, source) };
 }
 
-/** The braces drawn of every chunk but `chunk` naming `source`, each address once, in drawing order. */
+/** The chunks drawn but `chunk` naming `source`, by their labels, each address once, in drawing order. */
 function litChunks(
   manifest: Manifest,
   drawing: Drawing,
@@ -433,7 +506,7 @@ function litChunks(
   const sources = new Map<string, readonly (string | null)[] | null>();
   const lit = new Map<string, ElementAddress>();
   for (const element of drawing.elements) {
-    if (element.type !== "region") continue;
+    if (element.type !== "label") continue;
     const other = chunkOf(manifest, element.address);
     if (other === null || (other.timeline === chunk.timeline && other.index === chunk.index)) {
       continue;

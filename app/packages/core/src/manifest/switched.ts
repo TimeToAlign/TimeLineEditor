@@ -9,12 +9,14 @@
  * rule may select by them, the arranger reads the switch from them.
  */
 
+import { axisCoordinate } from "../number/coordinate.ts";
 import { Rational } from "../number/rational.ts";
 import type { Real } from "../number/real.ts";
 import { addReal, compareReal, realOf, subtractReal, toFloat } from "../number/real.ts";
 import type { ElementAddress } from "./address.ts";
-import { FlowMapError, resolveFlowMap } from "./flowmaps.ts";
-import type { Manifest } from "./types.ts";
+import { FlowMapError, type ResolvedFlowMap, resolveFlowMap } from "./flowmaps.ts";
+import { locateTimeline } from "./tree.ts";
+import type { Manifest, TimelineManifest } from "./types.ts";
 
 /**
  * Whether a rule's `select` names `addresses` alone, each the address
@@ -160,15 +162,7 @@ export function unfoldingOf(
   carriedFrom?: { readonly lambdaT: Real; readonly lambdaM: Real },
 ): Unfolding {
   const resolved = resolveFlowMap(manifest, flowMap);
-  const { stretches } = resolved;
-  const pieces = stretches.flatMap((stretch, index): Piece[] => {
-    const { written } = stretch;
-    if (written === null) return [];
-    const b = realOf(written.end);
-    const next = stretches[index + 1]?.written;
-    const closed = next === undefined || next === null || compareReal(realOf(next.start), b) !== 0;
-    return [{ a: realOf(written.start), b, P: realOf(stretch.played.start), closed }];
-  });
+  const pieces = piecesOf(resolved).flatMap((piece) => (piece === null ? [] : [piece]));
   const length = realOf(resolved.length);
   if (carriedFrom === undefined) {
     return { pieces, length, carry: (value) => value, uncarry: (value) => value };
@@ -180,6 +174,123 @@ export function unfoldingOf(
     carry: (value) => carried(value, lambdaT, lambdaM),
     uncarry: (value) => carried(value, lambdaM, lambdaT),
   };
+}
+
+/**
+ * The pieces of `resolved`, one for each of its stretches in their order:
+ * a stretch piece for a stretch of its root's axis, null for a gap.
+ */
+function piecesOf(resolved: ResolvedFlowMap): (Piece | null)[] {
+  const { stretches } = resolved;
+  return stretches.map((stretch, index): Piece | null => {
+    const { written } = stretch;
+    if (written === null) return null;
+    const b = realOf(written.end);
+    const next = stretches[index + 1]?.written;
+    const closed = next === undefined || next === null || compareReal(realOf(next.start), b) !== 0;
+    return { a: realOf(written.start), b, P: realOf(stretch.played.start), closed };
+  });
+}
+
+/**
+ * One stretch piece of a chunk's window on a virtual card (section 8.10,
+ * Sources and Windows): the piece, its **source** (the timeline whose
+ * stretch it plays: the timeline holding the region an entry names, or the
+ * child timeline it names), where the source starts on the axis of the
+ * FlowMap's root, and the region the piece plays, which its window never
+ * shows; null for a piece a child gave.
+ */
+export interface WindowPiece {
+  readonly piece: Piece;
+  readonly source: TimelineManifest;
+  readonly origin: Real;
+  readonly region: string | null;
+}
+
+/**
+ * What the windows of the chunks of a FlowMap show (section 8.10): its
+ * unfolding, and the stretch pieces of every entry that is no gap, each
+ * with its source, by the entry's index; an entry naming a virtual
+ * timeline holds the pieces that virtual timeline resolves to, each with
+ * its own source.
+ */
+export interface Windows {
+  readonly unfolding: Unfolding;
+  readonly chunks: ReadonlyMap<number, readonly WindowPiece[]>;
+}
+
+/** The start of the timeline `at` on the axis of its tree's root: the sum of its offsets. */
+function originOf(at: ReturnType<typeof locateTimeline>): Real {
+  if (at === undefined) throw new Error("a chunk's source lies in its root's tree");
+  const { parent } = at;
+  if (parent === undefined) return at.timeline.number_type === "float" ? 0 : Rational.of(0n);
+  const offset = realOf(axisCoordinate(at.timeline.offset, parent.timeline));
+  return addReal(originOf(parent), offset);
+}
+
+/**
+ * The source of every stretch of the FlowMap `resolved` of `manifest`, in
+ * the order of its stretches: the timeline holding the region an entry
+ * names and that region, or the child timeline it names; for an entry
+ * naming a virtual timeline, the sources of the stretches of the FlowMap it
+ * applies; null for a gap.
+ */
+function sourcesOf(
+  manifest: Manifest,
+  resolved: ResolvedFlowMap,
+): ({ readonly source: TimelineManifest; readonly region: string | null } | null)[] {
+  return resolved.chunks.flatMap((chunk) => {
+    const { source } = chunk;
+    if (chunk.kind === "gap" || source === null) return [null];
+    if (chunk.kind === "virtual") {
+      const virtual = (manifest.virtual_timelines ?? []).find((item) => item.id === source);
+      if (virtual === undefined)
+        throw new Error("a resolved virtual chunk names a virtual timeline");
+      return sourcesOf(manifest, resolveFlowMap(manifest, virtual.map));
+    }
+    const timeline = locateTimeline(manifest, source)?.timeline;
+    if (chunk.kind === "timeline") {
+      if (timeline === undefined) throw new Error("a resolved chunk names a timeline");
+      return [{ source: timeline, region: null }];
+    }
+    const pending = [...manifest.timelines];
+    for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+      if (next.regions.some((region) => region.id === source)) {
+        return [{ source: next, region: source }];
+      }
+      pending.push(...next.children);
+    }
+    throw new Error("a resolved region chunk names a region");
+  });
+}
+
+/**
+ * The windows of the chunks of the FlowMap `flowMap` of `manifest`, which
+ * resolves (`Windows`): every stretch piece of an entry that is no gap,
+ * each with its source and the source's start on the root's axis.
+ */
+export function windowsOf(manifest: Manifest, flowMap: string): Windows {
+  const resolved = resolveFlowMap(manifest, flowMap);
+  const pieces = piecesOf(resolved);
+  const sources = sourcesOf(manifest, resolved);
+  const chunks = new Map<number, WindowPiece[]>();
+  resolved.stretches.forEach((stretch, index) => {
+    const piece = pieces[index];
+    const found = sources[index];
+    if (piece === null || piece === undefined || found === null || found === undefined) return;
+    const { source, region } = found;
+    const origin = originOf(locateTimeline(manifest, source.id));
+    const list = chunks.get(stretch.chunk) ?? [];
+    list.push({ piece, source, origin, region });
+    chunks.set(stretch.chunk, list);
+  });
+  const unfolding: Unfolding = {
+    pieces: pieces.flatMap((piece) => (piece === null ? [] : [piece])),
+    length: realOf(resolved.length),
+    carry: (value) => value,
+    uncarry: (value) => value,
+  };
+  return { unfolding, chunks };
 }
 
 /**

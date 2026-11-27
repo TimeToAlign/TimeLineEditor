@@ -453,7 +453,14 @@ describe("Groups admit virtual timelines", () => {
     expect(more).toEqual([]);
     expect(card?.key).toEqual({ item: "both", member: "virtual_1" });
     expect(card?.holder).toBe(containers.frames.get("both"));
-    expect([...(containers.bands.get("virtual_1")?.keys() ?? [])]).toEqual(["markers", "regions"]);
+    // A virtual card holds five bands, as every card does (section 8.10).
+    expect([...(containers.bands.get("virtual_1")?.keys() ?? [])]).toEqual([
+      "children",
+      "conversion_maps",
+      "markers",
+      "regions",
+      "flow_control",
+    ]);
     expect(placedElement(manifest, { item: "both", member: "virtual_1" })).toBe("virtual_1");
     expect(contains(manifest, "both", { id: "virtual_1", part: ["card"] })).toBe(true);
     const kinds = [
@@ -466,8 +473,9 @@ describe("Groups admit virtual timelines", () => {
     });
     // A card's address resolves where the drawing's elements list it, as they list this one.
     expect(kinds).toEqual(["virtual_timeline", "virtual_card", "virtual_band"]);
+    // Its children band too: a virtual card holds five bands, every timeline the same ones.
     const children = resolveAddress(view, { block: A, id: "virtual_1", facet: "children" });
-    expect(refusal(children).code).toBe("unknown_target");
+    expect(isCommandError(children) ? children.code : children.kind).toBe("virtual_band");
   });
 
   it("lets a virtual timeline leave a group and the group order it", () => {

@@ -49,6 +49,7 @@ export const DEFAULT_LAYER: Graphical = {
       set: { stroke: "#000000", "stroke-width": 1, "stroke-dasharray": "none" },
     },
     { select: { element: "region", class: "tts:AtomicSection" }, set: { display: "none" } },
+    { select: { element: "band", inside: "chunk" }, set: { display: "none" } },
     {
       select: { element: "jump" },
       set: {

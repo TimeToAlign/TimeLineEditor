@@ -134,7 +134,9 @@ package's `pnpm build` puts into the package (`js/docs/`, not tracked); an
 edit of the repository's specification reaches this test and that of
 the constants below only after that build; until then both compare with
 the text built last. Resolved alone, the default layer
-gives `bare`'s block and card their fill, stroke, `rx` and shadow; in
+gives `bare`'s block and card their fill, stroke, `rx` and shadow, and
+hides every band inside a chunk (`{element: band, inside: chunk}`, the
+virtual card drawn stripped down, "Virtual cards" 12); in
 `group_child_member` the frame its own, the ancestor line `piece` opacity
 0.35 (no mark of the member is drawn on it), its name grey at size 9 and not
 faded, while
@@ -180,7 +182,10 @@ text, with the text the layout's constants give it:
 - the gap line of a FlowMap's gap holds one constant, its fixed stroke
   colour `GAP_LINE_STROKE` (`#9CA3AF`); its stroke width and dash pattern
   are its line's own, which the writers apply; its row is compared as that
-  text.
+  text;
+- the least gap width `Gm`, the narrowest drawn width of a FlowMap's gap in
+  a card that is an item of the block, is the standard gap of an elision
+  (`STANDARD_GAP`, 32), and its row says so.
 
 Three numbers the constants hold are stated outside the table, each read
 from its sentence: the card spacing `S`'s default, 4 ("With the default `S
@@ -2493,9 +2498,12 @@ line.
 
 ## Virtual cards (`virtual.test.ts`)
 
-Section 8.10 (Resolution, Runs, The virtual card), with sections 2.2 (the
-chunk addresses), 6.4 (Level 0, Regions), 6.6 (Boundaries, Gap lines,
-Regions) and 8.1 (placed virtual timelines), is the oracle. The fixtures
+Section 8.10 (Resolution, Sources, Runs, Widened gaps, Chunks, The
+virtual card, Windows), with sections 2.2 (the chunk addresses), 2.4 (a
+band hides its windows' bands, a chunk its window), 4 (the default hiding
+every band inside a chunk), 6.4 (Level 0, Segment lines, Windows), 6.6
+(Boundaries, Gap lines, Regions) and 8.1 (placed virtual timelines), is
+the oracle. The fixtures
 are `flow/virtual_cards` and `groups/virtual_member`: the root `allegro`
 (quarters, fraction, 1644) with the regions `section_a` "A" [0, 953/2),
 `section_b` "B" [953/2, 500) and `section_c` "C" [500, 1644), its
@@ -2505,10 +2513,15 @@ FlowMaps `default` (A B A C), `single` (A C), `printed` (A B C) and
 single" (3241/2) and `allegro_by_hand` "Allegro, practice" (3054). Every
 x below is `x0 + (L × u − D)`, `x0` the start of the card's line as drawn
 (its `xs`), `L` 400, `u` the exact quotient of the position and the
-virtual length rounded once to a double, `D` 0 before every run gap; a
-position at or after the end `b` of a run gap `[a, b]` lies at `x0 + (L ×
-u(a) + (L × u − L × u(b)))` instead (section 8.10, Runs); every ordinate of a boundary is the line's `y`
-less and plus `k` = 8.
+virtual length rounded once to a double, `D` 0 before every run gap and
+widened gap; a position at or after the end `b` of a run gap `[a, b]`
+lies at `x0 + (L × u(a) + (L × u − L × u(b) − D))` instead, `D` the
+shrinks of the widened gaps after `b` (section 8.10, Runs); every ordinate
+of a boundary is the line's `y` less and plus `k` = 8. A chunk draws no
+element of its own: the line is a segment line of the chunks, each
+chunk's label `{id: V, part: [k, "label"]}` a segment label above the line
+(its baseline above the line's `y`), centred on the midpoint of its drawn
+span, and no element of V's card carries a facet but the bands' records.
 
 1. **Places decide.** `flow/virtual_cards` at the default placement
    (`places` empty) draws one card, `allegro`'s: no element of any
@@ -2525,30 +2538,35 @@ less and plus `k` = 8.
    virtual timeline's line is green as `allegro`'s, its unit's.
 3. **The chunks of `default`.** Pieces `[0, 953/2]` at 0, `[953/2, 500]`
    at 953/2, `[0, 953/2]` at 500, `[500, 1644]` at 1953/2; λ = 4241/2.
-   Four `region` elements at `{id: "allegro_default", facet: "regions",
-   part: [k]}`, k = 0 … 3, from `x(0)`, `x(953/2)`, `x(500)`, `x(1953/2)`
-   to `x(953/2)`, `x(500)`, `x(1953/2)`, `x(4241/2)`, each with its label
-   at `part: [k, "label"]` reading A, B, A, C, and three `boundary`
-   elements at `part: [k, "start"]`, k = 1, 2, 3, at the drawn starts of
-   entries 1 to 3, from `y − 8` to `y + 8`. No run (no two consecutive
+   Three `boundary` elements at `{id: "allegro_default", part: [k,
+   "start"]}`, k = 1, 2, 3, at the drawn starts `x(953/2)`, `x(500)`,
+   `x(1953/2)` of entries 1 to 3, from `y − 8` to `y + 8`, then the four
+   labels at `part: [k, "label"]` reading A, B, A, C, centred on
+   `x(953/4)`, `x(1953/4)`, `x(2953/4)` and `x(6194/4)`, the midpoints of
+   the entries' spans, all above the line. No run (no two consecutive
    entries name one ID), so no gap line: the line has no `gapLines`.
 4. **`single`.** Pieces `[0, 953/2]` at 0 and `[500, 1644]` at 953/2;
-   braces 0 and 1 labelled A and C, one boundary at `x(953/2)`.
-5. **A run drawn once, and a gap: `by_hand`.** Pieces of A at 0, 953/2,
+   one boundary at `x(953/2)` and the labels A at `x(953/4)` and C at
+   `x((953/2 + 3241/2) / 2)`.
+5. **A run drawn once, and a widened gap: `by_hand`** (section 8.10's
+   worked example for `flow/virtual_cards`). Pieces of A at 0, 953/2,
    953, 2859/2, the gap `[1906, 1910]`, C at 1910 to 3054. Entries 0 to 3
    are a run of four in a card the block holds: its run gap spans `[953/2,
-   1906]`, so every position `t` from 1906 on lies at `x0 + (400 ×
-   u(953/2) + (400 × u(t) − 400 × u(1906)))`, and 1906 itself exactly where
-   brace 0 ends; the line ends there for `t` = 3054. Brace 0 runs from `x0` to
-   `x0 + 400 × u(953/2)` and is labelled `A × 4` (U+00D7); entries 1 to 3
-   draw no brace, label or boundary. Entry 4, the gap, draws no brace and
-   its label `4 ♩` (the pretty text of its length on `allegro`'s axis)
-   centred on `x(1908)`. Brace 5 runs from `x(1910)` to `x(3054)`,
-   labelled C. Boundaries at entries 4 and 5, at `x(1906)` and `x(1910)`.
-   The line's `gapLines` are `[[x(1906), x(1910)]]`. Since the gap entry
-   starts exactly where brace 0 ends, its label lies on the first row,
-   at brace 0's label's baseline (a `D` rounded once more would start it an
-   ulp left of that end and move it to a second row).
+   1906]`, with the shrink 187.22986247544206, so 1906 lies exactly where
+   entry 0 ends, `x0 + 62.40995415848069`. The gap entry's natural width,
+   0.5239030779305551, is less than `Gm` = 32, so it is widened: drawn 32
+   wide, its shrink −31.476096922069445, every later position 32 − n
+   further right. Entry 0 is labelled `A × 4` (U+00D7) at `x0 +
+   31.204977079240344`; entries 1 to 3 draw no label or boundary. The gap
+   draws its label `4 ♩` (the pretty text of its length on `allegro`'s
+   axis) at `x(1908) = x0 + 78.40995415848069`, the middle of its 32
+   (`x(a) + Gm × v`, `v` = 0.5). C is labelled at `x0 + 169.328094302554`.
+   Boundaries at entries 4 and 5, at `x0 + 62.40995415848069` and `x0 +
+   94.40995415848069`. The line's `gapLines` are those two abscissas, and
+   it ends at `x0 + 244.2462344466274`. Since the gap entry starts exactly
+   where entry 0 ends, its label lies on the first row, at entry 0's
+   label's baseline (a `D` rounded once more would start it an ulp left of
+   that end and move it to a second row).
 6. **The name.** With names drawn whole (`max-width: none`), the cards'
    names read `Allegro, practice · unfolded from Allegro`, `Allegro,
    default · unfolded from Allegro` and `Allegro, single · unfolded from
@@ -2556,35 +2574,37 @@ less and plus `k` = 8.
 7. **A virtual member.** `groups/virtual_member` draws the frame
    `performance` with two cards in its display order, `allegro_default`
    then `recording`, and `allegro`'s card below it (an ungrouped root).
-   The virtual card draws the four braces and three boundaries of 3, at
-   its own `x0`, and its named timestamps `timestamp_3` (0) and
+   The virtual card draws the three boundaries and four labels of 3, at
+   its own `x0`, the labels above the line (C at `x((1953/2 + 4241/2) /
+   2)`), and its named timestamps `timestamp_3` (0) and
    `timestamp_4` (4241/2) as wedges at `x(0)` and `x(4241/2)`, labelled
    `0 ♩` and `2120 1/2 ♩`. No ancestor line, no ancestor card.
 8. **No run in a frame.** The same manifest with `allegro_by_hand` as the
    frame's member in `allegro_default`'s place (its members and its
    display order so changed, nothing else): the frame's virtual card draws
-   every entry, braces 0 to 3 labelled A, the gap's label `4 ♩`, brace 5
-   C, boundaries at entries 1 to 5, at `x(953/2)`, `x(953)`, `x(2859/2)`,
+   every entry, labels 0 to 3 A, the gap's label `4 ♩`, label 5 C,
+   boundaries at entries 1 to 5, at `x(953/2)`, `x(953)`, `x(2859/2)`,
    `x(1906)`, `x(1910)` with `D` = 0, and the gap line `[[x(1906),
-   x(1910)]]`.
-9. **The axes follow the run.** What a hover, a pin and the coordinate
-   flag read on a line is its axes (`lineAxes`, read by `abscissaOf`), so
-   on `allegro_by_hand`'s card of 5 the line has one axis per run, as an
-   elided line has one per run between its gaps: run 0 over `[0, 953/2]`
-   from `x0` to `x0 + 400 × u(953/2)`, start 0, length and drawn length
-   953/2; run 1 over `[1906, 3054]` from `x(1906)`, which is exactly
-   `x0 + 400 × u(953/2)` (where brace 0 ends), to `x(3054)`, the line's
-   end, start 1906, length and drawn length 1148. No axis holds a
-   position strictly inside the run gap (`953/2 < t < 1906`), which the
-   drawing does not draw. A position is read on the axis holding it by
-   the one linear rule of `abscissaOf`, `xStart + (t − start) / drawn
+   x(1910)]]`: in a frame a gap keeps its natural width (section 8.10,
+   Widened gaps).
+9. **The axes follow the run and the widened gap.** What a hover, a pin
+   and the coordinate flag read on a line is its axes (`lineAxes`, read by
+   `abscissaOf`), so on `allegro_by_hand`'s card of 5 the line has one axis
+   per run between its cuts, as an elided line has one per run between its
+   gaps: run 0 over `[0, 953/2]` from `x0` to `x0 + 62.40995415848069`,
+   start 0, length and drawn length 953/2; the widened gap over `[1906,
+   1910]`, a run of its own scale, from that same abscissa (where entry 0
+   ends) to `x0 + 94.40995415848069`, start 1906, length 4; run 2 over
+   `[1910, 3054]` from there to the line's end, start 1910, length and
+   drawn length 1144. No axis holds a position strictly inside the run
+   gap (`953/2 < t < 1906`), which the drawing does not draw; 1906, 1908
+   and 2000 lie on one axis each. A position is read on the axis holding
+   it by the one linear rule of `abscissaOf`, `xStart + (t − start) / drawn
    length × (xEnd − xStart)`, each operand a double: 0 at `x0`, 1906 at
-   run 1's `xStart` (the coordinate the drawing shows where the brace
-   ends), 1908 (the gap's middle) at `xStart + (2 / 1148) × (xEnd −
-   xStart)` of run 1. A single straight axis over `[0, 3054]` would put
-   1906 at `x0 + 400 × u(1906)`, about 187.2 to the right of that end. The
-   virtual cards placed beside it, without a run, keep one axis each, from
-   `x0` to `x0 + 400`.
+   the gap's axis's `xStart`, 1908 (the gap's middle) at `xStart + 0.5 ×
+   (xEnd − xStart)` of it, 2482 at `xStart + (572 / 1144) × (xEnd −
+   xStart)` of run 2. The virtual cards placed beside it, without a run or
+   a gap, keep one axis each, from `x0` to `x0 + 400`.
 10. **Elisions of a placed virtual card** (section 8.10, Elisions of a
     virtual timeline, and Runs). The specification's worked example: a
     root `score` (16 quarters) with the regions `region_1` "A" over `[0,
@@ -2592,10 +2612,19 @@ less and plus `k` = 8.
     playing `region_1`, `region_1`, `region_2`, and the virtual timeline
     `virtual_1` (24 quarters) applying it, placed (`places` holding
     `virtual_1`), at `L` = 400. Entries 0 and 1 are a run drawn once, its
-    run gap over `[8, 16]`. An elision `elision_1` on `virtual_1` over
-    `[10, 14]` lies wholly in the run gap: it has no piece, the card draws
-    no `elision` element, and its line is drawn as without it, from `x0`
-    to `x0 + 266.6666666666667`, uncut. An elision over `[17, 19]` with
+    run gap over `[8, 16]`, unless an elision reaches into it. An elision
+    `elision_1` on `virtual_1` over `[10, 14]` reaches into that run gap,
+    so the run is drawn entry by entry (Runs: an elision is never
+    swallowed by a run): its one piece has the natural width
+    66.66666666666666, the drawn width 32 and the shrink
+    34.66666666666666, so its `elision` element runs from `x0 +
+    166.66666666666669` to `x0 + 198.66666666666669`, the line is cut
+    there (`cuts` that one pair) and ends at `x0 + 365.33333333333337`;
+    the boundaries stand at `x0 + 133.33333333333331` (entry 1) and `x0 +
+    231.99999999999997` (entry 2), the labels `A` at `x0 +
+    66.66666666666666` and `B` at `x0 + 298.66666666666674`, and the
+    second `A`, whose midpoint 12 lies in the gap, is not drawn. An
+    elision over `[17, 19]` with
     the width `{canvas: 8}` lies in entry 2: its one piece has the natural
     width 33.33333333333326, the drawn width 8 and the shrink
     25.333333333333258, so its `elision` element runs from `x(17) = x0 +
@@ -2603,8 +2632,8 @@ less and plus `k` = 8.
     (133.33333333333331 + (L × u − 266.66666666666663 − D))`, `D` 0 at 17
     and the shrink at 19); the line is cut there (`cuts` that one pair)
     and ends at `x(24) = x0 + 241.33333333333343` in its end circle; the
-    brace of chunk 2 (`B`, midpoint 20, in no gap) is drawn from `x(16) =
-    x0 + 133.33333333333331` to `x(24)`, cut at the gap; the gap draws no
+    label of chunk 2 (`B`, midpoint 20, in no gap) is drawn at `x(20) = x0
+    + 174.6666666666668`; the gap draws no
     ellipsis (it is narrower than 20). The card of `score` drawn as
     written draws no elision of `virtual_1` (the elision lies on another
     timeline), and switched to `virtual_1` by the manifest's rule it draws
@@ -2639,6 +2668,43 @@ less and plus `k` = 8.
       to doubles (165.644895071917 and 331.289790143834, the exact
       proportions times the float length 702.5);
     - no other `elision` element: no card draws it as a card elision.
+12. **The windows of a virtual card** (section 8.10, Sources, Windows;
+    sections 2.4 and 4). What proves a window is that the source's
+    content appears on the virtual card exactly where the FlowMap plays
+    it, by the switched card's unfolding, under the source's own address,
+    and only where a rule turns it on. `flow/virtual_cards` with
+    `allegro_default` placed alone, `allegro` given the region `motto`
+    "Motto" over `[100, 200]` (inside A), the locked child `theme` over
+    `[400, 600]` (across A's end into B and B's end into C), the LinearMap
+    `tempo`, and the named timestamp `entry` at 150 (wedge and
+    coordinate); `x(t) = x0 + 400 × t / (4241/2)`.
+    - **Stripped down.** With the default layer alone, V's card draws
+      nothing of `allegro`'s content (`motto`, `theme`, `tempo`, `entry`
+      and the flow control): only its card, its line, the chunks'
+      boundaries and labels and its name.
+    - **Regions.** One rule `{facet: regions, inside: chunk, within:
+      allegro_default}` → `display: inline` draws `motto` in both windows
+      of A, over `[x(100), x(200)]` and `[x(600), x(700)]`, each labelled
+      `Motto`; no window draws the chunk's own region (A's window no
+      `section_a`), and the other sections lie outside every other
+      chunk's stretch.
+    - **Children.** The same rule for `children` draws `theme` once in
+      each piece it reaches: `[x(400), x(953/2)]` (circle, none),
+      `[x(953/2), x(500)]` (none, none: B continues A's axis),
+      `[x(900), x(1953/2)]` (circle, none: the second A is cut at its
+      end) and `[x(1953/2), x(2153/2)]` (none, its locked end's diamond),
+      named once.
+    - **Maps, flow control, markers.** The rules for those three facets
+      draw `tempo` once per piece over the four chunks' spans; `entry`'s
+      wedge at `x(150)` and `x(650)`, both labelled `150 ♩` (the written
+      coordinate); `repeat_end`'s symbol and `volta_break`'s line at
+      `x(500)` (the end of B, which the next chunk does not continue
+      from) and `x(1953/2)` (the start of C).
+    - **Hiding.** V's own regions band hidden by an addressed rule hides
+      what the windows join to it: no `motto`. Chunk 2 hidden (`{id: V,
+      part: [2]}` → `display: none`) hides its window alone: `motto` is
+      drawn in chunk 0's window only, and chunk 2's label `A` stays (a
+      part of the line).
 
 ## Switched cards (`switched.test.ts`)
 
@@ -2668,22 +2734,25 @@ the manifest's own layer or with another selector switches nothing.
    a `flow` member.
 2. **The switched card.** `flow/switched_card` draws one `timeline`
    element `{id: "allegro"}` from `x(0)` to `x(4241/2)`, start and end
-   circles; braces `{id: "allegro", facet: "regions", part: [k]}`, k = 0 …
-   3, from `x(0)`, `x(953/2)`, `x(500)`, `x(1953/2)` to `x(953/2)`,
-   `x(500)`, `x(1953/2)`, `x(4241/2)`, labelled A, B, A, C; boundaries at
-   k = 1, 2, 3 at their starts; the row name `Allegro · default`; its
-   flow control drawn unfolded (13).
+   circles; boundaries `{id: "allegro", part: [k, "start"]}` at k = 1, 2,
+   3 at `x(953/2)`, `x(500)`, `x(1953/2)`; the chunks' labels `[k,
+   "label"]` A, B, A, C above the line at the midpoints of their spans;
+   no element in any band addresses a chunk (no brace); the row name
+   `Allegro · default`; its flow control drawn unfolded (13).
 3. **Drawn as written.** The same rule in an application layer instead
    of the manifest's (the manifest's rule removed) draws the card as
    written: one line from `x0` to `x0 + 400`, no chunk element, the row
    name `Allegro`, the flow control drawn.
 4. **A virtual timeline named.** `flow` naming `allegro_single` switches
-   to `single`: braces A over `[x(0), x(953/2)]` and C over `[x(953/2),
-   x(3241/2)]` (`Λ` = 3241/2), the row name `Allegro · Allegro, single`.
-5. **A run drawn once.** `flow` naming `by_hand` on the ungrouped card:
-   brace 0 `A × 4` to `x(953/2)`, entries 1 to 3 drawn not, the gap's
-   label `4 ♩`, brace 5 C, the line ending at `x0 + (400 × u(953/2) +
-   (400 − 400 × u(1906)))`, as on the virtual card (Virtual cards, 5).
+   to `single`: the labels A at `x(953/4)` and C at `x((953/2 + 3241/2) /
+   2)` (`Λ` = 3241/2), the row name `Allegro · Allegro, single`.
+5. **A run drawn once and a widened gap.** `flow` naming `by_hand` on the
+   ungrouped card draws exactly the numbers of the virtual card (Virtual
+   cards, 5): boundaries 4 and 5 at `x0 + 62.40995415848069` and `x0 +
+   94.40995415848069`, the labels `A × 4`, `4 ♩` and C at `x0 +
+   31.204977079240344`, `x0 + 78.40995415848069` and `x0 +
+   169.328094302554`, entries 1 to 3 drawn not, the line ending at `x0 +
+   244.2462344466274`.
 6. **Regions unfolded.** With an application layer showing every region
    (`{element: "region"}` → `display: inline`, over the default hiding of
    atomic sections), `allegro`'s regions follow the chunks piece by piece:
@@ -2718,10 +2787,10 @@ the manifest's own layer or with another selector switches nothing.
     region, that FlowMap `twice` and `recording`'s card switched to it: the frame is
     switched by `recording`'s card, `Λ` = 1405.0, and the virtual card of
     `allegro_default` (4241/2) is carried (`t = m × 702.5 / (4241/2)`): its
-    line is drawn twice, its four chunk braces twice (eight, k = 0, 1, 2,
+    line is drawn twice, its four chunk labels twice (eight, k = 0, 1, 2,
     3, 0, 1, 2, 3) and its boundaries k = 1, 2, 3 twice; `recording`'s
-    card draws the braces of `twice`, k = 0 and 1, both labelled `Take`
-    (no run is drawn once in a frame).
+    card draws the chunks of `twice`, k = 0 and 1, both labelled `Take`
+    at `x(702.5/2)` and `x(3 × 702.5/2)` (no run is drawn once in a frame).
 12. **A carried child member: its ancestor lines unfolded.**
     `groups/group_child_member` (the frame `group_1` of `second-half`, 8
     quarters at offset 8 in `piece`, 16 quarters, and `recording`, 10.0
@@ -2735,7 +2804,7 @@ the manifest's own layer or with another selector switches nothing.
     4 and 8 lie at 0.0, 5.0 and 10.0 of `recording`'s axis, played at
     0.0, 5.0, 10.0 in the first piece and 10.0, 15.0, 20.0 in the second.
     With `x0` the start of `recording`'s line and `x(t) = x0 + 400 × (t /
-    20.0)`: `recording`'s card draws the braces of `twice`, k = 0 over
+    20.0)`: `recording`'s card draws the chunks of `twice`, k = 0 over
     `[x(0), x(10)]` and k = 1 over `[x(10), x(20)]`, both labelled `Take`;
     `second-half`'s line is drawn twice. The ancestor line of `piece`
     (`ts` = −8, so it runs on to the left; `te` = 8 = λ, so it ends with

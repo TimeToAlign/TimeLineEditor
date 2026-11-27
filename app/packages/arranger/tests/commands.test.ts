@@ -443,11 +443,13 @@ describe("Delete on a virtual card", () => {
       refused:
         "A chunk is changed in its FlowMap; open the flow-control editor of its root to change it.",
     };
-    const brace: Address = { block: A, id: DEFAULT, facet: "regions", part: [1] };
-    const label: Address = { block: A, id: DEFAULT, facet: "regions", part: [1, "label"] };
-    expect(removeCommand(view, selectionOf([brace]), null)).toEqual(chunkHint);
+    const chunk: Address = { block: A, id: DEFAULT, part: [1] };
+    const label: Address = { block: A, id: DEFAULT, part: [1, "label"] };
+    const band: Address = { block: A, id: DEFAULT, facet: "regions", part: [1] };
+    expect(removeCommand(view, selectionOf([chunk]), null)).toEqual(chunkHint);
     expect(removeCommand(view, selectionOf([label]), null)).toEqual(chunkHint);
-    expect(removeCommand(view, selectionOf([brace, { block: A, id: "section_b" }]), null)).toEqual(
+    expect(removeCommand(view, selectionOf([band]), null)).toEqual(chunkHint);
+    expect(removeCommand(view, selectionOf([chunk, { block: A, id: "section_b" }]), null)).toEqual(
       removing({ block: A, id: "section_b" }),
     );
   });

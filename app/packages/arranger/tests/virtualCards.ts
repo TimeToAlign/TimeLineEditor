@@ -35,9 +35,9 @@ export function drawingIn(view: View): Drawing {
   return drawingOf(blockIn(view, A), view.graphical, metrics);
 }
 
-/** The address of chunk `index`'s brace of the virtual timeline `id`. */
-export function brace(id: string, index: number): ElementAddress {
-  return { id, facet: "regions", part: [index] };
+/** The address of chunk `index` of the virtual timeline `id`, `{id, part: [index]}`. */
+export function chunkAt(id: string, index: number): ElementAddress {
+  return { id, part: [index] };
 }
 
 /**
@@ -57,15 +57,40 @@ export function lineOf(drawing: Drawing, timeline: string, at?: number): [string
   return one;
 }
 
-/** The drawn brace element of chunk `index` of `id`: its ends. */
-export function braceEnds(drawing: Drawing, id: string, index: number): { x1: number; x2: number } {
-  const found = drawing.elements.find(
-    (element) =>
-      element.type === "region" &&
-      element.address.id === id &&
-      element.address.part?.length === 1 &&
-      element.address.part[0] === index,
+/**
+ * The drawn span of chunk `index` of `id` (section 8.10, Chunks), read off
+ * the drawing as the specification places it: from its boundary `[index,
+ * "start"]`, the line's start for chunk 0, to the boundary of the next
+ * chunk the line draws, the line's end after the last; with the top of its
+ * label (its baseline less its font size) above the line.
+ */
+export function chunkSpan(
+  drawing: Drawing,
+  id: string,
+  index: number,
+): { x1: number; x2: number; y: number; top: number } {
+  const own = drawing.elements.filter(
+    (element) => element.address.id === id && element.address.facet === undefined,
   );
-  if (found?.type !== "region") throw new Error(`no brace ${index} of ${id}`);
-  return { x1: found.x1, x2: found.x2 };
+  const line = own.find((element) => element.type === "timeline");
+  if (line?.type !== "timeline") throw new Error(`${id} draws no line`);
+  const starts = own.flatMap((element) => {
+    const [k, word] = element.address.part ?? [];
+    return element.type === "boundary" && typeof k === "number" && word === "start"
+      ? [[k, element.x] as const]
+      : [];
+  });
+  const label = own.find(
+    (element) => element.address.part?.[0] === index && element.address.part[1] === "label",
+  );
+  if (label?.type !== "label") throw new Error(`no label of chunk ${index} of ${id}`);
+  const x1 = index === 0 ? line.xs : starts.find(([k]) => k === index)?.[1];
+  const after = starts.filter(([k]) => k > index).sort(([a], [b]) => a - b)[0];
+  if (x1 === undefined) throw new Error(`no boundary of chunk ${index} of ${id}`);
+  return {
+    x1,
+    x2: after === undefined ? line.xe : after[1],
+    y: line.y,
+    top: label.baseline - label.style["font-size"],
+  };
 }

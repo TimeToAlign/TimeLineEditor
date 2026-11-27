@@ -692,6 +692,7 @@ function namedBy(resolved: ResolvedAddress): NameField | null {
     case "anchor":
     case "virtual_band":
     case "chunk":
+    case "chunk_band":
       return null;
     case "part":
       // A default elision is a part of its timeline, and has no name of its own.
@@ -771,6 +772,7 @@ function timelineOf(
     case "virtual_card":
     case "virtual_band":
     case "chunk":
+    case "chunk_band":
       return null;
     default:
       return assertNever(resolved);

@@ -24,15 +24,6 @@ export function isFacet(value: unknown): value is Facet {
  */
 export const FACETS: readonly Facet[] = DEFAULT_BAND_ORDER.filter(isFacet);
 
-/**
- * The facets of a virtual timeline's bands: it has no children, conversion
- * maps or flow control, so only its markers and its regions, which hold its
- * chunks (`docs/drawing.md` section 8.10).
- */
-export const VIRTUAL_FACETS: readonly Facet[] = FACETS.filter(
-  (facet) => facet === "markers" || facet === "regions",
-);
-
 /** The part words, in the schema's order. */
 export const PART_WORDS = [
   "start",
@@ -57,8 +48,9 @@ export function isPart(value: unknown): value is Part {
 
 /**
  * A chunk index: an integer from 0 at the head of an address's `part`,
- * naming the chunk at that index of the FlowMap drawn on a line, in that
- * line's regions band (`docs/drawing.md`, sections 2.2 and 8.10).
+ * naming the chunk at that index of the FlowMap drawn on a line, or with a
+ * `facet` a band of that chunk's window (`docs/drawing.md`, sections 2.2 and
+ * 8.10).
  */
 export type ChunkIndex = number;
 
@@ -69,10 +61,10 @@ export type PartItem = Part | ChunkIndex;
  * The address of an element of one manifest's drawing, the read-only view of
  * the schema's `Address`: `{}` the bundle (the block draws it), `{part:
  * ["name"]}` the manifest's title, `{id}` an element, `{id, facet}` a band,
- * `{id, part}` a part of an element, `{id, facet: "regions", part: [k,
- * …]}` a chunk drawn in a regions band and its parts; a `facet` stands only
- * with an `id`, and with a `part` only where the part begins with a chunk
- * index.
+ * `{id, part}` a part of an element, `{id, part: [k, …]}` a chunk drawn on a
+ * line and its parts, `{id, facet, part: [k]}` a band of a chunk's window;
+ * a `facet` stands only with an `id`, and with a `part` only where the part
+ * begins with a chunk index.
  */
 export interface ElementAddress {
   readonly id?: Id;

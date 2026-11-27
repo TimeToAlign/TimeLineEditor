@@ -34,6 +34,7 @@ export {
   BLOCK_KEY,
   bandKey,
   cardStamps,
+  chunkKey,
   elementKey,
   leaderKey,
   manifestElements,
@@ -46,6 +47,7 @@ export {
   TIMESTAMP_LABELS,
   textKey,
   unownedKey,
+  windowBandKey,
 } from "./manifest/elements.ts";
 export type { ElisionLabel } from "./manifest/elisions.ts";
 export {
@@ -57,6 +59,13 @@ export {
 export type { Ancestor, AncestorCard, GroupFrame, MemberDrawing } from "./manifest/files.ts";
 export { memberDrawings, virtualDrawing, withVirtualMembers } from "./manifest/files.ts";
 export { flowSymbols, passesText } from "./manifest/flow.ts";
-export type { Piece, PlayedSpan, Switch, Unfolding } from "./manifest/switched.ts";
-export { playedAt, playedSpan, switchOf, unfoldingOf } from "./manifest/switched.ts";
+export type {
+  Piece,
+  PlayedSpan,
+  Switch,
+  Unfolding,
+  WindowPiece,
+  Windows,
+} from "./manifest/switched.ts";
+export { playedAt, playedSpan, switchOf, unfoldingOf, windowsOf } from "./manifest/switched.ts";
 export { timelineAncestry } from "./manifest/tree.ts";

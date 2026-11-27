@@ -83,6 +83,7 @@ export function editorName(view: View, target: Address): string {
     case "virtual_card":
     case "virtual_band":
     case "chunk":
+    case "chunk_band":
     case "part":
       return addressWords(view, target);
     default:
@@ -238,6 +239,11 @@ function describe(resolved: ResolvedAddress): Described | null {
     case "chunk": {
       const line = describe({ ...resolved.line, block: resolved.block });
       return line === null ? null : { ...line, parts: [`chunk ${resolved.chunk + 1}`] };
+    }
+    case "chunk_band": {
+      const line = describe({ ...resolved.line, block: resolved.block });
+      const band = `${bandWord(resolved.facet).toLowerCase()} band`;
+      return line === null ? null : { ...line, parts: [`chunk ${resolved.chunk + 1}`, band] };
     }
     case "part": {
       const owner = describe(resolved.owner);

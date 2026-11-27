@@ -14,7 +14,6 @@ import type {
   BlockId,
   Coordinate,
   Manifest,
-  PlaceKey,
   PlayedStretch,
   StyleCommand,
 } from "@timetoalign/tilie-core";
@@ -30,7 +29,7 @@ import { realOf } from "@timetoalign/tilie-core/numbers";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import { lineAxes } from "@timetoalign/tilie-layout";
 import { isAncestorCard } from "./boxes.ts";
-import { cardHolding, clippedOn } from "./ribbons.ts";
+import { clippedOn, drawnChunks } from "./ribbons.ts";
 
 /** One entry of the list: a FlowMap `flow` of the card's root, or "As written" (`null`). */
 export interface FlowChoice {
@@ -179,65 +178,40 @@ function writtenOf(manifest: Manifest, flow: string): ReadonlyMap<number, Writte
 /**
  * The chunks moving where a card became switched between the drawing
  * `before` and the drawing `after` of `manifest` (section 8.10): for every
- * card of `after` holding chunk braces addressed with a timeline `T` of the
- * manifest (`{id: T, facet: "regions", part: [k]}`, a switched card's; a
- * virtual card's carry a virtual timeline's ID) whose card of the same
- * place key in `before` held none, each chunk `k` with a written stretch
- * drawn on `T`'s line in that card of `before`: its elements in that card of
- * `after` (its brace, label, leader and boundary), from that stretch's
- * abscissas there (the first of `T`'s lines drawing any of it, clipped to
- * what it draws) to its brace's `x1` and `x2`.
+ * card of `after` drawing chunks on a line of a timeline `T` of the manifest
+ * (`drawnChunks`, a switched card's; a virtual card's carry a virtual
+ * timeline's ID) whose card of the same place key in `before` drew none,
+ * each chunk `k` with a written stretch drawn on `T`'s line in that card of
+ * `before`: its elements in that card of `after` (its label, leader and
+ * boundary), from that stretch's abscissas there (the first of `T`'s lines
+ * drawing any of it, clipped to what it draws) to its drawn span.
  */
 export function switchMorphs(manifest: Manifest, before: Drawing, after: Drawing): ChunkMorph[] {
   const virtual = new Set((manifest.virtual_timelines ?? []).map((item) => item.id));
-  const chunked = (
-    drawing: Drawing,
-  ): Map<string, { card: PlaceKey; timeline: string; indices: number[] }> => {
-    const cards = new Map<string, { card: PlaceKey; timeline: string; indices: number[] }>();
-    drawing.elements.forEach((element, index) => {
-      const { id, facet, part } = element.address;
-      if (id === undefined || virtual.has(id) || facet !== "regions") return;
-      if (typeof part?.[0] !== "number") return;
-      const card = cardHolding(drawing, index);
-      if (card === null) return;
-      const key = `${placeKeyText(card)} ${id}`;
-      const entry = cards.get(key) ?? { card, timeline: id, indices: [] };
-      entry.indices.push(index);
-      cards.set(key, entry);
-    });
-    return cards;
-  };
-  const was = chunked(before);
+  const switchedOf = (drawing: Drawing) =>
+    drawnChunks(drawing).filter((chunk) => !virtual.has(chunk.timeline));
+  const was = new Set(
+    switchedOf(before).map((chunk) => `${placeKeyText(chunk.card)} ${chunk.timeline}`),
+  );
   const lines = [...lineAxes(before).values()];
   const morphs: ChunkMorph[] = [];
-  for (const [key, { card, timeline, indices }] of chunked(after)) {
-    if (was.has(key)) continue;
+  for (const chunk of switchedOf(after)) {
+    const { card, timeline } = chunk;
+    if (was.has(`${placeKeyText(card)} ${timeline}`)) continue;
     const flow = cardFlow(manifest, timeline);
     if (flow === null) continue;
-    const written = writtenOf(manifest, flow);
+    const stretch = writtenOf(manifest, flow).get(chunk.index);
+    if (stretch === undefined) continue;
     const own = lines.filter((axis) => axis.timeline === timeline && samePlaceKey(axis.card, card));
-    const byChunk = new Map<number, number[]>();
-    for (const index of indices) {
-      const chunk = after.elements[index]?.address.part?.[0];
-      if (typeof chunk !== "number") continue;
-      byChunk.set(chunk, [...(byChunk.get(chunk) ?? []), index]);
-    }
-    for (const [chunk, elements] of byChunk) {
-      const brace = elements
-        .map((index) => after.elements[index])
-        .find((element) => element?.type === "region" && element.address.part?.length === 1);
-      const stretch = written.get(chunk);
-      if (brace?.type !== "region" || stretch === undefined) continue;
-      const from = own
-        .map((axis) => clippedOn(axis, realOf(stretch.start), realOf(stretch.end)))
-        .find((ends) => ends !== null);
-      if (from === undefined || from === null) continue;
-      morphs.push({
-        elements,
-        from: { x1: from[0], x2: from[1] },
-        to: { x1: brace.x1, x2: brace.x2 },
-      });
-    }
+    const from = own
+      .map((axis) => clippedOn(axis, realOf(stretch.start), realOf(stretch.end)))
+      .find((ends) => ends !== null);
+    if (from === undefined || from === null) continue;
+    morphs.push({
+      elements: chunk.elements,
+      from: { x1: from[0], x2: from[1] },
+      to: { x1: chunk.x1, x2: chunk.x2 },
+    });
   }
   return morphs;
 }

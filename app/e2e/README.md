@@ -1668,6 +1668,31 @@ journal, the selection and the root's length and segments unchanged; the
 first is dismissed by its button before the second key, so each key's
 refusal is seen.
 
+**`segment-lines.spec.ts`** (Chromium) proves in a browser that a virtual
+card is a segment line of its chunks (TimeToShare's `docs/drawing.md`,
+section 8.10), on `flow/virtual_cards` with one virtual timeline placed
+alone by one `set` of its place at (0, 200). The drawing the canvas draws
+is read through the test hook (as `tunnels.spec.ts` reads it), the page's
+elements by their address attributes, numbers as the writers write them
+(`formatNumber`). The practice card (`allegro_by_hand`, `L` 400) draws
+the numbers of section 8.10's worked example, `x0` its line's start: its
+one gap line, in the fixed grey `#9CA3AF`, from `x0 + 62.40995415848069`
+to `x0 + 94.40995415848069` (the gap entry `[1906, 1910]`, 0.5239… wide
+at full scale, widened to the least gap width 32), the line ending at `x0
++ 244.2462344466274`; the chunks' labels `A × 4`, `4 ♩` and `C` at `x0 +
+31.204977079240344`, `x0 + 78.40995415848069` and `x0 +
+169.328094302554`, each with its baseline above the line's ordinate (a
+segment label, no brace below the line); the boundaries of chunks 4 and
+5 at the gap's two ends. With the region `motto` "Motto" over `[100,
+200]` added to `allegro` (inside A) and `allegro_default` placed, the
+page draws `motto` and its label once (on `allegro`'s card: the virtual
+card starts stripped down); the one `style` command `{facet: regions,
+inside: chunk, within: allegro_default}` → `display: inline`, the rule a
+switch From the sources writes, then draws it in the windows of both
+chunks playing A, over `[x(100), x(200)]` and `[x(600), x(700)]` of the
+virtual card, `x(t) = x0 + 400 × t / (4241/2)`, three braces and three
+labels on the page.
+
 **`editors.spec.ts`** (Chromium, Firefox, WebKit) proves the bundle, group
 and timeline editors on `bundles` (and `groups` for a reorder) at viewport
 (40, 40), with reduced motion emulated so that every viewport is compared

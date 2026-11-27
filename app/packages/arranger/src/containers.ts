@@ -387,6 +387,7 @@ function boxFor(
     case "elision":
     case "flow_map":
     case "chunk":
+    case "chunk_band":
       return null;
     default:
       return assertNever(resolved);

@@ -7,6 +7,7 @@ import {
   BLOCK_KEY,
   bandKey,
   cardStamps,
+  chunkKey,
   isAtomicSection,
   leaderKey,
   manifestElements,
@@ -14,8 +15,9 @@ import {
   textKey,
   timelineClass,
   unitDomain,
+  windowBandKey,
 } from "../src/manifest/elements.ts";
-import { memberDrawings } from "../src/manifest/files.ts";
+import { memberDrawings, virtualDrawing } from "../src/manifest/files.ts";
 import { cardFlow } from "../src/manifest/switched.ts";
 import { timelineAncestry } from "../src/manifest/tree.ts";
 import type { Manifest } from "../src/manifest/types.ts";
@@ -1010,9 +1012,12 @@ describe("the selector member class on regions", () => {
     regionNamed(SONATA, name),
   ) as [string, string, string];
   const REGIONS = [id(SECTION_A), id(SECTION_B), id(SECTION_C)];
+  // The drawings of the cards' own trees: the windows of virtual_1's chunks show them again.
+  const own = (manifest: Manifest) =>
+    manifestElements(manifest).filter((key) => key.window === undefined);
 
   it("gives each typed region the spellings of its class and no other key any", () => {
-    const keys = manifestElements(load(SONATA));
+    const keys = own(load(SONATA));
     expect(
       keys.filter((key) => key.types !== undefined).map((key) => [key.address, key.types]),
     ).toEqual(REGIONS.map((address) => [address, [ATOMIC, "tts:AtomicSection"]]));
@@ -1020,21 +1025,14 @@ describe("the selector member class on regions", () => {
 
   it("matches a region by its type statement, compact or absolute", () => {
     const manifest = load(SONATA);
-    const matched = matcher(manifestElements(manifest), timelineAncestry(manifest));
+    const matched = matcher(own(manifest), timelineAncestry(manifest));
     expect(matched({ element: "region", class: "tts:AtomicSection" })).toEqual(REGIONS);
     expect(matched({ element: "region", class: ATOMIC })).toEqual(REGIONS);
     expect(matched({ class: "tts:AtomicSection" })).toEqual(REGIONS);
     expect(matched({ class: "tts:Other" })).toEqual([]);
     expect(matched({ class: "AtomicSection" })).toEqual([]);
-    // The braces of virtual_1's chunks (A, B, A, C) are regions of its class too, and of no type.
-    const chunks = [0, 1, 2, 3].map(
-      (k): ElementAddress => ({
-        id: "virtual_1",
-        facet: "regions",
-        part: [k],
-      }),
-    );
-    expect(matched({ element: "region", class: CLT })).toEqual([...REGIONS, ...chunks]);
+    // virtual_1's chunks (A, B, A, C) draw no brace: no region of its class but the sections.
+    expect(matched({ element: "region", class: CLT })).toEqual(REGIONS);
   });
 
   it("reads an absolute IRI and a prefix of the manifest's own", () => {
@@ -1057,7 +1055,7 @@ describe("the selector member class on regions", () => {
         ],
       }),
     );
-    const keys = manifestElements(manifest);
+    const keys = own(manifest);
     expect(
       keys.filter((key) => key.types !== undefined).map((key) => [key.address, key.types]),
     ).toEqual(
@@ -1071,37 +1069,56 @@ describe("the selector member class on regions", () => {
 });
 
 describe("the texts and leaders of chunks", () => {
-  /** A region key at `address` of the timeline `virtual_1`, held by its regions band. */
-  const regionAt = (address: ElementAddress): ElementKey => ({
-    type: "region",
-    address,
+  /** The line of `virtual_1` in a block-held card. */
+  const line: ElementKey = {
+    type: "timeline",
+    address: { id: "virtual_1" },
     timeline: "virtual_1",
     domain: "logical",
     modality: "continuous",
     class: CLT,
     facet: null,
-    inside: ["block", "card", "timeline", "band"],
+    inside: ["block", "card"],
+  };
+  const drawing = virtualDrawing(load("flow/sonata_exposition.yaml"), "virtual_1");
+  if (drawing === undefined) throw new Error("virtual_1");
+  const { timeline } = drawing;
+
+  it("keys a chunk on its line, its label and leader after its index", () => {
+    const chunk = chunkKey(timeline, 2, line);
+    expect(chunk).toEqual({
+      ...line,
+      type: "chunk",
+      address: { id: "virtual_1", part: [2] },
+      inside: ["block", "card", "timeline"],
+    });
+    const label = textKey(chunk, "label");
+    expect(label.address).toEqual({ id: "virtual_1", part: [2, "label"] });
+    expect(leaderKey(label).address).toEqual({ id: "virtual_1", part: [2, "leader"] });
   });
 
-  it("appends label and leader after a chunk's index, keeping its facet", () => {
-    const chunk = regionAt({ id: "virtual_1", facet: "regions", part: [2] });
-    const label = textKey(chunk, "label");
-    expect(label).toEqual({
-      ...chunk,
-      type: "label",
-      address: { id: "virtual_1", facet: "regions", part: [2, "label"] },
-      inside: ["block", "card", "timeline", "band", "region"],
+  it("keys a window's band under its chunk, carrying its virtual timeline as its window", () => {
+    const chunk = chunkKey(timeline, 2, line);
+    const band = windowBandKey("virtual_1", "children", chunk);
+    expect(band).toEqual({
+      type: "band",
+      address: { id: "virtual_1", facet: "children", part: [2] },
+      timeline: "virtual_1",
+      domain: null,
+      modality: null,
+      class: null,
+      facet: "children",
+      inside: ["block", "card", "timeline", "chunk"],
+      window: "virtual_1",
     });
-    expect(leaderKey(label)).toEqual({
-      ...chunk,
-      type: "leader",
-      address: { id: "virtual_1", facet: "regions", part: [2, "leader"] },
-      inside: ["block", "card", "timeline", "band", "region", "label"],
-    });
+    // What the band holds carries the window on, at any depth.
+    const held = bandKey("child_1", "regions", { ...band, type: "child", facet: null });
+    expect(held.window).toBe("virtual_1");
+    expect(() => textKey(band, "label")).toThrow("a band has no text");
   });
 
   it("keeps an owner's text and leader, and gives a band no text", () => {
-    const region = regionAt({ id: "region_1" });
+    const region: ElementKey = { ...line, type: "region", address: { id: "region_1" } };
     const label = textKey(region, "label");
     expect(label.address).toEqual({ id: "region_1", part: ["label"] });
     expect(leaderKey(label).address).toEqual({ id: "region_1", part: ["leader"] });
@@ -1118,29 +1135,42 @@ describe("virtual cards", () => {
     manifestElements(manifest)
       .filter((key) => key.timeline === virtual)
       .map((key) => [key.type, key.address, key.inside, key.coordinates ?? null]);
-  const chunk = (timeline: string, k: number, word?: "label" | "start"): ElementAddress => ({
-    id: timeline,
-    facet: "regions",
-    part: word === undefined ? [k] : [k, word],
-  });
+  const chunk = (
+    timeline: string,
+    k: number,
+    word?: "label" | "leader" | "start",
+  ): ElementAddress => ({ id: timeline, part: word === undefined ? [k] : [k, word] });
+  /** A chunk `k` of `V` on the line `line`: its chunk, label and leader, its boundary where it draws one, and its window's five bands where it has one. */
+  const chunkRows = (
+    V: string,
+    k: number,
+    line: readonly string[],
+    boundary: boolean,
+    window: boolean,
+  ): Row[] => [
+    ["chunk", chunk(V, k), line, null],
+    ["label", chunk(V, k, "label"), line, null],
+    ["leader", chunk(V, k, "leader"), [...line, "label"], null],
+    ...(boundary ? [["boundary", chunk(V, k, "start"), line, null] as const] : []),
+    ...(window
+      ? FACETS.map((facet): Row => ["band", { id: V, facet, part: [k] }, [...line, "chunk"], null])
+      : []),
+  ];
+  /** The five bands of `V`, holding nothing. */
+  const bands = (V: string, line: readonly string[]): Row[] =>
+    FACETS.map((facet): Row => ["band", band(V, facet), line, null]);
 
   it("lists a block-held virtual card with its run drawn once and its gap", () => {
     const V = "allegro_by_hand";
     const line = ["block", "timeline"];
-    const regions = [...line, "band"];
     expect(rows(load("flow/virtual_cards.yaml"), V)).toEqual([
       ["card", id(V, "card"), ["block"], null],
       ["timeline", id(V), ["block"], null],
       ["name", id(V, "name"), line, null],
-      ["boundary", chunk(V, 4, "start"), line, null],
-      ["boundary", chunk(V, 5, "start"), line, null],
-      ["band", band(V, "markers"), line, null],
-      ["band", band(V, "regions"), line, null],
-      ["region", chunk(V, 0), regions, null],
-      ["label", chunk(V, 0, "label"), [...regions, "region"], null],
-      ["label", chunk(V, 4, "label"), [...regions, "region"], null],
-      ["region", chunk(V, 5), regions, null],
-      ["label", chunk(V, 5, "label"), [...regions, "region"], null],
+      ...chunkRows(V, 0, line, false, true),
+      ...chunkRows(V, 4, line, true, false),
+      ...chunkRows(V, 5, line, true, true),
+      ...bands(V, line),
     ]);
   });
 
@@ -1148,25 +1178,55 @@ describe("virtual cards", () => {
     const V = "allegro_default";
     const line = ["block", "frame", "timeline"];
     const markers = [...line, "band"];
-    const braces = [0, 1, 2, 3].flatMap((k): Row[] => [
-      ["region", chunk(V, k), markers, null],
-      ["label", chunk(V, k, "label"), [...markers, "region"], null],
-    ]);
+    const [children, maps, own, regions, flow] = bands(V, line);
     expect(rows(load("groups/virtual_member.yaml"), V)).toEqual([
       ["card", id(V, "card"), ["block", "frame"], null],
       ["timeline", id(V), ["block", "frame"], null],
       ["name", id(V, "name"), line, null],
-      ["boundary", chunk(V, 1, "start"), line, null],
-      ["boundary", chunk(V, 2, "start"), line, null],
-      ["boundary", chunk(V, 3, "start"), line, null],
-      ["band", band(V, "markers"), line, null],
+      ...[0, 1, 2, 3].flatMap((k) => chunkRows(V, k, line, k > 0, true)),
+      children,
+      maps,
+      own,
       ["wedge", id("timestamp_3"), markers, "primary"],
       ["label", id("timestamp_3", "coordinate"), markers, "primary"],
       ["wedge", id("timestamp_4"), markers, "primary"],
       ["label", id("timestamp_4", "coordinate"), markers, "primary"],
-      ["band", band(V, "regions"), line, null],
-      ...braces,
+      regions,
+      flow,
     ]);
+  });
+
+  it("lists what a window shows in its chunk's stretch alone, its chunk's own region left out", () => {
+    // groups/virtual_member: allegro_default plays A [0, 953/2], B [953/2, 500], A again and
+    // C [500, 1644]; allegro given the region motto [100, 200], inside A, and the child theme
+    // [400, 600], which crosses A's end into B and B's end into C.
+    const [bare] = load("bare.yaml").timelines;
+    const into = { block: A, id: "allegro" };
+    const motto = { id: "motto", name: "Motto", start: [100, 1], end: [200, 1] };
+    const theme = { ...bare, id: "theme", name: null, offset: [400, 1], length: [200, 1] };
+    const view = [
+      { type: "add", into, region: motto },
+      { type: "add", into, child: { ...theme, locked: true } },
+    ].reduce((each, command) => changed(each, command), viewOf([A, "groups/virtual_member.yaml"]));
+    const windowed = manifestElements(block(view).manifest).filter(
+      (key) => key.window === "allegro_default",
+    );
+    const of = (type: string) =>
+      windowed.flatMap((key) =>
+        key.type === type ? [[key.address.id, key.address.part ?? null, key.inside.join(" ")]] : [],
+      );
+    const shown = "block frame timeline chunk band";
+    // The window of each A shows motto; B's and C's nothing (section_a, section_b and
+    // section_c each lie outside the others' stretches, and each chunk's own is left out).
+    expect(of("region")).toEqual([
+      ["motto", null, shown],
+      ["motto", null, shown],
+    ]);
+    // theme reaches into all four pieces, a drawing in each, and is named once.
+    expect(of("child")).toEqual([0, 1, 2, 3].map(() => ["theme", null, shown]));
+    expect(of("name")).toEqual([["theme", ["name"], `${shown} child`]]);
+    // Each chunk's window bands, then each drawing of theme its own five bands.
+    expect(of("band").length).toBe(40);
   });
 
   it("lists no entry for a virtual timeline applying a conversion map", () => {
@@ -1181,8 +1241,7 @@ describe("virtual cards", () => {
       ["card", id("mapped", "card"), ["block"], null],
       ["timeline", id("mapped"), ["block"], null],
       ["name", id("mapped", "name"), line, null],
-      ["band", band("mapped", "markers"), line, null],
-      ["band", band("mapped", "regions"), line, null],
+      ...bands("mapped", line),
     ]);
   });
 });
@@ -1204,15 +1263,19 @@ describe("atomic sections", () => {
 });
 
 describe("switched cards", () => {
-  /** Every key of `manifest` as type, address key and holder chain, in enumeration order. */
+  /**
+   * Every key of `manifest` as type, address key and holder chain, in enumeration order, but
+   * the drawings the windows of its virtual cards show (section 8.10).
+   */
   const listing = (manifest: Manifest) =>
-    manifestElements(manifest).map((key) => [key.type, addressKey(key.address), key.inside]);
+    manifestElements(manifest)
+      .filter((key) => key.window === undefined)
+      .map((key) => [key.type, addressKey(key.address), key.inside]);
   /** How often the listing holds the key `[type, address]`. */
   const count = (manifest: Manifest, type: string, address: ElementAddress) =>
     listing(manifest).filter(([t, a]) => t === type && a === addressKey(address)).length;
-  const chunk = (k: number, word?: "label" | "start"): ElementAddress => ({
+  const chunk = (k: number, word?: "label" | "leader" | "start"): ElementAddress => ({
     id: "allegro",
-    facet: "regions",
     part: word === undefined ? [k] : [k, word],
   });
 
@@ -1245,17 +1308,17 @@ describe("switched cards", () => {
       key("card", id("allegro", "card"), ["block"]),
       key("timeline", id("allegro"), ["block"]),
       key("name", id("allegro", "name"), line),
-      key("boundary", chunk(1, "start"), line),
-      key("boundary", chunk(2, "start"), line),
-      key("boundary", chunk(3, "start"), line),
+      // Its chunks, segments of its line, none with a window (section 8.10).
+      ...[0, 1, 2, 3].flatMap((k) => [
+        key("chunk", chunk(k), line),
+        key("label", chunk(k, "label"), line),
+        key("leader", chunk(k, "leader"), [...line, "label"]),
+        ...(k > 0 ? [key("boundary", chunk(k, "start"), line)] : []),
+      ]),
       key("band", band("allegro", "children"), line),
       key("band", band("allegro", "conversion_maps"), line),
       key("band", band("allegro", "markers"), line),
       key("band", band("allegro", "regions"), line),
-      ...[0, 1, 2, 3].flatMap((k) => [
-        key("region", chunk(k), held),
-        key("label", chunk(k, "label"), region),
-      ]),
       ...["section_a", "section_a", "section_b", "section_c"].flatMap((r) => [
         key("region", id(r), held),
         key("label", id(r, "label"), region),
@@ -1287,7 +1350,7 @@ describe("switched cards", () => {
   it("carries the other members of a switched frame onto its FlowMap", () => {
     // groups/switched_frame: performance (allegro switched to default, recording 702.5 s).
     const manifest = load("groups/switched_frame.yaml");
-    expect(count(manifest, "region", chunk(2))).toBe(1);
+    expect(count(manifest, "chunk", chunk(2))).toBe(1);
     expect(count(manifest, "region", id("section_a"))).toBe(2);
     expect(count(manifest, "wedge", id("timestamp_1"))).toBe(2);
     expect(count(manifest, "wedge", id("timestamp_2"))).toBe(1);
@@ -1366,13 +1429,9 @@ describe("switched cards", () => {
         ([t, a, inside]) =>
           t === type && a === addressKey(address) && (inside as string[])[1] === "frame",
       ).length;
-    const recordingChunk = (k: number): ElementAddress => ({
-      id: "recording",
-      facet: "regions",
-      part: [k],
-    });
-    expect(inFrame("region", recordingChunk(0))).toBe(1);
-    expect(inFrame("region", recordingChunk(1))).toBe(1);
+    const recordingChunk = (k: number): ElementAddress => ({ id: "recording", part: [k] });
+    expect(inFrame("chunk", recordingChunk(0))).toBe(1);
+    expect(inFrame("chunk", recordingChunk(1))).toBe(1);
     expect(inFrame("timeline", id("second-half"))).toBe(2);
     expect(inFrame("name", id("second-half", "name"))).toBe(1);
     // piece's line over second-half's span, [0, 8] carried to [0.0, 10.0]: once in each piece.
@@ -1400,7 +1459,7 @@ describe("switched cards", () => {
       blocks: [A],
     });
     const manifest = block(view).manifest;
-    expect(count(manifest, "region", chunk(0))).toBe(0);
+    expect(count(manifest, "chunk", chunk(0))).toBe(0);
     expect(count(manifest, "region", id("section_a"))).toBe(1);
     expect(count(manifest, "jump", id("volta_jump"))).toBe(1);
     expect(count(manifest, "band", band("allegro", "flow_control"))).toBe(1);

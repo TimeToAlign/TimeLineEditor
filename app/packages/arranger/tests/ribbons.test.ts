@@ -9,6 +9,7 @@
 import type { ElementAddress, View } from "@timetoalign/tilie-core";
 import { addressKey, idAddress, inBlock } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
+import { TextMeasure } from "@timetoalign/tilie-layout";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { BlockNodeData } from "../src/node.ts";
@@ -36,8 +37,8 @@ import NodeHarness from "./NodeHarness.svelte";
 import { A, blockIn, metrics, viewOf } from "./support.ts";
 import {
   BY_HAND,
-  brace,
-  braceEnds,
+  chunkAt,
+  chunkSpan,
   DEFAULT,
   drawingIn,
   lineOf,
@@ -58,27 +59,31 @@ function written(drawing: Drawing, timeline: string, s: number, e: number): Ribb
   return { x1: at(s), x2: at(e), y: line.y };
 }
 
-/** The virtual end of chunk `index` of `id`: its brace's ends at its line's ordinate. */
+/** The virtual end of chunk `index` of `id`: its drawn span's ends at its line's ordinate. */
 function played(drawing: Drawing, id: string, index: number): RibbonEnd {
   const [, line] = lineOf(drawing, id, 0);
-  return { ...braceEnds(drawing, id, index), y: line.y };
+  const { x1, x2 } = chunkSpan(drawing, id, index);
+  return { x1, x2, y: line.y };
 }
 
 /** The ends of `ribbons`, in order. */
 const ends = (ribbons: readonly Ribbon[]) => ribbons.map(({ from, to }) => ({ from, to }));
 
 describe("chunkOf", () => {
-  it("reads a chunk from its brace, label, leader and boundary, and nothing else", () => {
-    expect(chunkOf(MANIFEST, brace(DEFAULT, 1))).toEqual({ timeline: DEFAULT, index: 1 });
+  it("reads a chunk from its address, its label, leader and boundary and its window's bands", () => {
+    expect(chunkOf(MANIFEST, chunkAt(DEFAULT, 1))).toEqual({ timeline: DEFAULT, index: 1 });
     for (const word of ["label", "leader", "start"] as const) {
-      const address: ElementAddress = { id: DEFAULT, facet: "regions", part: [2, word] };
+      const address: ElementAddress = { id: DEFAULT, part: [2, word] };
       expect(chunkOf(MANIFEST, address)).toEqual({ timeline: DEFAULT, index: 2 });
     }
+    const band: ElementAddress = { id: DEFAULT, facet: "children", part: [2] };
+    expect(chunkOf(MANIFEST, band)).toEqual({ timeline: DEFAULT, index: 2 });
     expect(chunkOf(MANIFEST, { id: ROOT, facet: "regions" })).toBeNull();
     expect(chunkOf(MANIFEST, { id: DEFAULT, facet: "regions" })).toBeNull();
     expect(chunkOf(MANIFEST, idAddress(DEFAULT))).toBeNull();
     expect(chunkOf(MANIFEST, idAddress("section_a"))).toBeNull();
-    expect(chunkOf(MANIFEST, { id: ROOT, facet: "regions", part: [0] })).toBeNull();
+    // A switched card's chunk is no chunk of a virtual timeline.
+    expect(chunkOf(MANIFEST, { id: ROOT, part: [0] })).toBeNull();
   });
 });
 
@@ -92,15 +97,15 @@ describe("chunkLights", () => {
     expect(lights.lit).toEqual([]);
   });
 
-  it("joins A to its stretch and lights every other A, the run's brace first", () => {
+  it("joins A to its stretch and lights every other A, the run's chunk first", () => {
     const lights = chunkLights(MANIFEST, DRAWING, { timeline: DEFAULT, index: 0 });
     expect(ends(lights.ribbons)).toEqual([
       { from: played(DRAWING, DEFAULT, 0), to: written(DRAWING, ROOT, 0, 476.5) },
     ]);
-    expect(lights.lit).toEqual([brace(BY_HAND, 0), brace(DEFAULT, 2)]);
+    expect(lights.lit).toEqual([chunkAt(BY_HAND, 0), chunkAt(DEFAULT, 2)]);
   });
 
-  it("starts a chunk after a run drawn once where its brace lies", () => {
+  it("starts a chunk after a run drawn once where its drawn span lies", () => {
     const lights = chunkLights(MANIFEST, DRAWING, { timeline: BY_HAND, index: 5 });
     const line = DRAWING.elements.find(
       (element) => element.type === "timeline" && element.address.id === BY_HAND,
@@ -109,13 +114,13 @@ describe("chunkLights", () => {
     const from = played(DRAWING, BY_HAND, 5);
     expect(from.x1).not.toBe(line.xs + (1910 / 3054) * (line.xe - line.xs));
     expect(ends(lights.ribbons)).toEqual([{ from, to: written(DRAWING, ROOT, 500, 1644) }]);
-    expect(lights.lit).toEqual([brace(DEFAULT, 3)]);
+    expect(lights.lit).toEqual([chunkAt(DEFAULT, 3)]);
   });
 
-  it("draws no ribbon from a run's later entry, which draws no brace, and still lights", () => {
+  it("draws no ribbon from a run's later entry, which is not drawn, and still lights", () => {
     const lights = chunkLights(MANIFEST, DRAWING, { timeline: BY_HAND, index: 1 });
     expect(lights.ribbons).toEqual([]);
-    expect(lights.lit).toEqual([brace(BY_HAND, 0), brace(DEFAULT, 0), brace(DEFAULT, 2)]);
+    expect(lights.lit).toEqual([chunkAt(BY_HAND, 0), chunkAt(DEFAULT, 0), chunkAt(DEFAULT, 2)]);
   });
 
   it("shows nothing for a gap", () => {
@@ -132,7 +137,7 @@ describe("chunkLights", () => {
     ]);
   });
 
-  it("gives several chunks' ribbons in turn and lights each other brace once", () => {
+  it("gives several chunks' ribbons in turn and lights each other chunk once", () => {
     const chunks = [
       { timeline: DEFAULT, index: 0 },
       { timeline: DEFAULT, index: 2 },
@@ -141,10 +146,10 @@ describe("chunkLights", () => {
     const one = chunkLights(MANIFEST, DRAWING, chunks[0] as (typeof chunks)[number]);
     const two = chunkLights(MANIFEST, DRAWING, chunks[1] as (typeof chunks)[number]);
     expect(lights.ribbons.map((ribbon) => ribbon.key)).toEqual([
-      ...one.ribbons.map((ribbon) => `${addressKey(brace(DEFAULT, 0))}#${ribbon.key}`),
-      ...two.ribbons.map((ribbon) => `${addressKey(brace(DEFAULT, 2))}#${ribbon.key}`),
+      ...one.ribbons.map((ribbon) => `${addressKey(chunkAt(DEFAULT, 0))}#${ribbon.key}`),
+      ...two.ribbons.map((ribbon) => `${addressKey(chunkAt(DEFAULT, 2))}#${ribbon.key}`),
     ]);
-    expect(lights.lit).toEqual([brace(BY_HAND, 0)]);
+    expect(lights.lit).toEqual([chunkAt(BY_HAND, 0)]);
     expect(allLights(MANIFEST, DRAWING, [])).toBe(NO_LIGHTS);
   });
 
@@ -160,20 +165,10 @@ describe("chunkZones and chunksAt", () => {
   const DEFAULT_Y = lineOf(DRAWING, DEFAULT)[1].y;
   const BY_HAND_Y = lineOf(DRAWING, BY_HAND, 0)[1].y;
 
-  /** The regions band of `timeline` as the drawing records it: its top and bottom. */
-  function bandOf(timeline: string): { top: number; bottom: number } {
-    const box = DRAWING.boxes.find(
-      (one) =>
-        one.kind === "band" && one.address.id === timeline && one.address.facet === "regions",
-    );
-    if (box === undefined) throw new Error(`${timeline} draws no regions band`);
-    return { top: box.y, bottom: box.y + box.height };
-  }
-
-  /** The zone of chunk `index` of `id` on its virtual card: its brace's ends, out to its band. */
+  /** The zone of chunk `index` of `id` on its virtual card: its drawn span, up to its label's top. */
   function onCard(id: string, index: number, y: number): ChunkZone {
-    const { x1, x2 } = braceEnds(DRAWING, id, index);
-    return { chunk: { timeline: id, index }, x1, x2, line: y, top: y, bottom: bandOf(id).bottom };
+    const { x1, x2, top } = chunkSpan(DRAWING, id, index);
+    return { chunk: { timeline: id, index }, x1, x2, line: y, top, bottom: y };
   }
 
   /** The zone of chunk `index` of `id` on `allegro`'s line, over the written `[s, e)`. */
@@ -184,8 +179,11 @@ describe("chunkZones and chunksAt", () => {
 
   const chunk = (timeline: string, index: number): ChunkRef => ({ timeline, index });
 
-  it("lays a zone over every drawn brace and every written stretch it plays", () => {
-    expect([DEFAULT_Y, bandOf(DEFAULT)]).toEqual([216, { top: 228, bottom: 246.4765625 }]);
+  it("lays a zone over every drawn chunk and every written stretch it plays", () => {
+    // A label in tier 1 of a line with boundaries: baseline `y − (k + 2) − d(9)`, top 9 above it.
+    expect(chunkSpan(DRAWING, DEFAULT, 2).top).toBe(
+      DEFAULT_Y - 10 - new TextMeasure(metrics).descent(9) - 9,
+    );
     expect(
       DRAWING.boxes.some(
         (box) => box.kind === "band" && box.address.id === ROOT && box.address.facet === "regions",
@@ -207,23 +205,16 @@ describe("chunkZones and chunksAt", () => {
     ]);
   });
 
-  it("shows a chunk on its segment, its brace and the space between", () => {
-    const brace2 = DRAWING.elements.find(
-      (element) =>
-        element.type === "region" &&
-        element.address.id === DEFAULT &&
-        element.address.part?.length === 1 &&
-        element.address.part[0] === 2,
-    );
-    if (brace2?.type !== "region") throw new Error("no brace 2");
-    const x = (brace2.x1 + brace2.x2) / 2;
-    for (const y of [DEFAULT_Y, brace2.yb, (DEFAULT_Y + brace2.yb) / 2]) {
+  it("shows a chunk on its segment, its label and the space between", () => {
+    const two = chunkSpan(DRAWING, DEFAULT, 2);
+    const x = (two.x1 + two.x2) / 2;
+    for (const y of [DEFAULT_Y, two.top, (DEFAULT_Y + two.top) / 2]) {
       expect(chunksAt(ZONES, { x, y }, 0)).toEqual([chunk(DEFAULT, 2)]);
     }
-    expect(chunksAt(ZONES, { x: brace2.x2, y: DEFAULT_Y }, 0)).toEqual([chunk(DEFAULT, 3)]);
-    expect(chunksAt(ZONES, { x, y: bandOf(DEFAULT).bottom + 1 }, 0)).toEqual([]);
-    expect(chunksAt(ZONES, { x, y: DEFAULT_Y - 1 }, 0)).toEqual([]);
-    expect(chunksAt(ZONES, { x, y: DEFAULT_Y - 1 }, 2)).toEqual([chunk(DEFAULT, 2)]);
+    expect(chunksAt(ZONES, { x: two.x2, y: DEFAULT_Y }, 0)).toEqual([chunk(DEFAULT, 3)]);
+    expect(chunksAt(ZONES, { x, y: two.top - 1 }, 0)).toEqual([]);
+    expect(chunksAt(ZONES, { x, y: DEFAULT_Y + 1 }, 0)).toEqual([]);
+    expect(chunksAt(ZONES, { x, y: DEFAULT_Y + 1 }, 2)).toEqual([chunk(DEFAULT, 2)]);
   });
 
   it("shows every chunk playing a written section on the source's line", () => {
@@ -270,10 +261,10 @@ describe("the block node's ribbons", () => {
     return svg;
   }
 
-  /** The drawn element of `svg` whose address is `address`, by its address attributes. */
+  /** The drawn element of `svg` whose address is `address` (no facet), by its address attributes. */
   function drawnAt(svg: SVGSVGElement, address: ElementAddress): Element {
     const found = svg.querySelector(
-      `[data-id="${address.id}"][data-facet="regions"][data-part="${address.part?.join(" ")}"]`,
+      `[data-id="${address.id}"][data-part="${address.part?.join(" ")}"]:not([data-facet])`,
     );
     if (found === null) throw new Error(`nothing drawn at ${addressKey(address)}`);
     return found;
@@ -284,26 +275,26 @@ describe("the block node's ribbons", () => {
       path.getAttribute("d"),
     ),
     lit: [...svg.querySelectorAll("g.tilie-ribbons .tilie-lit")].map((copy) => ({
-      d: copy.getAttribute("d"),
+      line: ["x1", "x2", "y1", "y2"].map((name) => Number(copy.getAttribute(name))),
       addressed: ["data-id", "data-facet", "data-part"].some((name) => copy.hasAttribute(name)),
     })),
   });
 
-  const braceD = (svg: SVGSVGElement, address: ElementAddress) =>
-    drawnAt(svg, address).getAttribute("d");
+  /** A lit chunk's copy: a line over its drawn span at its line's ordinate. */
+  const litLine = (id: string, index: number) => {
+    const { x1, x2, y } = chunkSpan(DRAWING, id, index);
+    return [x1, x2, y, y];
+  };
 
   it("draws them while the pointer is on a chunk, letting the pointer through", () => {
     const svg = mountOn(VIEW);
     expect(svg.querySelector("g.tilie-ribbons")).toBeNull();
-    pointer(drawnAt(svg, brace(DEFAULT, 0)), "pointermove", 0, 0);
+    pointer(drawnAt(svg, { id: DEFAULT, part: [0, "label"] }), "pointermove", 0, 0);
     flushSync();
     const lights = chunkLights(MANIFEST, DRAWING, { timeline: DEFAULT, index: 0 });
     expect(shown(svg)).toEqual({
       ribbons: lights.ribbons.map((ribbon) => ribbon.d),
-      lit: [brace(BY_HAND, 0), brace(DEFAULT, 2)].map((address) => ({
-        d: braceD(svg, address),
-        addressed: false,
-      })),
+      lit: [litLine(BY_HAND, 0), litLine(DEFAULT, 2)].map((line) => ({ line, addressed: false })),
     });
     const group = svg.querySelector("g.tilie-ribbons");
     expect(group?.getAttribute("pointer-events")).toBe("none");
@@ -315,14 +306,9 @@ describe("the block node's ribbons", () => {
     expect(svg.querySelector("g.tilie-ribbons")).toBeNull();
   });
 
-  it("draws them for a chunk's label too", () => {
+  it("draws them for a chunk's label alone, lighting no other B", () => {
     const svg = mountOn(VIEW);
-    pointer(
-      drawnAt(svg, { id: DEFAULT, facet: "regions", part: [1, "label"] }),
-      "pointermove",
-      0,
-      0,
-    );
+    pointer(drawnAt(svg, { id: DEFAULT, part: [1, "label"] }), "pointermove", 0, 0);
     flushSync();
     const lights = chunkLights(MANIFEST, DRAWING, { timeline: DEFAULT, index: 1 });
     expect(shown(svg)).toEqual({ ribbons: lights.ribbons.map((ribbon) => ribbon.d), lit: [] });
@@ -330,7 +316,7 @@ describe("the block node's ribbons", () => {
 
   it("draws them where the pointer lies in a chunk's zone, off any element", () => {
     const svg = mountOn(VIEW);
-    const { x1, x2 } = braceEnds(DRAWING, DEFAULT, 2);
+    const { x1, x2 } = chunkSpan(DRAWING, DEFAULT, 2);
     pointer(svg, "pointermove", (x1 + x2) / 2, lineOf(DRAWING, DEFAULT)[1].y);
     const two = chunkLights(MANIFEST, DRAWING, { timeline: DEFAULT, index: 2 });
     expect(shown(svg).ribbons).toEqual(two.ribbons.map((ribbon) => ribbon.d));
@@ -349,15 +335,15 @@ describe("the block node's ribbons", () => {
   });
 
   it("draws them for a selected chunk without a pointer", () => {
-    const svg = mountOn(VIEW, selectionOf([inBlock(A, brace(DEFAULT, 1))]));
+    const svg = mountOn(VIEW, selectionOf([inBlock(A, chunkAt(DEFAULT, 1))]));
     const lights = chunkLights(MANIFEST, DRAWING, { timeline: DEFAULT, index: 1 });
     expect(shown(svg)).toEqual({ ribbons: lights.ribbons.map((ribbon) => ribbon.d), lit: [] });
   });
 
-  it("lights only braces drawn: C on the one placed card", () => {
+  it("lights only chunks drawn: C on the one placed card", () => {
     const view = placedVirtual(viewOf({ id: A, fixture: "flow/virtual_cards" }), DEFAULT, 0, 200);
     const svg = mountOn(view);
-    pointer(drawnAt(svg, brace(DEFAULT, 3)), "pointermove", 0, 0);
+    pointer(drawnAt(svg, { id: DEFAULT, part: [3, "label"] }), "pointermove", 0, 0);
     flushSync();
     expect(shown(svg).lit).toEqual([]);
     expect(shown(svg).ribbons).toHaveLength(1);
