@@ -309,7 +309,7 @@ describe("the flow editor's pane", () => {
     pointer(name, "pointermove", 700, 300);
     pointer(name, "pointerup", 700, 300);
     await settle();
-    expect(store.entries.length).toBe(mark + 2);
+    expect(store.entries.length).toBe(mark + 1);
     const [V] = virtualAdded(before);
     if (V === undefined) throw new Error("no virtual timeline written");
     // The twin's top left (700 − 100, 300 − 20) less the block's (40, 80), on the grid's 8.
@@ -319,7 +319,7 @@ describe("the flow editor's pane", () => {
     pointer(name, "pointermove", 900, 340);
     pointer(name, "pointerup", 900, 340);
     await settle();
-    expect(store.entries.length).toBe(mark + 3);
+    expect(store.entries.length).toBe(mark + 2);
     // The twin's top left (900 − 100, 340 − 20) less the block's (40, 80), on the grid's 8.
     expect(blockIn(store.view, A).places[V]).toEqual({ x: 760, y: 240 });
   });
@@ -331,14 +331,14 @@ describe("the flow editor's pane", () => {
     const mark = store.entries.length;
     button("Place as card", rowOf("printed")).click();
     await settle();
-    expect(store.entries.length).toBe(mark + 2);
+    expect(store.entries.length).toBe(mark + 1);
     const [V] = virtualAdded(before);
     if (V === undefined) throw new Error("no virtual timeline written");
     expect(blockIn(store.view, A).places[V]).toEqual(printed);
     const single = placeOfRow("single");
     button("Place as card", rowOf("single")).click();
     await settle();
-    expect(store.entries.length).toBe(mark + 3);
+    expect(store.entries.length).toBe(mark + 2);
     expect(blockIn(store.view, A).places.allegro_single).toEqual(single);
     expect([printed.x, single.x]).toEqual([56, 56]);
     const row = paneNow().rows.find((item) => item.row.id === "printed");

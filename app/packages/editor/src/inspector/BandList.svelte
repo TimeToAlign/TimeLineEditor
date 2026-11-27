@@ -7,11 +7,13 @@
  * box, and where the timeline has descendants the tree's box beside it,
  * the same display `within` the timeline, mixed while its bands differ.
  * No box is ever disabled: a band showing nothing now has its hint under
- * its word. A change sends the press's `style`s (`bandCommands`): one is
- * dispatched, several are one step (`edit` of the timeline, or one after
- * the other inside an open editor); a refusal is posted as information.
+ * its word. A change sends the press's `style`s (`bandCommands`) as one
+ * step, atomic (`Store.edit`): in the innermost open editor, else in the
+ * timeline's editor (a virtual timeline, which has none, in its block's);
+ * a refusal is posted as information.
  */
-import type { Block, CommandError, Store, View } from "@timetoalign/tilie-core";
+import type { Address, Block, Store, View } from "@timetoalign/tilie-core";
+import { editorKindOf, isCommandError } from "@timetoalign/tilie-core";
 import { postOf } from "../messages.svelte.ts";
 import type { BandRow, Control, Reach } from "./display.ts";
 import { bandCommands } from "./display.ts";
@@ -37,15 +39,11 @@ const post = postOf();
 function press(row: BandRow, reach: Reach): void {
   const control = reach === "own" ? row.control : row.tree;
   if (control === null) return;
-  const commands = bandCommands(view, block, control);
-  const [only] = commands;
-  let refusal: CommandError | null = null;
-  if (commands.length === 1 && only !== undefined) refusal = store.dispatch(only);
-  else if (commands.length > 1 && store.editing.length === 0) {
-    refusal = store.edit({ block: block.id, id: row.timeline }, commands);
-  } else {
-    for (const command of commands) refusal ??= store.dispatch(command);
-  }
+  const open = store.editing.at(-1);
+  const timeline: Address = { block: block.id, id: row.timeline };
+  const target =
+    open?.target ?? (isCommandError(editorKindOf(view, timeline)) ? { block: block.id } : timeline);
+  const refusal = store.edit(target, bandCommands(view, block, control), open?.kind);
   if (refusal !== null) post("info", refusal.message);
 }
 

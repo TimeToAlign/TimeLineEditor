@@ -5,7 +5,7 @@
  */
 
 import type { Address, Command, Facet, Manifest, Store, View } from "@timetoalign/tilie-core";
-import { idAddress, inBlock, WORKSPACE } from "@timetoalign/tilie-core";
+import { idAddress, inBlock, isSessionEntry, WORKSPACE } from "@timetoalign/tilie-core";
 import { JsonFloat } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { typedValue } from "../src/axisValues.ts";
@@ -580,30 +580,49 @@ describe("what each action stores", () => {
     expect(sent[1]).toEqual({ type: "add", into: allegro, flow_map: { chunks: [R] } });
   });
 
-  it("places a row as a card, its virtual timeline written where none is", () => {
-    const { store, session, target, sent } = opened();
+  it("places a row as a card in one step, its virtual timeline written where none is", () => {
+    const { store, session, target, sent, said } = opened();
+    const before = store.view;
     const virtualBefore = (manifestOf(store).virtual_timelines ?? []).map((item) => item.id);
     expect(session.place(target, "printed", 120, 400)).toBe(true);
-    expect(sent[0]).toEqual({
-      type: "add",
-      into: { block: A },
-      virtual_timeline: { map: "printed", timeline: ROOT, name: "printed" },
-    });
+    expect([sent, said]).toEqual([[], []]);
+    const [entry, ...others] = store.entries;
+    if (entry === undefined || !isSessionEntry(entry)) throw new Error("no step stored");
+    expect(others).toEqual([]);
+    const [write, placed, ...more] = (store.sessions[entry.session]?.entries ?? []).map((item) =>
+      isSessionEntry(item) ? null : item.command,
+    );
+    expect(more).toEqual([]);
     const [V] = (manifestOf(store).virtual_timelines ?? [])
       .map((item) => item.id)
       .filter((id) => !virtualBefore.includes(id));
-    const placed = sent[1];
-    expect(placed?.type).toBe("set");
-    if (placed?.type !== "set" || V === undefined) throw new Error("no place stored");
-    expect(placed.changes[0]).toEqual({
-      target: inBlock(A, idAddress(V)),
-      values: { place: { x: 120, y: 400 } },
+    expect(write).toEqual({
+      type: "add",
+      into: { block: A },
+      virtual_timeline: { map: "printed", timeline: ROOT, name: "printed" },
+      ids: [V],
     });
-    expect(placed.changes.length).toBe(1);
+    if (placed?.type !== "set" || V === undefined) throw new Error("no place stored");
+    expect(placed.changes).toEqual([
+      { target: inBlock(A, idAddress(V)), values: { place: { x: 120, y: 400 } } },
+    ]);
     expect(store.view.blocks[A]?.places[V]).toMatchObject({ x: 120, y: 400 });
-    const count = sent.length;
+    store.undo();
+    expect(store.view).toBe(before);
+    store.redo();
     session.place(target, "default", 0, 600);
-    expect(sent.length).toBe(count + 1);
+    expect(store.entries.length).toBe(2);
+    expect(store.entries[1]).toMatchObject({
+      command: {
+        type: "set",
+        changes: [
+          {
+            target: inBlock(A, idAddress("allegro_default")),
+            values: { place: { x: 0, y: 600 } },
+          },
+        ],
+      },
+    });
   });
 
   it("finds a Region over the whole root by value, never by spelling", () => {

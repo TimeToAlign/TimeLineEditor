@@ -1633,7 +1633,13 @@ are the fixtures' own speaking ones.
    describes it). The commands of one press are one journal entry: on
    `unknown_length_child` with `region_1` an atomic section (item 5), the
    tree's Regions pressed twice adds one entry each time, the second
-   holding the two commands of item 5 in one session.
+   holding the two commands of item 5 in one session. Inside an open
+   editor the same holds on that editor's level: with the timeline editor
+   of `score` open (the innermost editor, the band list's timeline its
+   own), and again with the bundle editor of the block open, the second
+   press adds exactly one entry to the editor's `listed`, a session of the
+   two commands, and one `undo()` brings back the very view before it
+   (`toBe`), the tree's box checked again.
 
 ## The bundle's timeline list (`inspector-timeline-list.test.ts`)
 
@@ -2648,10 +2654,14 @@ The flow is the store's to compute; these tests prove what is written:
    'allegro', after '<J>': …`, `<J>` the second ID the store mints), and the
    snapshot is unchanged: the segno, whose `add` alone would be accepted,
    is not stored either.
-9. **What is journalled**: each element is one `add` and one entry of the
-   flow-control editor's session (a Dal segno al fine with its segno and
-   Fine: three entries), since core's `add` puts one element into a
-   timeline and a jump names its segno by the ID core gave it.
+9. **What is journalled**: each element is one `add` (core's `add` puts
+   one element into a timeline, and a jump names its segno by the ID core
+   gave it), and the `add`s of one Add are one entry of the flow-control
+   editor's session, one undo step: every kind above adds exactly one
+   entry, a kind of several elements a session of their `add`s
+   (`Store.edit`), and after a Dal segno al fine with its segno and Fine
+   one `undo()` leaves the root's flow control as the fixture holds it,
+   nothing left to undo.
 
 ## The Timestamp tab (`timestamp.test.ts`, `shell.test.ts`)
 

@@ -52,6 +52,26 @@ async function opened(page: Page): Promise<{ block: string; view: View; pane: Lo
   return { block, view, pane };
 }
 
+/**
+ * The steps of the open editor's session from entry `from` on, each the
+ * types of its commands: a command's own, or those of a closed session's
+ * entries (a step of several commands, `Store.edit`).
+ */
+function stepTypes(page: Page, from: number): Promise<string[][]> {
+  return page.evaluate((start) => {
+    const store = window.__tilie.store();
+    return store.entries
+      .slice(start)
+      .map((entry) =>
+        "command" in entry
+          ? [entry.command.type]
+          : (store.sessions[entry.session]?.entries ?? []).map((item) =>
+              "command" in item ? item.command.type : "session",
+            ),
+      );
+  }, from);
+}
+
 /** The row of the FlowMap `id` in `pane`. */
 function rowOf(pane: Locator, id: string): Locator {
   return pane.locator(`[data-testid="flow-row"][data-flow-map="${id}"]`);
@@ -104,17 +124,12 @@ test("Place as card puts each card at the height of its row, one under another",
   const { block, view, pane } = await opened(page);
   const from = await entriesLength(page);
   await rowOf(pane, "printed").getByRole("button", { name: "Place as card" }).click();
-  await expect.poll(() => entriesLength(page)).toBe(from + 2);
+  await expect.poll(() => entriesLength(page)).toBe(from + 1);
   const [printed] = await virtualsOf(page, block, "printed");
   if (printed === undefined) throw new Error("no virtual timeline of printed");
   await rowOf(pane, "single").getByRole("button", { name: "Place as card" }).click();
-  await expect.poll(() => entriesLength(page)).toBe(from + 3);
-  const commands = await entryCommands(page, from);
-  expect(commands.map((command) => (command as { type: string }).type)).toEqual([
-    "add",
-    "set",
-    "set",
-  ]);
+  await expect.poll(() => entriesLength(page)).toBe(from + 2);
+  expect(await stepTypes(page, from)).toEqual([["add", "set"], ["set"]]);
 
   const places = await placesOf(page, block);
   const first = places[printed];
@@ -218,12 +233,22 @@ test("a row dragged out becomes a card once its twin's middle has crossed the bo
   await page.mouse.down();
   await page.mouse.move(Math.round(paneRect.x + paneRect.width) - 60, y, { steps: 8 });
   await page.mouse.up();
-  await expect.poll(() => entriesLength(page)).toBe(from + 2);
-  const [virtual, placed] = await entryCommands(page, from);
+  await expect.poll(() => entriesLength(page)).toBe(from + 1);
+  const step = await page.evaluate((start) => {
+    const store = window.__tilie.store();
+    const entry = store.entries[start];
+    return entry === undefined || "command" in entry
+      ? []
+      : (store.sessions[entry.session]?.entries ?? []).map((item) =>
+          "command" in item ? item.command : null,
+        );
+  }, from);
+  const [virtual, placed, ...more] = step;
   expect(virtual).toMatchObject({
     type: "add",
     into: { block },
     virtual_timeline: { map: "printed", timeline: "allegro", name: "printed" },
   });
   expect(placed).toMatchObject({ type: "set" });
+  expect(more).toEqual([]);
 });

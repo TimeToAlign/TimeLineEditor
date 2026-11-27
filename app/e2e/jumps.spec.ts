@@ -4,12 +4,13 @@
  * are derived in `README.md` ("jumps.spec.ts"): a dal segno al fine with a
  * new segno and a new Fine, then a first and a second ending, each kind's
  * elements read back from the manifest, selected, and drawn in `allegro`'s
- * flow control band.
+ * flow control band, each kind one undo step.
  */
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import {
+  arranger,
   bandPoint,
   bandsOf,
   byKey,
@@ -93,7 +94,7 @@ test("the Flow control tab adds a dal segno al fine with its segno and Fine, and
   await field("New segno at").fill("600");
   await field("New Fine at").fill("1000");
   await submit.click();
-  await expect.poll(() => entriesLength(page)).toBe(entries + 3);
+  await expect.poll(() => entriesLength(page)).toBe(entries + 1);
   const withSegno = await allegroFlow(page, block);
   const [segno, fine, jump] = newOf(original, withSegno);
   expect(newOf(original, withSegno)).toHaveLength(3);
@@ -125,7 +126,7 @@ test("the Flow control tab adds a dal segno al fine with its segno and Fine, and
   await field("First ending at").fill("1200");
   await field("Second ending at").fill("1300");
   await submit.click();
-  await expect.poll(() => entriesLength(page)).toBe(entries + 7);
+  await expect.poll(() => entriesLength(page)).toBe(entries + 2);
   const added = newOf(withSegno, await allegroFlow(page, block));
   expect(added).toHaveLength(4);
   const fork = added.find(
@@ -159,4 +160,15 @@ test("the Flow control tab adds a dal segno al fine with its segno and Fine, and
     .poll(async () => byKey(await selection(page)))
     .toEqual(byKey(Object.values(volta).map((id) => ({ block, id }))));
   await expect.poll(() => drawnElements(page, block)).toBe(9);
+
+  // One undo takes the whole volta set back, a second the dal segno al fine with its segno and Fine.
+  await arranger(page).focus();
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect.poll(() => entriesLength(page)).toBe(entries + 1);
+  expect(await allegroFlow(page, block)).toEqual(withSegno);
+  await expect.poll(() => drawnElements(page, block)).toBe(6);
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect.poll(() => entriesLength(page)).toBe(entries);
+  expect(await allegroFlow(page, block)).toEqual(original);
+  await expect.poll(() => drawnElements(page, block)).toBe(3);
 });

@@ -2765,11 +2765,15 @@ answering `{default: ["one"]}`), Enter on the selected repeat sign
 draws, opens the flow editor and sends the request once; the row
 `default` shows the chip "1 finding"; Add + and an entry landed by Enter
 change the manifest and send none, the chip kept.
-10. A row placed as a card at (120, 400): its virtual timeline written
-    where none is (`printed`), then one `set` of exactly one change,
+10. A row placed as a card at (120, 400) is one step of the flow editor:
+    one entry of its session, itself a session of two commands, its
+    virtual timeline written where none is (`printed`, the `add` carrying
+    the ID `V` it was given) and then one `set` of exactly one change,
     `{target: {block: A, id: V}, values: {place: {x: 120, y: 400}}}` (the
-    flow editor changes no other item's place, which its guard refuses);
-    `default` places `allegro_default` with the `set` alone.
+    flow editor changes no other item's place, which its guard refuses),
+    the `set` made from the view the `add` left; one `undo()` brings back
+    the very view before. `default` places `allegro_default` with the
+    `set` alone, one more entry, the command itself.
 11. Recompute (`recomputeCommands`): an answer equal to the manifest
     stores nothing; an answer whose `single` plays A B C instead stores
     one `set` of the held `single`, `{target: {block: A, id: "single"},
@@ -2833,13 +2837,13 @@ past the pane's left border to (−20, 300), the middle still inside (at x
 134.6396484375), the row flies back and nothing is stored; carried to (700,
 300), the pointer still inside the pane but the middle past its right
 border (at x 854.6396484375), it stores its virtual timeline's `add` and
-its place's `set`, two entries, and the new virtual timeline's place is
+its place's `set`, one entry (one step), and the new virtual timeline's place is
 the twin's top left `(700 − 100, 300 − 20)` less the block's (40, 80),
 each rounded to the grid's 8: exactly `{x: 560, y: 200}`; carried again
 to (900, 340) it stores one more `set`, the place `{x: 760, y: 240}`.
-**"Place as card"** on `printed` and then on `single` stores for
-`printed` its virtual timeline's `add` and its place's `set`, for
-`single` (which `allegro_single` applies) the `set` alone; their places
+**"Place as card"** on `printed` and then on `single` stores one entry
+each: for `printed` its virtual timeline's `add` and its place's `set` as
+one step, for `single` (which `allegro_single` applies) the `set` alone; their places
 are `rowPlace`'s points less the drawing's origin, each held to the
 canvas's finest step (`GRID_FREE`, never the grid's 8, so each card stands
 exactly at its row): x `56 − origin.x = 56` for both (the drawing's

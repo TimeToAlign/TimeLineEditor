@@ -801,6 +801,12 @@ and the inspector opened on Properties.
   `within` `score` `{display: "none"}` and that region rule removed, one
   session); both of `score`'s Regions boxes are then unchecked, `region_1`
   is not drawn, and the hook no longer records `movement`'s regions band.
+- The same two presses inside the open timeline editor of `score`
+  (opened through the hook): the first adds one entry to the editor's
+  session, the second exactly one more (its two commands one step,
+  `region_1` no longer drawn); one Ctrl+Z (Cmd+Z) on the arranger then
+  leaves one entry and the very view after the first press (its JSON
+  text), the tree's box checked and `region_1` drawn again.
 - On `map_row_moved` (root `piece` holding no map, its children `ante`
   with two maps and `cons` with one), `piece`'s "Conversion maps visible"
   is enabled and checked (its empty band is displayed) and its tree's box
@@ -2208,7 +2214,8 @@ the repeat end, the volta break; the second ending's jump target has no
 symbol, section 6.6 of the drawing specification). "Dal segno al fine" at
 "1100", its select "Segno" holding "New segno" (the only choice:
 `allegro` holds no segno) at "600" and its select "Fine" holding "New Fine"
-at "1000", stores three entries of the open session, and `allegro` then
+at "1000", stores one entry of the open session (its three `add`s one
+step), and `allegro` then
 holds exactly three new elements, read back from the manifest and written
 by IDs read there: a JumpTarget `segno` at `[600, 1]`, a Break `fine` at
 `[1000, 1]` with `ends: {after: {jump: <the jump>}}`, a Jump at `[1100, 1]`
@@ -2217,13 +2224,17 @@ dal_segno_al_fine, repeat_count: 1, reset: false}`; the three are the
 selection, and the band draws six elements (a segno's symbol, the Fine's
 flow line, the jump's symbol and arc, section 6.4). Then "First and second
 ending" at "1200", "Second ending at" "1300", "Back to" holding "Start of
-the section", stores four entries and four new elements: at `[1200, 1]` a
+the section", stores one more entry and four new elements: at `[1200, 1]` a
 Jump with the destinations `{by: [0, 1], manifestation: volta, passes:
 [1]}` and `{to: <the second ending>, manifestation: volta, passes: [2]}`;
 at `[1300, 1]` the second ending, a JumpTarget `volta`, a Break `volta` and
 a Jump `{manifestation: repeat_end, repeat_count: 1}` without a place; the
 four are the selection, and the band draws nine elements (the fork, the
 break's flow line and the repeat end's symbol; the jump target none).
+One Ctrl+Z (Cmd+Z) on the arranger takes the whole volta set back: one
+entry left, `allegro`'s flow control exactly as after the dal segno al
+fine, six elements drawn; a second takes the dal segno al fine back: no
+entry, the flow control as at the opening, three elements drawn.
 
 **`editors-children.spec.ts`** (Chromium, Firefox, WebKit) proves the
 children editor on `nested`, imported as one block, at viewport (40, 40),
@@ -2248,9 +2259,10 @@ the canvas up by Svelte Flow's `0.5 × 40 = 20` and a wheel with Shift held
 pans it left by 20 (Svelte Flow's Shift wheel, or the canvas's own where
 the browser reports it as horizontal travel), the viewport read back
 exactly; the pane does not keep the wheel. **Place as card**: the button
-of `printed`, then of `single`, stores for `printed` its virtual
-timeline's `add` and its place's `set`, for `single` (which
-`allegro_single` applies) the `set` alone; both cards share one x, and
+of `printed`, then of `single`, stores one entry each: for `printed` its
+virtual timeline's `add` and its place's `set` as one step (a session of
+the two), for `single` (which `allegro_single` applies) the `set` alone;
+both cards share one x, and
 `single`'s card lies below `printed`'s by exactly `16 + h` (the row's head
 and `h`, the `height` of `printed`'s row drawing, at scale 1), the
 distance between their rows; while the editor is open `printed`'s card's
@@ -2274,8 +2286,9 @@ pane's left border while the twin's middle (the middle of the timeline it
 draws, `(54.6396484375 + 454.6396484375) / 2` px right of the pane's left
 edge) is still inside, flies back and stores nothing; carried to 60 px
 inside the pane's right edge, the pointer still inside the pane and the
-twin's middle past its right border, it stores two entries, the virtual
-timeline's `add` and the `set` placing it.
+twin's middle past its right border, it stores one entry, a step of
+exactly two commands, the virtual timeline's `add` and the `set` placing
+it.
 
 **`names.spec.ts`** (Chromium, Firefox, WebKit) proves that names are cut
 and never cover a line, and that a cut name shows whole on hover

@@ -13,8 +13,9 @@
  * elements go into a timeline of the tree, the jump at a position typed on
  * that timeline's axis, proposed from the selection (`proposedPosition`).
  * IDs are core's to give: each element is one `add`, the IDs the earlier
- * ones were given read through the result (`addFlowElements`), and the
- * elements added are selected at once; the Properties tab edits each
+ * ones were given read from what the store made of them, all of a kind's
+ * `add`s one undo step (`addFlowElements`), and the elements added are
+ * selected at once; the Properties tab edits each
  * one's name, label and belief. Whether an element holds with the others
  * (one Jump at one position of the tree, a destination inside the
  * timeline) is the store's check.
@@ -37,7 +38,6 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   addressKey,
-  apply,
   assertNever,
   copyValue,
   elementAddressOf,
@@ -45,7 +45,6 @@ import {
   findTimeline,
   idAddress,
   inBlock,
-  isCommandError,
   isElementAddress,
   prettyUnit,
   resolveElement,
@@ -560,6 +559,9 @@ type ElementValue = { readonly [key: string]: unknown };
 /** The IDs core gave the elements of the earlier steps, by the steps' names. */
 type GivenIds = ReadonlyMap<string, string>;
 
+/** What the store made of an earlier `add` of a set (`Store.edit`): the view it left and the IDs it took. */
+type MadeAdd = { readonly view: View; readonly ids: readonly string[] };
+
 /**
  * One `add` of a plan: the name later steps know its element by, and the
  * element, which may name the elements of earlier steps by their IDs.
@@ -908,15 +910,14 @@ function flowIds(view: View, block: string, timeline: string): readonly string[]
 }
 
 /**
- * Add the elements of `plan` into block `block` of `store`: one `add` each,
- * in order, each element's ID core's, read through the result and given to
- * the later steps that name it. Every `add` is first applied in turn with a
- * copy of the store's minter (`apply`), which gives the IDs the dispatches
- * store, so a refused one (the store's message, at `[<timeline's address
- * key>, "flow_control"]`) leaves the store as it was; one the store refuses
- * all the same (the open editor's guard) undoes those dispatched before
- * it. The value: the addresses of the elements added, in the manifest's
- * order.
+ * Add the elements of `plan` into block `block` of `store` as one step
+ * (`Store.edit`) of the innermost open editor, the one the tab is shown in
+ * (with none open, of the timeline's own editor): one `add` each, in order,
+ * each element's ID core's, read from what the earlier `add`s made and
+ * given to the later steps that name it. Atomic: a refusal (the store's
+ * message, at `[<timeline's address key>, "flow_control"]`) leaves the
+ * store as it was. The value: the addresses of the elements added, in the
+ * manifest's order.
  */
 export function addFlowElements(
   store: Store,
@@ -925,28 +926,24 @@ export function addFlowElements(
 ): Result<readonly Address[]> {
   const into = inBlock(block, idAddress(plan.timeline));
   const path = [addressKey(into), "flow_control"];
-  const minter = store.minter();
   const ids = new Map<string, string>();
-  const commands: AddCommand[] = [];
-  let view = store.view;
-  for (const { name, element } of plan.steps) {
-    const command: AddCommand = { type: "add", into, flow_control: element(ids) };
-    const next = apply(view, command, minter);
-    if (isCommandError(next)) return refused(InspectorCode.invalidValue, next.message, path);
-    const known = new Set(flowIds(view, block, plan.timeline));
-    const [id, ...others] = flowIds(next, block, plan.timeline).filter((item) => !known.has(item));
+  /** Keep the ID of the element the step `name` added: the one of the IDs it took that is a flow-control element's. */
+  const given = (name: string, made: MadeAdd | undefined): void => {
+    const now = made === undefined ? [] : flowIds(made.view, block, plan.timeline);
+    const [id, ...others] = (made?.ids ?? []).filter((item) => now.includes(item));
     if (id === undefined || others.length > 0) throw new Error("an add adds one element");
     ids.set(name, id);
-    commands.push(command);
-    view = next;
-  }
+  };
+  const commands = plan.steps.map(({ element }, k) => (made: readonly MadeAdd[]): AddCommand => {
+    const earlier = plan.steps[k - 1];
+    if (earlier !== undefined) given(earlier.name, made[k - 1]);
+    return { type: "add", into, flow_control: element(ids) };
+  });
   const before = new Set(flowIds(store.view, block, plan.timeline));
-  for (const [index, command] of commands.entries()) {
-    const refusal = store.dispatch(command);
-    if (refusal === null) continue;
-    for (let undone = 0; undone < index; undone += 1) store.undo();
-    return refused(InspectorCode.invalidValue, refusal.message, path);
-  }
+  const open = store.editing.at(-1);
+  const refusal =
+    open === undefined ? store.edit(into, commands) : store.edit(open.target, commands, open.kind);
+  if (refusal !== null) return refused(InspectorCode.invalidValue, refusal.message, path);
   const added = flowIds(store.view, block, plan.timeline).filter((id) => !before.has(id));
   return { ok: true, value: added.map((id) => inBlock(block, idAddress(id))) };
 }

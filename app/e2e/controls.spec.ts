@@ -4,21 +4,27 @@
  * one press (the shape of Beethoven's Op. 106, whose movements hold atomic
  * sections and whose root holds none), its conversion maps hidden and
  * shown again on every child, and the root's own empty Regions band hidden
- * and shown, never disabled. The expected values are derived in
+ * and shown, never disabled, and a press of several commands inside an
+ * open editor one undo step. The expected values are derived in
  * `README.md` ("controls.spec.ts").
  */
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import {
+  arranger,
   bandsOf,
   dispatch,
   element,
+  enter,
+  entriesLength,
   importFixture,
   journalLength,
   newestCommand,
   panel,
   select,
+  storeText,
+  tab,
 } from "./support.ts";
 
 test.use({ viewport: { width: 1600, height: 1000 }, reducedMotion: "reduce" });
@@ -137,4 +143,41 @@ test("the root's own empty Regions band is hidden and shown, never disabled", as
   await expect.poll(() => journalLength(page)).toBe(entries + 2);
   expect(await newestCommand(page)).toEqual(style(block, rule, null));
   await expect(own).toBeChecked();
+});
+
+test("a press of several commands inside an open editor is one undo step", async ({ page }) => {
+  const block = await importFixture(page, "unknown_length_child");
+  expect(
+    await dispatch(page, {
+      type: "set",
+      changes: [{ target: { block, id: "region_1" }, values: { statements: { type: [ATOMIC] } } }],
+    }),
+  ).toBeNull();
+  await enter(page, { block, id: "score" }, { x: 40, y: 40, zoom: 1 });
+  // The editor opens the inspector on its level tab: Properties is one tab over.
+  await select(page, [{ block, id: "score" }]);
+  await tab(page, "Properties").click();
+  const list = (await panel(page, "Properties")).getByRole("table", { name: "Bands" });
+  const tree = list.getByRole("checkbox", {
+    name: "Regions with its descendants visible",
+    exact: true,
+  });
+  const entries = await entriesLength(page);
+  await tree.click();
+  await expect.poll(() => entriesLength(page)).toBe(entries + 1);
+  await expect(tree).toBeChecked();
+  await expect(element(page, block, { id: "region_1" })).toHaveCount(1);
+  const shown = await storeText(page, "view");
+
+  await tree.click();
+  await expect.poll(() => entriesLength(page)).toBe(entries + 2);
+  await expect(tree).not.toBeChecked();
+  await expect(element(page, block, { id: "region_1" })).toHaveCount(0);
+
+  await arranger(page).focus();
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect.poll(() => entriesLength(page)).toBe(entries + 1);
+  expect(await storeText(page, "view")).toBe(shown);
+  await expect(tree).toBeChecked();
+  await expect(element(page, block, { id: "region_1" })).toHaveCount(1);
 });

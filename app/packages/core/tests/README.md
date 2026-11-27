@@ -4160,22 +4160,24 @@ time `clock().toISOString()`. The tests inject a clock from
    grid of 16 opens, and its store holds that grid. A journal entry the commands refuse (a move of a block that does
    not exist) is that entry, 1, at `["journal", 1]`.
 8. **Several commands as one step** (`edit`). One gesture that sends
-   several commands (the flow switch above a frame, which removes one
-   member's `flow` and sets another's) is one undo step. `edit(target,
-   commands)` makes them in the editor `target` opens as if it were opened,
-   the commands dispatched there and Done pressed, so it is proven by the
-   rules already proven for a closed session ("Editor sessions"): the
-   journal gains exactly one session entry, `sessions` the session `{target,
-   entries}` holding the commands' entries in order, one `undo()` reverts
-   all of them to the very view before (`toBe`) and one `redo()` re-applies
-   them to the very view after, the view between them never shown (a
-   listener hears one view per `edit`, one per `undo`); the snapshot
-   replays and, loaded into a new store, still undoes them in one step
-   (the runs come from the file's sessions). On block `bundle0001`
-   holding `bundles/bundle_mixed.yaml` (`group_1` "Performance" of `score`
-   and `performance`, `group_2` "Facsimile" of `page` and `excerpt`), `G1`
-   and `G2` their addresses, the commands `rename score "S"` and `rename
-   performance "P"`:
+   several commands (a set of flow-control elements, a press of a band
+   list's tree box, a row placed as a card) is one undo step, atomic.
+   `edit(target, commands, kind?)` makes them as one closed session of the
+   editor of `target`: with no editor open, or where that editor opens in
+   the innermost open one, as if it were opened, the commands dispatched
+   there and Done pressed; where it is the innermost open editor itself,
+   as such a session inside it. So it is proven by the rules already proven
+   for a closed session ("Editor sessions"): the level gains exactly one
+   session entry, `sessions` the session `{target, entries}` holding the
+   commands' entries in order, one `undo()` reverts all of them to the very
+   view before (`toBe`) and one `redo()` re-applies them to the very view
+   after, the view between them never shown (a listener hears one view per
+   `edit`, one per `undo`); the snapshot replays and, loaded into a new
+   store, still undoes them in one step (the runs come from the file's
+   sessions). On block `bundle0001` holding `bundles/bundle_mixed.yaml`
+   (`group_1` "Performance" of `score` and `performance`, `group_2`
+   "Facsimile" of `page` and `excerpt`), `G1` and `G2` their addresses, the
+   commands `rename score "S"` and `rename performance "P"`:
    - `edit(G1, [S, P])` is `null`; the journal is `[add, <session entry>]`;
      the session is `{target: G1, entries}` with the two commands as
      dispatched, stamped `…13.418Z` and `…14.418Z`, the session entry
@@ -4188,13 +4190,37 @@ time `clock().toISOString()`. The tests inject a clock from
      at `["{}"]`; after each the view is the same object, the journal and
      `sessions` as they were and no listener called; `edit(G1, [])` is
      `null` and changes nothing either;
+   - one command is no session: `edit(G1, [S])` journals the entry of `S`
+     itself, the journal `[add, S]` and `sessions` as they were, one
+     `undo()` reverting it; `edit(G1, [rename annotations "A"])` is still
+     the group editor's `side_effect`;
    - inside the open bundle editor (`open bundle0001`), `edit(G1, [S, P])`
      gives the bundle editor's `entries` one session entry, one `undo()`
      reverting both; inside the open editor of `group_2`, `edit(G1, …)` is
      `not_inside` at `[G1's key]`, "group 'Performance' does not lie inside
-     group 'Facsimile'"; inside the open editor of `group_1` itself the two
-     commands are that editor's own entries, `entries` `[S, P]`, undone one
-     at a time like every change of an open editor.
+     group 'Facsimile'";
+   - inside the open editor of `group_1` itself (`open G1`), `edit(G1, [S,
+     P])` gives that editor's `entries` one session entry, its session
+     `{target: G1, entries}` with `S` and `P`; one `undo()` goes back to the
+     very view at the opening, one `redo()` to the very view after both;
+     after Done the main journal's last entry is the editor's session, whose
+     entries are that one session entry, and one `undo()` there reverts
+     both as well (a step is a run of one closed session's changes); the
+     same holds for the flow-control editor of `score` (`open score flow`,
+     `edit(score, …, "flow")`), the one editor asked for by kind;
+   - a later command made from the earlier ones: `edit(score's address,
+     [add region {start 0, end 4} into score, made => rename the region
+     made[0].ids[0] "R"])` is `null`; `made[0].ids` is exactly the one ID
+     the store's minter gave next (`store.minter().mint("region")` read
+     before), the region with that ID is named "R", and the session's first
+     entry carries `ids: [that ID]`; one `undo()` removes the region;
+   - a refusal mints nothing: with the next region ID read as above,
+     `edit(score's address, [add region, rename nowhere "X"])` is refused,
+     and so, inside the open editor of `group_2` (which `score` lies
+     outside), is a `dispatch` of the `add` (the guard's `side_effect`,
+     after the reducer took its ID); after Cancel `store.minter()` still
+     mints that very ID first, and the next `dispatch` of the `add`
+     journals it as its `ids`.
 
 ## Workspace settings (`settings.test.ts`)
 

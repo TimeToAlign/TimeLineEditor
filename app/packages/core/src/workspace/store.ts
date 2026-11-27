@@ -7,8 +7,9 @@
  * own above the journal: its commands are its entries. Done stores the
  * session and journals it as one entry on the level below; Cancel restores
  * that level, the sessions and the view exactly as they were at the
- * opening. `edit` makes several commands in an editor at once, journalled
- * as such a session, so that one gesture sending them is one undo step.
+ * opening. `edit` makes several commands at once as one step: a closed
+ * session of their own, journalled as one entry of the level they are made
+ * on, so that one gesture sending them is one undo step, atomic.
  *
  * Undo and redo move by steps on the innermost level, a change being one
  * command at any depth and its owner the innermost session whose own
@@ -23,7 +24,9 @@
  *
  * The store mints the IDs of what a command creates: `dispatch` applies the
  * command with the store's minter, after the IDs the command carries, and
- * journals it with every ID it took (`ids`), so a replay mints nothing.
+ * journals it with every ID it took (`ids`), so a replay mints nothing. A
+ * refused command mints nothing: the minter moves on only with what the
+ * store journals.
  *
  * The settings lie outside all of this: `configure` changes them at once,
  * journals nothing and is never undone, so every view the store shows
@@ -152,18 +155,24 @@ export interface Store {
   /** Re-apply the innermost level's earliest undone step. */
   redo(): void;
   /**
-   * Make `commands`, in order, in the editor of `target` (the one it opens,
-   * `editorKindOf`) as if it were opened, the commands dispatched in it and
-   * Done pressed: a new session holding their entries, journalled as one
-   * entry, so undo and redo take them as one step. Inside an open editor the
-   * editor of `target` must open there (else `not_inside`, as `open`);
-   * where the innermost open editor is that editor itself, the commands are
-   * its own entries, a step each, as every change made in an open editor.
-   * Atomic: a refused command (its own error) or an editor that does not
-   * open leaves the store as it was; no commands change nothing. `null`
-   * when every command was accepted.
+   * Make `commands`, in order, as one step in the editor of `target` (of
+   * `kind` where given, else the one it opens, `editorKindOf`): a new closed
+   * session of that editor holding their entries, journalled as one entry,
+   * so that undo and redo take them as one step. With no editor open, or
+   * where that editor opens inside the innermost open one, it is as if it
+   * were opened, the commands dispatched in it and Done pressed; where it is
+   * the innermost open editor itself, the session is an entry of that
+   * editor's own session, one step of it. Elsewhere `not_inside`, as
+   * `open`. Each command is applied to the view the earlier ones left, the
+   * IDs it creates minted after theirs, and a command given as a function
+   * is made from the earlier ones (`EditCommand`). Atomic: a refused
+   * command (its own error) or an editor that does not open leaves the
+   * store as it was, its minter included; no commands change nothing.
+   * One command is journalled as itself on that level, as `dispatch`
+   * journals it, admitted by that editor all the same. `null` when every
+   * command was accepted.
    */
-  edit(target: Address, commands: readonly unknown[]): CommandError | null;
+  edit(target: Address, commands: readonly EditCommand[], kind?: EditorKind): CommandError | null;
   /**
    * Open the editor of `target` inside the innermost open editor, of `kind`
    * where given (the flow-control editor of a root timeline), else the one the
@@ -180,6 +189,19 @@ export interface Store {
   /** Call `listener` with the view after every change of it, of a level's entries or undo state, or of `editing`; returns the unsubscriber. */
   subscribe(listener: (view: View) => void): () => void;
 }
+
+/** One command of an `edit` as the store made it: the view it left and the IDs it took, in order. */
+export interface MadeCommand {
+  readonly view: View;
+  readonly ids: readonly string[];
+}
+
+/**
+ * A command of an `edit`: the command itself, or what makes it from the
+ * commands before it in the same `edit` (`MadeCommand`, in order), so that
+ * a command names what an earlier one created by the ID the store gave it.
+ */
+export type EditCommand = object | ((made: readonly MadeCommand[]) => unknown);
 
 /** Who dispatches when `StoreOptions.author` states nobody. */
 export const DEFAULT_AUTHOR = "Gerhardt";
@@ -430,7 +452,8 @@ function sessionOf(target: Address, kind: EditorKind, entries: readonly Entry[])
  */
 export function createStore(workspace: Workspace, options: StoreOptions = {}): Store {
   const clock = options.clock ?? (() => new Date());
-  const minter = options.minter ?? createIdMinter();
+  // Replaced by the copy a change minted from once the store journals the change.
+  let minter = options.minter ?? createIdMinter();
   let author = options.author ?? DEFAULT_AUTHOR;
   let sessions: Sessions = workspace.sessions;
   const loaded = changesOf(workspace.journal, sessions);
@@ -573,19 +596,21 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
   };
 
   /**
-   * `command` applied to `before` with the store's minter, as the editor
-   * `editor` admits it (`editorSideEffect`; none for the main journal): the
-   * entry journalling it, with every ID it took, and the view it leaves.
+   * `command` applied to `before` with `ids`, a copy of the store's minter,
+   * as the editor `editor` admits it (`editorSideEffect`; none for the main
+   * journal): the entry journalling it, with every ID it took, the IDs and
+   * the view it leaves.
    */
   const accepted = (
     before: View,
     command: unknown,
     editor: OpenEditor | null,
-  ): { entry: CommandEntry; view: View } | CommandError => {
+    ids: IdMinter,
+  ): { entry: CommandEntry; made: MadeCommand } | CommandError => {
     const read = parseCommand(command);
     if (isCommandError(read)) return read;
     const stated = withStatedPlacement(before, read);
-    const applied = applyChanges(before, stated, true, minter);
+    const applied = applyChanges(before, stated, true, ids);
     if (isCommandError(applied)) return applied;
     const { taken } = applied.changes.ids;
     const parsed = taken.length === 0 ? stated : { ...stated, ids: [...taken] };
@@ -599,7 +624,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
     const stored = isCommandError(json) ? json : parseCommand(json);
     if (isCommandError(stored))
       throw new Error(`an accepted command has no JSON form: ${stored.message}`);
-    return { entry: { command: stored, ...stamp() }, view: next };
+    return { entry: { command: stored, ...stamp() }, made: { view: next, ids: taken } };
   };
 
   /** Journal `entry`, leading to `view`, as the level's own change: a step of its own. */
@@ -660,10 +685,12 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
     },
     dispatch(command) {
       const level = top();
-      const made = accepted(current(), command, level.editor);
-      if (isCommandError(made)) return made;
+      const ids = minter.copy();
+      const next = accepted(current(), command, level.editor, ids);
+      if (isCommandError(next)) return next;
+      minter = ids;
       discard(level);
-      push(level, made.entry, made.view);
+      push(level, next.entry, next.made.view);
       notify();
       return null;
     },
@@ -714,44 +741,44 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       viewAt(level, level.applied);
       notify();
     },
-    edit(target, commands) {
-      const kind = editorKindOf(current(), target);
+    edit(target, commands, asked) {
+      const kind = editorKindOf(current(), target, asked);
       if (isCommandError(kind)) return kind;
       const level = top();
       const open = level.editor;
-      const own = open !== null && sameAddress(open.target, target) && open.kind === kind;
-      let editor: OpenEditor;
-      if (own) editor = open;
-      else {
+      if (open === null || !sameAddress(open.target, target) || open.kind !== kind) {
         const refused = notInside(target, kind);
         if (refused !== null) return refused;
-        let session = mintSessionId();
-        while (Object.hasOwn(sessions, session)) session = mintSessionId();
-        editor = { session, target, kind, earlier: null };
       }
-      const made: { entry: CommandEntry; view: View }[] = [];
-      let view = current();
-      for (const command of commands) {
-        const next = accepted(view, command, editor);
+      let session = mintSessionId();
+      while (Object.hasOwn(sessions, session)) session = mintSessionId();
+      const editor: OpenEditor = { session, target, kind, earlier: null };
+      const ids = minter.copy();
+      const entries: CommandEntry[] = [];
+      const made: MadeCommand[] = [];
+      for (const given of commands) {
+        const command = typeof given === "function" ? given(made) : given;
+        const next = accepted(made.at(-1)?.view ?? current(), command, editor, ids);
         if (isCommandError(next)) return next;
-        made.push(next);
-        view = next.view;
+        entries.push(next.entry);
+        made.push(next.made);
       }
-      if (made.length === 0) return null;
+      const [only] = entries;
+      if (only === undefined) return null;
+      minter = ids;
       discard(level);
-      if (own) {
-        for (const { entry, view: after } of made) push(level, entry, after);
-      } else {
-        const entries = made.map(({ entry }) => entry);
-        const { session } = editor;
-        sessions = { ...sessions, [session]: sessionOf(target, kind, entries) };
-        level.entries.push({ session, ...stamp() });
-        // The session's changes, owned by it, form one run: one step.
-        for (const { entry, view: after } of made) {
-          level.changes.push({ entry, owner: session });
-          level.applied += 1;
-          level.views[level.applied] = after;
-        }
+      if (entries.length === 1) {
+        push(level, only, held(made[0], "change 0").view);
+        notify();
+        return null;
+      }
+      sessions = { ...sessions, [session]: sessionOf(target, kind, entries) };
+      level.entries.push({ session, ...stamp() });
+      // The session's changes, owned by it and not by the level, form one run: one step.
+      for (const [k, entry] of entries.entries()) {
+        level.changes.push({ entry, owner: session });
+        level.applied += 1;
+        level.views[level.applied] = held(made[k], `change ${k}`).view;
       }
       notify();
       return null;

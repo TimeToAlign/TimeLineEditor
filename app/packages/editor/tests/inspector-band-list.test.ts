@@ -470,6 +470,31 @@ describe("the band list in the Properties tab", () => {
     expect(informed).toEqual([]);
   });
 
+  it.each([
+    ["timeline editor of the timeline", { block: A, id: "score" }],
+    ["bundle editor of its block", { block: A }],
+  ] as const)("journals one press as one step inside the %s", (_, editor) => {
+    const store = atomicMovement();
+    expect(store.open(editor)).toBeNull();
+    show(store, { id: "score" });
+    const tree = () => trees().find((box) => box.value === "regions");
+    tree()?.click();
+    flushSync();
+    expect(tree()?.checked).toBe(true);
+    const entries = store.listed.length;
+    const before = store.view;
+    tree()?.click();
+    flushSync();
+    expect(store.listed.length).toBe(entries + 1);
+    expect(store.listed.at(-1)?.changes).toBe(2);
+    expect(tree()?.checked).toBe(false);
+    store.undo();
+    flushSync();
+    expect(store.view).toBe(before);
+    expect(tree()?.checked).toBe(true);
+    expect(informed).toEqual([]);
+  });
+
   it("shows none for a region", () => {
     show(storeOf("styled_score_flow_inner"), { id: "intro" });
     expect(table()).toBeNull();

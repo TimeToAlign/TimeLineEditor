@@ -2,12 +2,13 @@
  * The flow subeditor at work: the edited row (a new FlowMap's, Add +, or a
  * hand-made one's), its Done and Cancel, what each drop and key stores, a
  * row placed as a card, and the computed FlowMaps recomputed through the
- * server. Every change is a command dispatched through the store, so it is
- * journalled in the flow editor's session: Cancel of the editor undoes all
- * of it, Done keeps it.
+ * server. Every change is made through the store, a command dispatched or,
+ * for a row placed as a card, the commands of one step (`Store.edit`), so
+ * it is journalled in the flow editor's session: Cancel of the editor
+ * undoes all of it, Done keeps it.
  */
 
-import type { BlockId, Command, Manifest, OpenEditor, Store } from "@timetoalign/tilie-core";
+import type { BlockId, Command, Manifest, OpenEditor, Store, View } from "@timetoalign/tilie-core";
 import { addressKey, isComputedFlowMap } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import { SvelteMap } from "svelte/reactivity";
@@ -293,20 +294,31 @@ export class FlowEditorSession {
   /**
    * Place the row of the FlowMap `flowMap` as a card of its own: its
    * virtual timeline written where none gives its axis, then its card
-   * placed at `(x, y)` of the block's places, held by the block. Whether
-   * it was placed.
+   * placed at `(x, y)` of the block's places, held by the block; both one
+   * step of the flow editor (`Store.edit`), the place made from the view
+   * the write leaves. Whether it was placed; a refusal is reported.
    */
   place(target: FlowTarget, flowMap: string, x: number, y: number): boolean {
-    const written = this.#manifest(target);
-    const block0 = this.#host.store().view.blocks[target.block];
-    if (written === undefined || block0 === undefined) return false;
-    const write = writeFor(block0, target.root, { kind: "row", flowMap });
-    if (write !== null && !this.#host.dispatch(write)) return false;
-    const block = this.#host.store().view.blocks[target.block];
-    const virtual = block === undefined ? null : virtualOf(block.manifest, target.root, flowMap);
+    const store = this.#host.store();
+    const block = store.view.blocks[target.block];
     const drawing = this.#host.drawing(target.block);
-    if (block === undefined || virtual === null || drawing === undefined) return false;
-    return this.#host.dispatch(placeVirtualCommand(block, drawing, virtual, x, y));
+    if (this.#manifest(target) === undefined || block === undefined || drawing === undefined) {
+      return false;
+    }
+    const write = writeFor(block, target.root, { kind: "row", flowMap });
+    const placed = (made: readonly { readonly view: View }[]): Command => {
+      const written = made.at(-1)?.view.blocks[target.block] ?? block;
+      const virtual = virtualOf(written.manifest, target.root, flowMap);
+      if (virtual === null) throw new Error(`the row of '${flowMap}' has a virtual timeline`);
+      return placeVirtualCommand(written, drawing, virtual, x, y);
+    };
+    const refusal = store.edit(
+      { block: target.block, id: target.root },
+      write === null ? [placed] : [write, placed],
+      "flow",
+    );
+    if (refusal !== null) this.#host.refuse(refusal.message);
+    return refusal === null;
   }
 
   /**

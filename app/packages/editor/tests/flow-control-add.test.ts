@@ -142,7 +142,7 @@ describe("a repeat end", () => {
         }),
       ),
     );
-    expect(added.entries).toBe(2);
+    expect(added.entries).toBe(1);
     expect(slotOptions(shownOf(store), "allegro", "repeat_start")).toEqual([
       { value: PICK_NONE, label: "Start of the section" },
       { value: pickOf(start), label: `${start} at 1100 ♩` },
@@ -191,7 +191,7 @@ describe("a first and a second ending", () => {
         [second, fork, gap, end].includes(address.id ?? ""),
       ),
     );
-    expect(added.entries).toBe(4);
+    expect(added.entries).toBe(1);
   });
 });
 
@@ -269,7 +269,7 @@ describe("a da capo", () => {
         }),
       ),
     );
-    expect(added.entries).toBe(3);
+    expect(added.entries).toBe(1);
   });
 });
 
@@ -331,7 +331,12 @@ describe("a dal segno", () => {
       ),
     );
     expect(added.selected).toEqual(addresses(segno, fine, jump));
-    expect(added.entries).toBe(3);
+    expect(added.entries).toBe(1);
+    store.undo();
+    expect(flowOf(store, "allegro").map(({ id }) => id)).toEqual(
+      flowOf(flowStore("flow/virtual_cards", "allegro"), "allegro").map(({ id }) => id),
+    );
+    expect(store.canUndo).toBe(false);
   });
 
   it("al coda writes its segno, its To Coda and its coda", () => {
@@ -371,7 +376,7 @@ describe("a dal segno", () => {
         }),
       ),
     );
-    expect(added.entries).toBe(4);
+    expect(added.entries).toBe(1);
   });
 });
 
