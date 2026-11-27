@@ -12,6 +12,7 @@ import {
   ELLIPSIS_GAP,
   ELLIPSIS_RADIUS,
   ELLIPSIS_SPACING,
+  EMPTY_BAND_LABEL_SIZE,
   F,
   FLOW_LINE_LABEL_OFFSET,
   FORK_ANGLE,
@@ -120,6 +121,10 @@ describe("the constants", () => {
     [
       "region row pitch `prk` of row `k`, its labels filling `Tk ≥ 1` label tiers",
       `${BRACE} + ${LABEL_GAP} + Tk × h(9) + S`,
+    ],
+    [
+      "**empty band width** `Wb`: the least width of a band shown explicitly that draws nothing (section 6.4, Empty bands)",
+      `${BRACE} + ${LABEL_GAP} + h(${EMPTY_BAND_LABEL_SIZE}), the width \`pr1 − S\` of a regions band of one row with one label tier`,
     ],
     ["first jump depth", `${JUMP_DEPTH} + S`],
     [

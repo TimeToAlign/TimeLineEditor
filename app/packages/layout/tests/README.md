@@ -176,6 +176,10 @@ text, with the text the layout's constants give it:
   region row pitch `6 + 2 + h(9) + S` (the brace height and the label gap),
   the first jump depth `4 + S` and the jump row pitch `6 + S + h(9)`; the
   gap between bands is `S` itself;
+- the empty band width `Wb = 6 + 2 + h(9)`, the least width of a band
+  shown explicitly that draws nothing, is the formula of its row with the
+  brace height, the label gap and `EMPTY_BAND_LABEL_SIZE` (9, the font size
+  of its one label tier), the constants `emptyBandWidth` computes it from;
 - the label separation, 2, has no constant: it is the width of the extent
   section 6.3 gives a label of width 0 (`[L × u − wi / 2 − 1, L × u + wi /
   2 + 1]`);

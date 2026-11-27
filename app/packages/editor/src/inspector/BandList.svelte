@@ -13,9 +13,8 @@
  * its word. A change of either box sends the press's `style`s
  * (`bandCommands`, read on the block drawn at the canvas's pane, or
  * `controlCommand`) the one way, as one step, atomic (`Store.edit`): in
- * the innermost open editor, else in the timeline's editor (a virtual
- * timeline, which has none, in its block's); a refusal is posted as
- * information.
+ * the innermost open editor, else in the timeline's editor, a virtual
+ * timeline's included; a refusal is posted as information.
  */
 import type { Address, Block, Store, StyleCommand, View } from "@timetoalign/tilie-core";
 import { editorKindOf, isCommandError } from "@timetoalign/tilie-core";

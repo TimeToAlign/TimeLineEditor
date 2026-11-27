@@ -412,6 +412,38 @@ describe("rules inside and outside", () => {
     expect(sideEffect(before, every, G1)).toEqual(rules(G1));
     expect(sideEffect(before, every, BLOCK)).toBeNull();
   });
+
+  it("reads a manifest without a graphical as holding no MatchStamps, as a style completes it", () => {
+    const bare = deepFreeze(viewOf([BUNDLE, "flow/virtual_cards.yaml"]));
+    expect(block(bare, BUNDLE).manifest.graphical).toBeUndefined();
+    const virtual = at("allegro_default");
+    const styled = (select: Selector) => {
+      const parsed = parseCommand({ type: "style", select, set: { display: "inline" } });
+      if (isCommandError(parsed)) throw new Error(parsed.message);
+      const applied = applyChanges(bare, parsed);
+      if (isCommandError(applied)) throw new Error(applied.message);
+      expect(block(applied.view, BUNDLE).manifest.graphical?.matchstamps).toEqual([]);
+      return applied;
+    };
+    /** The side effect of `applied` in the editor of `target`, the same with its change set and without. */
+    const effect = ({ view, changes }: ReturnType<typeof styled>, target: Address) => {
+      const result = sideEffect(bare, view, target, changes);
+      expect(sideEffect(bare, view, target)).toEqual(result);
+      return result;
+    };
+    const own = styled({ addresses: [{ id: "allegro", facet: "regions" }] });
+    expect(effect(own, at("allegro"))).toBeNull();
+    expect(effect(own, virtual)).toEqual(
+      outsideAll(
+        "the graphical rules of bundle 'Virtual cards'",
+        [BUNDLE, "manifest", "graphical", "rules"],
+        virtual,
+        bare,
+      ),
+    );
+    const sources = styled({ facet: "regions", inside: "chunk", within: "allegro_default" });
+    expect(effect(sources, virtual)).toBeNull();
+  });
 });
 
 describe("the editors of a timeline and of the bundle", () => {

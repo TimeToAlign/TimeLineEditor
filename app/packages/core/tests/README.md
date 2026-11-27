@@ -4878,6 +4878,19 @@ block alone).
     {select: {element: "band", facet: "regions"}, set: {display:
     "inline"}}`, which matches the regions band of every timeline, → at the
     rules in `G1`'s editor and nothing in the bundle editor.
+    A manifest read without a `graphical` (`flow/virtual_cards.yaml`) gets
+    the whole block in its complete form from its first `style`, its
+    `matchstamps` `[]` among it: no MatchStamp changes, so that is no side
+    effect. `style {select: {addresses: [{id: "allegro", facet:
+    "regions"}]}, set: {display: "inline"}}` → nothing in the editor of
+    `allegro` and at the rules in the editor of `allegro_default`; the
+    rule of the virtual timeline's switch From the sources, `{select:
+    {facet: "regions", inside: "chunk", within: "allegro_default"}, set:
+    {display: "inline"}}`, → nothing in the editor of `allegro_default`,
+    with the command's change set and without it. Were the absent
+    `matchstamps` compared to `[]`, every first band press in an editor of
+    such a manifest would be refused at `["bundle0001", "manifest",
+    "graphical", "matchstamps"]`.
 
 **Editors of a timeline and of the bundle:**
 

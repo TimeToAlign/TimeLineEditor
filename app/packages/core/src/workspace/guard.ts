@@ -189,7 +189,8 @@ export function ruleInside(
  * it states; the statements
  * and provenance of each timeline and region; the other top-level members
  * but `@context`; the other `graphical`
- * members. The edited timeline's object, or the edited group's
+ * members, the MatchStamps among them, a manifest without them (or without
+ * a `graphical`) read as holding none, as a command completes it. The edited timeline's object, or the edited group's
  * and each of its members', stands as `{id}`; the named timestamps and the
  * elisions lying on a timeline inside, the entries and named timestamps the
  * edited element contains though their timeline lies outside (those a
@@ -269,11 +270,13 @@ function project(
   for (const virtual of byId(manifest.virtual_timelines ?? [])) {
     if (!inside(virtual.id)) elements.set(virtual.id, canonicalText(virtual));
   }
+  // A member a manifest leaves out is its complete form's empty one, as a command writes it.
   const {
     rules: _,
     styles: named = {},
     order = {},
     timestamps = [],
+    matchstamps = [],
     elisions = [],
     ...rest
   } = manifest.graphical ?? {};
@@ -296,6 +299,7 @@ function project(
       ),
     ],
     ["order", canonicalText(orders)],
+    ["matchstamps", canonicalText(matchstamps)],
   ]);
   for (const [key, value] of Object.entries(rest)) graphical.set(key, canonicalText(value));
   return { elements, described, top, graphical };
