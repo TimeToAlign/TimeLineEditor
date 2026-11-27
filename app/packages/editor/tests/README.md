@@ -527,7 +527,10 @@ workspace is offered with "Restore the unsaved workspace from 2026-10-12
 09:05?" (its last entry's time, in UTC); Restore opens it unsaved under its
 file's name, Discard empties the slot. An empty, saved or untouched
 workspace is never offered, and undo back to the saved view empties the
-slot. Hiding the page and unmounting write the pending snapshot at once:
+slot, also where the saved view lies further back than the views the store
+keeps (a loaded workspace, 70 moves, 70 undos): the store replays that view
+as a new object equal to the one saved, so the slot follows the content of
+the view, never the object. Hiding the page and unmounting write the pending snapshot at once:
 with `setTimeout` faked the delay never passes, so only a write made at
 once can fill the slot. No case waits a fixed time for the editor: it is
 settled once its recovery read and what it does next are done, and gone

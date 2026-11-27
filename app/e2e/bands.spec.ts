@@ -154,12 +154,12 @@ test.describe("on bundles", () => {
     expect(await selection(page)).toEqual(SELECTED_F);
 
     // Left of every block, at the markers band's ordinate: only the selection's mark stays.
-    // `bmixed0000`'s ancestor card reaches 121.70361328125 left of its place origin at layout's
-    // default view (less in a narrower pane, its elided proportion reading the pane), so the view
-    // first moves right to show the pane beyond it.
+    // `bmixed0000`'s ancestor card of `recording`, drawn whole under the initial elision mode
+    // `custom`, reaches 271.70361328125 left of its place origin, so the view first moves right
+    // to show the pane beyond it.
     const at = await toCanvas(page, markers.x, markers.y);
-    await setViewport(page, { ...VIEW, x: VIEW.x + 200 });
-    const off = await emptyPoint(page, -180, at.y);
+    await setViewport(page, { ...VIEW, x: VIEW.x + 350 });
+    const off = await emptyPoint(page, -330, at.y);
     await page.mouse.move(off.x, off.y);
     await expect.poll(() => bandMarks(page, MIXED)).toEqual(keysOf([SCORE_F]));
     expect(await entriesLength(page)).toBe(0);

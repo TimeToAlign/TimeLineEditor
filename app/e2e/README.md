@@ -2216,9 +2216,9 @@ band, which the hover marks and a click selects; in
 conversion maps band; the journal unchanged throughout; and Delete with
 only a band selected removes nothing. A hovered band keeps its mark only while the
 pointer is on it: on the pane left of every block, at the markers band's
-ordinate (canvas x −180 at viewport (240, 40), since `bmixed0000`'s ancestor
-card of `recording` reaches 121.70361328125 left of its place origin at
-layout's default view, and less in a narrower pane), only
+ordinate (canvas x −330 at viewport (390, 40), since `bmixed0000`'s ancestor
+card of `recording`, drawn whole under the initial elision mode `custom`,
+reaches 271.70361328125 left of its place origin, whatever the pane), only
 the selection's mark stays.
 
 **`flow-editor.spec.ts`** (Chromium, Firefox, WebKit) proves the flow

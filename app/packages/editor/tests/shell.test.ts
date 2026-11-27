@@ -1025,6 +1025,30 @@ describe("autosave and recovery", () => {
     await vi.waitFor(async () => expect(await recoverWorkspace("current")).toBe(null));
   });
 
+  it("empties the slot when undo returns to a saved view the store replays", {
+    timeout: 30_000,
+  }, async () => {
+    await startSettled();
+    hook().load(workspaceOf("bare"));
+    await vi.waitFor(async () => expect(await recoverWorkspace("current")).toBe(null));
+    const store = hook().store();
+    for (let n = 1; n <= 70; n += 1) {
+      const refusal = store.dispatch({
+        type: "set",
+        changes: [{ target: { block: A }, values: { x: 8 * n, y: 0 } }],
+      });
+      expect(refusal).toBeNull();
+      flushSync();
+    }
+    hide();
+    await vi.waitFor(async () => expect(await recoverWorkspace("current")).not.toBe(null));
+    for (let n = 0; n < 70; n += 1) {
+      store.undo();
+      flushSync();
+    }
+    await vi.waitFor(async () => expect(await recoverWorkspace("current")).toBe(null));
+  });
+
   it("leaves autosave to the tab holding the slot's lock", async () => {
     const requests: string[] = [];
     vi.stubGlobal("navigator", {

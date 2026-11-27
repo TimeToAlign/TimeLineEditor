@@ -2278,7 +2278,10 @@ less the change of the place origin: at progress 0 an element of
 `group_1`'s frame (the second one under another, "Exposition" after
 "Development", so moving both ways) is drawn translated by exactly `(x_v −
 O_v.x) − (x_h − O_h.x)` and the like downwards (`placedAt`), at 1 at rest; an item drawn at
-the same place moves nothing. `blockMotion` from Vertical to Horizontal:
+the same place moves nothing. An ancestor card behind one frame alone
+travels by its frame's travel, never by the change of its own place: its
+own elisions switched (Elided and Full, "Elisions moving") give it no item
+motion, so its sideways motion is the one it takes. `blockMotion` from Vertical to Horizontal:
 the item motions come first, so a member card of a moving frame takes the
 frame's motion; the once card `{item: group_1, member: score}` (same key)
 moves sideways; the cards `{item: group_2, member: score}` and `{item:

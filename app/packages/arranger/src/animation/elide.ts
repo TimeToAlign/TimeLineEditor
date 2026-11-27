@@ -540,7 +540,10 @@ const FADES: Motion = { across: null, dy: 0, enters: true };
  * (a root drawn once behind a row lies behind several and moves by
  * `blockMotion`): each element of its range translated, from where `before`
  * drew it (its place less the place origin's, so a moved origin is no move)
- * to where `after` draws it; one drawn at the same place moves nothing.
+ * to where `after` draws it; one drawn at the same place moves nothing. Such
+ * an ancestor card translates by its frame's travel, never by its own place:
+ * where its own elisions change, its place changes with them, and that is
+ * its sideways motion (`sidewaysMotion`), not a travel.
  */
 export function itemMotions(before: Drawing, after: Drawing): CardMotion[] {
   return after.boxes.flatMap((box): CardMotion[] => {
@@ -555,8 +558,14 @@ export function itemMotions(before: Drawing, after: Drawing): CardMotion[] {
         )
       : keyedBox(before, key);
     if (was === undefined) return [];
-    const dx = box.x - after.origin.x - (was.x - before.origin.x);
-    const dy = box.y - after.origin.y - (was.y - before.origin.y);
+    const group = behindOne ? box.ancestor?.group : undefined;
+    const [from, to] =
+      group === undefined
+        ? [was, box]
+        : [keyedBox(before, { item: group }), keyedBox(after, { item: group })];
+    if (from === undefined || to === undefined) return [];
+    const dx = to.x - after.origin.x - (from.x - before.origin.x);
+    const dy = to.y - after.origin.y - (from.y - before.origin.y);
     if (dx === 0 && dy === 0) return [];
     const motion: Motion = {
       across: { left: 0, right: 0, fromLeft: -dx, fromRight: -dx },

@@ -10,6 +10,7 @@ import {
   emptyWorkspace,
   isLoadError,
   readWorkspace,
+  sameView,
   writeWorkspace,
 } from "@timetoalign/tilie-core";
 import type { Snapshot } from "./autosave.ts";
@@ -78,7 +79,7 @@ export function startAutosave(session: WorkspaceSession, options: AutosavingOpti
   function track(): void {
     if (!autosaving || stopped) return;
     const current = session.store;
-    if (current.view === session.savedView) {
+    if (sameView(current.view, session.savedView)) {
       autosave.discard();
       return;
     }
@@ -165,7 +166,7 @@ export function startAutosave(session: WorkspaceSession, options: AutosavingOpti
     await offerRecovery();
     if (stopped) return;
     // Changes made meanwhile; a saved workspace leaves an unanswered slot alone.
-    if (session.store.view !== session.savedView) track();
+    if (!sameView(session.store.view, session.savedView)) track();
   }
 
   function onvisibilitychange(): void {
