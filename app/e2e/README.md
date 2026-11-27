@@ -768,6 +768,46 @@ unchecked, and the hook no longer records `score`'s regions band (a band
 not displayed is absent); checking it again journals the same selector
 with `{display: null}` and the band is recorded again.
 
+**`controls.spec.ts`** (Chromium, Firefox, WebKit) proves the band list's
+Visible control reaching one timeline or its tree (the editor's README,
+"The band list"), every box enabled, on fixtures of Beethoven's Op. 106's
+shape: a root holding no regions and no conversion maps whose children
+hold them, the children's regions atomic sections, which the defaults
+hide. (Op. 106's own manifest lies in a dataset repository outside the
+app directory, the one the browsers' container mounts, and is not this
+repository's to copy.) The line of the root is selected through the hook
+and the inspector opened on Properties.
+- On `unknown_length_child` (root `score`, its child `movement` holding
+  `region_1`), the region made an atomic section by one `set` of its
+  `statements` (`{type: [<the full IRI of tts:AtomicSection>]}`): `score`'s
+  "Regions visible" is checked and enabled (its empty band is displayed),
+  "Regions with its descendants visible" enabled, not checked and
+  indeterminate (`movement`'s band shows none of its regions), and
+  `region_1` is not drawn. One click on the tree's box journals one entry,
+  `{type: "style", select: {element: "region", within: "score"}, set:
+  {display: "inline"}, blocks: [block]}`; the box is then checked, not
+  indeterminate, and `region_1` is drawn, one element carrying its
+  address. A second click journals one more entry (the bands' rule
+  `within` `score` `{display: "none"}` and that region rule removed, one
+  session); both of `score`'s Regions boxes are then unchecked, `region_1`
+  is not drawn, and the hook no longer records `movement`'s regions band.
+- On `map_row_moved` (root `piece` holding no map, its children `ante`
+  with two maps and `cons` with one), `piece`'s "Conversion maps visible"
+  is enabled and checked (its empty band is displayed) and its tree's box
+  checked; the hook records one conversion maps band of `ante` and one of
+  `cons`. Unchecking the tree's box journals `{select: {element: "band",
+  facet: "conversion_maps", within: "piece"}, set: {display: "none"}}`,
+  after which neither child's band is recorded and the own box is
+  unchecked (the rule `within` `piece` reaches `piece`'s own band too);
+  checking it again journals the same selector with `{display: null}`, and
+  both bands are recorded again, the own box checked.
+- On `unknown_length_child` as written, `score`'s own Regions box stays
+  enabled, the hint "Timeline 'score' holds no regions; its descendants
+  hold some." in its row: unchecking it journals `{element: "band",
+  addresses: [{id: "score", facet: "regions"}]}` `{display: "none"}`,
+  the box unchecked and still enabled; checking it journals the same
+  selector with `{display: null}`, the box checked.
+
 **`elision-tab.spec.ts`** (Chromium, Firefox, WebKit) proves that an
 elision selected by a real pointer click on the canvas brings the Elisions
 tab forward, whatever the inspector showed before, for both kinds of

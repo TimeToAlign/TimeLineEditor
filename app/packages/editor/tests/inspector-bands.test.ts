@@ -463,7 +463,7 @@ describe("the Properties panel of a band", () => {
       [...panel().querySelectorAll("input")].map((input) =>
         input.closest("[data-testid]")?.getAttribute("data-testid"),
       ),
-    ).toEqual(["band-list", "band-list", "band-list", "band-list", "band-list"]);
+    ).toEqual(Array.from({ length: 10 }, () => "band-list"));
     expect(panel().querySelector(".hint")).toBe(null);
 
     openTab("Manifest");
@@ -488,7 +488,7 @@ describe("the Properties panel of a band", () => {
     const alone = geometry();
     expect(
       panel().querySelectorAll(
-        'input[name="name"], input[type=checkbox]:not([name="band-visible"])',
+        'input[name="name"], input[type=checkbox]:not([name^="band-visible"])',
       ),
     ).toHaveLength(2);
     hide();
@@ -505,7 +505,7 @@ describe("the Properties panel of a band", () => {
       ),
     ).toEqual(["x", "y", "length", "scale", "spacing", "margin", "width", "height"]);
     expect(
-      panel().querySelectorAll('input[type=checkbox]:not([name="band-visible"])'),
+      panel().querySelectorAll('input[type=checkbox]:not([name^="band-visible"])'),
     ).toHaveLength(0);
     expect(panel().querySelector("dl")).toBe(null);
   });
