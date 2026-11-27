@@ -270,10 +270,12 @@ describe("BlockNode", () => {
     const text = shown.svg;
 
     // In each ancestor card (behind group_1's frame, then group_2's, both before the frames):
-    // score's own line in two pieces around its derived gap, its start circle and its arrowhead.
-    // On each member's card its ancestor line, four elements; no mark of the member's start.
-    const score = Array(4).fill(addressKey(idAddress("score")));
-    expect(markedWith(svg, "data-selected")).toEqual([...score, ...score, ...score, ...score]);
+    // score's own line drawn whole (no derived gap under the initial `custom`), its start circle
+    // and its arrowhead. On each member's card its ancestor line, four elements; no mark of the
+    // member's start.
+    const own = Array(3).fill(addressKey(idAddress("score")));
+    const line = Array(4).fill(addressKey(idAddress("score")));
+    expect(markedWith(svg, "data-selected")).toEqual([...own, ...own, ...line, ...line]);
     expect(trees(drawn(svg), ["data-selected"])).toEqual(exported(text));
     expect(holdingMarks(svg)).toEqual([
       BLOCK_HOLDS,

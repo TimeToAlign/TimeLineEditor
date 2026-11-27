@@ -91,8 +91,9 @@ describe("the drawing fixtures", () => {
         attribute(line, "data-part"),
       ]);
     const cards = written.flatMap(([id, , part], line) => (part === "card" ? [{ id, line }] : []));
-    // Each card is written twice, its shadow and itself, under one address for every card of `t`.
-    expect(cards.map((card) => card.id)).toEqual(["t", "t", "u", "u", "t", "t", "v", "v"]);
+    // Each card is written twice, its shadow and itself, under one address for every card of `t`;
+    // the frames follow name order, "Page" (`v`) before "Performance" (`u`).
+    expect(cards.map((card) => card.id)).toEqual(["t", "t", "v", "v", "t", "t", "u", "u"]);
     // A card's member drawing follows it, up to the next card.
     const between = (card: number) =>
       written.slice((cards[card]?.line ?? 0) + 1, cards[card + 1]?.line);

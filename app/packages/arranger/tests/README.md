@@ -5576,14 +5576,13 @@ screen position chosen for the case or a value derived above.
    `nested`, the three descriptors of `{id: "clt_2"}` are `data-affected`
    beside the selected `{id: "clt_3"}`. On `bundle__bundle_shared_parent`,
    `{id: "score"}` and `{id: "exposition", part: ["start"]}` mark all
-   sixteen descriptors drawing them, in drawing order (the figure's
+   fourteen descriptors drawing them, in drawing order (the figure's
    elements at `data-id="score"` without a part): `score`'s own line in
    each of its two ancestor cards (section 8.8; behind `group_1`'s frame,
-   then `group_2`'s, both drawn before the frames, each eliding a stretch
-   of `score` by a derived gap), four each (its line in two pieces, one
-   each side of the gap, its start circle, its arrowhead; the gap's
-   ellipsis and name label are its parts `[elision, …]`, not `{id:
-   "score"}`), then both ancestor lines, four each (in `exposition`'s card
+   then `group_2`'s, both drawn before the frames, each drawn whole, since
+   the initial `elision-mode` `custom` derives no gap), three each (its
+   line, its start circle, its arrowhead), then both ancestor lines, four
+   each (in `exposition`'s card
    its line, its start circle and two chevrons; in `recapitulation`'s its
    line, two chevrons and its arrowhead). No line marks a member's start
    on its ancestor line any more, so `{id: "exposition", part: ["start"]}`
