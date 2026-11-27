@@ -11,8 +11,23 @@
  * (`effect`). One function reads every declaration the same way
  * (`declared`): a control whose rule names no element of the manifest is
  * never relevant and is not offered; an offered control is pressed as the
- * cascade gives its elements, and is **inert**, shown disabled with its
- * reason, where a press would change nothing drawn in the case at hand.
+ * cascade gives its elements (mixed where some of them show what it shows
+ * and others not), and is **inert**, shown disabled with its reason, where a
+ * press would change nothing drawn in the case at hand. A band's control is
+ * never inert: showing a band, even an empty one, is how content is added to
+ * it, so what it changes nothing of now is a hint beside it.
+ *
+ * A band's control **reaches** one timeline or its tree (`Reach`): its own
+ * rule `{element: "band", addresses: [{id: T, facet}]}`, and beside it the
+ * same display `within` `T`, `{element: "band", facet, within: T}`, which
+ * the cascade gives the band of `T` and of every descendant unless a rule
+ * of higher rank (a band's own, a deeper `within`) states otherwise
+ * (section 2.5). A band shows what it holds when it is displayed and, for a
+ * regions or a conversion maps band holding some, one of them is displayed
+ * (the defaults hide the atomic sections, section 4): showing writes the
+ * band's rule where the band is hidden and the rule displaying its regions
+ * or maps (`{element: type, within: T}`) where none is displayed
+ * (`bandCommands`).
  *
  * A control shows what the cascade gives (layout's `Cascade` over the
  * arranger's `styleLayers`, read on core's keys of the manifest's
@@ -57,7 +72,6 @@ import {
   bandAddress,
   bandOrderOf,
   canonicalText,
-  facetWord,
   idAddress,
   inBlock,
   indexOf,
@@ -78,6 +92,13 @@ import { bandWord } from "./words.ts";
 
 /** Whose drawing a control shows: a band's elements, one element's, or one rule's. */
 type Scope = "band" | "element" | "rule";
+
+/**
+ * How far a band's control reaches: the band of its own timeline (`own`),
+ * or that of the timeline and of every descendant (`tree`, the rule
+ * `within` the timeline).
+ */
+export type Reach = "own" | "tree";
 
 /** The property a control writes: whether elements are drawn, or which labels a flow-control element draws. */
 type Property = "display" | "label-display";
@@ -105,9 +126,14 @@ interface Declaration {
 
 /** A declared control as the case at hand shows it. */
 export interface Control extends Declaration {
+  /** Every element it shows shows what it shows. */
   readonly pressed: boolean;
+  /** Not pressed, though some of its elements show what it shows: drawn mixed (indeterminate). */
+  readonly mixed: boolean;
   /** Why a press changes nothing drawn now, the control then disabled; `null` where it changes something. */
   readonly inert: string | null;
+  /** What a band's control shows of nothing now, beside it, never disabling it; `null` for none. */
+  readonly hint: string | null;
 }
 
 /** The controls shown under one key of the Properties tab, in order. */
@@ -155,6 +181,17 @@ const HELD_WORDS: { readonly [facet in Facet]: string } = {
   markers: "named timestamps",
   regions: "regions",
   flow_control: "flow-control elements",
+};
+
+/**
+ * The type of the elements whose display a band's control also shows, by
+ * the band's facet: a regions band's regions, a conversion maps band's maps.
+ * The other bands show what they hold as soon as they are displayed (their
+ * elements have their own controls).
+ */
+const CONTENT: { readonly [facet in Facet]?: ElementType } = {
+  regions: "region",
+  conversion_maps: "map",
 };
 
 /** One drawn part a display control shows: its element type, its button's label, the part of its address. */
@@ -408,13 +445,13 @@ function heldBelow(reading: Reading, timeline: string, facet: Facet): boolean {
 }
 
 /**
- * Why a press of the band `{id: T, facet}`'s Visible changes nothing drawn:
- * a hidden holder of the band; else that `T` holds none of its facet's
- * elements (where `T`'s descendants hold some, they lie in their own
- * bands); else the hidden holders of what it holds, or that none of it is
- * displayed. `null` where the band is reached and holds a displayed element.
+ * What the band `{id: T, facet}` shows of nothing now: a hidden holder of
+ * the band; else that `T` holds none of its facet's elements (adding that
+ * its descendants hold some, which lie in their own bands); else the hidden
+ * holders of what it holds, or that none of it is displayed. `null` where
+ * the band is reached and holds a displayed element.
  */
-function bandInert(reading: Reading, band: ElementKey): string | null {
+function bandHint(reading: Reading, band: ElementKey): string | null {
   const holder = hiddenHolder(reading, band);
   if (holder !== null) return `${reading.words(holder.address)} is hidden.`;
   const { id } = band.address;
@@ -424,15 +461,77 @@ function bandInert(reading: Reading, band: ElementKey): string | null {
   const things = HELD_WORDS[facet];
   if (held.length === 0) {
     const name = reading.words(idAddress(id));
-    const below = heldBelow(reading, id, facet)
-      ? `; those of its descendants lie in their own ${facetWord(facet)} bands`
-      : "";
+    const below = heldBelow(reading, id, facet) ? "; its descendants hold some" : "";
     return `${name} holds no ${things}${below}.`;
   }
   const reached = held.filter((key) => hiddenHolder(reading, key, band.address) === null);
   if (reached.some((key) => reading.own(key))) return null;
   if (reached.length === 0) return hiddenReason(reading, held);
   return `None of the ${things} it holds is displayed.`;
+}
+
+/**
+ * What the bands of `facet` within `T` show of nothing now: a hidden holder
+ * of `T`'s band, or that neither `T` nor a descendant holds any of the
+ * facet's elements; `null` otherwise.
+ */
+function treeHint(reading: Reading, band: ElementKey): string | null {
+  const holder = hiddenHolder(reading, band);
+  if (holder !== null) return `${reading.words(holder.address)} is hidden.`;
+  const { id } = band.address;
+  const facet = band.facet;
+  if (id === undefined || facet === null) return null;
+  if (heldBy(reading, id, facet).length > 0 || heldBelow(reading, id, facet)) return null;
+  const name = uncapitalised(reading.words(idAddress(id)));
+  return `Neither ${name} nor its descendants hold ${HELD_WORDS[facet]}.`;
+}
+
+/**
+ * The bands a band control's rule `select` names, one key per band: the
+ * band of `T` for its own rule, those of `T` and of every descendant for its
+ * rule `within` `T`; never an ancestor line's.
+ */
+function bandKeys(reading: Reading, select: Selector): ElementKey[] {
+  const bands = new Map<string, ElementKey>();
+  for (const key of keysOf(reading, BAND, select)) {
+    const text = addressKey(key.address);
+    if (!key.inside.includes("ancestor") && !bands.has(text)) bands.set(text, key);
+  }
+  return [...bands.values()];
+}
+
+/**
+ * Whether `band` shows what it holds: displayed and, for a band whose
+ * content its control also shows (`CONTENT`), holding none of it or one of
+ * it displayed.
+ */
+function shows(reading: Reading, band: ElementKey): boolean {
+  if (!reading.own(band)) return false;
+  const { id } = band.address;
+  const content = band.facet === null ? undefined : CONTENT[band.facet];
+  if (id === undefined || band.facet === null || content === undefined) return true;
+  const held = heldBy(reading, id, band.facet).filter((key) => key.type === content);
+  return held.length === 0 || held.some((key) => reading.own(key));
+}
+
+/** The control of a band `declaration` over the bands `keys`: pressed where all show what they hold, mixed where some do; never inert. */
+function bandControl(
+  reading: Reading,
+  declaration: Declaration,
+  keys: readonly ElementKey[],
+): Control {
+  const shown = keys.map((key) => shows(reading, key));
+  const pressed = shown.every(Boolean);
+  const { within } = declaration.select;
+  // The tree's hint reads the band of the timeline it lies within, its own the one band.
+  const band = within === undefined ? keys[0] : keys.find((key) => key.address.id === within);
+  const hint =
+    band === undefined
+      ? null
+      : within === undefined
+        ? bandHint(reading, band)
+        : treeHint(reading, band);
+  return { ...declaration, pressed, mixed: !pressed && shown.some(Boolean), inert: null, hint };
 }
 
 /**
@@ -481,10 +580,8 @@ function inertOf(
   keys: readonly ElementKey[],
 ): string | null {
   switch (declaration.effect) {
-    case "band": {
-      const [band] = keys;
-      return band === undefined ? null : bandInert(reading, band);
-    }
+    case "band":
+      return null;
     case "label":
       return labelInert(reading, keys, declaration.word);
     case "drawn":
@@ -546,18 +643,28 @@ function stated(manifest: Manifest, select: Selector, property: Property): strin
 
 /**
  * `declaration` as the case at hand shows it: none where its rule names no
- * element of the manifest (never relevant); else pressed as the cascade
- * gives its elements ("Atomic sections" while the manifest's own layer
- * states it), and inert with its reason where a press changes nothing drawn.
+ * element of the manifest (never relevant); a band's as `bandControl`
+ * gives it; else pressed as the cascade gives its elements ("Atomic
+ * sections" while the manifest's own layer states it), mixed where some of
+ * them show its word, and inert with its reason where a press changes
+ * nothing drawn.
  */
 function declared(reading: Reading, declaration: Declaration): Control[] {
+  if (declaration.effect === "band") {
+    const bands = bandKeys(reading, declaration.select);
+    return bands.length === 0 ? [] : [bandControl(reading, declaration, bands)];
+  }
   const keys = keysOf(reading, declaration.types, declaration.select);
   if (keys.length === 0) return [];
+  const values = declaration.scope === "rule" ? [] : valuesOf(reading, declaration);
   const pressed =
     declaration.scope === "rule"
       ? stated(reading.manifest, declaration.select, declaration.property) === "inline"
-      : holds(declaration, valuesOf(reading, declaration));
-  return [{ ...declaration, pressed, inert: inertOf(reading, declaration, keys) }];
+      : holds(declaration, values);
+  const mixed = !pressed && values.some((value) => holds(declaration, [value]));
+  return [
+    { ...declaration, pressed, mixed, inert: inertOf(reading, declaration, keys), hint: null },
+  ];
 }
 
 /** The Display controls of `drawn`, each writing the rule `selectOf(drawn)`. */
@@ -729,11 +836,144 @@ export function controlCommand(view: View, block: Block, control: Control): Styl
   return command(asked);
 }
 
-/** One row of a timeline's band list: the band's facet and its Visible checkbox. */
+/** One row of a timeline's band list: the band's facet and its Visible control, reaching its timeline or its tree. */
 export interface BandRow {
   readonly facet: Facet;
-  /** The band's own `display`: its word the facet, its label the band's word, pressed while it is displayed. */
+  /** The timeline whose band it is. */
+  readonly timeline: string;
+  /** The band's own `display` (`own`): its word the facet, its label the band's word, pressed while it shows what it holds. */
   readonly control: Control;
+  /** The same `within` the timeline (`tree`), the bands of its tree: pressed while all show, mixed while some do; `null` for a timeline without descendants. */
+  readonly tree: Control | null;
+}
+
+/** The `style` of `block` writing `display: value` in the rule `select`. */
+function displayCommand(
+  block: Block,
+  select: Selector,
+  value: "inline" | "none" | null,
+): StyleCommand {
+  return { type: "style", select, set: { display: value }, blocks: [block.id] };
+}
+
+/** The timeline and facet a band control's rule names: its band's address, or its `within` and `facet`. */
+function bandTarget(select: Selector): { readonly timeline: string; readonly facet: Facet } | null {
+  const [address] = select.addresses ?? [];
+  const timeline = address?.id ?? select.within;
+  const facet = address?.facet ?? select.facet;
+  return timeline === undefined || !isFacet(facet) ? null : { timeline, facet };
+}
+
+/** Whether a timeline below `timeline` holds an element of `type`. */
+function heldBelowOf(reading: Reading, timeline: string, type: ElementType): boolean {
+  return reading.elements.some(
+    (key) =>
+      key.type === type &&
+      key.timeline !== null &&
+      key.timeline !== timeline &&
+      reading.ancestry(key.timeline).includes(timeline),
+  );
+}
+
+/**
+ * The rule displaying what the bands of a band `control` hold (`CONTENT`):
+ * for its rule `within` `T`, `{element: type, within: T}`; for its own rule
+ * the same where `T` is a timeline of the manifest's tree whose descendants
+ * hold none of that type, else `{element: type, addresses: [...]}` naming
+ * each element of that type `T` holds. `null` for a band whose content has
+ * no rule here, or holding none.
+ */
+function contentSelect(reading: Reading, control: Control): Selector | null {
+  const target = bandTarget(control.select);
+  if (target === null) return null;
+  const element = CONTENT[target.facet];
+  if (element === undefined) return null;
+  const { timeline } = target;
+  if (control.select.within !== undefined) return { element, within: timeline };
+  const inTree = indexOf(reading.manifest).ancestry.has(timeline);
+  if (inTree && !heldBelowOf(reading, timeline, element)) return { element, within: timeline };
+  const [first, ...rest] = heldBy(reading, timeline, target.facet).flatMap((key) =>
+    key.type === element && key.address.id !== undefined ? [{ id: key.address.id }] : [],
+  );
+  return first === undefined ? null : { element, addresses: [first, ...rest] };
+}
+
+/**
+ * The `style`s a press of the band control `control` sends for `block` in
+ * `view`, in order; `[]` where nothing is to change. Pressed, it hides its
+ * bands; else it shows them. Each step is read on the view the previous
+ * ones leave (`preview`):
+ *
+ * 1. for its rule `within` `T`, each band lacking the asked `display`
+ *    whose own rule the manifest states: that rule removed (it outranks
+ *    the tree's, section 2.5);
+ * 2. its rule: where the manifest states it and the cascade without it
+ *    gives every band the asked `display`, it is removed; else it is stated
+ *    where a band lacks it;
+ * 3. for its rule `within` `T`, each band still lacking it (a rule of
+ *    higher rank states otherwise): the band's own rule stated;
+ * 4. showing a regions or conversion maps band holding some, none of them
+ *    displayed: the rule displaying them (`contentSelect`) stated; hiding,
+ *    that rule removed where the manifest states it (it then changes
+ *    nothing drawn, its bands hidden).
+ */
+export function bandCommands(view: View, block: Block, control: Control): StyleCommand[] {
+  const show = !control.pressed;
+  const commands: StyleCommand[] = [];
+  let reading = new Reading(view, block);
+  const read = (command: StyleCommand): Reading | null => {
+    const viewed = preview(reading.view, command);
+    if (isCommandError(viewed)) return null;
+    const next = viewed.blocks[block.id];
+    return next === undefined ? null : new Reading(viewed, next);
+  };
+  const send = (command: StyleCommand): void => {
+    const next = read(command);
+    if (next === null) return;
+    commands.push(command);
+    reading = next;
+  };
+  const asked = show ? "inline" : "none";
+  const lacking = (on: Reading): ElementKey[] =>
+    bandKeys(on, control.select).filter((key) => on.own(key) !== show);
+  const { select } = control;
+  const tree = select.within !== undefined;
+  const ownOf = (band: ElementKey): Selector | null => {
+    const { id, facet } = band.address;
+    return id === undefined || facet === undefined
+      ? null
+      : { element: "band", addresses: [{ id, facet }] };
+  };
+  for (const band of tree ? lacking(reading) : []) {
+    const own = ownOf(band);
+    if (own !== null && stated(reading.manifest, own, "display") !== undefined) {
+      send(displayCommand(block, own, null));
+    }
+  }
+  if (stated(reading.manifest, select, "display") !== undefined) {
+    const without = read(displayCommand(block, select, null));
+    if (without !== null && lacking(without).length === 0)
+      send(displayCommand(block, select, null));
+    else send(displayCommand(block, select, asked));
+  } else if (lacking(reading).length > 0) {
+    send(displayCommand(block, select, asked));
+  }
+  for (const band of tree ? lacking(reading) : []) {
+    const own = ownOf(band);
+    if (own !== null) send(displayCommand(block, own, asked));
+  }
+  const content = contentSelect(reading, control);
+  if (content === null) return commands;
+  const written = stated(reading.manifest, content, "display");
+  if (!show) {
+    if (written !== undefined) send(displayCommand(block, content, null));
+  } else if (
+    written !== "inline" &&
+    !bandKeys(reading, select).every((key) => shows(reading, key))
+  ) {
+    send(displayCommand(block, content, "inline"));
+  }
+  return commands;
 }
 
 /** The ID of the timeline or virtual timeline a subject names by its card, its line or one of its bands. */
@@ -760,10 +1000,10 @@ function timelineOf({ resolved }: Subject): string | null {
  * control band included, which holds the child's flow-control elements),
  * a virtual timeline's (its markers and regions, the bands it has). Each
  * row is the control of the band's own `display`, the rule `{element:
- * "band", addresses: [{id: T, facet}]}`, pressed while the cascade
- * displays the band, inert where showing or hiding it changes nothing
- * drawn; a press writes or removes that rule as every element control
- * does (`controlCommand`). `null` for any other selection.
+ * "band", addresses: [{id: T, facet}]}`, and, where `T` has descendants,
+ * the same `within` `T`, `{element: "band", facet, within: T}` (`Reach`);
+ * each pressed while its bands show what they hold, never inert, a press
+ * sending `bandCommands`. `null` for any other selection.
  */
 export function bandList(view: View, subjects: readonly Subject[]): BandRow[] | null {
   const [first] = subjects;
@@ -779,17 +1019,30 @@ export function bandList(view: View, subjects: readonly Subject[]): BandRow[] | 
   const block = view.blocks[first.block];
   if (block === undefined) return null;
   const reading = new Reading(view, block);
+  const descendants = [...indexOf(reading.manifest).ancestry.values()].some(
+    (ancestry) => ancestry.at(-1) !== id && ancestry.includes(id),
+  );
+  const band = (facet: Facet, reach: Reach): Control | null => {
+    const select: Selector =
+      reach === "own"
+        ? { element: "band", addresses: [{ id, facet }] }
+        : { element: "band", facet, within: id };
+    const [control = null] = declared(reading, {
+      word: facet,
+      label: bandWord(facet),
+      property: "display",
+      select,
+      scope: "element",
+      types: BAND,
+      effect: "band",
+    });
+    return control;
+  };
   return bandOrderOf(reading.manifest, id)
     .filter(isFacet)
-    .flatMap((facet) =>
-      declared(reading, {
-        word: facet,
-        label: bandWord(facet),
-        property: "display",
-        select: { element: "band", addresses: [{ id, facet }] },
-        scope: "element",
-        types: ["band"],
-        effect: "band",
-      }).map((control) => ({ facet, control })),
-    );
+    .flatMap((facet) => {
+      const control = band(facet, "own");
+      if (control === null) return [];
+      return [{ facet, timeline: id, control, tree: descendants ? band(facet, "tree") : null }];
+    });
 }

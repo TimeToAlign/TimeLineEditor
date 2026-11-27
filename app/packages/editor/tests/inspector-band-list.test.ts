@@ -1,7 +1,8 @@
 /**
  * The band list of a selected timeline: which selection lists bands, its
- * rows in the band order, the one `style` a change journals, and why a row
- * changing nothing drawn is inert; the expected values are derived in
+ * rows in the band order, the `style`s a press of a row's own box or of its
+ * tree's box journals, the mixed tree, and the hint of a box showing nothing
+ * now, which never disables it; the expected values are derived in
  * `README.md` ("The band list").
  */
 
@@ -11,7 +12,7 @@ import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import type { BandRow } from "../src/inspector/display.ts";
-import { bandList, controlCommand } from "../src/inspector/display.ts";
+import { bandCommands, bandList } from "../src/inspector/display.ts";
 import PropertiesPanel from "../src/inspector/PropertiesPanel.svelte";
 import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
@@ -34,12 +35,63 @@ const rowsOf = (store: Store, ...elements: ElementAddress[]) =>
     row.control.pressed,
   ]) ?? null;
 
-/** The rows of the selection as `[label, inert]`; `null` without a list. */
-const inertOf = (store: Store, ...elements: ElementAddress[]) =>
+/** The rows of the selection as `[label, hint]`; `null` without a list. */
+const hintsOf = (store: Store, ...elements: ElementAddress[]) =>
   bandList(store.view, subjectsOf(store, ...elements))?.map((row) => [
     row.control.label,
-    row.control.inert,
+    row.control.hint,
   ]) ?? null;
+
+/** The row of `facet` in the band list of the timeline `timeline`. */
+function rowOf(store: Store, timeline: string, facet: string): BandRow {
+  const row = bandList(store.view, subjectsOf(store, { id: timeline }))?.find(
+    (item: BandRow) => item.facet === facet,
+  );
+  if (row === undefined) throw new Error(`no band ${facet} of ${timeline}`);
+  return row;
+}
+
+/** The own box (`[pressed, mixed]`) and the tree's (`null` without one) of `facet` of `timeline`. */
+function boxesOf(store: Store, timeline: string, facet: string) {
+  const { control, tree } = rowOf(store, timeline, facet);
+  return {
+    own: [control.pressed, control.mixed],
+    tree: tree === null ? null : [tree.pressed, tree.mixed],
+  };
+}
+
+/** Press the box of `reach` of `facet` of `timeline`: the commands it sends, each of which the store must accept. */
+function press(store: Store, timeline: string, facet: string, reach: "own" | "tree" = "own") {
+  const row = rowOf(store, timeline, facet);
+  const control = reach === "own" ? row.control : row.tree;
+  const block = store.view.blocks[A];
+  if (control === null || block === undefined) throw new Error(`no ${reach} box of ${facet}`);
+  const commands = bandCommands(store.view, block, control);
+  for (const command of commands) expect(store.dispatch(command)).toBeNull();
+  return commands;
+}
+
+/** A `style` of block `A` writing `display` in the rule `select`. */
+const style = (select: object, display: string | null) => ({
+  type: "style",
+  select,
+  set: { display },
+  blocks: [A],
+});
+
+/** The full IRI of the class of an atomic section, which every manifest expands to itself. */
+const ATOMIC = "https://timetoalign.github.io/timetoshare/ns#AtomicSection";
+
+/** `unknown_length_child` with `movement`'s region `region_1` made an atomic section, as Op. 106's movements hold theirs. */
+function atomicMovement(): Store {
+  const store = storeOf("unknown_length_child");
+  const made = store.dispatch({
+    type: "set",
+    changes: [{ target: { block: A, id: "region_1" }, values: { statements: { type: [ATOMIC] } } }],
+  });
+  expect(made).toBeNull();
+  return store;
+}
 
 const card = (id: string): ElementAddress => ({ id, part: ["card"] });
 
@@ -51,15 +103,10 @@ const bandStyle = (facet: string, display: string | null) => ({
   blocks: [A],
 });
 
-/** Change the checkbox of `facet` of `score`'s card: the command it journals, which the store must accept. */
+/** Change the own checkbox of `facet` of `score`: the one command it journals, which the store must accept. */
 function change(store: Store, facet: string) {
-  const row = bandList(store.view, subjectsOf(store, card("score")))?.find(
-    (item: BandRow) => item.facet === facet,
-  );
-  const block = store.view.blocks[A];
-  if (row === undefined || block === undefined) throw new Error(`no band ${facet}`);
-  const command = controlCommand(store.view, block, row.control);
-  expect(store.dispatch(command)).toBeNull();
+  const [command, ...others] = press(store, "score", facet);
+  expect(others).toEqual([]);
   return command;
 }
 
@@ -156,35 +203,111 @@ describe("a change", () => {
   });
 });
 
-describe("an inert row", () => {
-  it("is a band holding nothing of its facet, a child's regions lying in its own band", () => {
-    const store = storeOf("unknown_length_child");
-    const rows = Object.fromEntries(inertOf(store, { id: "score" }) ?? []);
-    expect(rows.Regions).toBe(
-      "Timeline 'score' holds no regions; those of its descendants lie in their own regions bands.",
-    );
-    expect(rows.Children).toBeNull();
-    expect(rows["Flow control"]).toBe("Timeline 'score' holds no flow-control elements.");
-    expect(Object.fromEntries(inertOf(store, { id: "movement" }) ?? []).Regions).toBeNull();
-  });
-
-  it("is a band whose elements are all hidden, until a rule shows them", () => {
+describe("showing a band", () => {
+  it("shows its regions where none is displayed, and hiding it drops that rule", () => {
     const store = storeOf("flow/sonata_exposition");
-    const regions = () => Object.fromEntries(inertOf(store, { id: "score" }) ?? []).Regions;
-    expect(regions()).toBe("None of the regions it holds is displayed.");
-    const atomic = {
-      type: "style",
-      select: { element: "region", class: "tts:AtomicSection" },
-      set: { display: "inline" },
-      blocks: [A],
-    } as const;
-    expect(store.dispatch(atomic)).toBeNull();
-    expect(regions()).toBeNull();
+    const regions = () => rowOf(store, "score", "regions").control;
+    expect([regions().pressed, regions().inert, regions().hint]).toEqual([
+      false,
+      null,
+      "None of the regions it holds is displayed.",
+    ]);
+    const shown = style({ element: "region", within: "score" }, "inline");
+    expect(press(store, "score", "regions")).toEqual([shown]);
+    expect([regions().pressed, regions().hint]).toEqual([true, null]);
+    expect(press(store, "score", "regions")).toEqual([
+      bandStyle("regions", "none"),
+      style({ element: "region", within: "score" }, null),
+    ]);
+    expect(store.view.blocks[A]?.manifest.graphical?.rules).toEqual([
+      {
+        select: { element: "band", addresses: [{ id: "score", facet: "regions" }] },
+        set: { display: "none" },
+      },
+    ]);
+  });
+});
+
+describe("the tree's box", () => {
+  const TREE = { element: "band", facet: "regions", within: "score" };
+  const OWN = { element: "band", addresses: [{ id: "score", facet: "regions" }] };
+
+  it("is offered where the timeline has descendants", () => {
+    const store = storeOf("unknown_length_child");
+    expect(
+      bandList(store.view, subjectsOf(store, { id: "score" }))?.map((row) => row.tree !== null),
+    ).toEqual([true, true, true, true, true]);
+    expect(
+      bandList(store.view, subjectsOf(store, { id: "movement" }))?.map((row) => row.tree),
+    ).toEqual([null, null, null, null, null]);
+    const regions = rowOf(store, "score", "regions");
+    expect([regions.control.pressed, regions.control.hint]).toEqual([
+      true,
+      "Timeline 'score' holds no regions; its descendants hold some.",
+    ]);
+    expect([regions.tree?.pressed, regions.tree?.mixed, regions.tree?.hint]).toEqual([
+      true,
+      false,
+      null,
+    ]);
   });
 
+  it("writes the rule within the timeline, mixed while a band's own rule outranks it", () => {
+    const store = storeOf("unknown_length_child");
+    expect(press(store, "score", "regions", "tree")).toEqual([style(TREE, "none")]);
+    expect(boxesOf(store, "score", "regions")).toEqual({
+      own: [false, false],
+      tree: [false, false],
+    });
+    expect(boxesOf(store, "movement", "regions").own).toEqual([false, false]);
+    expect(press(store, "score", "regions")).toEqual([style(OWN, "inline")]);
+    expect(boxesOf(store, "score", "regions")).toEqual({ own: [true, false], tree: [false, true] });
+    expect(press(store, "score", "regions", "tree")).toEqual([style(TREE, null)]);
+    expect(boxesOf(store, "score", "regions")).toEqual({ own: [true, false], tree: [true, false] });
+    expect(boxesOf(store, "movement", "regions").own).toEqual([true, false]);
+  });
+
+  it("shows the descendants' atomic sections with one press, and hides them with the next", () => {
+    const store = atomicMovement();
+    const movement = rowOf(store, "movement", "regions").control;
+    expect([movement.pressed, movement.hint]).toEqual([
+      false,
+      "None of the regions it holds is displayed.",
+    ]);
+    expect(boxesOf(store, "score", "regions").tree).toEqual([false, true]);
+    const regions = { element: "region", within: "score" };
+    expect(press(store, "score", "regions", "tree")).toEqual([style(regions, "inline")]);
+    expect(boxesOf(store, "score", "regions").tree).toEqual([true, false]);
+    expect(boxesOf(store, "movement", "regions").own).toEqual([true, false]);
+    expect(press(store, "score", "regions", "tree")).toEqual([
+      style(TREE, "none"),
+      style(regions, null),
+    ]);
+    expect(boxesOf(store, "score", "regions").tree).toEqual([false, false]);
+  });
+
+  it("leaves a child's own box showing its own regions alone", () => {
+    const store = atomicMovement();
+    expect(press(store, "movement", "regions")).toEqual([
+      style({ element: "region", within: "movement" }, "inline"),
+    ]);
+    expect(boxesOf(store, "movement", "regions").own).toEqual([true, false]);
+  });
+
+  it("hints where neither the timeline nor a descendant holds anything of the band", () => {
+    const flow = rowOf(storeOf("unknown_length_child"), "score", "flow_control");
+    expect([flow.control.hint, flow.tree?.hint]).toEqual([
+      "Timeline 'score' holds no flow-control elements.",
+      "Neither timeline 'score' nor its descendants hold flow-control elements.",
+    ]);
+    expect([flow.control.inert, flow.tree?.inert]).toEqual([null, null]);
+  });
+});
+
+describe("a hint", () => {
   it("is every band of a timeline whose line is hidden", () => {
     const hidden = "Timeline 'a' is hidden.";
-    expect(inertOf(storeOf("styled_score_flow_inner"), { id: "a" })).toEqual([
+    expect(hintsOf(storeOf("styled_score_flow_inner"), { id: "a" })).toEqual([
       ["Children", hidden],
       ["Markers", hidden],
       ["Conversion maps", hidden],
@@ -195,15 +318,17 @@ describe("an inert row", () => {
   });
 
   it("is a virtual timeline's band holding nothing", () => {
-    expect(inertOf(storeOf("flow/virtual_cards"), { id: "allegro_by_hand" })).toEqual([
+    const store = storeOf("flow/virtual_cards");
+    expect(hintsOf(store, { id: "allegro_by_hand" })).toEqual([
       ["Markers", "Virtual timeline 'Allegro, practice' holds no named timestamps."],
       ["Regions", null],
     ]);
+    expect(rowOf(store, "allegro_by_hand", "markers").tree).toBeNull();
   });
 
   it("is none of a timeline holding and showing all of its facets", () => {
     expect(
-      inertOf(storeOf("styled_score_flow_inner"), card("score"))?.map(([, inert]) => inert),
+      hintsOf(storeOf("styled_score_flow_inner"), card("score"))?.map(([, hint]) => hint),
     ).toEqual([null, null, null, null, null]);
   });
 });
@@ -246,7 +371,12 @@ describe("the band list in the Properties tab", () => {
   }
 
   const table = () => document.querySelector<HTMLTableElement>('[data-testid="band-list"]');
-  const boxes = () => [...(table()?.querySelectorAll<HTMLInputElement>("input") ?? [])];
+  const boxes = () => [
+    ...(table()?.querySelectorAll<HTMLInputElement>('input[name="band-visible"]') ?? []),
+  ];
+  const trees = () => [
+    ...(table()?.querySelectorAll<HTMLInputElement>('input[name="band-visible-tree"]') ?? []),
+  ];
 
   it("shows the bands below the form, and journals one style for a change", () => {
     const store = storeOf("styled_score_flow_inner");
@@ -272,26 +402,65 @@ describe("the band list in the Properties tab", () => {
       ["Flow control", "Flow control visible", true, false],
       ["Regions", "Regions visible", true, false],
     ]);
+    expect(
+      trees().map((box) => [
+        box.getAttribute("aria-label"),
+        box.checked,
+        box.indeterminate,
+        box.disabled,
+      ]),
+    ).toEqual([
+      ["Children with its descendants visible", true, false, false],
+      ["Markers with its descendants visible", true, false, false],
+      ["Conversion maps with its descendants visible", true, false, false],
+      ["Flow control with its descendants visible", true, false, false],
+      ["Regions with its descendants visible", true, false, false],
+    ]);
     const entries = store.listed.length;
     boxes()[4]?.click();
     flushSync();
     expect(store.listed.length).toBe(entries + 1);
     expect(store.listed.at(-1)?.entry).toMatchObject({ command: bandStyle("regions", "none") });
     expect(boxes()[4]?.checked).toBe(false);
+    expect(trees()[4]?.indeterminate).toBe(true);
+    trees()[4]?.click();
+    flushSync();
+    expect(store.listed.length).toBe(entries + 2);
+    expect(store.listed.at(-1)?.entry).toMatchObject({ command: bandStyle("regions", null) });
+    expect([trees()[4]?.checked, trees()[4]?.indeterminate, boxes()[4]?.checked]).toEqual([
+      true,
+      false,
+      true,
+    ]);
     expect(informed).toEqual([]);
   });
 
-  it("disables an inert row, its reason beside its word", () => {
+  it("never disables a row, its hint beside its word", () => {
     show(storeOf("unknown_length_child"), { id: "score" });
-    const reason =
-      "Timeline 'score' holds no regions; those of its descendants lie in their own regions bands.";
+    const hint = "Timeline 'score' holds no regions; its descendants hold some.";
     const regions = boxes().find((box) => box.value === "regions");
-    expect(regions?.disabled).toBe(true);
-    expect(regions?.title).toBe(reason);
+    expect(regions?.disabled).toBe(false);
+    expect(regions?.title).toBe(hint);
     const described = document.getElementById(regions?.getAttribute("aria-describedby") ?? "");
-    expect(described?.textContent).toBe(reason);
+    expect(described?.textContent).toBe(hint);
     expect(described?.closest("tr")?.contains(regions ?? null)).toBe(true);
-    expect(boxes().find((box) => box.value === "children")?.disabled).toBe(false);
+    expect([...boxes(), ...trees()].some((box) => box.disabled)).toBe(false);
+  });
+
+  it("journals the commands of one press as one entry", () => {
+    const store = atomicMovement();
+    show(store, { id: "score" });
+    const tree = () => trees().find((box) => box.value === "regions");
+    const entries = store.listed.length;
+    tree()?.click();
+    flushSync();
+    expect(store.listed.length).toBe(entries + 1);
+    expect(tree()?.checked).toBe(true);
+    tree()?.click();
+    flushSync();
+    expect(store.listed.length).toBe(entries + 2);
+    expect(tree()?.checked).toBe(false);
+    expect(informed).toEqual([]);
   });
 
   it("shows none for a region", () => {

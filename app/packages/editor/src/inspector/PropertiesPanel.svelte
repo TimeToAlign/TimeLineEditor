@@ -55,6 +55,7 @@ import EditButton from "./EditButton.svelte";
 import FlowControlDetails from "./FlowControlDetails.svelte";
 import { flowOf } from "./flow.ts";
 import { groupsOf, membersOf, newGroupOf } from "./groups.ts";
+import { indeterminate } from "./indeterminate.ts";
 import type { Geometry, NameField, Shown } from "./properties.ts";
 import {
   askDeletion,
@@ -274,13 +275,6 @@ function onNameKey(event: KeyboardEvent, field: NameField): void {
   } else if (event.key === "Escape") {
     drafts.discardName(field);
   }
-}
-
-/** An indeterminate checkbox while the timelines' locks differ, a property no attribute sets. */
-function indeterminate(mixed: boolean): Attachment<HTMLInputElement> {
-  return (input) => {
-    input.indeterminate = mixed;
-  };
 }
 
 function onKey(event: KeyboardEvent, property: PlaceProperty): void {
