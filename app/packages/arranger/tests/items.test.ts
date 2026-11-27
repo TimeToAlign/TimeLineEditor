@@ -59,13 +59,14 @@ const ANNOTATIONS: PlaceKey = { item: "annotations" };
 const PERFORMANCE: PlaceKey = { item: "group_1", member: "performance" };
 const SCORE: PlaceKey = { item: "group_1", member: "score" };
 /**
- * The items' drawn places at the defaults: `annotations` lies below `recording`'s ancestor card,
- * which reaches 11.9765625 below `group_2`'s frame (README, "With `recording`'s ancestor card").
+ * The items' drawn places at the defaults, in name order ("Facsimile", "Performance", then the
+ * ungrouped root): `recording`'s ancestor card, drawn whole, ends inside `group_2`'s frame (README,
+ * "With `recording`'s ancestor card").
  */
 const DRAWN = {
-  group_1: { x: 8, y: 28.8046875 },
-  group_2: { x: 8, y: 203.53125 },
-  annotations: { x: 8, y: 381.265625 },
+  group_1: { x: 8, y: 194.5625 },
+  group_2: { x: 8, y: 28.8046875 },
+  annotations: { x: 8, y: 369.2890625 },
 };
 
 function placeOf(of: View, key: PlaceKey): ItemBox["item"]["place"] {
@@ -100,7 +101,7 @@ describe("itemMoveCommand", () => {
     const moved = placed(view, A, "group_1", { x: 12 });
     expect(itemMoveCommand(moved, A, FRAME_2, 40, 200, metrics)?.changes[1]).toEqual({
       target: at("group_1"),
-      values: { place: { y: 28.8046875 } },
+      values: { place: { y: 194.5625 } },
     });
   });
 
@@ -108,7 +109,7 @@ describe("itemMoveCommand", () => {
     expect(itemMoveCommand(view, A, FRAME_2, 40.0001, 200, metrics)).toEqual(
       itemMoveCommand(view, A, FRAME_2, 40, 200, metrics),
     );
-    expect(itemMoveCommand(view, A, FRAME_2, 8, 203.53125, metrics)).toBeNull();
+    expect(itemMoveCommand(view, A, FRAME_2, 8, 28.8046875, metrics)).toBeNull();
     expect(() => itemMoveCommand(view, A, { item: "score" }, 0, 0, metrics)).toThrow(RangeError);
   });
 
@@ -118,13 +119,13 @@ describe("itemMoveCommand", () => {
       type: "set",
       changes: [
         { target: at("group_2"), values: { place: { x: 40, y: 200 } } },
-        { target: at("annotations"), values: { place: { x: 40, y: 377.734375 } } },
+        { target: at("annotations"), values: { place: { x: 40, y: 540.484375 } } },
         { target: at("group_1"), values: { place: DRAWN.group_1 } },
       ],
     });
     const after = changed(view, command);
     expect(placeOf(after, FRAME_2)).toMatchObject({ x: 40, y: 200 });
-    expect(placeOf(after, ANNOTATIONS)).toMatchObject({ x: 40, y: 377.734375 });
+    expect(placeOf(after, ANNOTATIONS)).toMatchObject({ x: 40, y: 540.484375 });
     expect(placeOf(after, FRAME_1)).toMatchObject(DRAWN.group_1);
   });
 
@@ -134,18 +135,18 @@ describe("itemMoveCommand", () => {
       type: "set",
       changes: [
         { target: at("group_2"), values: { place: { x: 40, y: 200 } } },
-        { target: at("group_1"), values: { place: { x: 40, y: 25.2734375 } } },
-        { target: at("annotations"), values: { place: { x: 40, y: 377.734375 } } },
+        { target: at("group_1"), values: { place: { x: 40, y: 365.7578125 } } },
+        { target: at("annotations"), values: { place: { x: 40, y: 540.484375 } } },
       ],
     });
     const after = changed(view, command);
     expect(placeOf(after, FRAME_2)).toMatchObject({ x: 40, y: 200 });
-    expect(placeOf(after, FRAME_1)).toMatchObject({ x: 40, y: 25.2734375 });
-    expect(placeOf(after, ANNOTATIONS)).toMatchObject({ x: 40, y: 377.734375 });
+    expect(placeOf(after, FRAME_1)).toMatchObject({ x: 40, y: 365.7578125 });
+    expect(placeOf(after, ANNOTATIONS)).toMatchObject({ x: 40, y: 540.484375 });
   });
 
   it("gives null when no item travels, and refuses a key of together that is no item", () => {
-    expect(itemMoveCommand(view, A, FRAME_2, 8, 203.53125, metrics, [ANNOTATIONS])).toBeNull();
+    expect(itemMoveCommand(view, A, FRAME_2, 8, 28.8046875, metrics, [ANNOTATIONS])).toBeNull();
     expect(() => itemMoveCommand(view, A, FRAME_2, 40, 200, metrics, [{ item: "score" }])).toThrow(
       RangeError,
     );
@@ -175,7 +176,7 @@ describe("itemsMovedWith", () => {
         [idAddress("group_1"), idAddress("group_2"), cardAddress("annotations")],
         ANNOTATIONS,
       ),
-    ).toEqual([FRAME_1, FRAME_2]);
+    ).toEqual([FRAME_2, FRAME_1]);
   });
 
   it("counts an item containing a selected element as in the selection", () => {
@@ -201,12 +202,17 @@ describe("itemsMovedWith", () => {
     // The ancestor line `recording` is drawn inside `group_2`'s frame; no item contains it.
     expect(movedWith([idAddress("recording")], FRAME_2)).toBeNull();
     // `annotations`' card drawn over `group_1`'s frame.
-    const over = changed(view, itemMoveCommand(view, A, ANNOTATIONS, 8, 60, metrics));
+    const over = changed(view, itemMoveCommand(view, A, ANNOTATIONS, 8, 225.7578125, metrics));
     const width = 561.052001953125;
-    expect(placeOf(over, ANNOTATIONS)).toMatchObject({ x: 8, y: 60, width, height: 71.85546875 });
+    expect(placeOf(over, ANNOTATIONS)).toMatchObject({
+      x: 8,
+      y: 225.7578125,
+      width,
+      height: 71.85546875,
+    });
     expect(placeOf(over, FRAME_1)).toMatchObject({
       x: 8,
-      y: 28.8046875,
+      y: 194.5625,
       width,
       height: 166.7265625,
     });
@@ -405,7 +411,7 @@ function one(key: PlaceKey, place: PlaceValues): PlaceChanges {
 describe("itemResizeValues, scale", () => {
   it.each([
     [view, "bottom-right", 40, 20, { scale: 1.2783203125 }],
-    [view, "top-left", -40, -20, { scale: 1.2783203125, x: -148.15234375, y: 361.2666015625 }],
+    [view, "top-left", -40, -20, { scale: 1.2783203125, x: -148.15234375, y: 349.2900390625 }],
     [view, "bottom-right", -1000, -1000, { scale: 0.125 }],
     [doubled(view), "bottom-right", 80, 40, { scale: 1.2783203125 }],
     [
@@ -446,7 +452,7 @@ describe("itemResizeValues, box", () => {
     ["left", -21, 0, { width: 601, x: -13 }],
     ["left", 100, 0, { width: null, x: 26.9482421875 }],
     ["bottom", 0, 10.5, { height: 168.2578125 }],
-    ["top", 0, -16, { height: 173.7578125, y: 187.53125 }],
+    ["top", 0, -16, { height: 173.7578125, y: 12.8046875 }],
   ] as const)("group_2 %s by (%d, %d)", (handle, dx, dy, expected) => {
     expect(values(wide, "bundle", FRAME_2, "box", handle, dx, dy)).toStrictEqual(
       byPlace([FRAME_2, expected]),
@@ -509,7 +515,7 @@ describe("itemResizeValues, stretch", () => {
     [view, "left", -21, 0, { length: 421, x: -13 }],
     [view, "right", -500, 0, { length: 8 }],
     [view, "bottom", 0, 20, { spacing: 24 }],
-    [view, "top", 0, -20, { spacing: 24, y: 361.265625 }],
+    [view, "top", 0, -20, { spacing: 24, y: 349.2890625 }],
     [view, "bottom-right", 20, 20, { length: 420, spacing: 24 }],
     [view, "bottom", 0, -2, { spacing: 2 }],
     [view, "bottom", 0, -40, { spacing: 0 }],
@@ -527,7 +533,7 @@ describe("itemResizeValues, stretch", () => {
       byPlace([FRAME_1, { spacing: 52 }]),
     );
     expect(values(view, "bundle", FRAME_1, "stretch", "top", 0, -44)).toStrictEqual(
-      byPlace([FRAME_1, { spacing: 52, y: -15.1953125 }]),
+      byPlace([FRAME_1, { spacing: 52, y: 150.5625 }]),
     );
     const tallCard = placed(view, A, "performance", { height: TWICE_PERFORMANCE });
     expect(values(tallCard, "bundle", FRAME_1, "stretch", "bottom", 0, 60)).toStrictEqual(

@@ -97,12 +97,12 @@ describe("chunkLights", () => {
     expect(lights.lit).toEqual([]);
   });
 
-  it("joins A to its stretch and lights every other A, the run's chunk first", () => {
+  it("joins A to its stretch and lights every other A, in the order the cards are drawn", () => {
     const lights = chunkLights(MANIFEST, DRAWING, { timeline: DEFAULT, index: 0 });
     expect(ends(lights.ribbons)).toEqual([
       { from: played(DRAWING, DEFAULT, 0), to: written(DRAWING, ROOT, 0, 476.5) },
     ]);
-    expect(lights.lit).toEqual([chunkAt(BY_HAND, 0), chunkAt(DEFAULT, 2)]);
+    expect(lights.lit).toEqual([chunkAt(DEFAULT, 2), chunkAt(BY_HAND, 0)]);
   });
 
   it("starts a chunk after a run drawn once where its drawn span lies", () => {
@@ -120,7 +120,7 @@ describe("chunkLights", () => {
   it("draws no ribbon from a run's later entry, which is not drawn, and still lights", () => {
     const lights = chunkLights(MANIFEST, DRAWING, { timeline: BY_HAND, index: 1 });
     expect(lights.ribbons).toEqual([]);
-    expect(lights.lit).toEqual([chunkAt(BY_HAND, 0), chunkAt(DEFAULT, 0), chunkAt(DEFAULT, 2)]);
+    expect(lights.lit).toEqual([chunkAt(DEFAULT, 0), chunkAt(DEFAULT, 2), chunkAt(BY_HAND, 0)]);
   });
 
   it("shows nothing for a gap", () => {
@@ -189,11 +189,8 @@ describe("chunkZones and chunksAt", () => {
         (box) => box.kind === "band" && box.address.id === ROOT && box.address.facet === "regions",
       ),
     ).toBe(false);
+    // The placed cards in name order: "Allegro, default", then "Allegro, practice".
     expect(ZONES).toEqual([
-      onCard(BY_HAND, 0, BY_HAND_Y),
-      onRoot(BY_HAND, 0, 0, 476.5),
-      onCard(BY_HAND, 5, BY_HAND_Y),
-      onRoot(BY_HAND, 5, 500, 1644),
       onCard(DEFAULT, 0, DEFAULT_Y),
       onRoot(DEFAULT, 0, 0, 476.5),
       onCard(DEFAULT, 1, DEFAULT_Y),
@@ -202,6 +199,10 @@ describe("chunkZones and chunksAt", () => {
       onRoot(DEFAULT, 2, 0, 476.5),
       onCard(DEFAULT, 3, DEFAULT_Y),
       onRoot(DEFAULT, 3, 500, 1644),
+      onCard(BY_HAND, 0, BY_HAND_Y),
+      onRoot(BY_HAND, 0, 0, 476.5),
+      onCard(BY_HAND, 5, BY_HAND_Y),
+      onRoot(BY_HAND, 5, 500, 1644),
     ]);
   });
 
@@ -220,13 +221,13 @@ describe("chunkZones and chunksAt", () => {
   it("shows every chunk playing a written section on the source's line", () => {
     const at = (value: number) => written(DRAWING, ROOT, value, value).x1;
     expect(chunksAt(ZONES, { x: at(953 / 4), y: ROOT_Y }, 0)).toEqual([
-      chunk(BY_HAND, 0),
       chunk(DEFAULT, 0),
       chunk(DEFAULT, 2),
+      chunk(BY_HAND, 0),
     ]);
     expect(chunksAt(ZONES, { x: at(1072), y: ROOT_Y }, 0)).toEqual([
-      chunk(BY_HAND, 5),
       chunk(DEFAULT, 3),
+      chunk(BY_HAND, 5),
     ]);
     expect(chunksAt(ZONES, { x: at(488.25), y: ROOT_Y }, 0)).toEqual([chunk(DEFAULT, 1)]);
   });
@@ -294,7 +295,7 @@ describe("the block node's ribbons", () => {
     const lights = chunkLights(MANIFEST, DRAWING, { timeline: DEFAULT, index: 0 });
     expect(shown(svg)).toEqual({
       ribbons: lights.ribbons.map((ribbon) => ribbon.d),
-      lit: [litLine(BY_HAND, 0), litLine(DEFAULT, 2)].map((line) => ({ line, addressed: false })),
+      lit: [litLine(DEFAULT, 2), litLine(BY_HAND, 0)].map((line) => ({ line, addressed: false })),
     });
     const group = svg.querySelector("g.tilie-ribbons");
     expect(group?.getAttribute("pointer-events")).toBe("none");
@@ -323,9 +324,9 @@ describe("the block node's ribbons", () => {
     const [, root] = lineOf(DRAWING, ROOT);
     pointer(svg, "pointermove", written(DRAWING, ROOT, 953 / 4, 953 / 4).x1, root.y);
     const playing = [
-      { timeline: BY_HAND, index: 0 },
       { timeline: DEFAULT, index: 0 },
       { timeline: DEFAULT, index: 2 },
+      { timeline: BY_HAND, index: 0 },
     ];
     expect(shown(svg)).toEqual({
       ribbons: allLights(MANIFEST, DRAWING, playing).ribbons.map((ribbon) => ribbon.d),

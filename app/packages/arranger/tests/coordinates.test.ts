@@ -266,14 +266,14 @@ describe("hovering", () => {
     const view = withLate();
     const [, late] = drawnLine(view, "late");
     expect([late.y, late.xStart, late.xEnd, late.length, late.drawnLength]).toEqual([
-      22.40234375,
+      97.87890625,
       63.53662109375,
       463.53662109375,
       null,
       q(0),
     ]);
     expect([...axes(view).values()].some((line) => line.timeline === "late")).toBe(false);
-    expect(hovered(view, 263.53662109375, 22.40234375)).toBeNull();
+    expect(hovered(view, 263.53662109375, 97.87890625)).toBeNull();
   });
 });
 
@@ -856,14 +856,15 @@ describe("a pin on a timeline drawn in several cards", () => {
     if (t?.length === null || t === undefined) throw new Error("no t of known length");
     const half = toRational(realOf(axisCoordinate(t.length, t))).divide(q(2));
     const places = placesAt(drawing, "t", half, null);
+    // `g2` ("Page") is drawn before `g1` ("Performance").
     expect(places.map(({ axis }) => axis.card)).toEqual([
-      { item: "g1", member: "t" },
       { item: "g2", member: "t" },
+      { item: "g1", member: "t" },
     ]);
     const [first, second] = places;
     if (first === undefined || second === undefined) throw new Error("no two places");
     const reading = readAt(view, second.x, second.axis.y);
-    if (reading === null) throw new Error("t is not read in g2");
+    if (reading === null) throw new Error("t is not read in g1");
     expect(reading.hit.key).toBe(second.key);
     expect(pinnedPlace(drawing, reading.pin, second.key, null)).toEqual({
       key: second.key,
@@ -993,7 +994,7 @@ describe("a timestamp named from a reading on a timeline's second place", () => 
 
   it.each([
     ["groups/group_grandchild", "score", "movement", q(8), 85.18359375],
-    ["bundles/bundle_mixed", "recording", "excerpt", q(33075), 300.8125],
+    ["bundles/bundle_mixed", "recording", "excerpt", q(33075), 126.0859375],
   ])(
     "has in %s with %s's card raised one place of %s %s, the card's row at %d",
     (fixture, editor, timeline, value, y) => {
@@ -1325,17 +1326,22 @@ describe("the position, snapped on the hovered row", () => {
     expect([score.xStart, score.xEnd, score.y, score.maps.map((map) => map.yc)]).toEqual([
       397.9951171875,
       797.9951171875,
-      73.109375,
-      [67.609375, 62.609375],
+      238.8671875,
+      [233.3671875, 228.3671875],
     ]);
     return readAt(view, score.xStart + 3.13 / 0.03, y, { zoom: 3.75, granularity });
   }
 
   it.each([
-    [73.109375, DEFAULT_GRANULARITY, { timeline: "score", map: null }, q(47, 15)],
-    [67.609375, DEFAULT_GRANULARITY, { timeline: "score", map: "cmap_1" }, q(751, 240)],
-    [62.609375, { denominator: 2520, decimals: 1 }, { timeline: "score", map: "cmap_2" }, q(16, 5)],
-    [62.609375, DEFAULT_GRANULARITY, { timeline: "score", map: "cmap_2" }, q(313, 100)],
+    [238.8671875, DEFAULT_GRANULARITY, { timeline: "score", map: null }, q(47, 15)],
+    [233.3671875, DEFAULT_GRANULARITY, { timeline: "score", map: "cmap_1" }, q(751, 240)],
+    [
+      228.3671875,
+      { denominator: 2520, decimals: 1 },
+      { timeline: "score", map: "cmap_2" },
+      q(16, 5),
+    ],
+    [228.3671875, DEFAULT_GRANULARITY, { timeline: "score", map: "cmap_2" }, q(313, 100)],
   ])("on bundle_mixed's score at y %d with %j: %j gives %s", (y, granularity, row, position) => {
     const reading = onScore(y, granularity);
     expect([reading?.row, reading?.position]).toEqual([row, position]);
@@ -1556,11 +1562,11 @@ describe("a named timestamp's pin", () => {
         length: null,
         reach: q(0),
         maps: [],
-        ordinate: 22.40234375,
+        ordinate: 97.87890625,
       },
       members: [],
     });
-    expect(drawnY(view, "late")).toBe(22.40234375);
+    expect(drawnY(view, "late")).toBe(97.87890625);
     expect(pin?.timestamp.parts.map(({ timeline, position }) => [timeline, position])).toEqual([
       ["late", q(0)],
     ]);
@@ -2063,11 +2069,11 @@ describe("a timestamp named on an ancestor line", () => {
     );
     expect(line && [line.card, line.y, line.xStart, line.xEnd]).toEqual([
       { item: "group_2", member: "excerpt" },
-      338.2890625,
+      163.5625,
       xStart,
       xStart + 400,
     ]);
-    const reading = readAt(view, xStart + 200, 338.2890625);
+    const reading = readAt(view, xStart + 200, 163.5625);
     if (reading === null) throw new Error("the ancestor line is not read");
     expect([reading.hit.axis.start, reading.hit.axis.drawnLength, reading.position]).toEqual([
       q(44100),
@@ -2282,7 +2288,7 @@ describe("the flag", () => {
   it("writes a float to the granularity's places", () => {
     const view = viewWith(MIXED);
     const score = axis(view, "score");
-    const reading = readAt(view, score.xStart + 3.13 / 0.03, 62.609375, {
+    const reading = readAt(view, score.xStart + 3.13 / 0.03, 228.3671875, {
       zoom: 3.75,
       granularity: { denominator: 2520, decimals: 1 },
     });

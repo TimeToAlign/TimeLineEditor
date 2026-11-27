@@ -44,14 +44,14 @@ function keyed(drawing: Drawing, item: string, member?: string): DrawnBox {
 
 describe("itemMotions", () => {
   const motions = itemMotions(VERTICAL.drawing, HORIZONTAL.drawing);
-  const was = keyed(VERTICAL.drawing, "group_2");
-  const now = keyed(HORIZONTAL.drawing, "group_2");
+  const was = keyed(VERTICAL.drawing, "group_1");
+  const now = keyed(HORIZONTAL.drawing, "group_1");
   const dx = was.x - VERTICAL.drawing.origin.x - (now.x - HORIZONTAL.drawing.origin.x);
   const dy = was.y - VERTICAL.drawing.origin.y - (now.y - HORIZONTAL.drawing.origin.y);
-  const motion = motions.find((card) => card.key === placeKeyText({ item: "group_2" }));
+  const motion = motions.find((card) => card.key === placeKeyText({ item: "group_1" }));
 
   it("moves an item from its old place to its new one", () => {
-    if (motion === undefined) throw new Error("group_2 does not move");
+    if (motion === undefined) throw new Error("group_1 does not move");
     const element = now.range.start;
     expect(motion.holds(element)).toBe(true);
     expect(motion.holds(now.range.end)).toBe(false);

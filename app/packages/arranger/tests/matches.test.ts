@@ -358,16 +358,16 @@ describe("the hovered and the pinned MatchStamp drawn as named", () => {
     expect([0, 1, 2, 3, 4, 5].map(named)).toEqual([true, true, false, true, false, true]);
     expect(shape(stampOverlay(G, groupedLines, 0, named)).lines).toEqual([
       ...scoreAt(0, AT_2),
-      [2, AT_1, 125.5859375, 174.96484375],
+      [2, AT_1, 287.74609375, 337.125],
     ]);
     expect(shape(stampOverlay(G, groupedLines, 1, named)).lines).toEqual([
       ...scoreAt(1, AT_3),
-      [5, AT_2, 287.74609375, 337.125],
-      [5, AT_2, 215.76953125, 287.74609375],
+      [5, AT_2, 125.5859375, 174.96484375],
+      [5, AT_2, 53.609375, 125.5859375],
     ]);
     expect(shape(stampOverlay(G, groupedLines, 2, named)).lines).toEqual([
-      [3, AT_3, 125.5859375, 174.96484375],
-      [3, AT_3, 53.609375, 125.5859375],
+      [3, AT_3, 287.74609375, 337.125],
+      [3, AT_3, 215.76953125, 287.74609375],
       [4, AT_3, 53.609375, 117.5859375],
       [4, AT_3, 215.76953125, 279.74609375],
     ]);
@@ -409,7 +409,7 @@ describe("the hovered and the pinned MatchStamp drawn as named", () => {
     expect(shape(stampOverlay(G, groupedLines, 1)).lines).toEqual([
       [1, AT_3, 53.609375, 117.5859375],
       [1, AT_3, 215.76953125, 279.74609375],
-      [5, AT_2, 287.74609375, 337.125],
+      [5, AT_2, 125.5859375, 174.96484375],
     ]);
     for (const stamp of [0, 1]) {
       expect(stampOverlay(T, linesOf(T), stamp, namedGroupstamps(manifest, T))).toEqual(
@@ -440,24 +440,24 @@ describe("the hovered and the pinned MatchStamp drawn as named", () => {
     }
     const cutAt = (c: number, x: number) => [
       [c, x, 53.609375, 117.5859375, 1],
-      [c, x, 117.5859375, 125.5859375, 1],
-      [c, x, 125.5859375, 174.96484375, FADED],
+      [c, x, 117.5859375, 174.96484375, 1],
       [c, x, 215.76953125, 279.74609375, 1],
-      [c, x, 279.74609375, 337.125, 1],
+      [c, x, 279.74609375, 287.74609375, 1],
+      [c, x, 287.74609375, 337.125, FADED],
     ];
-    expect(opacities(first)).toEqual([...cutAt(0, AT_2), [2, AT_1, 125.5859375, 174.96484375, 1]]);
+    expect(opacities(first)).toEqual([...cutAt(0, AT_2), [2, AT_1, 287.74609375, 337.125, 1]]);
     expect(opacities(second)).toEqual([
       ...cutAt(1, AT_3),
-      [5, AT_2, 287.74609375, 337.125, 1],
-      [5, AT_2, 215.76953125, 287.74609375, 1],
+      [5, AT_2, 125.5859375, 174.96484375, 1],
+      [5, AT_2, 53.609375, 125.5859375, 1],
     ]);
     expect(opacities(third)).toEqual([
-      [3, AT_3, 125.5859375, 174.96484375, 1],
-      [3, AT_3, 53.609375, 125.5859375, FADED],
+      [3, AT_3, 287.74609375, 337.125, 1],
+      [3, AT_3, 215.76953125, 287.74609375, FADED],
       [4, AT_3, 53.609375, 117.5859375, 1],
       [4, AT_3, 215.76953125, 279.74609375, 1],
     ]);
-    expect(fadedPathsOf(first)).toEqual([{ opacity: FADED, d: "M302.2915 125.5859V174.9648" }]);
+    expect(fadedPathsOf(first)).toEqual([{ opacity: FADED, d: "M302.2915 287.7461V337.125" }]);
     expect(pathOf(first)).toBe(
       pathOf({ ...first, lines: first.lines.filter((line) => line.opacity === 1) }),
     );
@@ -473,11 +473,11 @@ describe("the hovered and the pinned MatchStamp drawn as named", () => {
     expect(shape(overlayOf(G, groupedLines, PLACED, SCREEN)).lines).toEqual([
       [0, AT_2, 53.609375, 117.5859375],
       [1, AT_3, 53.609375, 117.5859375],
-      [2, AT_1, 125.5859375, 174.96484375],
-      [3, AT_3, 125.5859375, 174.96484375],
+      [5, AT_2, 125.5859375, 174.96484375],
       [0, AT_2, 215.76953125, 279.74609375],
       [1, AT_3, 215.76953125, 279.74609375],
-      [5, AT_2, 287.74609375, 337.125],
+      [2, AT_1, 287.74609375, 337.125],
+      [3, AT_3, 287.74609375, 337.125],
     ]);
   });
 });
@@ -508,8 +508,8 @@ describe("screen order", () => {
   it("places a coordinate at its topmost, then leftmost drawn place", () => {
     const lines = [...lineAxes(twice).values()].filter(({ timeline }) => timeline === "t");
     expect(lines.map(({ y, xStart }) => [y, xStart])).toEqual([
-      [T_TOP + 100, G1_X],
       [T_TOP, G2_X],
+      [T_TOP + 100, G1_X],
     ]);
     expect(screenPlace(twice, t4)).toEqual({ x: G2_X + 200, y: T_TOP });
     expect(screenPlace(twice, t6)).toEqual({ x: G2_X + 300, y: T_TOP });
@@ -967,24 +967,22 @@ describe("the flag", () => {
     it("lists every coordinate its groupstamps read, in the order they are drawn, a timeline once per run", () => {
       expect(flagOf(0, groups)).toEqual([
         ["score", [row(0, "4 ♩")]],
-        ["performance", [row(2, "1″"), read("performance", "2", "2″")]],
         ["page", [read("page", "400", "400 px")]],
+        ["performance", [row(2, "1″"), read("performance", "2", "2″")]],
       ]);
       expect(flagOf(1, groups)).toEqual([
-        ["score", [row(1, "6 ♩")]],
-        ["performance", [read("performance", "3", "3″")]],
         ["second-half", [read("second-half", "0", "0 ♩")]],
-        ["score", [read("score", "4", "4 ♩")]],
+        ["score", [read("score", "4", "4 ♩"), row(1, "6 ♩")]],
         ["page", [row(5, "400 px"), read("page", "600", "600 px")]],
+        ["performance", [read("performance", "3", "3″")]],
       ]);
       expect(
         matchFlag(G, block.manifest, lines, 1, 3, groups).map(({ key, name }) => [key, name]),
       ).toEqual([
-        ["1", "Score"],
-        ["performance 3", "Performance"],
         ["second-half 0", "Second half"],
         ["score 4", "Score"],
         ["5", "Page"],
+        ["performance 3", "Performance"],
       ]);
       expect(flagOf(2, groups)).toEqual([
         ["second-half", [row(4, "2 ♩")]],
@@ -1007,15 +1005,14 @@ describe("the flag", () => {
         );
       expect(flag(0)).toEqual([
         ["score", [row(0, "4 ♩")]],
-        ["performance", [row(2, "1″"), read("performance", "2", VALUELESS_TEXT)]],
         ["page", [read("page", "400", "400 px")]],
+        ["performance", [row(2, "1″"), read("performance", "2", VALUELESS_TEXT)]],
       ]);
       expect(flag(1)).toEqual([
-        ["score", [row(1, "6 ♩")]],
-        ["performance", [read("performance", "3", VALUELESS_TEXT)]],
         ["second-half", [read("second-half", "0", "0 ♩")]],
-        ["score", [read("score", "4", "4 ♩")]],
+        ["score", [read("score", "4", "4 ♩"), row(1, "6 ♩")]],
         ["page", [row(5, "400 px"), read("page", "600", "600 px")]],
+        ["performance", [read("performance", "3", VALUELESS_TEXT)]],
       ]);
       expect(flag(2)).toEqual([
         ["second-half", [row(4, "2 ♩")]],

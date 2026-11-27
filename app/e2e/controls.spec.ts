@@ -4,8 +4,9 @@
  * one press (the shape of Beethoven's Op. 106, whose movements hold atomic
  * sections and whose root holds none), its conversion maps hidden and
  * shown again on every child, the root's own empty Regions band shown
- * (explicitly, so drawn though empty) and hidden, never disabled, and a
- * press of several commands inside an open editor one undo step. The expected values are derived in
+ * (explicitly, so drawn though empty) and hidden, never disabled, a press
+ * of several commands inside an open editor one undo step, and the two
+ * boxes drawn as one control in the editor's flag colours. The expected values are derived in
  * `README.md` ("controls.spec.ts").
  */
 
@@ -213,4 +214,43 @@ test("a press of several commands inside an open editor is one undo step", async
   expect(await storeText(page, "view")).toBe(shown);
   await expect(tree).toBeChecked();
   await expect(element(page, block, { id: "region_1" })).toHaveCount(1);
+});
+
+test("draws the two boxes as one control with the editor's flag face and edge", async ({
+  page,
+}) => {
+  const block = await importFixture(page, "unknown_length_child");
+  const list = await bandList(page, block, "score");
+  const tree = list.getByRole("checkbox", {
+    name: "Regions with its descendants visible",
+    exact: true,
+  });
+  await expect(tree).toBeVisible();
+  const look = await tree.evaluate((box) => {
+    const control = box.closest(".reach");
+    const divider = box.closest(".tree");
+    if (control === null || divider === null) return null;
+    const own = getComputedStyle(control);
+    const sides = ["top", "right", "bottom", "left"].map((side) => [
+      own.getPropertyValue(`border-${side}-width`),
+      own.getPropertyValue(`border-${side}-style`),
+      own.getPropertyValue(`border-${side}-color`),
+    ]);
+    const line = getComputedStyle(divider);
+    return {
+      background: own.backgroundColor,
+      sides,
+      divider: [
+        line.borderInlineStartWidth,
+        line.borderInlineStartStyle,
+        line.borderInlineStartColor,
+      ],
+    };
+  });
+  const edge = ["1px", "solid", "rgb(200, 200, 200)"];
+  expect(look).toEqual({
+    background: "rgb(255, 255, 255)",
+    sides: [edge, edge, edge, edge],
+    divider: edge,
+  });
 });

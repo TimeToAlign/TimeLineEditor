@@ -269,7 +269,7 @@ describe("a frame moved in the bundle editor", () => {
   it("hides the toolbar until the release, then shows it at the stored bounds", async () => {
     await editing();
     const before = storedBox(idAddress("group_2"));
-    expect(before).toEqual({ x: 48, y: 283.53125 });
+    expect(before).toEqual({ x: 48, y: 108.8046875 });
     expect(toolbar()).toEqual(SHOWN);
     expect(topLeft()).toEqual(before);
     const entries = store.entries.length;
@@ -283,7 +283,7 @@ describe("a frame moved in the bundle editor", () => {
     expect(store.entries).toHaveLength(entries + 1);
     expect(toolbar()).toEqual(SHOWN);
     const after = storedBox(idAddress("group_2"));
-    expect(after).toEqual({ x: 848, y: 763.53125 });
+    expect(after).toEqual({ x: 848, y: 588.8046875 });
     expect(topLeft()).toEqual(after);
   });
 

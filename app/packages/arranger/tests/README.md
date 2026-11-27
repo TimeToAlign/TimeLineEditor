@@ -218,16 +218,18 @@ own tests.
   `recording`'s ancestor card" is derived without
   `recording`'s ancestor card behind `group_2`'s frame (the workspace rule
   above), which, drawn by the defaults, reaches left of the padding and
-  moves the place origin, and lowers `annotations`; the tests whose subject is a canvas position, a
+  moves the place origin; the tests whose subject is a canvas position, a
   place origin or a size of this block draw it so. With `places` empty the block holds three items
-  at their default places, `x = P = 8`, one under the other the block's
+  at their default places, in name order (section 8.6: `group_2`
+  "Facsimile" before `group_1` "Performance", then the ungrouped root),
+  `x = P = 8`, one under the other the block's
   spacing 8 apart, the first `P + h(11) + F = 28.8046875` below the title
   "Mixed" (`F = 8` the gap after the title):
 
   | item | place key | address | `x` | `y` | `length` | `width` | `height` |
   |---|---|---|---|---|---|---|---|
-  | `group_1` | `{item: "group_1"}` | `{id: "group_1"}` | 8 | 28.8046875 | 400 | 561.052001953125 | 166.7265625 |
-  | `group_2` | `{item: "group_2"}` | `{id: "group_2"}` | 8 | 203.53125 | 400 | 561.052001953125 | 157.7578125 |
+  | `group_2` | `{item: "group_2"}` | `{id: "group_2"}` | 8 | 28.8046875 | 400 | 561.052001953125 | 157.7578125 |
+  | `group_1` | `{item: "group_1"}` | `{id: "group_1"}` | 8 | 194.5625 | 400 | 561.052001953125 | 166.7265625 |
   | `annotations` | `{item: "annotations"}` | `{id: "annotations", part: ["card"]}` | 8 | 369.2890625 | 400 | 561.052001953125 | 71.85546875 |
 
   - Heights (sections 6.4, 6.5, 8.3, 8.4): the cards are `score` 76.4453125
@@ -261,10 +263,10 @@ own tests.
     0 to `s0 + 400 + Mr + K + Q = 561.052001953125`, and as neither `s0`
     nor `Mr` depends on a length, `W(L) = 161.052001953125 + L`. The held
     cards span `Q = 8` to `Ri + K` in item coordinates: they lie at x 16
-    and are 545.052001953125 wide, `Wc(L) = 145.052001953125 + L` (the cards `{item: "group_1", member: "score"}` at y 53.609375,
-    `{item: "group_1", member: "performance"}` at 138.0546875, `{item:
-    "group_2", member: "page"}` at 228.3359375 and `{item: "group_2", member:
-    "excerpt"}` at 285.8125). Every line runs from `8 + s0 =
+    and are 545.052001953125 wide, `Wc(L) = 145.052001953125 + L` (the cards `{item: "group_2", member: "page"}` at y 53.609375,
+    `{item: "group_2", member: "excerpt"}` at 111.0859375, `{item:
+    "group_1", member: "score"}` at 219.3671875 and `{item: "group_1",
+    member: "performance"}` at 303.8125). Every line runs from `8 + s0 =
     126.29150390625` to 526.29150390625. The block is
     `P + 561.052001953125 + 2 + P = 579.052001953125` by `369.2890625 +
     71.85546875 + 2 + P = 451.14453125` (the ungrouped card's shadow), its
@@ -277,28 +279,23 @@ own tests.
     below the largest bottom edge of the items before it **and of their
     displayed ancestor cards** (sections 8.6 and 8.8, No room; the first
     item keeps its `y`, shadows not counted). `recording`'s card behind
-    `group_2`, elided by default (section 8.9), is aligned to `excerpt`
-    (section 8.8): above `recording`'s line it holds `excerpt`'s row as
-    `excerpt`'s card holds `excerpt`'s line above `recording`'s ancestor
-    row, so its top is `excerpt`'s card's, 285.8125; below its line its
-    markers band holds the name labels of its derived gaps, one line,
-    reaching `w/2 + 13 + 2 + h(9) = 1.5 + 13 + 2 + 10.4765625 = 26.9765625`
-    below the line (sections 6.4, 6.6), where the ancestor row of
-    `excerpt`'s card reaches only its half pitch 7: the card is `67.4765625
-    + (26.9765625 − 7) = 87.453125` high and ends at 373.265625,
-    11.9765625 below `group_2`'s frame (`203.53125 + 157.7578125 =
-    361.2890625`). So `annotations` lies at `373.265625 + 8 = 381.265625`
-    (not the table's 369.2890625), `group_1` and `group_2` where the table
-    puts them, and the block is `381.265625 + 71.85546875 + 2 + P =
-    463.12109375` high. Every value below that reads `annotations`' drawn
-    `y` at the defaults is derived from 381.265625; a test drawing the card
-    hidden reads the table's.
+    `group_2`, drawn whole under the initial `elision-mode` `custom`
+    (section 8.9: it derives no elision and holds no stored one), is
+    aligned to `excerpt` (section 8.8): its top is `excerpt`'s card's,
+    111.0859375, and with no gap its markers band holds no label, so it
+    is 66.87890625 high and ends at 177.96484375, inside `group_2`'s frame
+    (`28.8046875 + 157.7578125 = 186.5625`). So every item lies where the
+    table puts them, `annotations` at 369.2890625; the card, 2249.755615234375
+    wide from x 8, moves the place origin to x 271.70361328125, every
+    frame and card lying that far right of the table's `x` on the canvas.
+    The values below that read the items' drawn places at the defaults are
+    the table's.
   - **Moved left and up:** with `annotations` placed at `{x: −30, y: −20}`
     the block reaches `−30 − P = −38` on the left and `−20 − 28.8046875` at
     the top (section 8.4: the title's slot is the items' top border), so
     the place origin lies at `(38, 48.8046875)`, and the block is `(8 +
-    569.052001953125) + 38 = 615.052001953125` wide and `(8 + 203.53125
-    + 157.7578125) + 48.8046875 = 418.09375` high. With `{x: −30}` alone
+    569.052001953125) + 38 = 615.052001953125` wide and `(8 + 194.5625
+    + 166.7265625) + 48.8046875 = 418.09375` high. With `{x: −30}` alone
     the origin is `(38, 0)` in `615.052001953125 × 451.14453125`.
   - **`mixed`** is `bundle_mixed` with the child `dlt_1` (`samples`,
     offset 0, length 44100, half of `excerpt`) added to `excerpt`, drawn
@@ -313,14 +310,15 @@ own tests.
     `max(7, 26.9765625 + 4) = 30.9765625`, one row `7 + 7`: the
     card is `32.5 + 44.9765625 + 8 = 85.4765625` high, 18 more than
     without `dlt_1` (`14.5 + 44.9765625 + 8`). From the card's top
-    285.8125, `excerpt`'s line lies at 318.3125, `dlt_1`'s at
-    300.8125 and `recording`'s ancestor line at 356.2890625; `dlt_1`'s
+    111.0859375, `excerpt`'s line lies at 143.5859375, `dlt_1`'s at
+    126.0859375 and `recording`'s ancestor line at 181.5625; `dlt_1`'s
     name `{id: "dlt_1", part: ["name"]}`, anchored at x `8 + n = 24` and
-    26.85009765625 wide, is centred on its line and spans y 294.41015625
-    to 307.21484375 (`h(11)` high). The child
+    26.85009765625 wide, is centred on its line and spans y 119.68359375
+    to 132.48828125 (`h(11)` high). The child
     changes neither `N`, `s0` nor `Mr`. `mixed`'s block is `579.052001953125
-    × 469.14453125`: `group_2` is 175.7578125 high and `annotations` lies at
-    y 387.2890625.
+    × 469.14453125`: `group_2` is 175.7578125 high, `group_1` lies at y
+    `28.8046875 + 175.7578125 + 8 = 212.5625` and `annotations` at
+    387.2890625.
 
 ## Numbers on the canvas (`numbers.test.ts`)
 
@@ -1100,21 +1098,21 @@ coordinates are layout's.
 - **What each descriptor draws** comes from its source alone: on
   `segment_line` the block (address `{}`), the card's shadow, the card and
   the three boundaries; on `group_child_member`, as the defaults draw it,
-  the roles of the descriptors 0, 1, 2, 24, 26, 27, 45 and 46 are
+  the roles of the descriptors 0, 1, 2, 19, 21, 22, 40 and 41 are
   asserted: the block (0), the ancestor card of `piece` `{id: "piece",
   part: ["card"]}`, its shadow (1) and its own rectangle (2), drawn after
   the block's background and before the frame (section 8.8), then the
-  frame (24), `second-half`'s shadow and card (26, 27) and `recording`'s
-  (45, 46). These indices follow from what lies between, which is not
-  asserted descriptor by descriptor: the 21 descriptors of the ancestor
-  card (3 to 23: `piece`'s line (four descriptors), `second-half`'s row
+  frame (19), `second-half`'s shadow and card (21, 22) and `recording`'s
+  (40, 41). These indices follow from what lies between, which is not
+  asserted descriptor by descriptor: the 16 descriptors of the ancestor
+  card (3 to 18: `piece`'s line (four descriptors), `second-half`'s row
   (three), the wedges, names and coordinate labels of `second-half`'s
-  `origin` and `length` groupstamps, their four cross-section pieces, then
-  the card's derived elision, its ellipsis' three circles and its name
-  label, the default `elision-display` `ellipsis name`), the frame's
-  title (25), the 17 descriptors of `second-half`'s card (28 to 44). With
+  `origin` and `length` groupstamps and their four cross-section pieces;
+  under the initial `elision-mode` `custom` the card derives no elision,
+  section 8.9, so it draws no gap, ellipsis or gap name), the frame's
+  title (20), the 17 descriptors of `second-half`'s card (23 to 39). With
   the cards hidden: the block, the ancestor card's shadow and rectangle
-  (1, 2) and the frame (24) only.
+  (1, 2) and the frame (19) only.
   An elision's gap, its ellipses and its continuation lines are elements,
   never a box: on `bundle_elisions_stored` every descriptor written from
   an `elision` or `ellipsis` element has the role "element", and those
@@ -1213,7 +1211,8 @@ nothing, the block neither. Without groups (`bundle_ungrouped`) `{id:
 hidden by `{item: "group_1", member: "score"}`, and `{id: "group_1",
 part: ["name"]}` by none. **An item over another** (`over`, drawn
 without `recording`'s ancestor card, which would move the place origin):
-`annotations`' card moved to (8, 60) lies inside `group_1`'s frame, each
+`annotations`' card moved to (8, 225.7578125), 31.1953125 below the top of
+`group_1`'s frame (at 194.5625), lies inside that frame, each
 drawn as in the table above, and the middle of `score`'s line lies on the
 card on top, `{item: "annotations"}`; yet `{id: "annotations", part:
 ["name"]}` is held by `{item: "annotations"}` alone, `{id: "score"}` by
@@ -1241,10 +1240,11 @@ the inspector reads it, for the card address and for what stands for it
 (the line `{id: "t"}` in `g1`'s editor, the name `{id: "t", part:
 ["name"]}` in `g2`'s): neither has a box on the arranger or in the bundle
 editor, `u`'s card has its own on the arranger. Enter on `{block: A, id: "t", part:
-["card"]}` hits `t`'s card in `g2` in `g2`'s editor and the first, in
-`g1`, on the arranger; with the card in `g1` drawn hidden (its record not
-displayed), the one in `g2` on the arranger, in the bundle editor and in
-`g2`'s editor, and nothing in `g1`'s.
+["card"]}` hits `t`'s card in `g1` in `g1`'s editor and the first, in
+`g2` ("Page", drawn before `g1` "Performance"), on the arranger; with the
+card in `g2` drawn hidden (its record not displayed), the one in `g1` on
+the arranger, in the bundle editor and in `g1`'s editor, and nothing in
+`g2`'s.
 
 ## Ancestor cards (`ancestor-cards.test.ts`, `keys.test.ts`, `raise.test.ts`)
 
@@ -1459,6 +1459,11 @@ back into it, as a raise does (decision record 0034). The same three
 parts are proven apart: the pure motion, the canvas's reading of two
 drawings into it, and the progress that drives it. A progress `t` runs
 from 0 (where the drawing before drew it) to 1 (the drawing at rest).
+Every fixture drawn Elided here (`group_elided_inside`,
+`group_grandchild`) carries the workspace rule `{select: {element:
+"ancestor_card"}, set: {"elision-mode": "auto"}}` (`AUTO_ELISIONS`): its
+cards derive their elisions, which the initial `custom` (section 8.9)
+would not.
 
 **The pure motion sideways** (`unfold.ts`, literal knots; a knot is an
 abscissa and the position it draws on the card's root). `full` = (0, 0),
@@ -1788,20 +1793,23 @@ its own item. A line `{id: "score"}` and a group's title `{id: "group_1",
 part: ["name"]}` are no resized box: no record carries their addresses.
 
 **Moves.** `group_2` to (40, 200) states it there and every other item at
-its drawn position at the defaults (`group_1` (8, 28.8046875), `annotations` (8,
-381.265625), below `recording`'s ancestor card: `bundle_mixed`, "With
-`recording`'s ancestor card"), else `annotations` would follow `group_2`
-and its card up to `200 + 157.7578125 + 11.9765625 + 8 = 377.734375`; an
-item stating `{x: 12}` gets only its `y`. To (40.0001, 200)
-the same; to its drawn place no command; a key that is no item (`{item:
-"score"}`, a member's ID) throws.
+its drawn position at the defaults (`group_1` (8, 194.5625), `annotations` (8,
+369.2890625), the table's: `bundle_mixed`, "With `recording`'s ancestor
+card"), else `group_1` and `annotations` would follow `group_2` down to
+`200 + 157.7578125 + 8 = 365.7578125` and `365.7578125 + 166.7265625 + 8 =
+540.484375`; an item stating `{x: 12}` gets only its `y` (194.5625). To
+(40.0001, 200) the same; to its drawn place (8, 28.8046875) no command; a
+key that is no item (`{item: "score"}`, a member's ID) throws.
 **Several items move by one travel**: with `annotations` along, `group_2`
-travels `(32, −3.53125)` from its drawn (8, 203.53125) and `annotations`
-lands at (40, `381.265625 − 3.53125 = 377.734375`),
+travels `(32, 171.1953125)` from its drawn (8, 28.8046875) and `annotations`
+lands at (40, `369.2890625 + 171.1953125 = 540.484375`),
 its offset kept; the command lists the pressed item, the items moving with
 it in order, then the others' positions. With both others along, `group_1`
-lands at (40, `28.8046875 − 3.53125 = 25.2734375`). No travel, or a key along that is no item, no
-command.
+lands at (40, `194.5625 + 171.1953125 = 365.7578125`). No travel, or a key
+along that is no item, no command. The node's item move drags `group_2`'s
+frame from (100, 200) to (132, 371.1953125), that travel at zoom 1; in
+`over` (`annotations` at (8, 225.7578125)) `annotations` along lands at
+(40, `225.7578125 + 171.1953125 = 396.953125`).
 
 **Which items a drag moves with the pressed one** depends on the
 selection by address, never by where things lie: a selected frame or card
@@ -1815,7 +1823,7 @@ selected element addresses:
 | selection | pressed: result |
 |---|---|
 | `{id: "group_2"}`, `{id: "annotations", part: ["card"]}` | group_2: [annotations]; annotations: [group_2]; group_1: none |
-| `{id: "group_1"}`, `{id: "group_2"}`, `{id: "annotations", part: ["card"]}` | annotations: [group_1, group_2] |
+| `{id: "group_1"}`, `{id: "group_2"}`, `{id: "annotations", part: ["card"]}` | annotations: [group_2, group_1] |
 | `{id: "score"}`, `{id: "annotations", part: ["name"]}` | group_1: [annotations]; annotations: [group_1]; group_2: none |
 | `{id: "group_2"}`, `{id: "page"}`, `{id: "excerpt", part: ["card"]}` | group_2: []; group_1, annotations: none |
 | the title `{part: ["name"]}`, `{id: "group_2"}` | group_2: []; group_1: none |
@@ -1854,14 +1862,14 @@ frame's gaps.
 
 **Scale** (on `annotations`' card, arranger): bottom-right by (40, 20)
 `{scale: 1.2783203125}` (2618.03 steps); top-left by (−40, −20) the same
-with `x: −148.15234375, y: 361.2666015625` (the drawn `y` 381.265625 at
+with `x: −148.15234375, y: 349.2900390625` (the drawn `y` 369.2890625 at
 the defaults less the card's growth `0.2783203125 × 71.85546875 =
 19.9990234375`); by (−1000, −1000) the floor;
 at block scale 2 by (80, 40) the same 1.2783203125; with `scale` 2 stated,
 halving gives `{scale: null}`, the default. On a held card the scale is
 its group's, from the frame's top left to the card's bottom right:
 `group_1 › performance` by (40, 20) gives `{group_1: {scale: 1.1259765625}}`
-(the card's bottom lies `138.0546875 + 49.4765625 − 28.8046875 =
+(the card's bottom lies `303.8125 + 49.4765625 − 194.5625 =
 158.7265625` below the frame's top: `(158.7265625 + 20) / 158.7265625`,
 2306.05 steps, rounds to 2306 / 2048).
 Only an offered corner scales.
@@ -1869,7 +1877,7 @@ Only an offered corner scales.
 **Box** (on `group_2` with `width` 580, bundle editor): right by 20
 `{width: 600}`, by −20 `{width: null}`; left by −21 `{width: 601, x:
 −13}`, by 100 `{width: null, x: 26.9482421875}`; bottom by 10.5 `{height:
-168.2578125}`; top by −16 `{height: 173.7578125, y: 187.53125}`; at block
+168.2578125}`; top by −16 `{height: 173.7578125, y: 12.8046875}`; at block
 scale 2 right by 20 `{width: 590}`. Applied, the left row moves the place
 origin to (21, 0) and keeps `group_2`'s right edge at canvas x 628 (drawn
 with the ancestor card hidden, so the other items lie at the table's
@@ -1885,7 +1893,7 @@ boxes following its own content. On `annotations`' card (bundle editor):
 |---|---|---|---|
 | | right / left | (20, 0) / (−21, 0) | `{length: 420}` / `{length: 421, x: −13}` |
 | | right | (−500, 0) | `{length: 8}` |
-| | bottom / top | (0, 20) / (0, −20) | `{spacing: 24}` / `{spacing: 24, y: 361.265625}` (`381.265625 − 20`) |
+| | bottom / top | (0, 20) / (0, −20) | `{spacing: 24}` / `{spacing: 24, y: 349.2890625}` (`369.2890625 − 20`) |
 | | bottom-right | (20, 20) | `{length: 420, spacing: 24}` |
 | | bottom | (0, −2) / (0, −40) | `{spacing: 2}` / `{spacing: 0}` (the floor) |
 | width `2 W(400)` | right / left | (40, 0) / (−42, 0) | `{length: 420, width: 1162.10400390625}` / `{length: 421, width: 1164.10400390625, x: −34}` |
@@ -1893,7 +1901,7 @@ boxes following its own content. On `annotations`' card (bundle editor):
 
 A frame's stretch widens the gap between its cards, each card keeping its
 size: `group_1` bottom by 44 `{group_1: {spacing: 52}}`, top by −44 also
-`y: −15.1953125`; with `performance` at height `2 Hp` bottom by 60
+`y: 150.5625` (`194.5625 − 44`); with `performance` at height `2 Hp` bottom by 60
 `{group_1: {spacing: 68}}` alone (the frame `208.203125 + Sf` high, the
 card's request unchanged). A held card stretches its group along time and
 its own card vertically, and has no left handle:
@@ -2073,15 +2081,16 @@ cards a frame holds, in drawing order, each at the middle of its
 rectangle. Neither the frame's rectangle nor the next item decides, so a
 hidden frame still orders its cards. On `bundle_mixed` the middles of
 the cards `{item: "group_1", member: "score"}` and `{item: "group_1",
-member: "performance"}` are `53.609375 + 76.4453125 / 2 = 91.83203125`
-and `138.0546875 + 49.4765625 / 2 = 162.79296875` (their `y` plus half
-their height).
+member: "performance"}` are `219.3671875 + 76.4453125 / 2 = 257.58984375`
+and `303.8125 + 49.4765625 / 2 = 328.55078125` (their `y` plus half
+their height; `group_1`, "Performance", is drawn below `group_2`,
+"Facsimile").
 
 | group | dragged | y | order |
 |---|---|---|---|
-| group_1 | score | 100 / 170 | [score, performance] / [performance, score] |
-| group_1 | score | 162.79296875 | [performance, score] (a middle at `y` is not below it) |
-| group_1 | performance | 50 / 91.83203125 | [performance, score] / [score, performance] |
+| group_1 | score | 265.7578125 / 335.7578125 | [score, performance] / [performance, score] |
+| group_1 | score | 328.55078125 | [performance, score] (a middle at `y` is not below it) |
+| group_1 | performance | 215.7578125 / 257.58984375 | [performance, score] / [score, performance] |
 | group_2 | page | 440 | [excerpt, page] |
 
 On `group_child_member` with the frame hidden, `second-half` and
@@ -2091,8 +2100,9 @@ drawn. A group not drawn throws.
 
 **The preview of a drop is its command applied**: dropping `performance`
 first on `bundle_mixed` draws the card `{id: "performance", part:
-["card"]}` at the y 53.609375 of `score`'s card and `{id: "score", part:
-["card"]}` `49.4765625 + 8` below it, at 111.0859375, everything else
+["card"]}` at the y 219.3671875 of `score`'s card and `{id: "score", part:
+["card"]}` `49.4765625 + 8` below it, at 276.84375 (the third and fourth
+cards drawn, after `group_2`'s `page` and `excerpt`), everything else
 kept, and the stored order is left as it was. **The command** is a `set`
 of `order` on the group, `{block: A, id: "group_1"}`: none for the
 displayed order, `order: null` for the members' own order
@@ -2222,8 +2232,9 @@ is the pointer's drawing point):
   one `set` of the block's arrangement, `{direction: horizontal, order:
   [page, group_1, group_2, group_3]}`, which core keeps as the row.
 - **Vertical items**: on the block stated Vertical, `page` dropped at y 0
-  stores `{direction: vertical, order: [page, group_1, group_2, group_3]}`;
-  nothing is refused.
+  stores `{direction: vertical, order: [page, group_2, group_1, group_3]}`
+  (the others in their drawn order, by name: "Development", "Exposition",
+  "Recapitulation"); nothing is refused.
 - **Anchors pinned side by side** (`isPinned`): side by side `recapitulation` and `take_b` (anchors of
   `group_3`) are pinned, `annotations` (a root member) is not; on the
   block stated Vertical none is. In `group_3`'s editor a press on
@@ -2264,8 +2275,9 @@ nothing, so `group_2`'s editor, behind it alone, has no reach (`null`).
 `itemMotions` between `bundle_arranged_roots` drawn Vertical and drawn
 Horizontal moves every item that changed place by the change of its box
 less the change of the place origin: at progress 0 an element of
-`group_2`'s frame is drawn translated by exactly `(x_v − O_v.x) − (x_h −
-O_h.x)` and the like downwards (`placedAt`), at 1 at rest; an item drawn at
+`group_1`'s frame (the second one under another, "Exposition" after
+"Development", so moving both ways) is drawn translated by exactly `(x_v −
+O_v.x) − (x_h − O_h.x)` and the like downwards (`placedAt`), at 1 at rest; an item drawn at
 the same place moves nothing. `blockMotion` from Vertical to Horizontal:
 the item motions come first, so a member card of a moving frame takes the
 frame's motion; the once card `{item: group_1, member: score}` (same key)
@@ -2902,13 +2914,13 @@ The rectangle an editor centres is its target's container on the canvas,
 read from the drawing's records: on `mixed` at (40, 80), its ancestor
 card hidden, the block `{block:
 A}` `{40, 80, 579.052001953125 × 469.14453125}`, `{block: A, id:
-"group_1"}`'s frame `{48, 108.8046875, 561.052001953125 × 166.7265625}`,
+"group_1"}`'s frame `{48, 292.5625, 561.052001953125 × 166.7265625}`,
 `{block: A, id: "annotations"}`'s card `{48, 467.2890625,
 561.052001953125 × 71.85546875}`; a child with no card the rectangle
 around the geometric bounds of its drawn elements (layout's `boundsOf`,
 the drawing specification's section 6.7: a line with its start circle
 and its end's mark, no stroke width counted), `{block: A, id:
-"dlt_1"}`'s line and name `{64, 374.41015625, 306.79150390625 ×
+"dlt_1"}`'s line and name `{64, 199.68359375, 306.79150390625 ×
 12.8046875}`: the name's left at 64, its top and height, and on the
 right the line's open diamond (a child whose end is known), whose right
 corner lies `1.5w = 4.5` past the line's end (child `stroke-width` 3,
@@ -2916,7 +2928,7 @@ section 4's defaults), the end at 166.29150390625 + 200 =
 366.29150390625 (`excerpt`'s start, below, and 44100 samples at 2000 over
 441000), so the right 370.79150390625; the start circle's radius 3 stays
 within the name's height and right of it; at scale 2 the frame
-`{56, 137.609375, 1122.10400390625 × 333.453125}`; a target in another
+`{56, 505.125, 1122.10400390625 × 333.453125}` (`80 + 2 × 212.5625`); a target in another
 block (`{block: "0000000009", id: "group_1"}`) throws. A band's address
 centres the band's own record (`excerpt`'s children band: its first
 record's rectangle on the canvas, read from the drawing); a band that is
@@ -2929,7 +2941,7 @@ card draws counts only while the card is raised, as for the marquee
 (`withFullCards`, "Whole ancestor cards" in the fixture facts: the subject is the viewport,
 not the elision), `recording`'s ancestor card shown whole behind
 `group_2`'s frame, `dlt_1`'s rectangle is the same `{64,
-374.41015625, 306.79150390625 × 12.8046875}` (every element outside the
+199.68359375, 306.79150390625 × 12.8046875}` (every element outside the
 card keeps its canvas place), not one stretched over the copy of `dlt_1`
 the card draws; in `recording`'s own timeline editor, which raises the
 card, `recording`'s rectangle spans the card's drawings with the ones
@@ -2951,11 +2963,11 @@ false), `3w = 9` past the line's end, `40 + 1978.052001953125 =
 2018.052001953125`, width 2233.755615234375; the top is the line of the
 groupstamps `origin` and `length` of `excerpt` (`timestamp_3`,
 `timestamp_4`, each `display` holding `cross_section`) across
-`group_2`'s frame, from the top of `page`'s card (228.3359375 in the
+`group_2`'s frame, from the top of `page`'s card (53.609375 in the
 drawing, section 8.7's `groupSpans`) down to `excerpt`'s card, so
-`80 + 228.3359375 = 308.3359375`; the bottom is the end of their
+`80 + 53.609375 = 133.609375`; the bottom is the end of their
 cross-section pieces at the lower border of `excerpt`'s member card,
-`80 + 285.8125 + 85.4765625 = 451.2890625`, height 142.953125. The
+`80 + 111.0859375 + 85.4765625 = 276.5625`, height 142.953125. The
 card's own rectangle and
 `excerpt`'s card are containers and do not count. What would be wrong: an
 editor fitting a child's view to a copy the user does not see. The viewport centres it in the pane less the drawer with 10 % free
@@ -2972,7 +2984,9 @@ card behind the frame that elides fits on both sides of the
 frame's centre `c`: `reach` is the largest of `c` less a card's left edge
 and its right edge less `c` (canvas units), `f` = 0.8, `W` the pane
 width, `zG` the zoom fitting the frame. The view is the drawing's
-default, 1280 × 720, the pane the test passes.
+default, 1280 × 720, the pane the test passes. Each fixture carries the
+workspace rule `elision-mode` `auto` on every ancestor card
+(`AUTO_ELISIONS`), so its cards derive the elisions this reach is about.
 
 The cards' places and widths are layout's record (its tests are the
 oracle for an elided card, section 8.9); what is derived here is the
@@ -3070,21 +3084,21 @@ each result an address in block A, written below by its element address:
   5.5` above `dlt_1`'s line; its reach 6.5 stays within the row's half
   pitch 7, so nothing else moves. The region lies in `excerpt`'s regions
   band, `26.9765625 + B` below its line, one row wide. `excerpt`'s card
-  then spans y 288.3203125 to 416.25: from its top, `P`, the children
-  band (`dlt_1`'s row, 14, from 296.3203125), `S`, `excerpt`'s maps band
-  (6.5) and its line at 320.8203125; below it the markers band (to
-  347.796875), the regions band (351.796875 to 370.2734375) and, outermost
+  then spans y 113.5859375 to 241.515625: from its top, `P`, the children
+  band (`dlt_1`'s row, 14, from 121.5859375), `S`, `excerpt`'s maps band
+  (6.5) and its line at 146.0859375; below it the markers band (to
+  173.0625), the regions band (177.0625 to 195.5390625) and, outermost
   below (`recording`'s band order puts its children above its line), the
-  ancestor band with `recording`'s ancestor line, below 374 (layout's
+  ancestor band with `recording`'s ancestor line, below 199.265625 (layout's
   record), on which no line marks `excerpt`'s start or end (section 8.3).
   `excerpt`'s named timestamps `timestamp_3` and `timestamp_4` (its
   `origin` and `length`) are groupstamps (a child joining a group gets
   them so), whose cross-section lines cross every member card of
   `group_2`, `page`'s above `excerpt`'s included.
-- `{40, 370, 600 × 84}` (drawing y 290 to 374: from above `cmap_7`'s and
-  `dlt_1`'s name's tops, 296.8203125 and 296.91796875, to between the
-  lowest labels of the member, 370.7734375, and the ancestor line,
-  376.7734375) gives `{id: "cmap_6"}` (`excerpt`'s map), `{id:
+- `{40, 195.265625, 600 × 84}` (drawing y 115.265625 to 199.265625: from above `cmap_7`'s and
+  `dlt_1`'s name's tops, 122.0859375 and 122.18359375, to between the
+  lowest labels of the member, 196.0390625, and the ancestor line,
+  202.0390625) gives `{id: "cmap_6"}` (`excerpt`'s map), `{id:
   "cmap_7"}`, `{id: "region_3"}`, `{id: "excerpt"}`, `{id: "dlt_1"}`,
   `{id: "dlt_1", part: ["name"]}`, `{id: "excerpt", part: ["name"]}`,
   `{id: "region_3", part: ["label"]}`; the ancestor line `{id:
@@ -3095,7 +3109,7 @@ each result an address in block A, written below by its element address:
   to; inside `group_1` nothing. A child's line is taken with its end's
   mark: `dlt_1`'s line ends at the canvas abscissa 366.29150390625 and
   its open diamond reaches `1.5w = 4.5` further (the focus section
-  above), so inside `dlt_1` the rectangle from (40, 370) to the abscissa
+  above), so inside `dlt_1` the rectangle from (40, 195.265625) to the abscissa
   370.79150390625 (width 330.79150390625, height 84) takes all three,
   and one 0.5 narrower takes `cmap_7` (a map ends at its line's end) and
   the name but not `dlt_1`. What would be wrong: bounds stopping at the
@@ -3260,7 +3274,8 @@ the timestamp holds `score` at 21/2 and `coda` at 1/2. A root of unknown
 length added to `map` without content, `late` (block A, `add {into:
 {block: A}, timeline: {id: late, unit: quarters, number_type: fraction,
 length: null}, ids: [late_origin]}`, which brings its `origin` `late_origin` at 0), reaches 0:
-its line is drawn (y 22.40234375 from 63.53662109375 to 463.53662109375)
+its line is drawn (y 97.87890625 from 63.53662109375 to 463.53662109375,
+below `map`'s root in name order)
 but its drawn length is 0, so it is not among the lines read and nothing
 is hovered on it.
 
@@ -3643,9 +3658,9 @@ lies at the ordinate of `movement`'s ancestor line, 85.18359375 (its rows
 lie at the heights of the member card's ancestor rows, section 8.3). So
 with `score`'s card raised, `movement` 8 has one place, the card's row
 at 85.18359375; with `recording`'s card raised in `bundle_mixed` (its top
-`338.2890625 − 52.4765625 = 285.8125`, 87.453125 high), `excerpt` 33075
-has one place, the card's row at 300.8125 (`excerpt`'s own line at
-300.3125 lies inside it). A reading there hovers that row and reads
+`163.5625 − 52.4765625 = 111.0859375`, 66.87890625 high, drawn whole),
+`excerpt` 33075 has one place, the card's row at 126.0859375 (`excerpt`'s
+own line at 125.5859375 lies inside it). A reading there hovers that row and reads
 the value. What would be wrong: a place left
 on a line the raised card covers.
 
@@ -3839,9 +3854,10 @@ for the right row, `p` and `h`.
 
 - **`bundle_mixed`'s `score`**, drawn in the Full view (`withFullCards`,
   "Whole ancestor cards" in the fixture facts: the subject is the snap, not the elision)
-  (y 73.109375 from 397.9951171875 to 797.9951171875, 12 quarters over
-  400, so 0.03 a canvas unit; `cmap_1` 480·x onto ticks at 67.609375,
-  `cmap_2` x/2 onto seconds at 62.609375). The abscissas: with no
+  (y 238.8671875 from 397.9951171875 to 797.9951171875, 12 quarters over
+  400, so 0.03 a canvas unit; `cmap_1` 480·x onto ticks at 233.3671875,
+  `cmap_2` x/2 onto seconds at 228.3671875; `score`'s card in `group_1`,
+  drawn below `group_2`). The abscissas: with no
   ancestor card every line runs from `8 + s0 = 126.29150390625` (above,
   "Fixture facts"). `recording`'s ancestor card, drawn by default behind
   `group_2`'s frame, is aligned to `excerpt` (88200 samples at 44100 in
@@ -3863,8 +3879,8 @@ for the right row, `p` and `h`.
   At zoom 3.75, ratio 1, `h` = 0.03 / 3.75 / 2 = 0.004, and the abscissa
   397.9951171875 + 3.13 / 0.03 gives `p` = 3.13 (the doubles nearest,
   within 10⁻¹⁴, where every margin below is at least 0.001), core's own
-  pointer. On the line (y 73.109375) the position is **47/15**; on
-  `cmap_1` (y 67.609375) **751/240**; on `cmap_2` (y 62.609375) with
+  pointer. On the line (y 238.8671875) the position is **47/15**; on
+  `cmap_1` (y 233.3671875) **751/240**; on `cmap_2` (y 228.3671875) with
   decimals 1 **16/5**, and with the default decimals 3 the value 1.565
   itself (0 places 2, 1 place 1.6, 2 places 1.57 lie 0.435, 0.035, 0.005
   from it, all beyond `hv` 0.002): **313/100**. The tolerance there is
@@ -3984,7 +4000,7 @@ holds on a line of unknown length: `unknown_length`'s `origin`
 length unknown, no maps; member `coda` at 10, 4 long) and the timestamp
 `score` 0 alone (`coda` starts at 10), and on a zero-length line: `late`'s
 `origin` (`late_origin`, above) reads anchor `late` (length unknown, its
-reach there 0, no maps, at its line's ordinate 22.40234375), no members,
+reach there 0, no maps, at its line's ordinate 97.87890625), no members,
 `late` 0. Where no line draws its timeline (its line
 hidden by a `style` of `{id: "melody"}`, `display: "none"`, so that the
 editor can still show it), it reads on its own axis with all its own maps
@@ -4046,8 +4062,8 @@ lines of the member's card, never the ancestor's own maps, which are not
 drawn there. In `bundles/bundle_mixed` (block A at (40, 80)), drawn in
 the Full view (`withFullCards`, "Whole ancestor cards" in the fixture facts: the subject is the
 ancestor line, not the elision), `recording` is drawn as `excerpt`'s ancestor line in `excerpt`'s card (layout's
-record: card `{item: group_2, member: excerpt}`, y 338.2890625, below
-`excerpt`'s line at 300.3125, from
+record: card `{item: group_2, member: excerpt}`, y 163.5625, below
+`excerpt`'s line at 125.5859375, from
 397.9951171875 to 797.9951171875, start 44100 samples, drawn length
 88200: `excerpt`'s 2 seconds at its offset of 1) and in its ancestor
 card, whose line, which draws `recording`'s map `cmap_5`, the frame
@@ -4761,13 +4777,13 @@ fraction, 8) is a member of `group_1` (with `performance`, seconds, float,
 `second-half` (4 quarters at offset 4) is drawn in each of `score`'s
 cards. Layout's record: every line from x 102.29150390625 to
 502.29150390625 (400 units: 50 a quarter, 100 a second, one per 2
-pixels; `second-half` from 302.29150390625); `group_1`'s frame holds
-`second-half` on y 68.609375 and `score` on 82.609375 in `score`'s card
-(53.609375 to 117.5859375), and `performance` on 139.98828125 in its card
-(125.5859375 to 174.96484375); `group_2`'s holds `second-half` on
-230.76953125 and `score` on 244.76953125 in `score`'s card (215.76953125
-to 279.74609375), and `page` on 302.1484375 in its card (287.74609375 to
-337.125). A coordinate's line spans the card of its line (section 8.7),
+pixels; `second-half` from 302.29150390625); `group_2`'s frame, "Page",
+drawn first in name order, holds `second-half` on y 68.609375 and `score`
+on 82.609375 in `score`'s card (53.609375 to 117.5859375), and `page` on
+139.98828125 in its card (125.5859375 to 174.96484375); `group_1`'s,
+"Performance", holds `second-half` on 230.76953125 and `score` on
+244.76953125 in `score`'s card (215.76953125 to 279.74609375), and
+`performance` on 302.1484375 in its card (287.74609375 to 337.125). A coordinate's line spans the card of its line (section 8.7),
 `second-half`'s as `score`'s; a groupstamp's group piece is the frame's
 span (from its topmost card's upper border to its bottommost card's lower
 border) less that card: one piece. The manifest holds the match timestamps
@@ -4784,9 +4800,9 @@ which are none).
 
 | MatchStamp | Lines, as `[coordinate, x, y1, y2]` |
 |---|---|
-| 0 | c0 on `group_1`'s `score` [0, 302.29…, 53.609375, 117.5859375], then [0, 302.29…, 117.5859375, 174.96484375]; on `group_2`'s [0, 302.29…, 215.76953125, 279.74609375], then [0, 302.29…, 279.74609375, 337.125]; c2 [2, 202.29…, 125.5859375, 174.96484375] alone |
-| 1 | c1 as c0 at 402.29…; c5 [5, 302.29…, 287.74609375, 337.125], then [5, 302.29…, 215.76953125, 287.74609375] |
-| 2 | c3 [3, 402.29…, 125.5859375, 174.96484375], then [3, 402.29…, 53.609375, 125.5859375]; c4 [4, 402.29…, 53.609375, 117.5859375] and [4, 402.29…, 215.76953125, 279.74609375] alone |
+| 0 | c0 on `group_2`'s `score` [0, 302.29…, 53.609375, 117.5859375], then [0, 302.29…, 117.5859375, 174.96484375]; on `group_1`'s [0, 302.29…, 215.76953125, 279.74609375], then [0, 302.29…, 279.74609375, 337.125]; c2 [2, 202.29…, 287.74609375, 337.125] alone |
+| 1 | c1 as c0 at 402.29…; c5 [5, 302.29…, 125.5859375, 174.96484375], then [5, 302.29…, 53.609375, 125.5859375] |
+| 2 | c3 [3, 402.29…, 287.74609375, 337.125], then [3, 402.29…, 215.76953125, 287.74609375]; c4 [4, 402.29…, 53.609375, 117.5859375] and [4, 402.29…, 215.76953125, 279.74609375] alone |
 
 (302.29… = 102.29150390625 + 200, 402.29… = + 300, 202.29… = + 100.)
 Each group piece is exactly what `groupCrossSections` gives on that line at
@@ -4804,8 +4820,8 @@ ID or coordinate), never with the default `display` of a match timestamp,
 Without `namedGroupstamps`, MatchStamp 1 then is c1's two extents and c5's point. The
 connectors are unchanged. The potential MatchStamps' overlay
 (`overlayOf`, the view of "What is drawn, in view") draws no groupstamps:
-on G its lines are c0 and c1 on `group_1`'s `score`, c2 and c3 on
-`performance`, c0 and c1 on `group_2`'s `score`, c5 on `page`, each its
+on G its lines are c0 and c1 on `group_2`'s `score`, c5 on `page`, c0
+and c1 on `group_1`'s `score`, c2 and c3 on `performance`, each its
 segment piece alone (c4 shares its device column on `score`'s card with
 c1, which `score`'s line, earlier in the drawing's order, took).
 
@@ -4822,12 +4838,12 @@ draws at that opacity in the hovered or the pinned colour. With
 timestamp's, so every abscissa and card is as above), with
 `namedGroupstamps`: MatchStamp 0's lines are the table's, c0's
 `group_1` piece cut at `performance`'s card's top, [0, 302.29…,
-117.5859375, 125.5859375] at 1, then [0, 302.29…, 125.5859375,
-174.96484375] at 0.35; MatchStamp 1's likewise at 402.29… for c1; and
+279.74609375, 287.74609375] at 1, then [0, 302.29…, 287.74609375,
+337.125] at 0.35; MatchStamp 1's likewise at 402.29… for c1; and
 MatchStamp 2's c3 piece, on `performance` itself (the member of unknown
 length holds the coordinate), whole at 0.35. Every other line is at 1.
 `fadedPathsOf` of MatchStamp 0's overlay is one path at 0.35,
-`M302.2915 125.5859V174.9648`, and `pathOf` the rest. With both lengths
+`M302.2915 287.7461V337.125`, and `pathOf` the rest. With both lengths
 known every line is at 1 and `fadedPathsOf` gives none: the oracle of the
 geometry, which equals the table's piece for piece but for the one cut.
 
@@ -4853,24 +4869,23 @@ at `score`'s 4):
 
 | MatchStamp | Groups and rows |
 |---|---|
-| 0 | `score` [c0 `4 ♩`]; `performance` [c2 `1″`, read `2″`]; `page` [read `400 px`] |
-| 1 | `score` [c1 `6 ♩`]; `performance` [read `3″`]; `second-half` [read `0 ♩`]; `score` [read `4 ♩`]; `page` [c5 `400 px`, read `600 px`] |
+| 0 | `score` [c0 `4 ♩`]; `page` [read `400 px`]; `performance` [c2 `1″`, read `2″`] |
+| 1 | `second-half` [read `0 ♩`]; `score` [read `4 ♩`, c1 `6 ♩`]; `page` [c5 `400 px`, read `600 px`]; `performance` [read `3″`] |
 | 2 | `second-half` [c4 `2 ♩`]; `score` [read `6 ♩`]; `performance` [c3 `3″`] |
 
 MatchStamp 0: c0 `score` 4 is a groupstamp (`timestamp_1`), read on
-`performance` 4 / 2 = 2 (its card's line, 139.98828125, at 302.29…, right
-of c2 at 202.29…) and on `page` 4 × 100 = 400 (302.1484375); c2 is none.
+`page` 4 × 100 = 400 (its card's line, 139.98828125) and on `performance`
+4 / 2 = 2 (302.1484375, at 302.29…, right of c2 at 202.29…); c2 is none.
 MatchStamp 1: c1 `score` 6 reads `performance` 3 and `page` 600; c5
-`page` 400 reads `score` 4 in `group_2`'s card (244.76953125) with its
-crossed child `second-half` at 4 − 4 = 0 (230.76953125, above it). So
-by ordinate `score` 6 (82.609375), `performance` 3 (139.98828125),
-`second-half` 0, `score` 4, then `page` 400 and 600 on one line, left to
-right: `score` 4 lies below `performance` 3, so `score` heads two runs,
-keyed `1` and `score 4` (the groups' keys `1`, `performance 3`,
-`second-half 0`, `score 4`, `5`), while `page`'s two adjacent rows share
-one head. MatchStamp 2: c3 `performance` 3 reads `score` 6 (82.609375) and
-its crossed child `second-half` 2, equal to c4 and so listed once, as c4
-(68.609375, the topmost); c4 is none. Without the groups read the flags
+`page` 400 reads `score` 4 in `group_2`'s card (82.609375) with its
+crossed child `second-half` at 4 − 4 = 0 (68.609375, above it). So
+by ordinate `second-half` 0, then `score` 4 and 6 on one line, left to
+right (302.29… and 402.29…), `page` 400 and 600 (139.98828125), then
+`performance` 3 (302.1484375): each timeline's rows are adjacent, so each
+heads one run (the groups' keys `second-half 0`, `score 4`, `5`,
+`performance 3`). MatchStamp 2: c3 `performance` 3 reads `score` 6
+(244.76953125) and its crossed child `second-half` 2, equal to c4 and so
+listed once, as c4 (68.609375, the topmost); c4 is none. Without the groups read the flags
 are MatchStamp 0 `score` [`4 ♩`], `performance` [`1″`] and MatchStamp 1
 `score` [`6 ♩`], `page` [`400 px`]. With `performance`'s length `null`
 (above) the group gives `performance` no value from `score` and no member
@@ -4951,7 +4966,10 @@ records): a stored elision `E` addressed `{id: E}`, a default one lying on
 gap, holding its ellipses and labels. What proves the canvas's side is that
 every value below follows from those records by the arithmetic written
 here, never from the arranger's output; blocks lie at (0, 0), scale 1, zoom
-1, so a block point is a canvas point.
+1, so a block point is a canvas point. `group_elided_members` and
+`group_elided_inside` carry the workspace rule `elision-mode` `auto` on
+every ancestor card (`AUTO_ELISIONS`): their default gaps are derived,
+which the initial `custom` would not draw.
 
 Facts of `bundle_elisions_stored` (layout's point 5): `score` (64
 quarters, fraction) in its ancestor card `{item: group_1, member: score}`
@@ -5154,7 +5172,8 @@ measured; the first size settles at once; a later size only
 a pending one; a size 0 × 360, −5 × 100 or NaN wide is skipped; `release`
 withdraws it. A `$derived` reading `view` is read again when it settles.
 `drawingOf` with a pane draws a manifest with an ancestor card for it
-(`group_grandchild` at 640 × 360 draws what layout draws for that view,
+(`group_grandchild` under `AUTO_ELISIONS`, whose derived elisions alone
+read the pane, at 640 × 360 draws what layout draws for that view,
 another drawing than the default's) and never reads it for a manifest
 without one (the same drawing object either way).
 
@@ -5247,7 +5266,8 @@ ungrouped root), `flow/switched_card` (`virtual_cards` with the rule
 `groups/switched_frame` (that rule, `allegro` and `recording` members of
 `performance`, no virtual timeline). In `virtual_cards` block A places
 `allegro_default` at (0, 200) and `allegro_by_hand` at (0, 400), each by
-one `set` of its place, so both cards are drawn after `allegro`'s, by ID.
+one `set` of its place, so both cards are drawn after `allegro`'s, in name
+order: "Allegro, default" before "Allegro, practice".
 
 **Played positions.** `default` plays A over [0, 953/2), B over [953/2,
 500), A again over [500, 1953/2), C over [1953/2, 4241/2). `by_hand` plays
@@ -5321,15 +5341,15 @@ the drawing alone:
 
 `allegro_default`'s chunk 1 (B) has one ribbon to [953/2, 500) on
 `allegro`'s line and lights nothing (no other chunk names B). Its chunk 0
-(A) has one ribbon to [0, 953/2) and lights `allegro_by_hand`'s chunk 0
-(`A × 4`) and `allegro_default`'s chunk 2, in that order (drawing order;
-the cards are drawn by ID). `allegro_by_hand`'s chunk 5 (C) reaches
+(A) has one ribbon to [0, 953/2) and lights `allegro_default`'s chunk 2
+and `allegro_by_hand`'s chunk 0 (`A × 4`), in that order (drawing order;
+the cards are drawn in name order). `allegro_by_hand`'s chunk 5 (C) reaches
 `allegro` over [500, 1644) from its drawn span, which lies after the
 run's shrink and the widened gap: its `x1` is its boundary's, never the
 linear abscissa of 1910 over the drawn line from its `xs` to its `xe`;
 it lights `allegro_default`'s chunk 3, the other C. Its chunk 1, the
 second entry of the run, is not drawn, so no ribbon, and lights
-`allegro_by_hand`'s chunk 0 and `allegro_default`'s chunks 0 and 2. Its
+`allegro_default`'s chunks 0 and 2 and `allegro_by_hand`'s chunk 0. Its
 chunk 4 (the gap) shows nothing.
 In `groups/virtual_member` chunk 1 of the member card reaches `allegro`'s
 card from the member card's line. Several chunks shown at once give the
@@ -5367,10 +5387,10 @@ point at chunk 2's `x2` gives chunk 3 (half-open spans: one chunk at a
 shared end); a point 1 unit above the label's top gives nothing, and 1
 unit below the line gives nothing with reach 0 and chunk 2 with reach 2.
 A point on `allegro`'s line over A's written middle, 953/4, gives the
-chunks playing A that are drawn: `allegro_by_hand`'s 0 (the run `A × 4`),
-then `allegro_default`'s 0 and 2, drawing order (the cards by ID); over
-C's middle 1072 it gives `allegro_by_hand`'s 5 and `allegro_default`'s
-3; over B, `allegro_default`'s 1 alone. A block placing no virtual card
+chunks playing A that are drawn: `allegro_default`'s 0 and 2, then
+`allegro_by_hand`'s 0 (the run `A × 4`), drawing order (the cards in name
+order); over C's middle 1072 it gives `allegro_default`'s 3 and
+`allegro_by_hand`'s 5; over B, `allegro_default`'s 1 alone. A block placing no virtual card
 has no zones.
 
 On the node (`ribbons.test.ts`, `NodeHarness`): a pointer moving onto a
@@ -5583,8 +5603,9 @@ screen position chosen for the case or a value derived above.
    `bundle_shared_member` with `{id: "t", part: ["card"]}` selected, both
    cards of `t` carry a selection mark, `data-box="card"`, `data-marks` that
    address's key, each the outline of its own rectangle, the element its
-   record (`{item: "g1", member: "t"}`, then `{item: "g2", member: "t"}`)
-   names as the first of its range. A hover mark copies the box under the
+   record (`{item: "g2", member: "t"}`, then `{item: "g1", member: "t"}`,
+   `g2` "Page" drawn before `g1` "Performance") names as the first of its
+   range. A hover mark copies the box under the
    pointer, or a boundary's line with every attribute but its address: on
    `segment_line`, the middle of `b2`'s boundary marks the card of `form`
    and `{id: "b2", part: ["start"]}`. A redraw with a restyled boundary keeps every drawn element
@@ -5603,6 +5624,26 @@ screen position chosen for the case or a value derived above.
    A hover marks only inside the edited element: in `group_1`'s editor on
    `bundle_mixed`, the centre of the member `score`'s card marks it, and
    the centre of the ungrouped `annotations`'s card marks nothing.
+   **A selected stroke has a halo.** A selected line, path or polygon drawn
+   by its stroke (never a stroked rectangle, a box, nor a shape or text
+   without a stroke, which glow by the stylesheet) is drawn with a halo: a
+   `.tilie-halo` copy of its shape, every attribute but its address and its
+   markers kept, `fill` `none`, `stroke` the selection's `#0a84ff`,
+   `stroke-opacity` 0.35, `stroke-width` its own plus 3 (1 + 3 = 4 for a
+   line of no stated width), round caps and joins, `pointer-events` `none`,
+   `aria-hidden`, `data-halo` the key of its address. Proved on
+   `bundle_mixed` (the README's `mixed` view): with `{id: "score"}`
+   selected, `score`'s line on its card has exactly one halo, its `x1`,
+   `y1`, `x2`, `y2` those of the line; with `{id: "group_1"}` (a frame) or
+   `{id: "score", part: ["name"]}` (a text) selected there is none, and
+   with nothing selected none. In `recording`'s timeline editor, which
+   raises its ancestor card, `{id: "recording"}` selected: the halo of the
+   raised card's line is the sibling right before that line inside the
+   raised card's layer (under it); the halos of strokes below the raised
+   cards follow those strokes' own layer, since a sliding element is the
+   only child of its loop. The drawing's elements without marks, the
+   dragged copy and the halos are unchanged by a halo (`drawn` leaves the
+   halos out, as an export never draws them).
 4. **What a press is taken for.** On the arranger nothing in a drawing
    takes a press. In the bundle editor every item's own rectangle does,
    in a group's editor each card the edited frame holds, and in a
@@ -5760,16 +5801,16 @@ Mounted on a store holding `bundle_mixed` at (40, 80) and `bare` at
    store's own message, exactly once.
 4. **The view.** Opening moves the view to the edited element: opening
    `group_1` on a canvas of 10000 × 10000 px shows it at (3685.89599609375,
-   4231.328125), zoom 4: block A at (40, 80) is drawn with `recording`'s
+   3496.296875), zoom 4: block A at (40, 80) is drawn with `recording`'s
    ancestor card reaching 121.70361328125 left of its padding (its frame's
    room and name column; "Show coordinates", `bundle_mixed`'s `score`), so
    its node lies at x −81.70361328125 and `group_1`'s frame, from
    129.70361328125, 561.052001953125 wide, centred at canvas x
-   328.5260009765625: `5000 − 4 × 328.5260009765625`; from y 28.8046875,
-   166.7265625 high (`bundle_mixed`'s table), centred at canvas y `80 +
-   28.8046875 + 83.36328125 = 192.16796875`: `5000 − 4 × 192.16796875`.
-   `score`'s card inside it, from y 53.609375, 76.4453125 high, then
-   shows at y `5000 − 4 × (80 + 53.609375 + 38.22265625) = 4312.671875`.
+   328.5260009765625: `5000 − 4 × 328.5260009765625`; from y 212.5625
+   (`mixed`, below `group_2`), 166.7265625 high, centred at canvas y `80 +
+   212.5625 + 83.36328125 = 375.92578125`: `5000 − 4 × 375.92578125`.
+   `score`'s card inside it, from y 237.3671875, 76.4453125 high, then
+   shows at y `5000 − 4 × (80 + 237.3671875 + 38.22265625) = 3577.640625`.
    Closing returns it to where each level was entered
    from. A level opened during a move returns to where that move was
    heading. A canvas that changes size centres the edited element again
@@ -5777,7 +5818,8 @@ Mounted on a store holding `bundle_mixed` at (40, 80) and `bare` at
    unless the size is the one it was focused at. The pane settles at the
    new size `PANE_SETTLE` later and the block is drawn anew for it
    (`bundle_mixed`'s ancestor card of `recording` is elided at the
-   automatic proportion, which reads the pane): in the bundle editor of
+   automatic proportion, which reads the pane, under the workspace rule
+   `elision-mode` `auto` this case adds, `AUTO_ELISIONS`): in the bundle editor of
    block A, opened at 1600 × 1000 and narrowed to 600 px, the view then
    moves again, to exactly the viewport a double-click on the block
    centres it at once settled (the oracle: the opening's centring run on
@@ -5902,18 +5944,18 @@ the resize mode Box (8 handles: four corners, four sides).
    `{block: A, id: "group_2"}` selected: a press on the frame's own
    rectangle moved by (40, 24) hides the toolbar; the release stores one
    entry and shows it at `group_2`'s bounds derived from the block now
-   stored, exactly (848, 763.53125). Derivation: before the press the
+   stored, exactly (848, 588.8046875). Derivation: before the press the
    bounds' corner is A's node position (40, 80) plus `group_2`'s place (8,
-   203.53125) (`bundle_mixed`'s table; `dlt_1` only lengthens `excerpt`
-   below it), (48, 283.53125). Opening the editor centres `group_2`'s
+   28.8046875) (`bundle_mixed`'s table; `dlt_1` only lengthens `excerpt`
+   inside it), (48, 108.8046875). Opening the editor centres `group_2`'s
    frame: jsdom lays the pane out at 0 by 0, so the fitting zoom is 0 and
    is clamped to the focus's least zoom, 0.05, the zoom at the press. The
    frame's place moves by the screen travel divided by that zoom and by
    A's scale 1, (40 / 0.05, 24 / 0.05) = (800, 480), to (808,
-   683.53125), quantized to `GRID_FREE` unchanged. Every item stays
+   508.8046875), quantized to `GRID_FREE` unchanged. Every item stays
    right of and below the block's border, so A's place origin stays (0, 0)
    and its node position (40, 80): the corner is (40 + 808, 80 +
-   683.53125). The same press and move ended by Escape, or by a cancelled
+   508.8046875). The same press and move ended by Escape, or by a cancelled
    pointer, stores nothing and shows it at the original bounds.
 4. **A handle's resize.** With `{block: A}` selected on the arranger, a
    press on `handle-right` moved by 60 px keeps the 8 handles and the
@@ -5960,13 +6002,13 @@ Nothing is reported before a gesture. In the bundle editor of
 selected, a Stretch of `group_1` by 60 px reports the block's
 placement as stored, with the drawing its node shows; that drawing equals
 the drawing of the places stored on release, `group_1` at length 460,
-the other items at their drawn positions (`group_2` (8, 203.53125),
-`annotations` (8, 381.265625): `bundle_mixed`, "With `recording`'s
+the other items at their drawn positions (`group_2` (8, 28.8046875),
+`annotations` (8, 369.2890625): `bundle_mixed`, "With `recording`'s
 ancestor card"). An
 item drag of `group_2`, pressed on its frame's own rectangle (the one
 element of the node's drawing carrying `data-id="group_2"` and neither
 `data-facet` nor `data-part`), reports, before release, the drawing of what the
-release stores: `group_2` at (48, 227.53125). Both report `null` once
+release stores: `group_2` at (48, 52.8046875). Both report `null` once
 the gesture ends.
 
 ### A transient command (`transient.test.ts`)
@@ -6287,12 +6329,12 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   then its one connector, exactly the drawn `anchor_1`'s line (`anchor_1`
   joins `timestamp_1` and `timestamp_2`, the same two places), its ends in
   the other order: `anchor_1` lists `timestamp_2` first, the connector
-  runs from its anchor's lower coordinate, c0. The pointer on `group_1`'s `score` line at score 6 (402.29…,
+  runs from its anchor's lower coordinate, c0. The pointer on `group_2`'s `score` line at score 6 (402.29…,
   82.609375) hovers MatchStamp 1, whose hovered path holds c1's four
   pieces and c5's two the same way, and whose flag (no editor open, so
-  the groups read) heads Score, Performance, Second half, Score, Page
-  over `6 ♩`, `3″`, `0 ♩`, `4 ♩`, `400 px`, `600 px`: `matchFlag`'s runs
-  for MatchStamp 1 (above), `score` heading two of them. So a potential MatchStamp shows its
+  the groups read) heads Second half, Score, Page, Performance
+  over `0 ♩`, `4 ♩`, `6 ♩`, `400 px`, `600 px`, `3″`: `matchFlag`'s runs
+  for MatchStamp 1 (above), one for each timeline. So a potential MatchStamp shows its
   groupstamps across both frames before it is named, as `timestamp_1`
   does once it is.
 - **A length of the group not known, in the DOM.** The same block A and
@@ -6302,7 +6344,7 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   paths, both `data-belief="undecided"`: the one at the pinned colour
   without an `opacity` attribute (the opacity-1 lines and the connector),
   and a second, after it, with `opacity="0.35"` and `d` exactly
-  `M302.2915 125.5859V174.9648`, the `group_1` piece of c0 over
+  `M302.2915 287.7461V337.125`, the `group_1` piece of c0 over
   `performance`'s card, the one place the group gives no value. With both
   lengths known (the oracle, as the bullet above) the overlay holds one
   pinned path and none with an `opacity`. What would be wrong: the overlay

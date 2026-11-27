@@ -255,11 +255,11 @@ describe("boxes in a manifest with one group", () => {
       [0, BUNDLE_ADDRESS, "block"],
       [1, cardAddress("piece"), "shadow"],
       [2, cardAddress("piece"), "card"],
-      [24, idAddress("group_1"), "frame"],
-      [26, cardAddress("second-half"), "shadow"],
-      [27, cardAddress("second-half"), "card"],
-      [45, cardAddress("recording"), "shadow"],
-      [46, cardAddress("recording"), "card"],
+      [19, idAddress("group_1"), "frame"],
+      [21, cardAddress("second-half"), "shadow"],
+      [22, cardAddress("second-half"), "card"],
+      [40, cardAddress("recording"), "shadow"],
+      [41, cardAddress("recording"), "card"],
     ]);
   });
 
@@ -275,7 +275,7 @@ describe("boxes in a manifest with one group", () => {
       [0, BUNDLE_ADDRESS, "block"],
       [1, cardAddress("piece"), "shadow"],
       [2, cardAddress("piece"), "card"],
-      [24, idAddress("group_1"), "frame"],
+      [19, idAddress("group_1"), "frame"],
     ]);
   });
 
@@ -459,10 +459,13 @@ describe("the boxes holding part of the selection", () => {
   });
 
   describe("with an item over another", () => {
-    // The README's view `over`: `annotations`' card moved to (8, 60), over `group_1`'s frame,
-    // drawn without `recording`'s ancestor card, which would move the place origin.
+    // The README's view `over`: `annotations`' card moved to (8, 225.7578125), over `group_1`'s
+    // frame, drawn without `recording`'s ancestor card, which would move the place origin.
     const plain = withoutAncestorCards(mixedPlain());
-    const over = changed(plain, itemMoveCommand(plain, A, cardKey("annotations"), 8, 60, metrics));
+    const over = changed(
+      plain,
+      itemMoveCommand(plain, A, cardKey("annotations"), 8, 225.7578125, metrics),
+    );
     const drawing = drawingIn(over);
     const rect = (key: PlaceKey) => {
       const box = keyedBox(drawing, key);
@@ -474,11 +477,16 @@ describe("the boxes holding part of the selection", () => {
 
     it("draws each card's member drawing inside the other card", () => {
       const width = 561.052001953125;
-      expect(rect(cardKey("annotations"))).toEqual({ x: 8, y: 60, width, height: 71.85546875 });
-      expect(rect(g1)).toEqual({ x: 8, y: 28.8046875, width, height: 166.7265625 });
+      expect(rect(cardKey("annotations"))).toEqual({
+        x: 8,
+        y: 225.7578125,
+        width,
+        height: 71.85546875,
+      });
+      expect(rect(g1)).toEqual({ x: 8, y: 194.5625, width, height: 166.7265625 });
       expect(rect(cardKey("group_1", "score"))).toEqual({
         x: 16,
-        y: 53.609375,
+        y: 219.3671875,
         width: 545.052001953125,
         height: 76.4453125,
       });
@@ -570,21 +578,22 @@ describe("the boxes holding part of the selection", () => {
     it("gives Enter the card of the frame worked in, else the first card displayed", () => {
       const enter = (on: Drawing, editing: Editing | null) =>
         hitForAddress(A, on, inA(cardAddress("t")), editing)?.box?.key;
-      expect(enter(drawing, groupEditor("g2"))).toEqual(t2);
-      expect(enter(drawing, null)).toEqual(t1);
-      // The card of `t` in `g1` hidden: it no longer hides the one in `g2`.
+      expect(enter(drawing, groupEditor("g1"))).toEqual(t1);
+      // `g2` ("Page") is drawn before `g1` ("Performance"): its card of `t` comes first.
+      expect(enter(drawing, null)).toEqual(t2);
+      // The card of `t` in `g2` hidden: it no longer hides the one in `g1`.
       const firstHidden: Drawing = {
         ...drawing,
         boxes: drawing.boxes.map((box) =>
-          box.key !== null && placeKeyText(box.key) === placeKeyText(t1)
+          box.key !== null && placeKeyText(box.key) === placeKeyText(t2)
             ? { ...box, displayed: false }
             : box,
         ),
       };
-      expect(enter(firstHidden, null)).toEqual(t2);
-      expect(enter(firstHidden, bundleEditor)).toEqual(t2);
-      expect(enter(firstHidden, groupEditor("g2"))).toEqual(t2);
-      expect(enter(firstHidden, groupEditor("g1"))).toBeUndefined();
+      expect(enter(firstHidden, null)).toEqual(t1);
+      expect(enter(firstHidden, bundleEditor)).toEqual(t1);
+      expect(enter(firstHidden, groupEditor("g1"))).toEqual(t1);
+      expect(enter(firstHidden, groupEditor("g2"))).toBeUndefined();
     });
 
     it("resizes and inspects the card of the frame worked in, and none where no frame is", () => {

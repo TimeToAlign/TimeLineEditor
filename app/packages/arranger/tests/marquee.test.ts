@@ -25,7 +25,7 @@ const part = (
   ...words: ("start" | "end" | "name" | "label" | "symbol")[]
 ): ElementAddress =>
   words.reduce<OwnerAddress>((owner, word) => partAddress(owner, word), idAddress(id));
-const bottom = { x: 40, y: 370, width: 600, height: 84 };
+const bottom = { x: 40, y: 195.265625, width: 600, height: 84 };
 /** `recording`'s timeline editor: the one editor raising its ancestor card. */
 const RECORDING: Editing = { target: inBlock(A, idAddress("recording")), kind: "timeline" };
 /** The canvas rectangle of the box under `key` in `node`'s drawing, `by` larger on every side. */
@@ -43,7 +43,7 @@ const full = withFullCards(view);
 
 describe("elementsInRect", () => {
   it("selects the elements wholly inside, never a box", () => {
-    const card = { x: 56, y: 133.609375, width: 547.9150390625, height: 76.4453125 };
+    const card = { x: 56, y: 339.84375, width: 547.9150390625, height: 76.4453125 };
     expect(elementsInRect(node, card, every, metrics)).toEqual(
       at(
         idAddress("cmap_1"),

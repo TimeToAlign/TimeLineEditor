@@ -331,7 +331,7 @@ describe("hovering and pinning", () => {
     expect(path("pinned")?.getAttribute("d")).toBe(
       [
         ...score("302.2915"),
-        piece("202.2915", 125.5859375, 174.96484375),
+        piece("202.2915", 287.74609375, 337.125),
         // `anchor_1` lists `timestamp_2` first; the connector runs from the lower coordinate, c0.
         `M${number(anchor.x2)} ${number(anchor.y2)}L${number(anchor.x1)} ${number(anchor.y1)}`,
       ].join(""),
@@ -342,8 +342,8 @@ describe("hovering and pinning", () => {
       hovered.startsWith(
         [
           ...score("402.2915"),
-          piece("302.2915", 287.74609375, 337.125),
-          piece("302.2915", 215.76953125, 287.74609375),
+          piece("302.2915", 125.5859375, 174.96484375),
+          piece("302.2915", 53.609375, 125.5859375),
         ].join(""),
       ),
     ).toBe(true);
@@ -354,8 +354,8 @@ describe("hovering and pinning", () => {
         (value) => value.textContent,
       ),
     ]).toEqual([
-      ["Score", "Performance", "Second half", "Score", "Page"],
-      ["6 ♩", "3″", "0 ♩", "4 ♩", "400 px", "600 px"],
+      ["Second half", "Score", "Page", "Performance"],
+      ["0 ♩", "4 ♩", "6 ♩", "400 px", "600 px", "3″"],
     ]);
   });
 
@@ -380,7 +380,7 @@ describe("hovering and pinning", () => {
     const paths = pinnedPaths();
     expect(paths.length).toBe(2);
     expect(paths[0]?.slice(0, 2)).toEqual(["undecided", null]);
-    expect(paths[1]).toEqual(["undecided", "0.35", "M302.2915 125.5859V174.9648"]);
+    expect(paths[1]).toEqual(["undecided", "0.35", "M302.2915 287.7461V337.125"]);
     unmount(mounted as ReturnType<typeof mount>);
     mounted = undefined;
     document.body.innerHTML = "";

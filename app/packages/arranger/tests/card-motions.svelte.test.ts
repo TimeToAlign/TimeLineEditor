@@ -15,7 +15,15 @@ import type { Drawn } from "../src/animation/elide.ts";
 import { blockMotion } from "../src/animation/elide.ts";
 import { placedAt, UNFOLD_EASING } from "../src/animation/unfold.ts";
 import { descriptorsOf, drawingOf } from "../src/drawing.ts";
-import { A, blockIn, metrics, viewOf, withFullCards, withoutAncestorCards } from "./support.ts";
+import {
+  A,
+  blockIn,
+  metrics,
+  viewOf,
+  withAutoElisions,
+  withFullCards,
+  withoutAncestorCards,
+} from "./support.ts";
 
 const measure = new TextMeasure(metrics);
 
@@ -25,7 +33,8 @@ function drawnOf(view: View): Drawn {
   return { manifest: block.manifest, drawing, descriptors: descriptorsOf(drawing) };
 }
 
-const VIEW = viewOf({ id: A, fixture: "groups/group_elided_inside" });
+/** `group_elided_inside` with its ancestor card deriving its elisions (`elision-mode` `auto`). */
+const VIEW = withAutoElisions(viewOf({ id: A, fixture: "groups/group_elided_inside" }));
 const ELIDED = drawnOf(VIEW);
 const FULL = drawnOf(withFullCards(VIEW));
 const HIDDEN = drawnOf(withoutAncestorCards(VIEW));

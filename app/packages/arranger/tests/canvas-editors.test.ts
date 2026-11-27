@@ -36,7 +36,17 @@ import { PANE_SETTLE } from "../src/pane.ts";
 import { type Selection, selectionOf } from "../src/selection.ts";
 import Harness from "./CanvasHarness.svelte";
 import { IDENTITY, settle, stubCanvasGlobals, withScreenMatrix } from "./dom.ts";
-import { A, B, changed, load, marqueeView, metrics, mixedView, storeOf } from "./support.ts";
+import {
+  A,
+  B,
+  changed,
+  load,
+  marqueeView,
+  metrics,
+  mixedView,
+  storeOf,
+  withAutoElisions,
+} from "./support.ts";
 
 interface Mounted {
   current(): { selection: Selection; viewport: Viewport };
@@ -458,7 +468,7 @@ describe("a double-click outside the edited element", () => {
     await settle();
     measure(10000, 10000);
     await doubleClick(drawn(idAddress("group_1")));
-    expect(viewport()).toEqual({ x: 3685.89599609375, y: 4231.328125, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3685.89599609375, y: 3496.296875, zoom: 4 });
     await doubleClick(pane());
     expect(path()).toEqual([]);
     expect(viewport()).toEqual({ x: 12, y: -34, zoom: 0.5 });
@@ -540,13 +550,13 @@ describe("the canvas leaves editors", () => {
     await settle();
     measure(10000, 10000);
     await doubleClick(drawn(idAddress("group_1")));
-    expect(viewport()).toEqual({ x: 3685.89599609375, y: 4231.328125, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3685.89599609375, y: 3496.296875, zoom: 4 });
     await doubleClick(drawn(cardAddress("score")));
     expect(path().map(({ target }) => target)).toEqual([id("group_1"), id("score")]);
-    expect(viewport()).toEqual({ x: 3685.89599609375, y: 4312.671875, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3685.89599609375, y: 3577.640625, zoom: 4 });
     await press("Escape");
     expect(path().map(({ target }) => target)).toEqual([id("group_1")]);
-    expect(viewport()).toEqual({ x: 3685.89599609375, y: 4231.328125, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3685.89599609375, y: 3496.296875, zoom: 4 });
     await press("Escape");
     expect(path()).toEqual([]);
     expect(viewport()).toEqual({ x: 12, y: -34, zoom: 0.5 });
@@ -617,7 +627,7 @@ describe("the surroundings of an editor", () => {
     await show(marqueeView());
     open(id("dlt_1"));
     await atZoomOne();
-    await marqueeFrom(40, 370, 640, 454);
+    await marqueeFrom(40, 195.265625, 640, 279.265625);
     expect(selected()).toEqual([
       id("cmap_7"),
       id("dlt_1"),
@@ -626,7 +636,7 @@ describe("the surroundings of an editor", () => {
     store.done();
     open(id("group_1"));
     await atZoomOne();
-    await marqueeFrom(40, 370, 640, 454);
+    await marqueeFrom(40, 195.265625, 640, 279.265625);
     expect(selected()).toEqual([]);
   });
 
@@ -669,11 +679,11 @@ describe("the view while it moves", () => {
     await doubleClick(drawn(cardAddress("score")));
     expect(path().map(({ target }) => target)).toEqual([id("group_1"), id("score")]);
     await wait(1100);
-    expect(viewport()).toEqual({ x: 3685.89599609375, y: 4312.671875, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3685.89599609375, y: 3577.640625, zoom: 4 });
     await press("Escape");
     await wait(1100);
     expect(path().map(({ target }) => target)).toEqual([id("group_1")]);
-    expect(viewport()).toEqual({ x: 3685.89599609375, y: 4231.328125, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3685.89599609375, y: 3496.296875, zoom: 4 });
   });
 });
 
@@ -687,12 +697,12 @@ describe("a double-click on the edited element", () => {
       measure(10000, 10000);
       await doubleClick(drawn(idAddress("group_1")));
       await wait(reduced ? 0 : 1100);
-      expect(viewport()).toEqual({ x: 3685.89599609375, y: 4231.328125, zoom: 4 });
+      expect(viewport()).toEqual({ x: 3685.89599609375, y: 3496.296875, zoom: 4 });
       harness.showAt({ x: 5, y: 6, zoom: 1 });
       await settle();
       await doubleClick(drawn(idAddress("group_1")));
       await wait(reduced ? 0 : 1100);
-      expect(viewport()).toEqual({ x: 3685.89599609375, y: 4231.328125, zoom: 4 });
+      expect(viewport()).toEqual({ x: 3685.89599609375, y: 3496.296875, zoom: 4 });
       expect(path()).toEqual([{ target: id("group_1"), kind: "group" }]);
       expect(store.journal).toHaveLength(stored);
     });
@@ -706,15 +716,15 @@ describe("the view when the canvas changes size", () => {
     await settle();
     measure(10000, 10000);
     await doubleClick(drawn(idAddress("group_1")));
-    expect(viewport()).toEqual({ x: 3685.89599609375, y: 4231.328125, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3685.89599609375, y: 3496.296875, zoom: 4 });
     await resizeArranger(6000, 10000);
-    expect(viewport()).toEqual({ x: 1685.89599609375, y: 4231.328125, zoom: 4 });
+    expect(viewport()).toEqual({ x: 1685.89599609375, y: 3496.296875, zoom: 4 });
     harness.showAt({ x: 5, y: 6, zoom: 1 });
     await settle();
     await resizeArranger(6000, 10000);
     expect(viewport()).toEqual({ x: 5, y: 6, zoom: 1 });
     await resizeArranger(10000, 10000);
-    expect(viewport()).toEqual({ x: 3685.89599609375, y: 4231.328125, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3685.89599609375, y: 3496.296875, zoom: 4 });
     await press("Escape");
     expect(path()).toEqual([]);
     expect(viewport()).toEqual({ x: 12, y: -34, zoom: 0.5 });
@@ -723,7 +733,7 @@ describe("the view when the canvas changes size", () => {
   });
 
   it("centres it again on its drawing for the new size once the pane settles", async () => {
-    await show();
+    await show(withAutoElisions(twoBlocks()));
     await resizeArranger(1600, 1000);
     open(blockA);
     await settle();
