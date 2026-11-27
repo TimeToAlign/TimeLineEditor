@@ -5,7 +5,8 @@
  * sections and whose root holds none), its conversion maps hidden and
  * shown again on every child, the root's own empty Regions band shown
  * (explicitly, so drawn though empty) and hidden, never disabled, a press
- * of several commands inside an open editor one undo step, the two
+ * of several commands inside an open editor one undo step, inside the
+ * root's flow-control editor too, the two
  * boxes drawn as one control in the editor's flag colours, and the halo of
  * the selected line in the editor's selection colour. The expected values
  * are derived in `README.md` ("controls.spec.ts").
@@ -17,6 +18,7 @@ import {
   arranger,
   bandsOf,
   dispatch,
+  editing,
   element,
   enter,
   entriesLength,
@@ -216,6 +218,59 @@ test("a press of several commands inside an open editor is one undo step", async
   expect(await storeText(page, "view")).toBe(shown);
   await expect(tree).toBeChecked();
   await expect(element(page, block, { id: "region_1" })).toHaveCount(1);
+});
+
+test("the root's tree box shows the regions inside its flow-control editor, one undo step", async ({
+  page,
+}) => {
+  const block = await importFixture(page, "unknown_length_child");
+  expect(
+    await dispatch(page, {
+      type: "set",
+      changes: [{ target: { block, id: "region_1" }, values: { statements: { type: [ATOMIC] } } }],
+    }),
+  ).toBeNull();
+  expect(
+    await page.evaluate(
+      (id) => window.__tilie.store().open({ block: id, id: "score" }, "flow"),
+      block,
+    ),
+  ).toBeNull();
+  await expect
+    .poll(() => editing(page))
+    .toEqual([{ target: { block, id: "score" }, kind: "flow" }]);
+  await select(page, [{ block, id: "score" }]);
+  const opener = page.getByRole("button", { name: "Open inspector" });
+  if (await opener.isVisible()) await opener.click();
+  await tab(page, "Properties").click();
+  const list = (await panel(page, "Properties")).getByRole("table", { name: "Bands" });
+  const tree = list.getByRole("checkbox", {
+    name: "Regions with its descendants visible",
+    exact: true,
+  });
+  await expect(tree).toBeEnabled();
+  await expect(tree).not.toBeChecked();
+  await expect(element(page, block, { id: "region_1" })).toHaveCount(0);
+  const before = await storeText(page, "view");
+  const entries = await entriesLength(page);
+
+  await tree.click();
+  await expect.poll(() => entriesLength(page)).toBe(entries + 1);
+  expect(await rulesOf(page, block)).toEqual([
+    { select: { element: "band", facet: "regions", within: "score" }, set: { display: "inline" } },
+    { select: { element: "region", within: "score" }, set: { display: "inline" } },
+  ]);
+  await expect(tree).toBeChecked();
+  await expect(element(page, block, { id: "region_1" })).toHaveCount(1);
+  await expect(page.getByText("lies outside the flow-control editor")).toHaveCount(0);
+
+  await arranger(page).focus();
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect.poll(() => entriesLength(page)).toBe(entries);
+  expect(await storeText(page, "view")).toBe(before);
+  await expect(tree).not.toBeChecked();
+  await expect(element(page, block, { id: "region_1" })).toHaveCount(0);
+  expect(await editing(page)).toEqual([{ target: { block, id: "score" }, kind: "flow" }]);
 });
 
 test("draws the two boxes as one control with the editor's flag face and edge", async ({

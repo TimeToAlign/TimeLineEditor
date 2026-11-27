@@ -1,8 +1,8 @@
 /** The side-effect guard: an open editor changes only the element it edits. */
 
-import type { Rule } from "@timetoalign/timetoshare";
+import type { ElementType, Rule } from "@timetoalign/timetoshare";
 import type { ChangeSet } from "../commands/mutations.ts";
-import type { Command } from "../commands/types.ts";
+import type { Command, StyleCommand } from "../commands/types.ts";
 import type { CommandError } from "../errors.ts";
 import { assertNever, ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
@@ -163,7 +163,7 @@ function placeInside(scopes: readonly Scope[]): (key: PlaceKey) => boolean {
 
 const rulesOf = (manifest: Manifest): readonly Rule[] => manifest.graphical?.rules ?? [];
 
-function insideAll(scopes: readonly Scope[]): (rule: Rule) => boolean {
+function insideAll(scopes: readonly Scope[]): (rule: Pick<Rule, "select">) => boolean {
   return (rule) =>
     scopes.every(({ keys, ancestry, inside }) =>
       keys.every((key) => !selectorMatches(rule.select, key, ancestry) || inside(key.address)),
@@ -177,7 +177,7 @@ function insideAll(scopes: readonly Scope[]): (rule: Rule) => boolean {
 export function ruleInside(
   manifests: readonly Manifest[],
   element: string,
-): (rule: Rule) => boolean {
+): (rule: Pick<Rule, "select">) => boolean {
   return insideAll(manifests.map((manifest) => scopeOf(manifest, element)));
 }
 
@@ -563,6 +563,26 @@ const FLOW_EDITOR_SET: { readonly [kind in FlowEdited]: readonly string[] | null
 };
 
 /**
+ * The elements whose `display` the flow-control editor lets a `style` give
+ * anywhere in its root's tree: the bands and what a band list shows in
+ * them, so a band list's press works inside the editor as outside it.
+ */
+const BAND_DISPLAY: ReadonlySet<ElementType> = new Set(["band", "region", "map"]);
+
+/** Whether `command` sets `display` alone on bands, Regions or maps of `manifest` that all lie inside `root`. */
+function bandDisplayInside(manifest: Manifest, root: string, command: StyleCommand): boolean {
+  const { select } = command;
+  const properties = Object.keys(command.set);
+  return (
+    select.element !== undefined &&
+    BAND_DISPLAY.has(select.element) &&
+    properties.length === 1 &&
+    properties[0] === "display" &&
+    ruleInside([manifest], root)({ select })
+  );
+}
+
+/**
  * The first address `command` aims at that the flow-control editor on the
  * root timeline `target` does not admit, with the property a `set` gives
  * it; `null` when it admits them all. It admits exactly: an `add` of a
@@ -576,7 +596,10 @@ const FLOW_EDITOR_SET: { readonly [kind in FlowEdited]: readonly string[] | null
  * of the three; a `style` for the root's block alone (`blocks`), not
  * naming a style, whose selector names addresses, each a flow-control
  * element of a timeline of the root's tree or a part of one (the display
- * controls of such an element). Nothing in another block.
+ * controls of such an element), or which sets `display` alone on bands,
+ * Regions or maps that all lie in the root's tree (`BAND_DISPLAY`: the
+ * presses of a band list, its tree box's `within` the root included).
+ * Nothing in another block.
  */
 function flowRefused(
   view: View,
@@ -681,9 +704,9 @@ function flowRefused(
       const { select, name, blocks = [] } = command;
       const addresses = select.addresses ?? [];
       const own = blocks.length > 0 && blocks.every((item) => item === block);
-      if (name !== undefined || !own || addresses.length === 0) {
-        return { address: target, property: null };
-      }
+      if (name !== undefined || !own) return { address: target, property: null };
+      if (bandDisplayInside(manifest, root, command)) return null;
+      if (addresses.length === 0) return { address: target, property: null };
       const address = addresses
         .map((item) => inBlock(block, item))
         .find((item) => !flowControlOrPart(item));

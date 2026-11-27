@@ -734,6 +734,53 @@ describe("The display controls in the flow-control editor", () => {
     ]);
   });
 
+  it("shows and hides the bands of its root's tree and what a band list shows in them", () => {
+    const store = storeOf(viewOf([A, "child_flow_control.yaml"]));
+    expect(store.open(at("piece"), "flow")).toBeNull();
+    const tree = { element: "band", facet: "regions", within: "piece" };
+    const own = { element: "band", addresses: [{ id: "verse", facet: "regions" }] };
+    const regions = { element: "region", within: "piece" };
+    const maps = { element: "map", within: "piece" };
+    expect(store.dispatch(style(tree, { display: "inline" }))).toBeNull();
+    expect(store.dispatch(style(own, { display: "none" }))).toBeNull();
+    expect(store.dispatch(style(regions, { display: "inline" }))).toBeNull();
+    expect(store.dispatch(style(maps, { display: "inline" }))).toBeNull();
+    expect(valid(store.view).graphical?.rules).toEqual([
+      { select: tree, set: { display: "inline" } },
+      { select: own, set: { display: "none" } },
+      { select: regions, set: { display: "inline" } },
+      { select: maps, set: { display: "inline" } },
+    ]);
+    expect(store.dispatch(style(own, { display: null }))).toBeNull();
+    expect(valid(store.view).graphical?.rules?.map((rule) => rule.select)).toEqual([
+      tree,
+      regions,
+      maps,
+    ]);
+  });
+
+  it("refuses a band's style other than its display, or reaching another root's tree", () => {
+    const store = storeOf(viewOf([A, "groups/switched_frame.yaml"]));
+    const rules = manifestOf(store.view).graphical?.rules;
+    expect(store.open(at("recording"), "flow")).toBeNull();
+    const atRoot = { code: "side_effect", path: [key(at("recording"))] };
+    const band = { element: "band", facet: "regions", within: "recording" };
+    expect(refusal(store.dispatch(style(band, { display: "inline", opacity: 0.5 })))).toEqual(
+      atRoot,
+    );
+    expect(refusal(store.dispatch(style(band, { opacity: 0.5 })))).toEqual(atRoot);
+    const other = { element: "region", within: "allegro" };
+    expect(refusal(store.dispatch(style(other, { display: "inline" })))).toEqual(atRoot);
+    const own = { element: "band", addresses: [{ id: "allegro", facet: "regions" }] };
+    expect(refusal(store.dispatch(style(own, { display: "inline" })))).toEqual({
+      code: "side_effect",
+      path: [key({ block: A, id: "allegro", facet: "regions" })],
+    });
+    const anywhere = { element: "band", facet: "regions" };
+    expect(refusal(store.dispatch(style(anywhere, { display: "inline" })))).toEqual(atRoot);
+    expect(manifestOf(store.view).graphical?.rules).toBe(rules);
+  });
+
   it("refuses to style the flow-control elements of another root's tree", () => {
     const store = storeOf(viewOf([A, "groups/switched_frame.yaml"]));
     expect(store.open(at("recording"), "flow")).toBeNull();

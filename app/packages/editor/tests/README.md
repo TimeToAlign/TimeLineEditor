@@ -1725,7 +1725,18 @@ are the fixtures' own speaking ones.
    own), and again with the bundle editor of the block open, the second
    press adds exactly one entry to the editor's `listed`, a session of the
    two commands, and one `undo()` brings back the very view before it
-   (`toBe`), the tree's box checked again.
+   (`toBe`), the tree's box checked again. A press works inside the
+   flow-control editor of the root too, whose guard admits a band list's
+   `display` rules over the root's tree (core's README, the flow-control
+   editor): with `open score flow` on the same store and `score` selected,
+   the tree's Regions box is enabled and unchecked; one press posts
+   nothing, adds one entry of two changes, and leaves the rules exactly
+   `{element: band, facet: regions, within: score}` and `{element:
+   region, within: score}`, both `{display: "inline"}`; the box is then
+   checked and `movement`'s own Regions box pressed (its atomic section
+   shows); one `undo()` brings back the very view before the press
+   (`toBe`), the box unchecked, the flow-control editor still the one
+   open.
 8. **From the sources** (section 8.10, Windows). A virtual timeline's rows
    also hold the switch of its chunks' windows, one per band and the same
    for every chunk (answer 2 (a) of the design: nothing indexed is

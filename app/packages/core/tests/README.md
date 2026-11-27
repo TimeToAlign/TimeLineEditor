@@ -6772,8 +6772,9 @@ never a spelled-out random literal.
    hand-made FlowMap's chunks name Regions, child timelines and virtual
    timelines, never a flow-control element, so no change here reaches
    one.
-   **It styles the flow-control elements of its root's tree**, and
-   nothing else: the display controls of a flow-control element send a
+   **It styles the flow-control elements of its root's tree, and shows
+   or hides the bands of that tree and what a band list shows in them**,
+   and nothing else: the display controls of a flow-control element send a
    `style` whose selector names that element or one of its parts by
    address, for its own block, and such a `style` is accepted exactly
    when every address the selector names is a flow-control element of the
@@ -6809,6 +6810,35 @@ never a spelled-out random literal.
    volta_jump}]}, set: {display: none}}` is `side_effect` at the key of
    `volta_jump`, "jump 'volta_jump' lies outside the flow-control editor
    of timeline 'Recording': an editor changes only what it edits".
+   A band list's press inside the editor is a `style` for its own block
+   setting `display` alone on bands, Regions or maps (`band`, `region`,
+   `map`), by address or `within` a timeline; it is accepted exactly when
+   every element its selector matches lies in the root's tree, so a band
+   list works inside the editor as outside it (one of its tree boxes
+   writes `within` the root). What proves it is that the admitted rules
+   stand in `graphical.rules` exactly as asked, a child's band and a
+   removal included, while the same press reaching another root's tree,
+   or setting anything besides `display`, is refused by the editor and
+   leaves the rules as they were. On `child_flow_control.yaml`, inside
+   the editor of `piece`, each with `blocks: [A]`: `style {select:
+   {element: band, facet: regions, within: piece}, set: {display:
+   inline}}`, `style {select: {element: band, addresses: [{id: verse,
+   facet: regions}]}, set: {display: none}}` (the child's own band),
+   `style {select: {element: region, within: piece}, set: {display:
+   inline}}` and `style {select: {element: map, within: piece}, set:
+   {display: inline}}` are accepted, leaving `graphical.rules` exactly
+   these four in that order; the child's rule with `set: {display:
+   null}` is accepted and leaves the other three selectors in order. On
+   `groups/switched_frame.yaml` (the roots `allegro` and `recording`),
+   inside the editor of `recording`, each `side_effect` and leaving
+   `graphical.rules` the very value it was before: `{element: band, facet:
+   regions, within: recording}` with `set: {display: inline, opacity:
+   0.5}` and with `set: {opacity: 0.5}`, `{element: region, within:
+   allegro}` with `display: inline`, and `{element: band, facet: regions}`
+   (it matches `allegro`'s band too) with `display: inline`, each at the
+   key of `recording`; `{element: band, addresses: [{id: allegro, facet:
+   regions}]}` with `display: inline` at the key of `{block: A, id:
+   allegro, facet: regions}` (the old path's first address outside).
 7. **Named timestamps on a virtual timeline** (drawing.md §8.10: its
    named timestamps lie on its own axis, from 0 to its length). On
    `groups/virtual_member.yaml` (`allegro_default`, 4241/2 quarters, a

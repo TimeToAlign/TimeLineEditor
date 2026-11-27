@@ -644,6 +644,35 @@ describe("the band list in the Properties tab", () => {
     expect(informed).toEqual([]);
   });
 
+  it("shows the descendants' regions with one press inside the flow-control editor of the root", () => {
+    const store = atomicMovement();
+    expect(store.open({ block: A, id: "score" }, "flow")).toBeNull();
+    show(store, { id: "score" });
+    const tree = () => trees().find((box) => box.value === "regions");
+    expect([tree()?.checked, tree()?.disabled]).toEqual([false, false]);
+    const entries = store.listed.length;
+    const before = store.view;
+    tree()?.click();
+    flushSync();
+    expect(informed).toEqual([]);
+    expect(store.listed.length).toBe(entries + 1);
+    expect(store.listed.at(-1)?.changes).toBe(2);
+    expect(store.view.blocks[A]?.manifest.graphical?.rules).toEqual([
+      {
+        select: { element: "band", facet: "regions", within: "score" },
+        set: { display: "inline" },
+      },
+      { select: { element: "region", within: "score" }, set: { display: "inline" } },
+    ]);
+    expect(tree()?.checked).toBe(true);
+    expect(boxesOf(store, "movement", "regions").own).toEqual([true, false]);
+    store.undo();
+    flushSync();
+    expect(store.view).toBe(before);
+    expect(tree()?.checked).toBe(false);
+    expect(store.editing.map((editor) => editor.kind)).toEqual(["flow"]);
+  });
+
   it("shows a virtual timeline's switches From the sources, a change journaling its rule", () => {
     const store = windowed();
     show(store, { id: "allegro_default" });
