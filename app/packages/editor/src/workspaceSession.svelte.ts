@@ -37,6 +37,7 @@ import type {
   Workspace,
 } from "@timetoalign/tilie-core";
 import {
+  blockHolding,
   createStore,
   ErrorCode,
   emptyWorkspace,
@@ -73,6 +74,7 @@ import {
   workspaceFileName,
 } from "./files.ts";
 import { nameCommand } from "./inspector/properties.ts";
+import { editorName } from "./inspector/words.ts";
 import {
   type AskTables,
   fileNameOf,
@@ -749,7 +751,10 @@ export class WorkspaceSession {
    * timestamps (`importedManifest`). An editor changes only what it edits,
    * so every open editor is left first (Done), once the manifest is read;
    * the view the block is placed in is the one shown before, since leaving
-   * moves the view back over a while.
+   * moves the view back over a while. A manifest a block holds already
+   * (`blockHolding`: the same `id`, or for one without an `id` the same
+   * content) is not added again: a warning names that block, which is
+   * selected instead.
    */
   #add(name: string, text: string, canvas: ImportTarget, metrics: FontMetrics): string | null {
     const read = readManifestFile(text);
@@ -763,6 +768,17 @@ export class WorkspaceSession {
     }
     const visible = canvas.visible();
     while (this.store.editing.length > 0) this.store.done();
+    const held = blockHolding(this.store.view, read.manifest);
+    if (held !== null) {
+      const holder = editorName(this.store.view, { block: held });
+      this.#options.post(
+        "warning",
+        `${name} was not imported: the workspace holds it already, in the block "${holder}", which is now selected.`,
+      );
+      this.selection = selectionOf([{ block: held }]);
+      canvas.focus();
+      return null;
+    }
     const id = mintBlockId();
     const manifest = importedManifest(read.manifest);
     const refusal = this.store.dispatch(

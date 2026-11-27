@@ -861,12 +861,12 @@ describe("manifests", () => {
       ],
       [
         "bundle.yaml",
-        fixtureText("bare.minimal"),
+        fixtureText("map.minimal"),
         { minimal: true, styling: true, serialization: "yaml" },
       ],
       [
         "bundle.json",
-        dumps(loads(fixtureText("nested")), { serialization: "json" }),
+        dumps(loads(fixtureText("with_region")), { serialization: "json" }),
         { minimal: false, styling: true, serialization: "json" },
       ],
       [

@@ -59,7 +59,13 @@ footer, and the focused canvas (`application`
 `api/health` with `Authorization: Bearer abc`, the fragment is gone from
 the address before that request and the history gains no entry; without a
 fragment token (a `?token=` query is none) the request carries `Bearer `
-and the address is untouched. A healthy server shows nothing; an answer
+and the address is untouched. The token taken from the fragment is kept in
+the tab's session storage under `tilie.token`, never in local storage: a
+reload (the page mounted afresh at `/?view=a`, no fragment) sends `Bearer
+abc` again with the address untouched, and a reload at `/#token=def` sends
+`Bearer def`, cleans the address to `/` and keeps `def`. Where session
+storage throws, the fragment's token is still sent (`Bearer abc`) and the
+address cleaned, and a reload without fragment sends `Bearer `. A healthy server shows nothing; an answer
 outside 2xx or an unreachable server shows one "offline" mark in a polite
 live region, whose title and screen-reader text read "The server did not
 answer the health check (`<reason>`)." with `502 Bad Gateway` or the
@@ -202,12 +208,14 @@ core infers from the text, and nothing is journalled for it. Export writes
 the selected block's manifest as the block's manifest file says
 (`manifestFileOf`), under its manifest file name, and is disabled while the
 selection spans two blocks. The oracle is the imported text itself: for
-each of the four texts `bare`'s complete fixture (canonical YAML), its
-minimal twin, `nested` written in pretty JSON and `nested` without its
-`graphical` written in RFC 8785 JSON, imported through the picker and
-exported unchanged, the download is exactly the imported text, under
-`bundle.yaml`, `bundle.yaml`, `bundle.json` and `bundle.json` (neither
-manifest has an id or a name); the settings
+each of the four texts `bare`'s complete fixture (canonical YAML), `map`'s
+minimal twin, `with_region` written in pretty JSON and `nested` without its
+`graphical` written in RFC 8785 JSON, imported through the picker into one
+workspace and exported unchanged, the download is exactly the imported
+text, under `bundle.yaml`, `bundle.yaml`, `bundle.json` and `bundle.json`
+(no manifest has an id or a name). Four manifests, since the workspace
+refuses to import one a block holds already, whatever form its file
+takes ("Open… takes a manifest"); the settings
 hold `{minimal: false, styling: true, serialization: "yaml"}`, `{minimal:
 true, styling: true, serialization: "yaml"}`, `{minimal: false, styling:
 true, serialization: "json"}` and `{minimal: false, styling: false,
@@ -283,11 +291,17 @@ once, the fallback input accepting `.tle.json,.json,.yaml,.yml,.parquet`;
 a picked file is a workspace file by its name ending `.tle.json`, any
 case. A manifest (`bare`'s fixture, `bare.yaml`) opened into an empty
 workspace is imported as Import imports it, nothing asked: one block, its
-journal one `add`. Opened into a workspace holding a block, one question
-is asked, "Add bare.yaml to the open workspace, or open it in a new,
-empty workspace?", answers Add, New workspace and Cancel, the focus on
-Add: Cancel (and Escape) changes nothing; Add imports it beside the block
-(two blocks); New workspace on a saved workspace replaces it at once by a
+journal one `add`. Opened into a workspace holding a block (`nested`'s),
+one question is asked, "Add bare.yaml to the open workspace, or open it in
+a new, empty workspace?", answers Add, New workspace and Cancel, the focus
+on Add: Cancel (and Escape) changes nothing; Add imports it beside the
+block (two blocks). Opened and added once more, nothing is selected, it is
+refused, since a block holds it already (core's `blockHolding`, "A
+manifest held already" there): still two blocks and a journal of two
+entries (the load and the add), the block added before selected and one
+warning shown, "bare.yaml was not imported: the workspace holds it
+already, in the block "Anonymous bundle", which is now selected."
+(`bare` has neither `name` nor `id`). New workspace on a saved workspace replaces it at once by a
 new one holding the manifest's block alone, named `untitled`, under
 `untitled.tle.json`; on an unsaved one it first saves it (the download
 of exactly its text under its file name, as Save writes without a

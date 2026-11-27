@@ -16,6 +16,7 @@
 export const name = "@timetoalign/tilie-core" as const;
 
 export type { ManifestWarning, UnknownKey } from "@timetoalign/timetoshare";
+export { blockHolding } from "./commands/add.ts";
 export { apply } from "./commands/apply.ts";
 export { isComputedFlowMap } from "./commands/flowmaps.ts";
 export type { AnchorValue } from "./commands/matchstamps.ts";

@@ -36,10 +36,11 @@ test.describe("Open… with a manifest, without pickers", () => {
   });
 
   test("imports into an empty workspace, then asks to add or to open anew", async ({ page }) => {
-    const bare = manifestFixture("bare");
-    await pick(page, "Open…", "bare.yaml", bare);
+    await pick(page, "Open…", "nested.yaml", manifestFixture("nested"));
     await expect.poll(() => blockCount(page)).toBe(1);
     expect(await journalLength(page)).toBe(1);
+
+    const bare = manifestFixture("bare");
 
     await pick(page, "Open…", "bare.yaml", bare);
     const dialog = page.getByRole("dialog", { name: QUESTION });
