@@ -22,6 +22,7 @@ import {
   emptyPoint,
   journalLength,
   keysOf,
+  macUserAgent,
   marginPoint,
   marked,
   node,
@@ -204,11 +205,6 @@ test.describe("drag", () => {
 });
 
 test.describe("wheel", () => {
-  /** Whether the page's user agent names a Mac, as Svelte Flow's `isMacOs` tests it. */
-  function macUserAgent(page: import("@playwright/test").Page): Promise<boolean> {
-    return page.evaluate(() => navigator.userAgent.indexOf("Mac") >= 0);
-  }
-
   /** Dispatch one wheel event over the empty canvas point (-20, 200) with `modifier` held. */
   async function wheel(
     page: import("@playwright/test").Page,
@@ -231,18 +227,13 @@ test.describe("wheel", () => {
   });
 
   // A browser may report a Shift+wheel as the vertical delta it was or as a
-  // horizontal one; both pan horizontally by the same distance.
+  // horizontal one; both pan horizontally by the same distance, under any user
+  // agent (the canvas pans a Shift wheel along one axis itself).
   for (const [form, deltaX, deltaY] of [
     ["deltaY", 0, 100],
     ["deltaX", 100, 0],
   ] as const) {
     test(`Shift+wheel pans horizontally (${form} only)`, async ({ page }) => {
-      // macOS reports a Shift+wheel as horizontal itself, and Svelte Flow then
-      // swaps nothing; an engine with a Mac user agent gets only that form.
-      test.skip(
-        form === "deltaY" && (await macUserAgent(page)),
-        "a Mac reports a Shift+wheel as deltaX",
-      );
       await wheel(page, deltaX, deltaY, "Shift");
       await expect.poll(() => viewportOf(page)).toEqual({ x: -10, y: 40, zoom: 1 });
       expect(await journalLength(page)).toBe(START);

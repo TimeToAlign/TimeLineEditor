@@ -2914,8 +2914,13 @@ the drag stores nothing.
 viewport at `{x: 0, y: 0, zoom: 1}`, a plain wheel (`deltaY` 40) over a
 row's drawing pans the canvas up by `PAN_SPEED × 40 = 20`: `{x: 0, y:
 -20, zoom: 1}`; a Shift wheel reported as horizontal travel (`deltaX` 40,
-the form the canvas pans itself outside macOS, `shiftWheel`) pans it left
-by 20: `{x: -20, y: -20, zoom: 1}`; a wheel with Ctrl (`deltaY` −100,
+the form Chromium and Firefox report outside macOS, which Svelte Flow
+would discard) pans it left by 20: `{x: -20, y: -20, zoom: 1}`; a Shift
+wheel reported as vertical travel (`deltaY` 40) under a macOS user agent
+(a trackpad's, and WebKit's as Playwright drives it: Svelte Flow then pans
+it vertically, by the agent alone) pans it left by 20 again, `{x: -40, y:
+-20, zoom: 1}`, since `shiftWheel` pans every Shift wheel travelling along
+one axis itself, whatever the platform; a wheel with Ctrl (`deltaY` −100,
 pixels) zooms it: Svelte Flow's pinch zoom, `2 ^ (100 × 0.002) = 2 ^ 0.2
 = 1.148698354997035` outside macOS, about the pointer; the zoom read back
 is exactly that.

@@ -154,6 +154,15 @@ export async function setViewport(page: Page, viewport: Viewport): Promise<void>
   await expect.poll(() => viewportOf(page)).toEqual(viewport);
 }
 
+/**
+ * Whether the page's user agent names a Mac, as Svelte Flow's `isMacOs` tests it (WebKit's
+ * does, as Playwright drives it): there Svelte Flow takes a wheel with Ctrl for a trackpad
+ * pinch, its zoom ten times a wheel's.
+ */
+export function macUserAgent(page: Page): Promise<boolean> {
+  return page.evaluate(() => navigator.userAgent.indexOf("Mac") >= 0);
+}
+
 export function viewportOf(page: Page): Promise<Viewport> {
   return page.evaluate(() => {
     const { x, y, zoom } = window.__tilie.viewport();
