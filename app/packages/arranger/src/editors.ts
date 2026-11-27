@@ -1,9 +1,10 @@
-/** The editors of the canvas: the bundle, group, timeline and flow-control editors on one element. */
+/** The editors of the canvas: the bundle, group, timeline, children and flow-control editors on one element. */
 
 import type {
   Address,
   EditorKind,
   Manifest,
+  StatedEditorKind,
   TimelineManifest,
   View,
 } from "@timetoalign/tilie-core";
@@ -32,7 +33,31 @@ import { addressParts } from "./editing.ts";
 /** The facet of the band whose double-click opens the flow-control editor of its root. */
 const FLOW_BAND = "flow_control";
 
-/** An editor to open: its target and, for the flow-control editor, its kind (else the one the target opens). */
+/**
+ * The bands that open an editor of their own kind on their timeline, by
+ * facet: a timeline's children band its children editor, a root's flow
+ * control band its flow-control editor. Every other band opens its
+ * timeline's editor.
+ */
+const STATED_BANDS: { readonly [facet: string]: StatedEditorKind } = {
+  children: "children",
+  [FLOW_BAND]: "flow",
+};
+
+/**
+ * The kind of editor a band of facet `facet` opens on its timeline (`STATED_BANDS`;
+ * a flow control band only on a root, `root`); `null` where it opens the timeline editor.
+ */
+function statedBandKind(facet: string | undefined, root: boolean): StatedEditorKind | null {
+  if (facet === undefined || !Object.hasOwn(STATED_BANDS, facet)) return null;
+  const kind = STATED_BANDS[facet] ?? null;
+  return kind === "flow" && !root ? null : kind;
+}
+
+/**
+ * An editor to open: its target and, for the children and flow-control
+ * editors, its kind (else the one the target opens).
+ */
 export interface EditorToOpen {
   readonly target: Address;
   readonly kind?: EditorKind;
@@ -54,9 +79,10 @@ export interface PressedPoint {
  * line, symbol, fork, arc or label, hit before any band) the flow control
  * band of the root whose tree holds it. A band (`bandUnder`: with the
  * drawing point `at`, the band under the pointer, else a band hit) opens
- * the editor of its timeline, a root's flow control band the flow-control
- * editor of the root (`editorOf`), named by the band's own address
- * `{block, id: R, facet: "flow_control"}`. A free spot of a card opens the
+ * the editor of its timeline, but a timeline's children band its children
+ * editor and a root's flow control band the flow-control editor of the
+ * root (`editorOf`), each named by the band's own address (`{block, id: T,
+ * facet: "children"}`, `{block, id: R, facet: "flow_control"}`). A free spot of a card opens the
  * card's timeline; anything else drawn (a name, a label, a region, a
  * stamp, a boundary) what the last drawn card or frame holding it stands
  * for, the innermost where none overlap (`hit.within`), and nothing
@@ -79,17 +105,17 @@ export function editorTargetOf(
 }
 
 /**
- * The editor an address `editorTargetOf` named opens: a root's flow control
- * band (`{block, id: R, facet: "flow_control"}`) opens the flow-control
- * editor of the root `{block, id: R}`, every other address the editor its
- * target opens.
+ * The editor an address `editorTargetOf` named opens: a timeline's children
+ * band (`{block, id: T, facet: "children"}`) opens the children editor of
+ * the timeline `{block, id: T}`, a root's flow control band (`{block, id:
+ * R, facet: "flow_control"}`) the flow-control editor of the root `{block,
+ * id: R}`, every other address the editor its target opens.
  */
 export function editorOf(target: Address): EditorToOpen {
   const { block, element } = addressParts(target);
-  if (element?.id === undefined || element.facet !== FLOW_BAND || element.part !== undefined) {
-    return { target };
-  }
-  return { target: inBlock(block, idAddress(element.id)), kind: "flow" };
+  const kind = element?.part === undefined ? statedBandKind(element?.facet, true) : null;
+  if (element?.id === undefined || kind === null) return { target };
+  return { target: inBlock(block, idAddress(element.id)), kind };
 }
 
 /** One editor a long press offers: the target `editorTargetOf` would name for it, and its words. */
@@ -134,16 +160,23 @@ export function editorsUnder(
   return choices;
 }
 
+/** The words before a timeline's words naming each editor whose kind a session states. */
+const STATED_WORDS: { readonly [kind in StatedEditorKind]: string } = {
+  children: "Children of",
+  flow: "Flow control of",
+};
+
 /**
- * The words of the editor `target` opens (`editorOf`): a root's flow
- * control band `Flow control of` its root's words, any other target its own
- * words capitalised (core's `addressWords`).
+ * The words of the editor `target` opens (`editorOf`): a children band
+ * `Children of` its timeline's words, a root's flow control band `Flow
+ * control of` its root's words, any other target its own words capitalised
+ * (core's `addressWords`).
  */
 export function editorWords(view: View, target: Address): string {
   const opened = editorOf(target);
   const words = addressWords(view, opened.target);
-  return opened.kind === "flow"
-    ? `Flow control of ${words}`
+  return opened.kind === "children" || opened.kind === "flow"
+    ? `${STATED_WORDS[opened.kind]} ${words}`
     : `${words.charAt(0).toUpperCase()}${words.slice(1)}`;
 }
 
@@ -152,8 +185,10 @@ export function editorWords(view: View, target: Address): string {
  * the arranger always; with an editor open only a target of its block
  * inside the edited element, never the edited element itself nor the
  * block: any target of the block in the bundle editor, else one the edited
- * group or timeline contains (core's `contains`), and the flow-control
- * editor of a root inside that root's timeline editor; `null` otherwise.
+ * group or timeline contains (core's `contains`); the edited timeline's
+ * children band and a root's flow control band (the children and
+ * flow-control editors of the edited timeline itself) only inside that
+ * timeline's timeline editor; `null` otherwise.
  */
 function openableIn(manifest: Manifest, target: Address, editing: Editing | null): Address | null {
   if (editing === null) return target;
@@ -164,8 +199,8 @@ function openableIn(manifest: Manifest, target: Address, editing: Editing | null
   }
   const within = edited.element?.id;
   if (within === undefined) return target;
-  if (element.facet === FLOW_BAND && element.id === within && editing.kind === "timeline") {
-    return target;
+  if (element.id === within && statedBandKind(element.facet, true) !== null) {
+    return editing.kind === "timeline" ? target : null;
   }
   return contains(manifest, within, idAddress(element.id)) ? target : null;
 }
@@ -212,16 +247,17 @@ function boxTarget(
 }
 
 /**
- * What a band opens: a root's flow control band its own address, which
- * opens the root's flow-control editor (`editorOf`), any other band its
- * timeline's address, which opens the timeline editor.
+ * What a band opens: a timeline's children band and a root's flow control
+ * band their own address, which opens the timeline's children editor or the
+ * root's flow-control editor (`editorOf`), any other band its timeline's
+ * address, which opens the timeline editor.
  */
 function bandTarget(block: string, band: BandBox, manifest: Manifest): Address {
   const { timeline, facet } = band.band;
   const root = manifest.timelines.some((item) => item.id === timeline);
-  return root && facet === FLOW_BAND
-    ? inBlock(block, { id: timeline, facet: FLOW_BAND })
-    : inBlock(block, idAddress(timeline));
+  return statedBandKind(facet, root) === null
+    ? inBlock(block, idAddress(timeline))
+    : inBlock(block, { id: timeline, facet });
 }
 
 /** The address of the block, the group or the timeline `opened` names (`standsFor`); `null` for none. */

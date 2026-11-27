@@ -287,6 +287,20 @@ describe("journalRows", () => {
     ]);
   });
 
+  it("writes a children editor's session as the children of its timeline", () => {
+    const store = mixedStore();
+    expect(store.open(address(A, "score"), "children")).toBeNull();
+    expect(
+      store.dispatch({
+        type: "set",
+        changes: [{ target: address(A, "score"), values: { name: "Partitur" } }],
+      }),
+    ).toBeNull();
+    store.done();
+    const [row] = journalRows(store, store.view);
+    expect(row?.text).toBe("Edited children of Partitur (1 change)");
+  });
+
   it("writes a flow-control editor's session as the flow control of its root", () => {
     const store = mixedStore();
     expect(store.open(address(A, "score"), "flow")).toBeNull();

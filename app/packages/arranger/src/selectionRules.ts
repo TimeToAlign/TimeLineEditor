@@ -250,11 +250,12 @@ export type DoubleClick = Address | typeof DONE | typeof RECENTRE;
 
 /**
  * What a double-click or a double tap on `pressed` does: outside the edited
- * element it closes the innermost editor (`DONE`); else it opens the editor
- * `openableAt` names; else, on a block inside the edited element (the
- * edited element itself, or anything in it that opens no editor), it
- * centres the view on the edited element again (`RECENTRE`); else nothing
- * (`null`, on the arranger).
+ * element it closes the innermost editor (`DONE`), and so it does anywhere
+ * on a block inside a flow-control editor, the edited card included, where
+ * nothing opens; else it opens the editor `openableAt` names; else, on a
+ * block inside the edited element (the edited element itself, or anything
+ * in it that opens no editor), it centres the view on the edited element
+ * again (`RECENTRE`); else nothing (`null`, on the arranger).
  */
 export function doubleClickAt(
   view: View,
@@ -262,6 +263,7 @@ export function doubleClickAt(
   editing: Editing | null,
 ): DoubleClick | null {
   if (isOutside(pressed, editing)) return DONE;
+  if (editing?.kind === "flow" && pressed.node !== undefined) return DONE;
   const target = openableAt(view, pressed, editing);
   if (target !== null) return target;
   return editing !== null && pressed.node !== undefined ? RECENTRE : null;

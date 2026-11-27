@@ -140,6 +140,7 @@ export const LEVELS: { readonly [level in Level]: LevelRules } = {
   bundle: { ...NONE, move: true, marquee: "elements", itemsFree: true },
   group: { ...NONE, reorder: true, marquee: "elements", frameWidthPinned: true },
   timeline: { ...NONE, bands: true, marquee: "elements" },
+  children: { ...NONE, marquee: "elements" },
   flow: { ...NONE, marquee: "elements", open: false },
 };
 

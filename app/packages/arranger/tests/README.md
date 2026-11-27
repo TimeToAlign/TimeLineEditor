@@ -1700,8 +1700,12 @@ the block's own hit is `{block: A}`.
 | timeline `{block: A, id: "excerpt"}` | the line `dlt_1` | dlt_1 |
 | timeline `{block: A, id: "excerpt"}` | the card of `excerpt`; the line `recording` (its ancestor) | nothing |
 | timeline `{block: A, id: "dlt_1"}` | the line `dlt_1` | nothing |
-| none | a band `{id: "excerpt", facet: "children"}` | excerpt (a band opens its timeline's editor) |
-| timeline `{block: A, id: "excerpt"}` | the band `{id: "excerpt", facet: "children"}` | nothing (the edited element) |
+| none | a band `{id: "excerpt", facet: "conversion_maps"}` | excerpt (a band opens its timeline's editor) |
+| none, bundle, group `group_2` | the children band `{id: "excerpt", facet: "children"}` | that band, which opens the children editor of excerpt (`editorOf`: `{target: excerpt, kind: "children"}`; its words "Children of timeline 'Excerpt' in bundle 'Mixed'") |
+| timeline `{block: A, id: "excerpt"}` | the band `{id: "excerpt", facet: "children"}` | that band: the children editor opens on top of its timeline's editor |
+| timeline `{block: A, id: "excerpt"}` | the band `{id: "excerpt", facet: "conversion_maps"}` | nothing (the edited element) |
+| children `{block: A, id: "excerpt"}` | its own children band; excerpt's line | nothing (the open editor, the edited element) |
+| children `{block: A, id: "excerpt"}` | the line `dlt_1`, its child | dlt_1 |
 | any | a block the view does not hold | nothing |
 | none, bundle, timeline `{block: A, id: R}`, R a root | R's flow control band `{id: R, facet: "flow_control"}`, or an element it draws (a flow-control element of R's tree) | that band, which opens the flow-control editor of R (section "The flow subeditor") |
 | flow `{block: A, id: R}` | anything | nothing |
@@ -1716,6 +1720,7 @@ editor's row applies:
 | bundle | yes | | | | elements | yes | | yes | | yes | yes | yes |
 | group | | | yes | | elements | | yes | yes | | yes | yes | yes |
 | timeline | | | | yes | elements | | | yes | | yes | yes | yes |
+| children | | | | | elements | | | yes | | yes | yes | yes |
 | flow | | | | | elements | | | yes | | | yes | yes |
 
 A locked canvas changes no placement, so it moves and nudges nothing,
@@ -2818,7 +2823,13 @@ section 4's defaults), the end at 166.29150390625 + 200 =
 441000), so the right 370.79150390625; the start circle's radius 3 stays
 within the name's height and right of it; at scale 2 the frame
 `{56, 137.609375, 1122.10400390625 × 333.453125}`; a target in another
-block (`{block: "0000000009", id: "group_1"}`) throws. What an ancestor
+block (`{block: "0000000009", id: "group_1"}`) throws. A band's address
+centres the band's own record (`excerpt`'s children band: its first
+record's rectangle on the canvas, read from the drawing); a band that is
+not drawn (`dlt_1`'s regions band) stands for its timeline, giving
+`dlt_1`'s rectangle above. The children editor of a timeline centres that
+band (`focusedOf(excerpt, "children")` is `{block: A, id: "excerpt",
+facet: "children"}`), every other editor its target itself. What an ancestor
 card draws counts only while the card is raised, as for the marquee
 (below): on `mixed` drawn with the defaults in the Full view
 (`withFullCards`, "Whole ancestor cards" in the fixture facts: the subject is the viewport,

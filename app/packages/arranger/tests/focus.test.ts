@@ -1,7 +1,15 @@
 import type { Address } from "@timetoalign/tilie-core";
 import { idAddress, inBlock } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
-import { elidedReach, FOCUS_DURATION, focusViewport, targetBounds } from "../src/focus.ts";
+import { boxOf } from "../src/boxes.ts";
+import {
+  elidedReach,
+  FOCUS_DURATION,
+  focusedOf,
+  focusViewport,
+  targetBounds,
+} from "../src/focus.ts";
+import { rectOnCanvas } from "../src/marquee.ts";
 import type { BlockNode } from "../src/node.ts";
 import { project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
@@ -53,6 +61,27 @@ describe("targetBounds", () => {
       width: 561.052001953125,
       height: 71.85546875,
     });
+  });
+
+  it("is a drawn band's own rectangle, and a band not drawn stands for its timeline", () => {
+    const band = { id: "excerpt", facet: "children" } as const;
+    const drawn = boxOf(node.data.drawing, band);
+    if (drawn === undefined) throw new Error("no children band");
+    expect(targetBounds(node, inBlock(A, band), metrics)).toEqual(rectOnCanvas(node, drawn));
+    expect(targetBounds(node, inBlock(A, { id: "dlt_1", facet: "regions" }), metrics)).toEqual(
+      targetBounds(node, at("dlt_1"), metrics),
+    );
+  });
+
+  it("centres a children editor on its timeline's children band, every other on its target", () => {
+    expect(focusedOf(at("excerpt"), "children")).toEqual({
+      block: A,
+      id: "excerpt",
+      facet: "children",
+    });
+    for (const kind of ["timeline", "flow", "group"] as const) {
+      expect(focusedOf(at("excerpt"), kind)).toEqual(at("excerpt"));
+    }
   });
 
   it("spans a child's drawn elements, its line and its name", () => {

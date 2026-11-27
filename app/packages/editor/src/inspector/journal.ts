@@ -82,6 +82,7 @@ const SESSION_WORDS: { readonly [kind in EditorKind]: string } = {
   bundle: "bundle",
   group: "group",
   timeline: "timeline",
+  children: "children of",
   flow: "flow control of",
 };
 

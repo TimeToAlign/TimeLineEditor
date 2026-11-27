@@ -237,9 +237,11 @@ let depth = followed.editing.length;
 
 /**
  * Open the drawer when the first editor opens (the viewer may close it
- * again while editing), and after one closes give the focus back to the
- * arranger when it was on a control that went with the editor. The session
- * keeps the selection to what the innermost editor holds.
+ * again while editing), tell it of every editor entered (a children or
+ * flow-control editor shows its level tab, `editorEntered`), and after one
+ * closes give the focus back to the arranger when it was on a control that
+ * went with the editor. The session keeps the selection to what the
+ * innermost editor holds.
  */
 function followEditing(): void {
   const current = session.store;
@@ -250,6 +252,8 @@ function followEditing(): void {
   }
   const count = current.editing.length;
   if (count > 0 && depth === 0 && drawer?.isOpen() === false) drawer.setOpen(true);
+  const innermost = current.editing.at(-1);
+  if (count > depth && innermost !== undefined) void drawer?.editorEntered(innermost.kind);
   if (count < depth) {
     void tick().then(() => {
       if (document.activeElement === null || document.activeElement === document.body) {

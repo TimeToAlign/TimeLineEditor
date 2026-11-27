@@ -1916,6 +1916,34 @@ its entry 4 (the gap) stores one entry, `{type: "set", changes: [{target:
 {block, id: "by_hand"}, values: {chunks: [section_a ×4, section_c]}}]}`;
 the row's Done keeps it and leaves no edited row.
 
+**`editors-flow.spec.ts`** (Chromium, Firefox, WebKit) proves the
+flow-control editor's tab and its closing on `flow/virtual_cards`, imported
+as one block, at viewport (40, 40), zoom 1. With the drawer opened and
+Journal chosen, a double-click on a free spot of `allegro`'s flow control
+band (`bandPoint`, clearance 2) gives the editing path `[{target: {block,
+id: "allegro"}, kind: "flow"}]`, the tab "Flow control" selected and
+focused. Its panel lists the four flow-control elements; "Repeat start" at
+"100" and Add store one more entry of the open session, the manifest's
+`allegro` then holding exactly one new element, at `[100, 1]`, whose
+address is the whole selection; the list then has five rows, one marked
+selected. In a second case a double-click on the same free spot of the
+open editor's card closes it (editing path `[]`), and, opened again, a
+double-click on the centre of `allegro`'s line at zoom 0.5 (the drawer,
+opened with the editor, covers the canvas's right part) closes it too: the press
+on the line, which the pane takes for its carrying gesture, does not stop
+the double-click.
+
+**`editors-children.spec.ts`** (Chromium, Firefox, WebKit) proves the
+children editor on `nested`, imported as one block, at viewport (40, 40),
+zoom 1: a double-click on a free spot of `clt_1`'s children band gives the
+editing path `[{target: {block, id: "clt_1"}, kind: "children"}]` (no
+longer the timeline editor), the drawer open on the level tab "Children",
+whose one row names `clt_3`; a press on it selects exactly `{block, id:
+"clt_3"}`; a double-click on the centre of `clt_3`'s line, at zoom 0.5
+so that it lies left of the drawer, opens its
+timeline editor inside (`[children clt_1, timeline clt_3]`); Done twice
+leaves no editor and the journal as long as before (nothing was changed).
+
 **`embed.spec.ts`** (Chromium, Firefox, WebKit) proves the embed build in a
 host page it does not own. A route serves the host page at
 `http://host.test/` (its own margin, font and title "Host page", an input,

@@ -39,7 +39,7 @@ import type {
   MatchStampPin,
   Selection,
 } from "@timetoalign/tilie-arranger";
-import type { Address, Pin } from "@timetoalign/tilie-core";
+import type { Address, EditorKind, Pin } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { tick, untrack } from "svelte";
 import Inspector from "./inspector/Inspector.svelte";
@@ -49,6 +49,7 @@ import { PropertyDrafts } from "./inspector/propertyDrafts.svelte.ts";
 import type { HeldMatch, Picked, ShownMatch, ShownPin } from "./inspector/tabs.ts";
 import {
   elisionSelected,
+  entered,
   heldOf,
   initialPick,
   matchOutlived,
@@ -193,6 +194,25 @@ export function shownPin(): Pin | null {
 /** Whether the drawer is open. */
 export function isOpen(): boolean {
   return open;
+}
+
+/**
+ * An editor of `kind` was entered: a children or flow-control editor shows
+ * its level tab (`entered`), opening the drawer; a flow-control editor
+ * also moves the focus to that tab, where its controls are, while a
+ * children editor keeps it on the canvas, with its children band in view.
+ * Any other editor changes nothing here.
+ */
+export async function editorEntered(kind: EditorKind): Promise<void> {
+  const next = entered(picked, kind, live.openings);
+  if (next === picked) return;
+  if (!open) setOpen(true);
+  picked = next;
+  pin = null;
+  heldMatch = null;
+  if (kind !== "flow") return;
+  await tick();
+  inspector?.focusTab("level");
 }
 
 /** Open or close the drawer and remember the choice; the focus stays where it is. */

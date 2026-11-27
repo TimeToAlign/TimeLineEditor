@@ -1,14 +1,15 @@
 /** The level tab's settings; the expected values are derived in `README.md` ("The level tab's settings"). */
 
-import { liveStore } from "@timetoalign/tilie-arranger";
-import type { Store } from "@timetoalign/tilie-core";
-import { manifestFileOf } from "@timetoalign/tilie-core";
+import type { Selection } from "@timetoalign/tilie-arranger";
+import { liveStore, NOTHING_SELECTED, selectionOf } from "@timetoalign/tilie-arranger";
+import type { Address, Store } from "@timetoalign/tilie-core";
+import { findTimeline, manifestFileOf } from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import LevelPanel from "../src/inspector/LevelPanel.svelte";
 import { ManifestText } from "../src/inspector/manifestText.svelte.ts";
 import { MIXED, mixedStore } from "./mixed.ts";
-import { blockId, posting, storeOf } from "./support.ts";
+import { blockId, posting, storeMints, storeOf } from "./support.ts";
 
 const A = blockId(0);
 
@@ -25,13 +26,21 @@ function show(
   manifest = new ManifestText(),
   context = posting(),
   locked = false,
+  selection: Selection = NOTHING_SELECTED,
+  onselect: (addresses: readonly Address[]) => void = () => {},
 ): void {
   app = mount(LevelPanel, {
     target: document.body,
     context,
-    props: { live: liveStore(store), manifest, locked },
+    props: { live: liveStore(store), manifest, locked, selection, onselect },
   });
   flushSync();
+}
+
+/** Unmount the panel shown. */
+function hide(): void {
+  if (app !== undefined) unmount(app);
+  app = undefined;
 }
 
 /** The panel's elements, each as its test ID or its tag. */
@@ -259,8 +268,185 @@ describe("a refused choice", () => {
     expect(() =>
       mount(LevelPanel, {
         target: document.body,
-        props: { live: liveStore(storeOf("bare")), manifest: new ManifestText(), locked: false },
+        props: {
+          live: liveStore(storeOf("bare")),
+          manifest: new ManifestText(),
+          locked: false,
+          selection: NOTHING_SELECTED,
+        },
       }),
     ).toThrow("no component above this one provides post");
+  });
+});
+
+describe("the Children tab", () => {
+  it("lists the edited timeline's children, each row selecting its child", () => {
+    const store = storeOf("nested");
+    expect(store.open({ block: A, id: "clt_1" }, "children")).toBeNull();
+    const pressed: (readonly Address[])[] = [];
+    show(store, undefined, undefined, false, NOTHING_SELECTED, (next) => pressed.push(next));
+    expect(contents()).toEqual(["level-title", "level-children"]);
+    expect(text("level-title")).toBe("Children clt_1");
+    const rows = [...document.querySelectorAll('[data-testid="child-row"]')];
+    expect(rows.map((row) => row.textContent?.replace(/\s+/g, " ").trim())).toEqual([
+      "clt_3 at 4 ♩, 8 ♩ long",
+    ]);
+    rows[0]?.querySelector("button")?.click();
+    expect(pressed).toEqual([[{ block: A, id: "clt_3" }]]);
+  });
+
+  it("marks a selected child, and says when there is none", () => {
+    const store = storeOf("nested");
+    expect(store.open({ block: A, id: "clt_1" }, "children")).toBeNull();
+    show(store, undefined, undefined, false, selectionOf([{ block: A, id: "clt_3" }]));
+    expect(
+      document.querySelector('[data-testid="child-row"] button')?.getAttribute("aria-pressed"),
+    ).toBe("true");
+    hide();
+    store.done();
+    expect(store.open({ block: A, id: "clt_2" }, "children")).toBeNull();
+    show(store);
+    expect(text("level-children")).toContain("No children.");
+  });
+});
+
+describe("the Flow control tab", () => {
+  /** The flow-control editor of `allegro`, `flow/virtual_cards` in block `A`. */
+  function flowStore(): Store {
+    const store = storeOf("flow/virtual_cards");
+    expect(store.open({ block: A, id: "allegro" }, "flow")).toBeNull();
+    return store;
+  }
+
+  function rows(): (string | undefined)[] {
+    return [...document.querySelectorAll('[data-testid="flow-control-row"]')].map((row) =>
+      row.textContent?.replace(/\s+/g, " ").trim(),
+    );
+  }
+
+  function position(): HTMLInputElement {
+    const input = document.querySelector<HTMLInputElement>(
+      '[data-testid="flow-control-add"] input',
+    );
+    if (input === null) throw new Error("no position");
+    return input;
+  }
+
+  function addAs(kind: string, at: string): void {
+    const select = document.querySelector<HTMLSelectElement>(
+      '[data-testid="flow-control-add"] select',
+    );
+    if (select === null) throw new Error("no element select");
+    select.value = kind;
+    select.dispatchEvent(new Event("change"));
+    const input = position();
+    input.value = at;
+    input.dispatchEvent(new Event("input"));
+    flushSync();
+    document
+      .querySelector<HTMLButtonElement>('[data-testid="flow-control-add"] button[type="submit"]')
+      ?.click();
+    flushSync();
+  }
+
+  function status(): string | null | undefined {
+    return document.querySelector('[data-testid="flow-control-add"] [role="status"]')?.textContent;
+  }
+
+  function allegroFlow(store: Store) {
+    const manifest = store.view.blocks[A]?.manifest;
+    if (manifest === undefined) throw new Error("no block");
+    return findTimeline(manifest, "allegro")?.flow_control ?? [];
+  }
+
+  it("offers the kinds and lists the tree's flow control", () => {
+    show(flowStore());
+    expect(contents()).toEqual(["level-title", "flow-control-add", "flow-control-elements"]);
+    const options = [...document.querySelectorAll('[data-testid="flow-control-add"] option')];
+    expect(options.map((option) => option.textContent)).toEqual([
+      "Repeat start",
+      "Repeat end",
+      "Volta bracket start",
+      "Segno",
+      "Coda",
+      "Da capo",
+      "Fine",
+      "Section break",
+      "Double barline",
+      "Final barline",
+      "Jump",
+      "Jump target",
+      "Break",
+      "Barline",
+    ]);
+    expect(document.querySelectorAll('[data-testid="flow-control-add"] select').length).toBe(1);
+    expect(position().value).toBe("");
+    expect(rows()).toEqual([
+      "Jump (volta, volta) volta_jump 953/2 ♩",
+      "Jump (repeat end) repeat_end 500 ♩",
+      "Jump target (volta) second_ending 500 ♩",
+      "Break (volta) volta_break 500 ♩",
+    ]);
+  });
+
+  it("proposes the selected element's position", () => {
+    const store = flowStore();
+    show(store, undefined, undefined, false, selectionOf([{ block: A, id: "repeat_end" }]));
+    expect(position().value).toBe("500");
+    hide();
+    show(store, undefined, undefined, false, selectionOf([{ block: A, id: "section_a" }]));
+    expect(position().value).toBe("0");
+  });
+
+  it("adds an element of the chosen kind and selects it", () => {
+    const store = flowStore();
+    const pressed: (readonly Address[])[] = [];
+    show(store, undefined, undefined, false, NOTHING_SELECTED, (next) => pressed.push(next));
+    const before = allegroFlow(store).map(({ id }) => id);
+    addAs("repeat_start", "100");
+    const added = allegroFlow(store).filter(({ id }) => !before.includes(id));
+    expect(
+      added.map(({ role, coordinate, manifestation }) => ({ role, coordinate, manifestation })),
+    ).toEqual([{ role: "jump_target", coordinate: [100, 1], manifestation: "repeat_start" }]);
+    expect(pressed).toEqual([[{ block: A, id: added[0]?.id }]]);
+    expect(status()).toBe("");
+    const known = allegroFlow(store).map(({ id }) => id);
+    addAs("da_capo", "1000");
+    const capo = allegroFlow(store).filter(({ id }) => !known.includes(id));
+    expect(capo.map(({ role, coordinate, targets }) => ({ role, coordinate, targets }))).toEqual([
+      {
+        role: "jump",
+        coordinate: [1000, 1],
+        targets: [
+          {
+            to: "allegro",
+            manifestation: "da_capo",
+            repeat_count: 1,
+            determined: true,
+            reset: true,
+            label: null,
+          },
+        ],
+      },
+    ]);
+    expect(rows()).toHaveLength(6);
+  });
+
+  it("refuses a position that is no value, and what the store refuses, storing nothing", () => {
+    const store = flowStore();
+    show(store);
+    const entries = store.editing.length;
+    const journal = JSON.stringify(store.snapshot());
+    addAs("repeat_start", "");
+    expect(status()).toBe("type the position of the new element");
+    addAs("repeat_start", "x");
+    expect(status()).toBe('"x" is no fraction value; write an integer, n/d, a b/c or a decimal');
+    addAs("repeat_end", "500");
+    const [refused] = storeMints("jump");
+    expect(status()).toBe(
+      `'repeat_end' is a second jump at coordinate [500, 1] of 'allegro', after '${refused}': several signs at one place are destinations of one jump`,
+    );
+    expect(JSON.stringify(store.snapshot())).toBe(journal);
+    expect(store.editing.length).toBe(entries);
   });
 });

@@ -14,6 +14,7 @@ import type {
   Manifest,
   OpenEditor,
   ResolvedAddress,
+  StatedEditorKind,
   View,
 } from "@timetoalign/tilie-core";
 import {
@@ -31,10 +32,11 @@ const LEVEL_WORDS: { readonly [level in Level]: string } = {
   bundle: "Bundle",
   group: "Group",
   timeline: "Timeline",
+  children: "Children",
   flow: "Flow control",
 };
 
-/** The word of a level, capitalised: `Arranger`, `Bundle`, `Group`, `Timeline`, `Flow control`. */
+/** The word of a level, capitalised: `Arranger`, `Bundle`, `Group`, `Timeline`, `Children`, `Flow control`. */
 export function levelWord(level: Level): string {
   return LEVEL_WORDS[level];
 }
@@ -88,22 +90,31 @@ export function editorName(view: View, target: Address): string {
   }
 }
 
+/** The words before the name of the timeline a children or flow-control editor edits. */
+const STATED_TITLES: { readonly [kind in StatedEditorKind]: string } = {
+  children: "Children of",
+  flow: "Flow control of",
+};
+
 /**
  * The name of the open editor `editor` in the editing path and on the Edit
- * button: a flow-control editor's `Flow control of` the name its root goes
- * by, any other the name its target goes by (`editorName`).
+ * button: a children editor's `Children of` the name its timeline goes by, a
+ * flow-control editor's `Flow control of` the name its root goes by, any
+ * other the name its target goes by (`editorName`).
  */
 export function editorTitle(
   view: View,
   editor: { readonly target: Address; readonly kind?: EditorKind },
 ): string {
   const name = editorName(view, editor.target);
-  return editor.kind === "flow" ? `Flow control of ${name}` : name;
+  return editor.kind === "children" || editor.kind === "flow"
+    ? `${STATED_TITLES[editor.kind]} ${name}`
+    : name;
 }
 
 /** The level panel's title line: the level's word and the name of what the level shows. */
 interface LevelTitle {
-  /** `Arranger`, `Bundle`, `Group` or `Timeline`. */
+  /** `Arranger`, `Bundle`, `Group`, `Timeline`, `Children` or `Flow control`. */
   readonly word: string;
   readonly name: string;
 }
