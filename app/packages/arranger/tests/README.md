@@ -1709,6 +1709,7 @@ the block's own hit is `{block: A}`.
 | any | a block the view does not hold | nothing |
 | none, bundle, timeline `{block: A, id: R}`, R a root | R's flow control band `{id: R, facet: "flow_control"}`, or an element it draws (a flow-control element of R's tree) | that band, which opens the flow-control editor of R (section "The flow subeditor") |
 | flow `{block: A, id: R}` | anything | nothing |
+| none | a chunk's label or boundary; an element a virtual card's window shows | the flow-control editor of the FlowMap's root; the timeline holding the element (section "Virtual cards, ribbons, the flow flag and the flow switch", Double-click routes) |
 
 Two editors are equal by target, compared as a whole address, and kind. **What each level permits** is
 one row per level, compared whole; with an editor open, the innermost
@@ -5279,6 +5280,24 @@ place beside its `x` and `y`, and `allegro`'s card gets the same values
 from the same gestures. A press on a chunk's label hits the element
 `{id: "allegro_default", part: [k, "label"]}`, a part of the chunk, as a
 press on a region's label hits that label.
+
+**Double-click routes** (`virtual-cards.test.ts`; the editors' one rule,
+section "Editors"). Every drawing of an element keeps its address (section
+8.10, Windows), so what proves the route is the target `editorTargetOf`
+names for a hit built from the drawing's own records, with the point
+inside the card the element is drawn in: what a window shows is edited
+where it is written, a chunk where FlowMaps are edited. In block A, with
+the region `motto` [100, 200] added into `allegro` and the one rule
+`{facet: "regions", inside: "chunk", within: "allegro_default"}` showing
+the sources' regions:
+
+| hit, in the card of | opens |
+|---|---|
+| `motto` drawn in a window, and its label there, in `allegro_default`'s card | `allegro`, the timeline holding it (its editor, the canvas moving to `allegro`'s card) |
+| `motto` on `allegro`'s own card | `allegro`, as before (the card holding it) |
+| the label `[1, "label"]` and the boundary `[1, "start"]` of `allegro_default`'s chunk 1, in its card | `allegro`'s flow control band `{id: "allegro", facet: "flow_control"}`, which opens the flow-control editor of `allegro` (`editorOf`: kind `flow`), the root `default` unfolds |
+| the label `{id: "allegro", part: [1, "label"]}` of chunk 1 on the switched card of `flow/switched_card` | the same band of `allegro` |
+| `allegro_default`'s own line, in its card | `allegro_default` (its own editor) |
 
 **Ribbons** (`ribbons.test.ts`). `chunkOf` reads a chunk from an address
 of a virtual timeline whose part starts with a chunk index (the chunk

@@ -1827,6 +1827,29 @@ chunks playing A, over `[x(100), x(200)]` and `[x(600), x(700)]` of the
 virtual card, `x(t) = x0 + 400 × t / (4241/2)`, three braces and three
 labels on the page.
 
+**`segment-ui.spec.ts`** (Chromium) proves in a browser what the inspector
+and a double-click do with a virtual card's windows (section 8.10,
+Windows), on `flow/virtual_cards` with `allegro_default` placed alone at
+(0, 200), the region `motto` "Motto" over `[100, 200]` and the conversion
+map `tempo` (a LinearMap over the whole of `allegro`) added to `allegro`,
+each by one command. With `allegro_default`'s line selected, the
+Properties tab's band list is headed Band, Visible and From the sources;
+checking "Regions from the sources visible" journals the one `style`
+`{facet: regions, inside: chunk, within: allegro_default}` → `display:
+inline`, checking "Conversion maps from the sources visible" the same rule
+of `conversion_maps`, each one entry, each box then checked. The drawing
+the canvas draws, read through the hook, then holds within the virtual
+card two drawings of `motto` (the windows of the two chunks playing A) and
+four of `tempo` (a map spanning its timeline is drawn once in every
+stretch piece, and `default` plays four: A, B, A, C), none before. A
+double-click on the second label of `motto` on the page (the first
+window's), the inspector open, opens the timeline editor of `allegro`, where `motto` is written
+(`{target: {block, id: "allegro"}, kind: "timeline"}`); after Done, a
+click on the label of chunk 1 (`B`) shows its facts in the Properties tab
+(Entry `2 of 4`, Source `Region 'B'`), and a double-click on it opens the
+flow-control editor of `allegro` (`kind: "flow"`), where its FlowMap is
+edited.
+
 **`editors.spec.ts`** (Chromium, Firefox, WebKit) proves the bundle, group
 and timeline editors on `bundles` (and `groups` for a reorder) at viewport
 (40, 40), with reduced motion emulated so that every viewport is compared

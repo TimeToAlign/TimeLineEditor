@@ -1148,6 +1148,30 @@ no rows for two regions, a region with its timeline, or a flow-control
 element. Mounted, the region's name field (`B`) stands above the rows
 `[data-testid="region-rows"]`, no geometry hint and no other input.
 
+**A selected chunk** (`chunkRows`, `inspector-bands.test.ts`). A chunk of
+a virtual or switched card (TimeToShare's drawing specification, section
+8.10), itself or by its label, leader or boundary, shows read-only rows
+instead of the geometry hint, read from its FlowMap as core resolves it:
+"Entry", its index plus 1 of the FlowMap's entries (as the Journal counts
+chunks); "FlowMap", its name, else its ID; "Source", core's words of what
+the entry names, capitalised ("Gap" for a gap); "Written", the stretch it
+plays on the FlowMap's root's axis, and "Played", its stretch on the
+played axis, each `start – end` (U+2013) in pretty text; "Occurrence",
+which of the entries naming that source it is. Answer 2 (a) of the
+design: the sources are turned on per band, so a chunk offers no switch.
+On `flow/virtual_cards` with `allegro_default` placed (its FlowMap
+`default`, no name, A B A C), chunk 2 by its label `{id:
+"allegro_default", part: [2, "label"]}` gives Entry `3 of 4`, FlowMap
+`default`, Source `Region 'A'`, Written `0 ♩ – 476 1/2 ♩` (A is [0,
+953/2)), Played `500 ♩ – 976 1/2 ♩` (after A and B, 953/2 + 47/2 = 500,
+to 500 + 953/2), Occurrence `2 of 2`; the chunk itself `{part: [2]}` and
+its boundary `[2, "start"]` the same, both together the same; chunk 1 by
+its label Entry `2 of 4`, Source `Region 'B'`, Written `476 1/2 ♩ – 500 ♩`,
+Played the same, Occurrence `1 of 1`. No rows for chunks 1 and 2 together,
+a chunk with its virtual timeline, the virtual timeline alone or a band of
+a chunk's window. Mounted, the chunk's label selected, the rows
+`[data-testid="chunk-rows"]` stand there, no geometry hint.
+
 **A selected virtual timeline** (`virtualDeletionOf`,
 `inspector-bands.test.ts`). Delete on the canvas hides a virtual card
 (the arranger's README, Deleting); deleting the virtual timeline is the
@@ -1640,6 +1664,48 @@ are the fixtures' own speaking ones.
    press adds exactly one entry to the editor's `listed`, a session of the
    two commands, and one `undo()` brings back the very view before it
    (`toBe`), the tree's box checked again.
+8. **From the sources** (section 8.10, Windows). A virtual timeline's rows
+   also hold the switch of its chunks' windows, one per band and the same
+   for every chunk (answer 2 (a) of the design: nothing indexed is
+   written): the one rule `{facet: F, inside: "chunk", within: V}`, which
+   displays the band of `F` of every chunk's window and, through `within`,
+   that band of everything the windows show; the defaults hide every band
+   inside a chunk, so the switch starts off. It is pressed while every
+   window band of `F` is displayed, mixed while some are, never disabled,
+   a hint where it shows nothing now. What proves it is the cascade read
+   back after each press, and the rule journaled exactly. A root's rows
+   hold none (`sources` `null`). Core lists the windows of every virtual
+   timeline that resolves, placed or not, so a rule can be written before
+   its card is drawn: on `flow/virtual_cards`, `allegro_by_hand` (not
+   placed; A × 4, a gap, C) holds a switch in every row, unchecked, not
+   mixed, hinted "The chunks' sources hold no children.", "… no conversion
+   maps.", "… no named timestamps.", "… no regions." (A's and C's windows
+   hold no region but their own), none for Flow control (the volta jump at
+   953/2 ends A's closed piece, the repeat end, the volta and its break at
+   500 start C's). With
+   `allegro_default` placed at (0, 200) and the region `motto` [100, 200]
+   added into `allegro` (inside A, which `default` plays twice):
+   - every row of `allegro_default` (Children, Conversion maps, Markers,
+     Regions, Flow control) holds a switch, unchecked, not mixed; hints
+     "The chunks' sources hold no children.", "… no conversion maps.",
+     "… no named timestamps." (`allegro` holds none of them), none for
+     Regions (`motto` lies in both windows of A) and Flow control (the
+     volta and the repeat end lie in B's window);
+   - Regions pressed → the one command `{type: "style", select: {facet:
+     "regions", inside: "chunk", within: "allegro_default"}, set:
+     {display: "inline"}, blocks: [A]}`, accepted; then checked;
+   - Regions pressed again → the same with `{display: null}` (without it
+     the defaults hide every window band), accepted; then unchecked and
+     the manifest's rules are again the fixture's (none);
+   - `allegro_default`'s own Regions box unchecked (its band's own rule
+     `{display: "none"}`): the switch's hint is then "The regions band of
+     virtual timeline 'Allegro, default' is hidden." (that band hides what
+     the windows join to it, section 2.4), the switch still enabled.
+   Mounted with `allegro_default`'s line selected, the table is headed
+   Band, Visible and From the sources, each row's switch named "<band>
+   from the sources visible", enabled, unchecked; a change of the Regions
+   switch journals the command above and leaves it checked; nothing is
+   posted. A root's table is headed Band and Visible alone (item 7).
 
 ## The bundle's timeline list (`inspector-timeline-list.test.ts`)
 

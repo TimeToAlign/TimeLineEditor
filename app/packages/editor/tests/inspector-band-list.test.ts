@@ -1,9 +1,10 @@
 /**
  * The band list of a selected timeline: which selection lists bands, its
  * rows in the band order, the `style`s a press of a row's own box or of its
- * tree's box journals, the mixed tree, and the hint of a box showing nothing
- * now, which never disables it; the expected values are derived in
- * `README.md` ("The band list").
+ * tree's box journals, the mixed tree, the hint of a box showing nothing
+ * now, which never disables it, and a virtual timeline's switch "From the
+ * sources"; the expected values are derived in `README.md` ("The band
+ * list").
  */
 
 import { liveStore, resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
@@ -12,7 +13,7 @@ import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import type { BandRow } from "../src/inspector/display.ts";
-import { bandCommands, bandList } from "../src/inspector/display.ts";
+import { bandCommands, bandList, controlCommand } from "../src/inspector/display.ts";
 import PropertiesPanel from "../src/inspector/PropertiesPanel.svelte";
 import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
@@ -173,7 +174,7 @@ describe("the selections listing bands", () => {
 describe("a change", () => {
   it("writes the band's own rule, and removes it where the cascade then displays the band", () => {
     const store = storeOf("styled_score_flow_inner");
-    const rules = store.view.blocks[A]?.manifest.graphical?.rules;
+    const rules = store.view.blocks[A]?.manifest.graphical?.rules ?? [];
     expect(change(store, "regions")).toEqual(bandStyle("regions", "none"));
     expect(rowsOf(store, card("score"))).toEqual([
       ["Children", true],
@@ -183,7 +184,7 @@ describe("a change", () => {
       ["Regions", false],
     ]);
     expect(change(store, "regions")).toEqual(bandStyle("regions", null));
-    expect(store.view.blocks[A]?.manifest.graphical?.rules).toEqual(rules);
+    expect(store.view.blocks[A]?.manifest.graphical?.rules ?? []).toEqual(rules);
     expect(rowsOf(store, card("score"))).toEqual(ALL_SHOWN);
   });
 
@@ -340,6 +341,97 @@ describe("a hint", () => {
   });
 });
 
+/** `flow/virtual_cards` with `allegro_default` placed at (0, 200) and the region `motto` [100, 200] in `allegro`. */
+function windowed(): Store {
+  const store = storeOf("flow/virtual_cards");
+  for (const command of [
+    {
+      type: "set",
+      changes: [
+        { target: { block: A, id: "allegro_default" }, values: { place: { x: 0, y: 200 } } },
+      ],
+    },
+    {
+      type: "add",
+      into: { block: A, id: "allegro" },
+      region: { id: "motto", name: "Motto", start: [100, 1], end: [200, 1] },
+    },
+  ]) {
+    expect(store.dispatch(command)).toBeNull();
+  }
+  return store;
+}
+
+/** The rule of the switch "From the sources" of `facet` of `allegro_default`. */
+const SOURCES = (facet: string) => ({ facet, inside: "chunk", within: "allegro_default" });
+
+describe("the switch From the sources", () => {
+  /** Press the switch of `facet` of `timeline`: the one command it sends, which the store must accept. */
+  function pressSources(store: Store, timeline: string, facet: string) {
+    const control = rowOf(store, timeline, facet).sources;
+    const block = store.view.blocks[A];
+    if (control === null || block === undefined) throw new Error(`no switch of ${facet}`);
+    const command = controlCommand(store.view, block, control);
+    expect(store.dispatch(command)).toBeNull();
+    return command;
+  }
+  const switches = (store: Store, timeline: string) =>
+    bandList(store.view, subjectsOf(store, { id: timeline }))?.map((row) =>
+      row.sources === null
+        ? null
+        : [row.sources.label, row.sources.pressed, row.sources.mixed, row.sources.hint],
+    );
+
+  it("is none for a timeline, and every band's for a virtual timeline placed or not", () => {
+    expect(switches(windowed(), "allegro")).toEqual([null, null, null, null, null]);
+    expect(switches(storeOf("flow/virtual_cards"), "allegro_by_hand")).toEqual([
+      ["Children", false, false, "The chunks' sources hold no children."],
+      ["Conversion maps", false, false, "The chunks' sources hold no conversion maps."],
+      ["Markers", false, false, "The chunks' sources hold no named timestamps."],
+      ["Regions", false, false, "The chunks' sources hold no regions."],
+      ["Flow control", false, false, null],
+    ]);
+  });
+
+  it("is one per band of a placed virtual timeline, off, hinted where the sources hold nothing", () => {
+    expect(switches(windowed(), "allegro_default")).toEqual([
+      ["Children", false, false, "The chunks' sources hold no children."],
+      ["Conversion maps", false, false, "The chunks' sources hold no conversion maps."],
+      ["Markers", false, false, "The chunks' sources hold no named timestamps."],
+      ["Regions", false, false, null],
+      ["Flow control", false, false, null],
+    ]);
+  });
+
+  it("writes and removes its one rule, the same for every chunk", () => {
+    const store = windowed();
+    const rules = store.view.blocks[A]?.manifest.graphical?.rules ?? [];
+    expect(pressSources(store, "allegro_default", "regions")).toEqual(
+      style(SOURCES("regions"), "inline"),
+    );
+    expect(rowOf(store, "allegro_default", "regions").sources?.pressed).toBe(true);
+    expect(pressSources(store, "allegro_default", "regions")).toEqual(
+      style(SOURCES("regions"), null),
+    );
+    expect(rowOf(store, "allegro_default", "regions").sources?.pressed).toBe(false);
+    expect(store.view.blocks[A]?.manifest.graphical?.rules ?? []).toEqual(rules);
+  });
+
+  it("is hinted, never disabled, while its virtual timeline's band is hidden", () => {
+    const store = windowed();
+    const [command, ...others] = press(store, "allegro_default", "regions");
+    expect(command).toEqual(
+      style({ element: "band", addresses: [{ id: "allegro_default", facet: "regions" }] }, "none"),
+    );
+    expect(others).toEqual([]);
+    const { sources } = rowOf(store, "allegro_default", "regions");
+    expect([sources?.hint, sources?.inert]).toEqual([
+      "The regions band of virtual timeline 'Allegro, default' is hidden.",
+      null,
+    ]);
+  });
+});
+
 describe("the band list in the Properties tab", () => {
   let app: ReturnType<typeof mount> | undefined;
   let informed: string[] = [];
@@ -492,6 +584,35 @@ describe("the band list in the Properties tab", () => {
     flushSync();
     expect(store.view).toBe(before);
     expect(tree()?.checked).toBe(true);
+    expect(informed).toEqual([]);
+  });
+
+  it("shows a virtual timeline's switches From the sources, a change journaling its rule", () => {
+    const store = windowed();
+    show(store, { id: "allegro_default" });
+    expect([...(table()?.tHead?.querySelectorAll("th") ?? [])].map((th) => th.textContent)).toEqual(
+      ["Band", "Visible", "From the sources"],
+    );
+    const sources = () => [
+      ...(table()?.querySelectorAll<HTMLInputElement>('input[name="band-sources"]') ?? []),
+    ];
+    expect(
+      sources().map((box) => [box.getAttribute("aria-label"), box.checked, box.disabled]),
+    ).toEqual([
+      ["Children from the sources visible", false, false],
+      ["Conversion maps from the sources visible", false, false],
+      ["Markers from the sources visible", false, false],
+      ["Regions from the sources visible", false, false],
+      ["Flow control from the sources visible", false, false],
+    ]);
+    const entries = store.listed.length;
+    sources()[3]?.click();
+    flushSync();
+    expect(store.listed.length).toBe(entries + 1);
+    expect(store.listed.at(-1)?.entry).toMatchObject({
+      command: style(SOURCES("regions"), "inline"),
+    });
+    expect(sources()[3]?.checked).toBe(true);
     expect(informed).toEqual([]);
   });
 

@@ -1,8 +1,9 @@
 /**
  * A selected band shows three read-only rows, and the form leaves bands
- * out; a selected region shows its start, end and length; the expected
- * values are derived in `README.md` ("The Properties form", "A selected
- * band", "A selected region").
+ * out; a selected region shows its start, end and length, a selected chunk
+ * its facts; the expected values are derived in `README.md` ("The
+ * Properties form", "A selected band", "A selected region", "A selected
+ * chunk").
  */
 
 import type { LivePlacement } from "@timetoalign/tilie-arranger";
@@ -29,6 +30,7 @@ import type { Shown } from "../src/inspector/properties.ts";
 import {
   askDeletion,
   bandRows,
+  chunkRows,
   geometryOf,
   regionRows,
   virtualDeletionOf,
@@ -212,6 +214,54 @@ function virtualCards(): Store {
   if (refused !== null) throw new Error(refused.message);
   return store;
 }
+
+describe("chunkRows", () => {
+  const V = "allegro_default";
+  const chunkRowsOf = (store: Store, selection: readonly Address[]) =>
+    chunkRows(store.view, subjectsOf(store.view, selection))?.map(({ label, value }) => [
+      label,
+      value,
+    ]) ?? null;
+  const third = [
+    ["Entry", "3 of 4"],
+    ["FlowMap", "default"],
+    ["Source", "Region 'A'"],
+    ["Written", "0 ♩ – 476 1/2 ♩"],
+    ["Played", "500 ♩ – 976 1/2 ♩"],
+    ["Occurrence", "2 of 2"],
+  ];
+
+  it("gives a chunk's entry, FlowMap, source, stretches and occurrence, itself or by a part", () => {
+    const store = virtualCards();
+    expect(chunkRowsOf(store, [at(A, { id: V, part: [2, "label"] })])).toEqual(third);
+    expect(chunkRowsOf(store, [at(A, { id: V, part: [2] })])).toEqual(third);
+    expect(chunkRowsOf(store, [at(A, { id: V, part: [2, "start"] })])).toEqual(third);
+    expect(
+      chunkRowsOf(store, [at(A, { id: V, part: [2] }), at(A, { id: V, part: [2, "label"] })]),
+    ).toEqual(third);
+    expect(chunkRowsOf(store, [at(A, { id: V, part: [1, "label"] })])).toEqual([
+      ["Entry", "2 of 4"],
+      ["FlowMap", "default"],
+      ["Source", "Region 'B'"],
+      ["Written", "476 1/2 ♩ – 500 ♩"],
+      ["Played", "476 1/2 ♩ – 500 ♩"],
+      ["Occurrence", "1 of 1"],
+    ]);
+  });
+
+  it("gives none for two chunks, a chunk with its virtual timeline or a window's band", () => {
+    const store = virtualCards();
+    for (const selection of [
+      [at(A, { id: V, part: [1] }), at(A, { id: V, part: [2] })],
+      [at(A, { id: V, part: [2] }), at(A, { id: V })],
+      [at(A, { id: V })],
+      [at(A, { id: V, facet: "regions", part: [0] })],
+      [],
+    ]) {
+      expect(chunkRowsOf(store, selection)).toBeNull();
+    }
+  });
+});
 
 describe("virtualDeletionOf", () => {
   const removal = { type: "remove", targets: [at(A, { id: "allegro_default" })] };
@@ -554,6 +604,49 @@ describe("the Properties panel of a band", () => {
     expect(texts('[data-testid="region-rows"] dd')).toEqual(["12 ♩", "16 ♩", "4 ♩"]);
     expect(panel().querySelector(".hint")).toBe(null);
     expect([...panel().querySelectorAll("input")].map((input) => input.name)).toEqual(["name"]);
+  });
+});
+
+describe("the Properties panel of a chunk", () => {
+  let app: ReturnType<typeof mount> | undefined;
+
+  afterEach(() => {
+    if (app !== undefined) unmount(app);
+    app = undefined;
+    document.body.innerHTML = "";
+  });
+
+  it("shows the chunk's facts and no geometry hint", () => {
+    app = mount(Inspector, {
+      target: document.body,
+      context: posting(),
+      props: {
+        live: liveStore(virtualCards()),
+        selection: selectionOf([at(A, { id: "allegro_default", part: [2, "label"] })]),
+      },
+    });
+    flushSync();
+    const tab = document.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+    const panel = document.getElementById(tab?.getAttribute("aria-controls") ?? "");
+    const texts = (selector: string) =>
+      [...(panel?.querySelectorAll(selector) ?? [])].map((element) => element.textContent);
+    expect(texts('[data-testid="chunk-rows"] dt')).toEqual([
+      "Entry",
+      "FlowMap",
+      "Source",
+      "Written",
+      "Played",
+      "Occurrence",
+    ]);
+    expect(texts('[data-testid="chunk-rows"] dd')).toEqual([
+      "3 of 4",
+      "default",
+      "Region 'A'",
+      "0 ♩ – 476 1/2 ♩",
+      "500 ♩ – 976 1/2 ♩",
+      "2 of 2",
+    ]);
+    expect(panel?.querySelector(".hint")).toBe(null);
   });
 });
 

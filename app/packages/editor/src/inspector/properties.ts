@@ -55,8 +55,10 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   addressKey,
+  addressWords,
   assertNever,
   bandAddress,
+  FlowMapError,
   idAddress,
   inBlock,
   isCommandError,
@@ -65,6 +67,7 @@ import {
   placeKeyText,
   prettyText,
   resolveAddress,
+  resolveFlowMap,
   WORKSPACE,
   withPlaceAt,
 } from "@timetoalign/tilie-core";
@@ -294,6 +297,88 @@ export function regionRows(subjects: readonly Subject[]): readonly PropertyRow[]
   const [first, ...others] = subjects.map((subject) => regionIn(subject.resolved));
   if (first === undefined || first === null) return null;
   return others.every((other) => other?.id === first.id) ? first.rows : null;
+}
+
+/** The chunk `resolved` names: itself, or the chunk a part (its label, leader or boundary) belongs to. */
+function chunkIn(
+  resolved: ResolvedAddress,
+): Extract<ResolvedAddress, { readonly kind: "chunk" }> | null {
+  if (resolved.kind === "part") return chunkIn(resolved.owner);
+  return resolved.kind === "chunk" ? resolved : null;
+}
+
+/** The pretty text of a stretch of an axis, `start – end` (U+2013 EN DASH). */
+function stretchText({ start, end }: { readonly start: Coordinate; readonly end: Coordinate }) {
+  const text = (coordinate: Coordinate) =>
+    prettyText(coordinate.value, coordinate.numberType, coordinate.unit);
+  return `${text(start)} – ${text(end)}`;
+}
+
+/**
+ * The facts of the chunk `chunk` (TimeToShare's `docs/drawing.md`, section
+ * 8.10), read-only: which entry of its FlowMap it plays ("Entry", `k + 1`
+ * of the entries, as the Journal counts chunks), the FlowMap, the entry's
+ * source in words ("Gap" for a gap), the stretch it plays as written
+ * ("Written", on the FlowMap's root's axis, a virtual timeline's on its
+ * own), where it lies on the played axis ("Played") and, for an entry with
+ * a source, which of the entries naming that source it is ("Occurrence").
+ * Only the first two where the FlowMap does not resolve.
+ */
+function chunkFacts(
+  view: View,
+  chunk: Extract<ResolvedAddress, { readonly kind: "chunk" }>,
+): readonly PropertyRow[] {
+  const { block, flowMap } = chunk;
+  const map = flowMap.flowMap;
+  const rows: PropertyRow[] = [
+    { label: "Entry", value: `${chunk.chunk + 1} of ${map.chunks.length}` },
+    { label: "FlowMap", value: map.name ?? map.id },
+  ];
+  let resolved: ReturnType<typeof resolveFlowMap>;
+  try {
+    resolved = resolveFlowMap(block.manifest, map.id);
+  } catch (error) {
+    if (error instanceof FlowMapError) return rows;
+    throw error;
+  }
+  const entry = resolved.chunks[chunk.chunk];
+  if (entry === undefined) return rows;
+  const { source, written } = entry;
+  const words = source === null ? "Gap" : addressWords(view, inBlock(block.id, idAddress(source)));
+  rows.push({ label: "Source", value: words.charAt(0).toUpperCase() + words.slice(1) });
+  if (written !== null) rows.push({ label: "Written", value: stretchText(written) });
+  rows.push({ label: "Played", value: stretchText(entry.played) });
+  if (source !== null) {
+    const same = resolved.chunks.filter(
+      (item) => item.source === source && item.kind === entry.kind,
+    );
+    const at = same.findIndex((item) => item.index === entry.index);
+    rows.push({ label: "Occurrence", value: `${at + 1} of ${same.length}` });
+  }
+  return rows;
+}
+
+/**
+ * The read-only facts of the one chunk the subjects name, itself or by its
+ * label, leader or boundary (`chunkFacts`); `null` for any other selection,
+ * two chunks included. A chunk offers no display switch of its own: the
+ * sources are turned on per band, for every chunk, in its virtual
+ * timeline's band list.
+ */
+export function chunkRows(view: View, subjects: readonly Subject[]): readonly PropertyRow[] | null {
+  const [first, ...others] = subjects.map((subject) => chunkIn(subject.resolved));
+  if (first === undefined || first === null) return null;
+  const key = chunkKeyOf(first);
+  return others.every((other) => other !== null && chunkKeyOf(other) === key)
+    ? chunkFacts(view, first)
+    : null;
+}
+
+/** The address key of `chunk`, `{block, id: V, part: [k]}`, `V` the line it is drawn on. */
+function chunkKeyOf(chunk: Extract<ResolvedAddress, { readonly kind: "chunk" }>): string {
+  const { line } = chunk;
+  const id = line.kind === "timeline" ? line.at.timeline.id : line.virtual.id;
+  return addressKey(inBlock(chunk.block.id, { id, part: [chunk.chunk] }));
 }
 
 /**

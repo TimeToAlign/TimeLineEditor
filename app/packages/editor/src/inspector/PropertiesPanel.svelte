@@ -14,7 +14,12 @@
  * a jump's destinations and its provenance with the user's belief
  * (`FlowControlDetails`); the jump stays inspected while a destination's
  * marks are selected with it. A selected band shows its display controls
- * below its rows, and a region its start, end and length. Every display
+ * below its rows, and a region its start, end and length. A selected chunk
+ * of a virtual or switched card (by its label, leader or boundary) shows its
+ * facts: its entry of the FlowMap, its source, where it is written and
+ * played, its occurrence (`chunkRows`); it has no display switch of its
+ * own, the sources being turned on per band in its virtual timeline's band
+ * list ("From the sources"). Every display
  * control is declared once (`display.ts`): one that changes nothing drawn
  * now is disabled with its reason. A selected timeline, every timeline
  * alike (a root, a child, a virtual timeline; its card, its line, or one
@@ -60,6 +65,7 @@ import type { Geometry, NameField, Shown } from "./properties.ts";
 import {
   askDeletion,
   bandRows,
+  chunkRows,
   fieldLabel,
   geometryOf,
   isSize,
@@ -149,6 +155,9 @@ const timelines = $derived(block === null ? null : timelineList(view, inspected)
 
 /** The start, end and length of the one region selected; else `null`. */
 const region = $derived(regionRows(inspected));
+
+/** The facts of the one chunk selected; else `null`. */
+const chunk = $derived(chunkRows(view, inspected));
 
 /** The stored lock of the inspected timelines; `null` unless every subject is one. */
 const lock = $derived(block === null ? null : lockOf(inspected));
@@ -375,6 +384,8 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   <DisplayGroups {view} {store} {block} groups={controls ?? []} />
 {:else if region !== null}
   {@render rows(region, "region-rows")}
+{:else if chunk !== null}
+  {@render rows(chunk, "chunk-rows")}
 {:else if flow !== null}
   <FlowControlDetails
     {view}

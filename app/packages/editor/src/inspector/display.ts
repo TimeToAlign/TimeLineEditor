@@ -29,6 +29,11 @@
  * or maps (`{element: type, within: T}`) where none is displayed
  * (`bandCommands`).
  *
+ * A virtual timeline's band list also holds, per band, the switch **From
+ * the sources** (section 8.10, Windows): the one rule `{facet, inside:
+ * "chunk", within: V}` showing that band of every chunk's window, which the
+ * defaults hide (`sourcesControl`), never per chunk.
+ *
  * A control shows what the cascade gives (layout's `Cascade` over the
  * arranger's `styleLayers`, read on core's keys of the manifest's
  * elements): whether they are displayed, or which labels their
@@ -845,6 +850,90 @@ export interface BandRow {
   readonly control: Control;
   /** The same `within` the timeline (`tree`), the bands of its tree: pressed while all show, mixed while some do; `null` for a timeline without descendants. */
   readonly tree: Control | null;
+  /**
+   * A virtual timeline's switch "From the sources" (`sourcesControl`): the
+   * bands of this facet of its chunks' windows; `null` for any other
+   * timeline, and where no chunk of it draws a window.
+   */
+  readonly sources: Control | null;
+}
+
+/** The types of the elements a window band of each facet shows, at any depth (`sourcesHint`). */
+const SHOWN: { readonly [facet in Facet]: readonly (ElementType | null)[] } = {
+  children: ["child", "timeline", null],
+  conversion_maps: ["map"],
+  markers: ["wedge"],
+  regions: ["region"],
+  flow_control: ["break", "section_break", "barline", "jump", "symbol", "fork"],
+};
+
+/**
+ * What the switch "From the sources" of the band `facet` of the virtual
+ * timeline `V` shows of nothing now, beside it, never disabling it: the
+ * band of `V` of that facet hidden (it hides what its windows join to it,
+ * section 2.4), else a hidden holder of the windows (`V`'s line), else
+ * that no window shows any element of that facet; `null` otherwise.
+ */
+function sourcesHint(
+  reading: Reading,
+  virtual: string,
+  facet: Facet,
+  window: ElementKey,
+): string | null {
+  const own = reading.keysAt(bandAddress(virtual, facet), BAND);
+  if (own.length > 0 && !own.some((key) => reading.own(key))) {
+    return `${reading.words(bandAddress(virtual, facet))} is hidden.`;
+  }
+  const holder = hiddenHolder(reading, window);
+  if (holder !== null) return `${reading.words(holder.address)} is hidden.`;
+  const types = SHOWN[facet];
+  const shown = reading.elements.some(
+    (key) => key.window === virtual && key.type !== "band" && types.includes(key.type),
+  );
+  return shown ? null : `The chunks' sources hold no ${HELD_WORDS[facet]}.`;
+}
+
+/**
+ * The switch "From the sources" of the band `facet` of the virtual
+ * timeline `V` (TimeToShare's `docs/drawing.md`, section 8.10, Windows):
+ * the one rule `{facet, inside: "chunk", within: V}`, which displays that
+ * band of every chunk's window and, through `within`, the bands of that
+ * facet of everything the windows show, the same for every chunk. Pressed
+ * while every window band of the facet is displayed, mixed while some are
+ * (rules naming `addresses` left out, as a band's control reads them);
+ * never inert, a hint where it shows nothing now (`sourcesHint`). `null`
+ * where no chunk of `V` draws a window (an unresolved virtual timeline, or
+ * one whose card is not drawn). A press sends `controlCommand`: it states
+ * the rule, or removes it where the defaults then hide what it showed.
+ */
+function sourcesControl(reading: Reading, virtual: string, facet: Facet): Control | null {
+  const windows = reading.elements.filter(
+    (key) =>
+      key.type === "band" &&
+      key.window === virtual &&
+      key.facet === facet &&
+      key.address.id === virtual &&
+      typeof key.address.part?.[0] === "number",
+  );
+  const [first] = windows;
+  if (first === undefined) return null;
+  const shown = windows.map(
+    (key) => reading.cascade.resolveUnaddressed(key, undefined).display === "inline",
+  );
+  const pressed = shown.every(Boolean);
+  return {
+    word: facet,
+    label: bandWord(facet),
+    property: "display",
+    select: { facet, inside: "chunk", within: virtual },
+    scope: "band",
+    types: BAND,
+    effect: "band",
+    pressed,
+    mixed: !pressed && shown.some(Boolean),
+    inert: null,
+    hint: sourcesHint(reading, virtual, facet, first),
+  };
 }
 
 /** The `style` of `block` writing `display: value` in the rule `select`. */
@@ -1003,7 +1092,9 @@ function timelineOf({ resolved }: Subject): string | null {
  * "band", addresses: [{id: T, facet}]}`, and, where `T` has descendants,
  * the same `within` `T`, `{element: "band", facet, within: T}` (`Reach`);
  * each pressed while its bands show what they hold, never inert, a press
- * sending `bandCommands`. `null` for any other selection.
+ * sending `bandCommands`. A virtual timeline's rows also hold its switch
+ * "From the sources" (`sourcesControl`), the same for every chunk: no
+ * switch is offered per chunk. `null` for any other selection.
  */
 export function bandList(view: View, subjects: readonly Subject[]): BandRow[] | null {
   const [first] = subjects;
@@ -1038,11 +1129,14 @@ export function bandList(view: View, subjects: readonly Subject[]): BandRow[] | 
     });
     return control;
   };
+  const virtual = (reading.manifest.virtual_timelines ?? []).some((item) => item.id === id);
   return bandOrderOf(reading.manifest, id)
     .filter(isFacet)
     .flatMap((facet) => {
       const control = band(facet, "own");
       if (control === null) return [];
-      return [{ facet, timeline: id, control, tree: descendants ? band(facet, "tree") : null }];
+      const tree = descendants ? band(facet, "tree") : null;
+      const sources = virtual ? sourcesControl(reading, id, facet) : null;
+      return [{ facet, timeline: id, control, tree, sources }];
     });
 }
