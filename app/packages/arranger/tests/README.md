@@ -5201,14 +5201,67 @@ card from the member card's line. Several chunks shown at once give the
 ribbons of each in turn, each key prefixed by its chunk's address key,
 and light each other brace once, never one of the shown chunks.
 
+**Where the pointer shows a chunk** (`chunkZones`, `chunksAt`). A brace is
+a thin curve; a pointer has to show the chunk wherever a reader takes it
+to be: on the stretch of the virtual line the brace spans, on the brace
+and its label, and in the space between them; and on the source's side on
+the written stretch the chunk plays, its region's brace and the space
+between, there showing every chunk that plays it at once. What proves it
+is the geometry read off the drawing alone, independently of how the zones
+are stored: for every drawn brace of a chunk (`{id: V, facet: "regions",
+part: [k]}`, a chunk of a virtual timeline resolving through a FlowMap of
+its own root, never a gap) one zone on its card's line of `V`, from the
+brace's `x1` (held) to its `x2` (left out), from the line's ordinate to
+the far edge of `V`'s regions band on that line (the band box whose
+`band.line` is that ordinate); and, once per chunk, one zone on every line
+of the source root in a card that is not switched, over the chunk's
+written stretch clipped to what that line draws (the ribbon's written
+end), out to the edge of the root's regions band on that line, or the
+line alone where none is drawn. A point lies in a zone where its abscissa
+does and its ordinate lies between the zone's outer edge and the line
+widened by the reach the caller gives (the canvas's `HIT_TOLERANCE` in
+screen pixels, in drawing units); `chunksAt` gives the chunk of every zone
+holding the point, each once, in drawing order of the braces.
+
+In `virtual_cards` (both cards placed): `allegro_default`'s line lies at
+216, its regions band from 228 to 228 + 18.4765625; the zones of its four
+braces run from 216 to 246.4765625, each over its brace's ends.
+`allegro`'s card draws no regions band, so its zones are its line's
+ordinate alone. A point on `allegro_default`'s line over the middle of
+brace 2 (reach 0), a point on the brace's arm ordinate `yb` and one
+halfway between the line and the arms each give chunk 2 alone; a point at
+brace 2's `x2` gives chunk 3 (half-open spans: one chunk at a shared end);
+a point 1 unit below the band gives nothing, and 1 unit above the line
+gives nothing with reach 0 and chunk 2 with reach 2. A point on
+`allegro`'s line over A's written middle, 953/4, gives the chunks playing
+A whose braces are drawn: `allegro_by_hand`'s 0 (the run `A × 4`), then
+`allegro_default`'s 0 and 2, drawing order (the cards by ID); over C's
+middle 1072 it gives `allegro_by_hand`'s 5 and `allegro_default`'s 3; over
+B, `allegro_default`'s 1 alone. A block placing no virtual card has no
+zones.
+
 On the node (`ribbons.test.ts`, `NodeHarness`): a pointer moving onto a
 chunk's brace draws one `path.tilie-ribbon` per ribbon, its `d` the
 ribbon's path, inside one `g.tilie-ribbons` that lets the pointer through
 and carries no address attribute, and one `.tilie-lit` copy per lit brace,
 its `d` the brace's, without `data-id`, `data-facet` or `data-part`;
-leaving the node removes them. With the brace's address among the
-selected elements they are drawn without a pointer; with nothing hovered
-or selected the node draws no `g.tilie-ribbons`.
+leaving the node removes them. A pointer moving over the node's own
+background at a point of a zone (on the virtual line over brace 2) draws
+chunk 2's ribbons; at the point over A's written middle on `allegro`'s
+line, the ribbons of the three chunks playing A, in that order (`allLights`
+of them), and no lit copy, every A being shown. With the brace's address
+among the selected elements they are drawn without a pointer; with nothing
+hovered or selected the node draws no `g.tilie-ribbons`.
+
+In the browser (`e2e/tunnels.spec.ts`, `allegro_default` placed alone, its
+card selected as in the report): the pointer on the segment of chunk 2 (the
+brace's middle abscissa on the line), on the brace's arms and halfway
+between the line and the arms each draws exactly one ribbon, from brace
+2's `x1`..`x2` at the line's ordinate to A's written stretch [0, 953/2) on
+`allegro`'s line (`abscissaOf` over its axis, as derived above), and one
+lit copy, brace 0's; the pointer on `allegro`'s line over A's middle draws
+two, from braces 0 and 2, both to that stretch, and no lit copy; moving
+off the block removes them.
 
 **The flag** (`flow-flag.test.ts`). The pin is read on a line of the
 drawing (`crossSectionSpec`, core's `timestampAt`), as the canvas reads
