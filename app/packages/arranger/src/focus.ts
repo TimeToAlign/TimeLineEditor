@@ -43,12 +43,14 @@ export function focusedOf(target: Address, kind: EditorKind): Address {
  * block's box for the block itself, the first drawn record of a band (a
  * timeline's band `{block, id: T, facet}`; a band not drawn, or drawn with
  * no extent, stands for its timeline), the displayed frame of a group or card
- * of a timeline (its first, for a member of several groups), and for a
- * timeline drawn in no displayed card of its own (a
+ * of a timeline or a virtual timeline (its first, for a member of several
+ * groups), and for a timeline drawn in no displayed card of its own (a
  * child, or a hidden card) the rectangle spanning every element drawn inside
  * it (core's `contains`, layout's `boundsOf`), leaving out the copies an
  * ancestor card draws below the frames while it is not raised
- * (`stackingOf`).
+ * (`stackingOf`) and, where it is drawn elsewhere too, those a virtual
+ * card's windows draw (a child's editor opened from a window frames the
+ * child where it is written).
  */
 export function targetBounds(node: BlockNode, target: Address, metrics: FontMetrics): Rect {
   const { drawing, block } = node.data;
@@ -68,22 +70,36 @@ export function targetBounds(node: BlockNode, target: Address, metrics: FontMetr
   const [container] =
     resolved?.kind === "frame"
       ? [resolved.container]
-      : resolved?.kind === "timeline"
+      : resolved?.kind === "timeline" || resolved?.kind === "virtual_timeline"
         ? resolved.cards
         : [];
   const box = container?.key == null ? undefined : keyedBox(drawing, container.key);
   if (box !== undefined && isDisplayed(box)) return rectOnCanvas(node, box);
   const measure = new TextMeasure(metrics);
   const { behind } = stackingOf(drawing, raisedRoot(block, node.data.editing));
-  const spans = drawing.elements
+  // A virtual card's windows draw what their sources hold, under the sources' addresses.
+  const windows = drawing.boxes
     .filter(
-      (drawn, index) =>
-        !behind(index) &&
-        !isContainerAddress(drawing, drawn.address) &&
-        element.id !== undefined &&
-        contains(block.manifest, element.id, drawn.address),
+      (box) =>
+        box.kind === "card" &&
+        box.address.id !== element.id &&
+        (block.manifest.virtual_timelines ?? []).some((item) => item.id === box.address.id),
     )
-    .map((drawn) => boundsOf(drawn, measure));
+    .map((box) => box.range);
+  const inWindow = (index: number) =>
+    windows.some((range) => range.start <= index && index < range.end);
+  const inside = drawing.elements.flatMap((drawn, index) =>
+    !behind(index) &&
+    !isContainerAddress(drawing, drawn.address) &&
+    element.id !== undefined &&
+    contains(block.manifest, element.id, drawn.address)
+      ? [{ drawn, index }]
+      : [],
+  );
+  const written = inside.filter(({ index }) => !inWindow(index));
+  const spans = (written.length > 0 ? written : inside).map(({ drawn }) =>
+    boundsOf(drawn, measure),
+  );
   if (spans.length === 0) throw new RangeError(`${addressKey(target)} is not drawn`);
   const x = Math.min(...spans.map((span) => span.left));
   const y = Math.min(...spans.map((span) => span.top));

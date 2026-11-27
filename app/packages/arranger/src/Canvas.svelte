@@ -44,8 +44,8 @@ import EditorMenu from "./EditorMenu.svelte";
 import type { Editing } from "./editing.ts";
 import { addressParts } from "./editing.ts";
 import { EditorFocus } from "./editorFocus.svelte.ts";
-import type { EditorChoice } from "./editors.ts";
-import { editorOf } from "./editors.ts";
+import type { EditorChoice, Opening } from "./editors.ts";
+import { editorOf, openedFocus } from "./editors.ts";
 import Flag from "./Flag.svelte";
 import FlowEditorPane from "./FlowEditorPane.svelte";
 import type { FlowServer, FlowTarget } from "./flowEditor.svelte.ts";
@@ -555,12 +555,31 @@ function dispatch(command: unknown): boolean {
 
 /**
  * Open the editor `target` opens: a root's flow control band, its root's
- * flow-control editor (`editorOf`).
+ * flow-control editor (`editorOf`); then what it shows chosen for the
+ * address it was asked from (`openedFocus`): a window's element selected in
+ * the virtual card's editor, in place of the edited element its opening
+ * selected, or a chunk's entry chosen in its FlowMap's row of the
+ * flow-control editor's pane.
  */
-function openEditor(target: Address): void {
+function openEditor({ target, from }: Opening): void {
   const opened = editorOf(target);
   const error = store.open(opened.target, opened.kind);
-  if (error !== null) onrefuse?.(error.message);
+  if (error !== null) {
+    onrefuse?.(error.message);
+    return;
+  }
+  const focus = openedFocus(store.view, opened, from);
+  if (focus?.kind === "select") selection = selectionOf([focus.address]);
+  const flow = flowTargetOf(store.editing.at(-1));
+  if (focus?.kind === "chunk" && flow !== null) {
+    flowSession.choose(flow, focus.flowMap, focus.index);
+  }
+}
+
+/** The one address selected, which Enter opens the editor of; `null` for none or several. */
+function soleSelected(): Address | null {
+  const [address, ...others] = selection.values();
+  return address !== undefined && others.length === 0 ? address : null;
 }
 
 /** The editors a long press listed and where the menu stands; `null` while none is shown. */
@@ -1185,7 +1204,7 @@ function keyContext(event: KeyboardEvent): KeyContext {
     fit: () => toolbar?.fit(),
     abortGesture: () => gestures.abort(),
     done: () => store.done(),
-    open: openEditor,
+    open: (target) => openEditor({ target, from: soleSelected() }),
     openable: () => openable(view, selection, (id) => nodes.byId.get(id)?.data.drawing, editing),
     // The focused block, reached by Tab, is selected as a click on its background would.
     pressed: () => pointer.pressedBy(event),
@@ -1424,7 +1443,7 @@ function onkeydowncapture(event: KeyboardEvent) {
     x={editorMenu.x}
     y={editorMenu.y}
     onchoose={(choice) => {
-      if (rules.open) openEditor(choice.target);
+      if (rules.open) openEditor(choice);
     }}
     onclose={() => (editorMenu = null)}
   />

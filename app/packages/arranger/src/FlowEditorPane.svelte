@@ -8,7 +8,10 @@
  * entries or by its Edit button) with its own Done and Cancel and "+ Gap",
  * which adds a gap at once, its length then typed in the row itself or
  * set by dragging the handle at the gap's right end, every other row
- * offering its Insert meanwhile; computed rows stay read only. The rows
+ * offering its Insert meanwhile; computed rows stay read only. A chunk
+ * double-clicked on a virtual or switched card opens the pane with its
+ * FlowMap's row folded out as the edited one (a hand-made row) and its
+ * entry chosen: drawn selected and scrolled into the pane's view. The rows
  * keep the order first shown while the editor is open (`keptOrder`). The
  * wheel over the pane pans and zooms the canvas as anywhere else on it;
  * the pane is as wide as the canvas right of the card allows, and wider
@@ -134,6 +137,25 @@ const rows = $derived.by(() => {
   shown = { target, ids: order };
   return order.flatMap((id) => pane.rows.find((row) => row.row.id === id) ?? []);
 });
+
+/** The entry a double-click on its chunk chose (`FlowEditorSession.choose`); `null` for none. */
+const chosen = $derived(session.chosenOf(target));
+
+/** Whether the entry `index` of `row` is the chosen one. */
+function isChosen(row: PaneRow, index: number): boolean {
+  return chosen !== null && chosen.flowMap === row.row.id && chosen.index === index;
+}
+
+/** Bring the chosen entry into the pane's view, scrolling the pane alone, never the canvas around it. */
+function showChosen(element: HTMLElement): void {
+  const scroller = element.closest<HTMLElement>(".tilie-flow-pane");
+  if (scroller !== null) {
+    const box = element.getBoundingClientRect();
+    const view = scroller.getBoundingClientRect();
+    if (box.right > view.right) scroller.scrollLeft += box.right - view.right;
+    if (box.left < view.left) scroller.scrollLeft -= view.left - box.left;
+  }
+}
 
 /** The edited row as drawn, once its FlowMap is written; `null` otherwise. */
 const draftRow = $derived(
@@ -399,6 +421,7 @@ function pressEntry(event: PointerEvent, row: PaneRow, index: number): void {
   if (event.button !== 0 || !event.isPrimary) return;
   const entry = row.row.entries[index];
   if (entry === undefined) return;
+  if (!isChosen(row, index)) session.unchoose(target);
   event.preventDefault();
   const element = event.currentTarget as HTMLElement;
   const rect = element.getBoundingClientRect();
@@ -677,9 +700,14 @@ function focusInput(element: HTMLInputElement): void {
         {#if entry !== undefined}
           <button
             type="button"
-            class={["entry", own && gap?.index === span.index && "selected"]}
+            class={[
+              "entry",
+              ((own && gap?.index === span.index) || isChosen(row, span.index)) && "selected",
+            ]}
             data-testid="flow-entry"
             data-index={span.index}
+            aria-current={isChosen(row, span.index) ? "true" : undefined}
+            {@attach isChosen(row, span.index) ? showChosen : undefined}
             aria-label={entryLabel(row, entry, span.index)}
             aria-keyshortcuts={own
               ? `Alt+ArrowLeft Alt+ArrowRight D Delete${span.gap ? " Enter" : ""}`

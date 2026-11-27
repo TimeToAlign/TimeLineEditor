@@ -2,9 +2,10 @@
  * Virtual cards are cards (README, "Virtual cards, ribbons, the flow flag
  * and the flow switch"): a press hits one as a card, a move and a resize
  * store what they store for a root's card, and a press on a chunk's label
- * hits that label, a part of the chunk. A double-click on what a window
- * shows opens the editor where it is written, on a chunk the flow-control
- * editor of its FlowMap's root ("Double-click routes").
+ * hits that label, a part of the chunk. A double-click on a region a
+ * window shows opens the virtual card's editor with the region selected,
+ * on a chunk the flow-control editor of its FlowMap's root with the chunk
+ * chosen ("Double-click routes").
  */
 
 import type { ElementAddress, PlaceKey, View } from "@timetoalign/tilie-core";
@@ -12,7 +13,7 @@ import { cardAddress, idAddress, inBlock, sameAddress } from "@timetoalign/tilie
 import type { Drawing } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
 import { hitOf, keyedBox } from "../src/boxes.ts";
-import { editorOf, editorTargetOf } from "../src/editors.ts";
+import { editorOf, editorTargetOf, openedFocus } from "../src/editors.ts";
 import { itemMoveCommand, itemResizeCommand, itemResizeValues } from "../src/items.ts";
 import type { Handle, ResizeMode } from "../src/resize.ts";
 import { A, blockIn, changed, metrics, sourceOf, viewOf } from "./support.ts";
@@ -121,19 +122,48 @@ describe("a double-click", () => {
   const root = inBlock(A, idAddress(ROOT));
   const flowBand = inBlock(A, { id: ROOT, facet: "flow_control" });
 
-  it("on what a window shows opens the editor where it is written", () => {
+  const virtual = inBlock(A, idAddress(DEFAULT));
+
+  it("on a region a window shows opens the virtual card's editor, the region selected", () => {
     const view = windowed();
     const drawing = drawingIn(view);
-    expect(opened(view, drawing, CARD, { id: "motto" })).toEqual(root);
-    expect(opened(view, drawing, CARD, { id: "motto", part: ["label"] })).toEqual(root);
+    expect(opened(view, drawing, CARD, { id: "motto" })).toEqual(virtual);
+    expect(opened(view, drawing, CARD, { id: "motto", part: ["label"] })).toEqual(virtual);
     expect(opened(view, drawing, { item: ROOT }, { id: "motto" })).toEqual(root);
-    expect(opened(view, drawing, CARD, { id: DEFAULT })).toEqual(inBlock(A, idAddress(DEFAULT)));
+    expect(opened(view, drawing, CARD, { id: DEFAULT })).toEqual(virtual);
+    expect(editorOf(virtual)).toEqual({ target: virtual });
+    const motto = inBlock(A, idAddress("motto"));
+    for (const from of [motto, inBlock(A, { id: "motto", part: ["label"] })]) {
+      expect(openedFocus(view, { target: virtual }, from)).toEqual({
+        kind: "select",
+        address: motto,
+      });
+    }
+    expect(openedFocus(view, { target: virtual }, virtual)).toBeNull();
+    expect(openedFocus(view, { target: virtual }, inBlock(A, idAddress(ROOT)))).toBeNull();
+    expect(openedFocus(view, { target: root }, motto)).toBeNull();
+    expect(openedFocus(view, { target: virtual }, null)).toBeNull();
   });
 
-  it("on a chunk opens the flow-control editor of its FlowMap's root", () => {
+  it("on a chunk opens the flow-control editor of its FlowMap's root, the chunk chosen", () => {
     expect(opened(VIEW, DRAWING, CARD, { id: DEFAULT, part: [1, "label"] })).toEqual(flowBand);
     expect(opened(VIEW, DRAWING, CARD, { id: DEFAULT, part: [1, "start"] })).toEqual(flowBand);
     expect(editorOf(flowBand)).toEqual({ target: root, kind: "flow" });
+    const flowMap = blockIn(VIEW, A).manifest.virtual_timelines?.find(
+      (item) => item.id === DEFAULT,
+    )?.map;
+    for (const word of ["label", "start"] as const) {
+      expect(
+        openedFocus(
+          VIEW,
+          { target: root, kind: "flow" },
+          inBlock(A, { id: DEFAULT, part: [1, word] }),
+        ),
+      ).toEqual({ kind: "chunk", flowMap, index: 1 });
+    }
+    expect(
+      openedFocus(VIEW, { target: root }, inBlock(A, { id: DEFAULT, part: [1, "label"] })),
+    ).toBeNull();
     const switched = viewOf({ id: A, fixture: "flow/switched_card", x: 40, y: 80 });
     expect(
       opened(switched, drawingIn(switched), { item: ROOT }, { id: ROOT, part: [1, "label"] }),

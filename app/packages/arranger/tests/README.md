@@ -1714,7 +1714,7 @@ the block's own hit is `{block: A}`.
 | any | a block the view does not hold | nothing |
 | none, bundle, timeline `{block: A, id: R}`, R a root | R's flow control band `{id: R, facet: "flow_control"}`, or an element it draws (a flow-control element of R's tree) | that band, which opens the flow-control editor of R (section "The flow subeditor") |
 | flow `{block: A, id: R}` | anything | nothing |
-| none | a chunk's label or boundary; an element a virtual card's window shows | the flow-control editor of the FlowMap's root; the timeline holding the element (section "Virtual cards, ribbons, the flow flag and the flow switch", Double-click routes) |
+| none | a chunk's label or boundary; a region, map or named timestamp a virtual card's window shows; a child's line there | the flow-control editor of the FlowMap's root, the chunk chosen; the virtual card's editor, the element selected; the child's editor (section "Virtual cards, ribbons, the flow flag and the flow switch", Double-click routes) |
 
 Two editors are equal by target, compared as a whole address, and kind. **What each level permits** is
 one row per level, compared whole; with an editor open, the innermost
@@ -2768,6 +2768,15 @@ acts on it, whichever it is:
     as written; its Done keeps them and ends the edit. Moving an entry to
     where it is (`move(0, 0)`, `move(0, 1)`) stores nothing: the entries
     are compared by value (a gap `[8, 2]` and `[4, 1]` are one length).
+13. **A chunk chosen** (`choose`, what a double-click on a chunk asks
+    once the flow-control editor opened). Entry 2 of the computed
+    `default` is chosen (`chosenOf`: `{…target, flowMap: "default",
+    index: 2}`) and no row becomes the edited one (read only); entry 5
+    of the hand-made `by_hand` is chosen and `by_hand` becomes the edited
+    row, its mark the session's entries then; Done leaves no edited row
+    and nothing chosen. Nothing is chosen for an entry `default` does not
+    hold (4, −1) or a FlowMap the root lacks (`nothing`), and no row
+    becomes the edited one.
 
 **Findings** are asked of the server only from a handler: when the flow
 editor opens (the canvas's `openEditor`) and after Recompute; the pane's
@@ -2973,7 +2982,15 @@ cross-section pieces at the lower border of `excerpt`'s member card,
 `80 + 111.0859375 + 85.4765625 = 276.5625`, height 142.953125. The
 card's own rectangle and
 `excerpt`'s card are containers and do not count. What would be wrong: an
-editor fitting a child's view to a copy the user does not see. The viewport centres it in the pane less the drawer with 10 % free
+editor fitting a child's view to a copy the user does not see. Likewise a
+virtual card's windows: on `virtualView()` with the child `theme` [100,
+150] added into `allegro` and the sources' children shown on
+`allegro_default`, the virtual card draws `theme` three times (its line
+in the windows of chunks 0 and 2, both playing A, its name once in its
+row), and `theme`'s rectangle is the one spanning its drawings in
+`allegro`'s card alone (layout's `boundsOf` over that card's range, on
+the canvas), as when its editor opens from a window; a virtual
+timeline's own editor centres its card's rectangle. The viewport centres it in the pane less the drawer with 10 % free
 on each side, the zoom clamped to [0.05, 4]: in a 1200 × 800 pane with a
 400 drawer, `{100, 50, 320 × 160}` gives `{x: −120, y: 140, zoom: 2}`,
 `{100, 50, 10 × 10}` `{x: −20, y: 180, zoom: 4}`, `{100, 50, 100000 ×
@@ -5246,9 +5263,26 @@ screen pixels spans less than half a quarter and more than a sixth.
    `region-text` "theme, 1–6 ♩" (item 4); released, no `region-flag`
    remains.
 
+6. **A window's braces** (`flow/virtual_cards` as `virtualView()`, the
+   region `motto` [100, 200] added into `allegro`, the sources' regions
+   shown on `allegro_default` by `{facet: regions, inside: chunk, within:
+   allegro_default}`). `motto` lies inside section A, played by chunks 0
+   and 2 of `default`, so it gives three braces, in drawing order:
+   `allegro`'s own card (nth 0), then `allegro_default`'s card twice (nth
+   0 and 1), each taking both handles: a window's brace reads its ends
+   through the virtual card's axis shifted by its stretch piece (played
+   start `P` less written start `a` plus the source's zero), so `x1` reads
+   100 and `x2` 200 in both windows. On each window brace, `u` its width
+   over 100 (block units per quarter there), the end dragged `+100u` is
+   300 and the start dragged `−40u` is 60 (no snapping value of `allegro`
+   within 8 units of either: the sections' ends lie at 476.5, 500 and
+   1644), and the end's command is one `set` on `{block: A, id: motto}` of
+   `{end: [300, 1]}`: the source's region, so every drawing of it moves.
+
 What would be wrong: a handle on a brace drawn over another axis, a value
 read as a float and stored as one, an end dragged past the other end or
-off the timeline stored, or a drag storing more than one `set`.
+off the timeline stored, a window's brace read on the virtual timeline's
+axis as if it were the region's, or a drag storing more than one `set`.
 
 ## Virtual cards, ribbons, the flow flag and the flow switch (`virtual-cards.test.ts`, `ribbons.test.ts`, `flow-flag.test.ts`, `flow-switch.test.ts`)
 
@@ -5305,22 +5339,29 @@ from the same gestures. A press on a chunk's label hits the element
 press on a region's label hits that label.
 
 **Double-click routes** (`virtual-cards.test.ts`; the editors' one rule,
-section "Editors"). Every drawing of an element keeps its address (section
-8.10, Windows), so what proves the route is the target `editorTargetOf`
-names for a hit built from the drawing's own records, with the point
-inside the card the element is drawn in: what a window shows is edited
-where it is written, a chunk where FlowMaps are edited. In block A, with
-the region `motto` [100, 200] added into `allegro` and the one rule
-`{facet: "regions", inside: "chunk", within: "allegro_default"}` showing
-the sources' regions:
+section "Editors", applied to a virtual card). Every drawing of an element keeps its address
+(section 8.10, Windows), so what proves the route is the target
+`editorTargetOf` names for a hit built from the drawing's own records,
+with the point inside the card the element is drawn in, and what the
+opened editor shows chosen for the address hit (`openedFocus`): a region
+a window shows is edited in the virtual card's own editor, which selects
+it and writes its edits to the source (core's `contains`: the virtual
+timeline contains what its windows show), a chunk where FlowMaps are
+edited, its entry chosen. In block A, with the region `motto` [100, 200]
+added into `allegro` and the one rule `{facet: "regions", inside:
+"chunk", within: "allegro_default"}` showing the sources' regions:
 
-| hit, in the card of | opens |
-|---|---|
-| `motto` drawn in a window, and its label there, in `allegro_default`'s card | `allegro`, the timeline holding it (its editor, the canvas moving to `allegro`'s card) |
-| `motto` on `allegro`'s own card | `allegro`, as before (the card holding it) |
-| the label `[1, "label"]` and the boundary `[1, "start"]` of `allegro_default`'s chunk 1, in its card | `allegro`'s flow control band `{id: "allegro", facet: "flow_control"}`, which opens the flow-control editor of `allegro` (`editorOf`: kind `flow`), the root `default` unfolds |
-| the label `{id: "allegro", part: [1, "label"]}` of chunk 1 on the switched card of `flow/switched_card` | the same band of `allegro` |
-| `allegro_default`'s own line, in its card | `allegro_default` (its own editor) |
+| hit, in the card of | opens | `openedFocus` from the hit |
+|---|---|---|
+| `motto` drawn in a window, and its label there, in `allegro_default`'s card | `allegro_default`, its timeline editor (`editorOf` names no kind), the canvas staying on the virtual card | `{kind: "select", address: {block: A, id: "motto"}}` from either |
+| `motto` on `allegro`'s own card | `allegro`, as before (the card holding it) | — |
+| the label `[1, "label"]` and the boundary `[1, "start"]` of `allegro_default`'s chunk 1, in its card | `allegro`'s flow control band `{id: "allegro", facet: "flow_control"}`, which opens the flow-control editor of `allegro` (`editorOf`: kind `flow`) | `{kind: "chunk", flowMap: <default's ID>, index: 1}` for the flow-control editor, `null` for `allegro`'s timeline editor |
+| the label `{id: "allegro", part: [1, "label"]}` of chunk 1 on the switched card of `flow/switched_card` | the same band of `allegro` | — |
+| `allegro_default`'s own line, in its card | `allegro_default` (its own editor) | `null`: its opening selects its card |
+
+`openedFocus` is also `null` from `allegro`'s line, from no address, and
+for `allegro`'s own editor from `motto`: only the virtual card's editor
+selects a window's element in place of its edited element.
 
 **Ribbons** (`ribbons.test.ts`). `chunkOf` reads a chunk from an address
 of a virtual timeline whose part starts with a chunk index (the chunk

@@ -121,13 +121,14 @@ describe("opening the flow editor", () => {
     expect(editorsUnder(view, onCard, null, { drawing, point: middle })).toEqual([
       {
         target: { block: A, id: ROOT, facet: "flow_control" },
+        from: onCard.address,
         label: "Flow control of timeline 'Allegro'",
       },
-      { target: allegro, label: "Timeline 'Allegro'" },
+      { target: allegro, from: onCard.address, label: "Timeline 'Allegro'" },
     ]);
     const corner = { x: card.x, y: card.y };
     expect(editorsUnder(view, onCard, null, { drawing, point: corner })).toEqual([
-      { target: allegro, label: "Timeline 'Allegro'" },
+      { target: allegro, from: onCard.address, label: "Timeline 'Allegro'" },
     ]);
     const flowEditor: Editing = { target: allegro, kind: "flow" };
     expect(editorsUnder(view, onCard, flowEditor, { drawing, point: middle })).toEqual([]);
@@ -777,6 +778,38 @@ describe("a hand-made row edited", () => {
     ).toBe(true);
     expect(sameEntries([{ gap: [8, 2] }], [{ gap: [4, 1] }, "section_a"], "fraction")).toBe(false);
     expect(sameEntries(["section_a"], ["section_b"], "fraction")).toBe(false);
+  });
+});
+
+describe("a chunk chosen", () => {
+  it("folds out a hand-made row as the edited one, a computed one read only", () => {
+    const { store, session, target } = opened();
+    const mark = store.entries.length;
+    session.choose(target, "default", 2);
+    expect([session.draftOf(target), session.chosenOf(target)]).toEqual([
+      null,
+      { ...target, flowMap: "default", index: 2 },
+    ]);
+    session.choose(target, "by_hand", 5);
+    expect([session.draftOf(target), session.chosenOf(target)]).toEqual([
+      { ...target, flowMap: "by_hand", mark },
+      { ...target, flowMap: "by_hand", index: 5 },
+    ]);
+    session.done(target);
+    expect([session.draftOf(target), session.chosenOf(target)]).toEqual([null, null]);
+  });
+
+  it("chooses nothing the root's FlowMaps do not hold", () => {
+    const { session, target } = opened();
+    for (const [flowMap, index] of [
+      ["default", 4],
+      ["default", -1],
+      ["nothing", 0],
+    ] as const) {
+      session.choose(target, flowMap, index);
+      expect(session.chosenOf(target)).toBeNull();
+    }
+    expect(session.draftOf(target)).toBeNull();
   });
 });
 

@@ -6568,7 +6568,7 @@ off core's output.
    and otherwise `unfold` of the written position contains the played
    one.
 
-## Commands over FlowMaps, virtual timelines and the flow-control editor (`flowmap-commands.test.ts`)
+## Commands over FlowMaps, virtual timelines, the flow-control editor and the virtual card's editor (`flowmap-commands.test.ts`)
 
 What proves a command over FlowMaps and virtual timelines is the manifest it
 leaves, checked whole by TimeToShare's schema and validators (core's
@@ -6825,6 +6825,38 @@ never a spelled-out random literal.
    4241/2 of 702.5 seconds, 1338965/8482, the float 157.8595850035369, its
    wedge and labels listed on `recording`'s markers band with
    `coordinates: "secondary"`.
+
+**The virtual card's editor** (drawing.md §8.10, Windows: a window keeps
+its source's addresses, so an edit of what it shows is an edit of the
+source). On `flow/virtual_cards.yaml` (root `allegro`, 1644 quarters,
+sections A [0, 953/2), B [953/2, 500) and C [500, 1644); `default` plays
+A B A C, `single` A C) with the region `motto` [100, 200], the
+LinearMap `tempo` and the named timestamp `entry` (4 ♩) added to
+`allegro`, each by one command:
+
+- `contains(manifest, allegro_default, …)` and the same for
+  `allegro_single` hold for `{id: motto}`, its label, `{id: tempo}` and
+  `{id: entry}`: what the windows of their chunks show, held by the
+  chunks' source `allegro`; they do not hold `{id: allegro}`, section A
+  (a chunk's own Region is the segment, never shown in its window) or the
+  flow-control element `volta_jump` (edited in the flow-control editor
+  only); `allegro_default` holds its card, and `allegro` does not hold
+  `{id: allegro_default}`.
+- `editorKindOf({id: allegro_default})` is `timeline`, and `open` opens
+  it, the editing path `[{target: {id: allegro_default}, kind:
+  timeline}]`. Inside it `set motto {end: [300, 1]}`, `set tempo {name:
+  "Tempo I"}` and `set entry {coordinate: [6, 1]}` are each accepted and
+  land on the source (the manifest valid, `motto` ending at `[300, 1]`,
+  `tempo` named "Tempo I", `entry` at `[6, 1]`); after Done the
+  workspace replays to the same blocks and round-trips through the
+  workspace file.
+- Inside it `set allegro {name: "Renamed"}`, `remove motto` and `add`
+  of a Region into `allegro` are each `side_effect` at `[<allegro's
+  key>]`, "timeline 'Allegro' lies outside virtual timeline 'Allegro,
+  default': an editor changes only what it edits" (the source's own
+  object and its list of regions lie outside: only what the windows show
+  is edited there, never added or removed), and the session holds no
+  entry.
 
 Core's property suite (`generate.ts`) also draws FlowMap and virtual
 timeline commands (`add`, `set` of `chunks` and `name`, `remove`) over

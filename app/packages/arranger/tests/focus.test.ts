@@ -1,7 +1,8 @@
 import type { Address } from "@timetoalign/tilie-core";
 import { idAddress, inBlock } from "@timetoalign/tilie-core";
+import { boundsOf, TextMeasure } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
-import { boxOf } from "../src/boxes.ts";
+import { boxOf, keyedBox } from "../src/boxes.ts";
 import {
   elidedReach,
   FOCUS_DURATION,
@@ -23,6 +24,7 @@ import {
   withFullCards,
   withoutAncestorCards,
 } from "./support.ts";
+import { DEFAULT, ROOT, virtualView } from "./virtualCards.ts";
 
 /**
  * The node of block A, at `scale` when one is given, drawn without `recording`'s ancestor
@@ -233,5 +235,59 @@ describe("a group's frame with elided ancestor cards", () => {
     expect(focusViewport(bounds, pane, 0, 400)).toEqual({ x: 300, y: 200, zoom: 1 });
     expect(focusViewport(bounds, pane, 0, 100)).toEqual({ x: 100, y: 150, zoom: 2 });
     expect(focusViewport(bounds, pane, 0, 1e6).zoom).toBe(0.05);
+  });
+});
+
+describe("targetBounds on a virtual card's windows", () => {
+  /** `virtualView()` with the child `theme` [100, 150] in `allegro`, the sources' children shown on `allegro_default`. */
+  const view = changed(
+    changed(virtualView(), {
+      type: "add",
+      into: inBlock(A, idAddress(ROOT)),
+      child: { id: "theme", unit: "quarters", offset: [100, 1], length: [50, 1] },
+    }),
+    {
+      type: "style",
+      select: { facet: "children", inside: "chunk", within: DEFAULT },
+      set: { display: "inline" },
+      blocks: [A],
+    },
+  );
+  const [node] = project(view, NOTHING_SELECTED, [], metrics, null);
+  if (node === undefined) throw new Error("no node");
+  const { drawing } = node.data;
+  const cardOf = (id: string) => {
+    const box = keyedBox(drawing, { item: id });
+    if (box === undefined) throw new Error(`no card of ${id}`);
+    return box;
+  };
+  /** The rectangle on the canvas spanning the drawings of `theme` inside the card of `id`. */
+  const spanIn = (id: string) => {
+    const { range } = cardOf(id);
+    const measure = new TextMeasure(metrics);
+    const spans = drawing.elements
+      .slice(range.start, range.end)
+      .filter((drawn) => drawn.address.id === "theme")
+      .map((drawn) => boundsOf(drawn, measure));
+    const x = Math.min(...spans.map((span) => span.left));
+    const y = Math.min(...spans.map((span) => span.top));
+    const right = Math.max(...spans.map((span) => span.right));
+    const bottom = Math.max(...spans.map((span) => span.bottom));
+    return {
+      count: spans.length,
+      rect: rectOnCanvas(node, { x, y, width: right - x, height: bottom - y }),
+    };
+  };
+
+  it("frames a child where it is written, never its copies in a window", () => {
+    // Its line in each window playing A (chunks 0 and 2), its name once in its row.
+    expect(spanIn(DEFAULT).count).toBe(3);
+    expect(targetBounds(node, inBlock(A, idAddress("theme")), metrics)).toEqual(spanIn(ROOT).rect);
+  });
+
+  it("frames a virtual timeline's editor on its card", () => {
+    expect(targetBounds(node, inBlock(A, idAddress(DEFAULT)), metrics)).toEqual(
+      rectOnCanvas(node, cardOf(DEFAULT)),
+    );
   });
 });

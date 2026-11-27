@@ -7,9 +7,12 @@
  * 6.6, Regions), in every card drawing `T`'s line (an ungrouped root's card,
  * an ancestor card, a member card in a frame). The container recording that
  * card's axis (`cardAxis.ts`: the card itself, or the frame holding a member
- * card) maps an abscissa to a value of `T`; a brace whose ends that axis does
- * not read back as `R`'s start and end (drawn over another axis, as a
- * switched card's played stretch) takes no handle at those ends.
+ * card) maps an abscissa to a value of `T`, and on a virtual card the axis
+ * as the window drawing the brace shows its source (`windowed`), so a
+ * brace a window draws takes handles where its ends are the region's; a
+ * brace whose ends that axis does not read back as `R`'s start and end
+ * (drawn over another axis, as a switched card's played stretch, or cut at
+ * a window's border) takes no handle at those ends.
  */
 
 import type {
@@ -25,16 +28,18 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   addressKey,
+  contains,
   idAddress,
   inBlock,
   isAtomicSection,
   placeKeyText,
   samePlaceKey,
 } from "@timetoalign/tilie-core";
+import { windowsOf } from "@timetoalign/tilie-core/drawing";
 import { Rational, toFloat, toRational } from "@timetoalign/tilie-core/numbers";
 import type { Drawing, RegionElement } from "@timetoalign/tilie-layout";
 import type { CardAxis, GapEdge } from "../cardAxis.ts";
-import { cardAxisOf } from "../cardAxis.ts";
+import { cardAxisOf, windowAxis, zeroOf } from "../cardAxis.ts";
 import { HIT_TOLERANCE } from "../coordinates.ts";
 import { drawingOf, nodePosition } from "../drawing.ts";
 import { axisValue, exactOn, max, min, snappedOn, timelineTargets } from "../edgeValues.ts";
@@ -108,6 +113,41 @@ function axisOfCard(manifest: Manifest, drawing: Drawing, card: PlaceKey): CardA
   return exposure === undefined ? null : cardAxisOf(manifest, drawing, exposure);
 }
 
+/**
+ * The map of the virtual card `card`'s axis `axis` as the window drawing
+ * the brace `element` of a region of `timeline` reads it (`windowAxis`,
+ * section 8.10, Windows): the stretch piece of the virtual timeline's
+ * FlowMap whose played span holds the brace's middle and whose source is
+ * `timeline` or one of its ancestors; `axis` itself where the card is no
+ * virtual card, `null` where no such piece is.
+ */
+function windowed(
+  manifest: Manifest,
+  card: PlaceKey,
+  axis: CardAxis,
+  timeline: string,
+  element: RegionElement,
+): CardAxis | null {
+  const virtual = (manifest.virtual_timelines ?? []).find((item) => item.id === card.item);
+  if (virtual === undefined || card.member !== undefined) return axis;
+  const own = axis.baseOf(virtual.id);
+  const middle = axis.valueAt(virtual.id, (element.x1 + element.x2) / 2);
+  if (own === null || middle === null) return null;
+  for (const pieces of windowsOf(manifest, virtual.map).chunks.values()) {
+    for (const { piece, source } of pieces) {
+      const holds = source.id === timeline || contains(manifest, source.id, idAddress(timeline));
+      const start = toFloat(toRational(piece.P));
+      const end = start + toFloat(toRational(piece.b)) - toFloat(toRational(piece.a));
+      if (!holds || middle < start || middle > end) continue;
+      const zero = toRational(piece.P)
+        .subtract(toRational(piece.a))
+        .add(zeroOf(manifest, timeline));
+      return windowAxis(axis, timeline, { base: virtual.id, zero, lambda: own.lambda });
+    }
+  }
+  return null;
+}
+
 /** Whether `axis` reads `value` of `timeline` at the abscissa `x`, up to a float's error. */
 function readsAt(axis: CardAxis, timeline: string, x: number, value: Rational): boolean {
   const read = axis.valueAt(timeline, x);
@@ -142,7 +182,9 @@ export function regionSubjectsOf(
     if (element.type !== "region" || addressKey(element.address) !== key) return [];
     const card = cards.findLast(({ range }) => range.start <= index && index < range.end)?.key;
     if (card == null) return [];
-    const axis = axisOfCard(manifest, drawing, card);
+    const cardAxis = axisOfCard(manifest, drawing, card);
+    const axis =
+      cardAxis === null ? null : windowed(manifest, card, cardAxis, timeline.id, element);
     if (axis === null) return [];
     const cardText = placeKeyText(card);
     const nth = counted.get(cardText) ?? 0;

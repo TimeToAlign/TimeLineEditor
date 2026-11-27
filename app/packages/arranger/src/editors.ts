@@ -71,6 +71,61 @@ export interface EditorToOpen {
   readonly kind?: EditorKind;
 }
 
+/**
+ * An editor asked for from an address: the target `editorTargetOf` named,
+ * and the address it was asked on (the element a double-click, a double tap
+ * or a long press hit, the one selected for Enter), which the opened editor
+ * may show chosen (`openedFocus`); `null` where none is known.
+ */
+export interface Opening {
+  readonly target: Address;
+  readonly from: Address | null;
+}
+
+/**
+ * What an opened editor shows chosen in place of its edited element: an
+ * element selected on the canvas, or a FlowMap's row in the flow-control
+ * editor's pane with one of its entries.
+ */
+export type OpenedFocus =
+  | { readonly kind: "select"; readonly address: Address }
+  | { readonly kind: "chunk"; readonly flowMap: string; readonly index: number };
+
+/**
+ * What the editor `opened`, asked for from `from`, shows chosen
+ * (TimeToShare's `docs/drawing.md`, section 8.10, Windows): the editor of a
+ * virtual timeline `V` (its timeline editor) selects the region, conversion
+ * map or named timestamp of a window that `from` names or is a part of,
+ * where its edits go to the source; the flow-control editor of a root
+ * chooses the chunk `from` names (its label, leader or boundary) in its
+ * FlowMap's row; `null` for anything else, where the editor selects its
+ * edited element.
+ */
+export function openedFocus(
+  view: View,
+  opened: EditorToOpen,
+  from: Address | null,
+): OpenedFocus | null {
+  const { target } = opened;
+  if (from === null || target.block === undefined || from.block !== target.block) return null;
+  const manifest = view.blocks[target.block]?.manifest;
+  const { element } = addressParts(from);
+  if (manifest === undefined || element?.id === undefined || target.id === undefined) return null;
+  if (opened.kind === "flow") {
+    const resolved = ownerElement(manifest, element);
+    if (resolved?.kind !== "chunk" || resolved.flowMap.flowMap.timeline !== target.id) return null;
+    return { kind: "chunk", flowMap: resolved.flowMap.flowMap.id, index: resolved.chunk };
+  }
+  if (opened.kind !== undefined || !isVirtual(manifest, target.id)) return null;
+  if (element.id === target.id || !contains(manifest, target.id, element)) return null;
+  return { kind: "select", address: inBlock(target.block, idAddress(element.id)) };
+}
+
+/** Whether `id` names a virtual timeline of `manifest`. */
+function isVirtual(manifest: Manifest, id: string): boolean {
+  return (manifest.virtual_timelines ?? []).some((item) => item.id === id);
+}
+
 /** Where a pointer pressed: the drawing of the hit's block and the drawing point. */
 export interface PressedPoint {
   readonly drawing: Drawing;
@@ -92,11 +147,12 @@ export interface PressedPoint {
  * root (`editorOf`), each named by the band's own address (`{block, id: T,
  * facet: "children"}`, `{block, id: R, facet: "flow_control"}`). A chunk
  * (its label, leader or boundary) opens the flow-control editor of its
- * FlowMap's root, where FlowMaps are edited (`chunkTarget`). An element a
- * chunk's window shows on a virtual card (a region, a map, a named
- * timestamp, a child's line, any part of them) is edited at its source: it
- * opens the editor of the timeline that holds it, where it is written
- * (`sourceTarget`). A free spot of a card opens the
+ * FlowMap's root, where FlowMaps are edited, with the chunk chosen in its
+ * FlowMap's row (`chunkTarget`, `openedFocus`). An element a chunk's window
+ * shows on a virtual card is edited at its source: a region, a map or a
+ * named timestamp (or a part of one) in the virtual card's own editor, the
+ * element selected, a child's line (or a part of one) in the child's
+ * editor, where it is written (`sourceTarget`). A free spot of a card opens the
  * card's timeline; anything else drawn (a name, a label, a region, a
  * stamp, a boundary) what the last drawn card or frame holding it stands
  * for, the innermost where none overlap (`hit.within`), and nothing
@@ -132,9 +188,11 @@ export function editorOf(target: Address): EditorToOpen {
   return { target: inBlock(block, idAddress(element.id)), kind };
 }
 
-/** One editor a long press offers: the target `editorTargetOf` would name for it, and its words. */
-export interface EditorChoice {
-  readonly target: Address;
+/**
+ * One editor a long press offers: the target `editorTargetOf` would name for
+ * it, the address pressed (`Opening`), and its words.
+ */
+export interface EditorChoice extends Opening {
   /** `Flow control of timeline 'Score'`, `Timeline 'Score'`, `Group 'Themes'` (core's `addressWords`). */
   readonly label: string;
 }
@@ -169,7 +227,7 @@ export function editorsUnder(
   for (const candidate of candidates) {
     const target = candidate === null ? null : openableIn(manifest, candidate, editing);
     if (target === null || choices.some((choice) => sameAddress(choice.target, target))) continue;
-    choices.push({ target, label: editorWords(view, target) });
+    choices.push({ target, from: hit.address, label: editorWords(view, target) });
   }
   return choices;
 }
@@ -223,7 +281,7 @@ function openableIn(manifest: Manifest, target: Address, editing: Editing | null
  * What an element hit opens: a flow-control element the flow control band
  * of its root (`flowElementOf`), a chunk's part the flow control band of
  * its FlowMap's root (`chunkTarget`), an element a window shows the
- * timeline holding it (`sourceTarget`), a timeline's line that timeline,
+ * virtual timeline or the child holding it (`sourceTarget`), a timeline's line that timeline,
  * anything else what the card or frame holding it stands for (`standsFor`
  * of `hit.within`); `null` for nothing.
  */
@@ -352,23 +410,25 @@ function holdingTimeline(resolved: ResolvedElement): string | null {
 /**
  * Where an element a chunk's window shows is edited (TimeToShare's
  * `docs/drawing.md`, section 8.10, Windows: every drawing keeps its
- * element's address, and an edit of it is an edit of the source): where
- * `hit` lies on the card of a virtual timeline `V` (`hit.within`) and names
- * an element held by a timeline other than `V` (a region, a map, a named
- * timestamp, a child's line, or a part of one), the address of that
- * timeline, which opens its editor, the canvas moving to where the element
- * is written; `null` otherwise, `V`'s own elements included.
+ * element's address, and an edit of it is an edit of the source), where
+ * `hit` lies on the card of a virtual timeline `V` (`hit.within`): a
+ * region, a conversion map or a named timestamp `V` contains (core's
+ * `contains`: one its windows show, or a part of one) in `V`'s own editor,
+ * which selects it (`openedFocus`) and writes its edits to the source, the
+ * canvas staying on the virtual card; any other element held by a timeline
+ * other than `V` (a child's line, or a part of one) in the editor of that
+ * timeline, the canvas moving to where it is written; `null` otherwise,
+ * `V`'s own elements included.
  */
 function sourceTarget(hit: Hit, manifest: Manifest): Address | null {
   const virtual = standsFor(hit.within, manifest);
-  if (
-    typeof virtual !== "string" ||
-    !(manifest.virtual_timelines ?? []).some((item) => item.id === virtual)
-  ) {
-    return null;
-  }
+  if (typeof virtual !== "string" || !isVirtual(manifest, virtual)) return null;
   const { element } = addressParts(hit.address);
-  const resolved = element === null ? undefined : ownerElement(manifest, element);
+  if (element === null) return null;
+  if (element.id !== virtual && contains(manifest, virtual, element)) {
+    return inBlock(hit.block, idAddress(virtual));
+  }
+  const resolved = ownerElement(manifest, element);
   const holder = resolved === undefined ? null : holdingTimeline(resolved);
   return holder === null || holder === virtual ? null : inBlock(hit.block, idAddress(holder));
 }

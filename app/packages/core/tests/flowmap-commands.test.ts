@@ -11,6 +11,7 @@ import type { Address } from "../src/workspace/address.ts";
 import { resolveAddress } from "../src/workspace/address.ts";
 import { readWorkspace, writeWorkspace } from "../src/workspace/file.ts";
 import { createIdMinter } from "../src/workspace/ids.ts";
+import { editorKindOf } from "../src/workspace/sessions.ts";
 import { replay } from "../src/workspace/store.ts";
 import type { View } from "../src/workspace/view.ts";
 import {
@@ -822,5 +823,97 @@ describe("Named timestamps on a virtual timeline", () => {
       ["wedge", "recording"],
       ["label", "recording"],
     ]);
+  });
+});
+
+describe("The virtual card's editor", () => {
+  const VIRTUAL = "flow/virtual_cards.yaml";
+  const DEFAULT = "allegro_default";
+  const MOTTO = { id: "motto", name: "Motto", start: [100, 1], end: [200, 1] };
+  /** `virtual_cards` with the region `motto`, the map `tempo` and the named timestamp `entry` (4 ♩) on `allegro`. */
+  function windowed(): View {
+    const into = at("allegro");
+    return [
+      { type: "add", into, region: MOTTO },
+      {
+        type: "add",
+        into,
+        map: {
+          id: "tempo",
+          name: "Tempo",
+          offset: 0,
+          scalar: [1, 2],
+          source_unit: "quarters",
+          target_unit: "seconds",
+          type: "LinearMap",
+        },
+      },
+      { type: "add", into, timestamp: { name: "Entry", coordinate: [4, 1] }, ids: ["entry"] },
+    ].reduce((view, command) => changed(view, command), viewOf([A, VIRTUAL]));
+  }
+  const SECTION_A = regionNamed(VIRTUAL, "A");
+
+  it("contains what its windows show at their sources, no chunk's own Region", () => {
+    const manifest = manifestOf(windowed());
+    for (const shown of [
+      { id: "motto" },
+      { id: "motto", part: ["label"] },
+      { id: "tempo" },
+      { id: "entry" },
+    ] as const) {
+      expect(contains(manifest, DEFAULT, shown)).toBe(true);
+      expect(contains(manifest, "allegro_single", shown)).toBe(true);
+    }
+    for (const outside of [{ id: "allegro" }, { id: SECTION_A }, { id: "volta_jump" }]) {
+      expect(contains(manifest, DEFAULT, outside)).toBe(false);
+    }
+    expect(contains(manifest, DEFAULT, { id: DEFAULT, part: ["card"] })).toBe(true);
+    expect(contains(manifest, "allegro", { id: DEFAULT })).toBe(false);
+  });
+
+  it("opens as the timeline editor of the virtual timeline and edits its windows' elements", () => {
+    const store = storeOf(windowed());
+    expect(editorKindOf(store.view, at(DEFAULT))).toBe("timeline");
+    expect(store.open(at(DEFAULT))).toBeNull();
+    expect(store.editing.map(({ target, kind }) => ({ target, kind }))).toEqual([
+      { target: at(DEFAULT), kind: "timeline" },
+    ]);
+    expect(store.dispatch(set(at("motto"), { end: [300, 1] }))).toBeNull();
+    expect(store.dispatch(set(at("tempo"), { name: "Tempo I" }))).toBeNull();
+    expect(store.dispatch(set(at("entry"), { coordinate: [6, 1] }))).toBeNull();
+    const manifest = valid(store.view);
+    const allegro = manifest.timelines[0];
+    expect(allegro?.regions.find((item) => item.id === "motto")?.end).toEqual([300, 1]);
+    expect(allegro?.conversion_maps.find((item) => item.id === "tempo")?.name).toBe("Tempo I");
+    expect(manifest.graphical?.timestamps?.find((item) => item.id === "entry")?.coordinate).toEqual(
+      [6, 1],
+    );
+    store.done();
+    const workspace = store.snapshot();
+    expect(replay(workspace.journal, workspace.sessions).at(-1)?.blocks).toEqual(store.view.blocks);
+    expect(readWorkspace(writeWorkspace(workspace))).toEqual(workspace);
+  });
+
+  it("refuses what lies outside the virtual timeline and its windows' elements", () => {
+    const store = storeOf(windowed(), { minter: createIdMinter({ seed: 5n }) });
+    expect(store.open(at(DEFAULT))).toBeNull();
+    const refusal = {
+      code: "side_effect",
+      path: [key(at("allegro"))],
+      message:
+        "timeline 'Allegro' lies outside virtual timeline 'Allegro, default': an editor changes only what it edits",
+    };
+    expect(refused(store.dispatch(set(at("allegro"), { name: "Renamed" })))).toEqual(refusal);
+    expect(refused(store.dispatch({ type: "remove", targets: [at("motto")] }))).toEqual(refusal);
+    expect(
+      refused(
+        store.dispatch({
+          type: "add",
+          into: at("allegro"),
+          region: { name: "Coda", start: [1600, 1], end: [1644, 1] },
+        }),
+      ),
+    ).toEqual(refusal);
+    expect(store.entries.length).toBe(0);
   });
 });

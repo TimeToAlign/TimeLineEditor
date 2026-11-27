@@ -191,7 +191,9 @@ export function ruleInside(
  * but `@context`; the other `graphical`
  * members. The edited timeline's object, or the edited group's
  * and each of its members', stands as `{id}`; the named timestamps and the
- * elisions lying on a timeline inside and the entries of `graphical.order` whose keys lie
+ * elisions lying on a timeline inside, the entries and named timestamps the
+ * edited element contains though their timeline lies outside (those a
+ * virtual timeline's windows show) and the entries of `graphical.order` whose keys lie
  * inside (the group's display order, the band orders of the timelines it
  * holds) are left out; only the `rules` outside are kept, and of the
  * named styles only those they use.
@@ -213,6 +215,7 @@ function project(
   manifest: Manifest,
   element: string,
   inside: (key: string) => boolean,
+  contained: (id: string) => boolean,
   rules: readonly Rule[],
   styles: readonly string[],
 ): Projection {
@@ -246,7 +249,9 @@ function project(
       flow_control: ids(timeline.flow_control),
     });
     for (const kind of ENTRY_KINDS) {
-      for (const entry of byId(entriesOf(timeline, kind))) set(entry.id, entry);
+      for (const entry of byId(entriesOf(timeline, kind))) {
+        if (!contained(entry.id)) set(entry.id, entry);
+      }
     }
     for (const child of byId(timeline.children)) visit(child);
   };
@@ -273,7 +278,7 @@ function project(
     ...rest
   } = manifest.graphical ?? {};
   for (const item of [...byId(timestamps), ...byId(elisions)]) {
-    if (!inside(item.timeline)) elements.set(item.id, canonicalText(item));
+    if (!inside(item.timeline) && !contained(item.id)) elements.set(item.id, canonicalText(item));
   }
   const top = new Map<string, string>();
   for (const [key, value] of Object.entries(manifest)) {
@@ -345,9 +350,12 @@ function manifestChange(
     new Set(outside.flat().flatMap((item) => (typeof item.set === "string" ? [item.set] : []))),
   );
   const keys = keyInside(scopes);
+  // An entry or a named timestamp of a timeline outside that the edited element contains all the
+  // same: one a virtual timeline's windows show (core's `contains`).
+  const held = (id: string) => scopes.every((scope) => scope.inside(idAddress(id)));
   const [wasOutside = [], nowOutside = []] = outside;
-  const a = project(was.manifest, element, keys, wasOutside, styles);
-  const b = project(now.manifest, element, keys, nowOutside, styles);
+  const a = project(was.manifest, element, keys, held, wasOutside, styles);
+  const b = project(now.manifest, element, keys, held, nowOutside, styles);
   // An element the target contains that is gone from `after` is removed inside the target.
   const differs = (id: string) =>
     a.elements.get(id) !== b.elements.get(id) &&
