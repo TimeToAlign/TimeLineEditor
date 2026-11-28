@@ -145,14 +145,15 @@ workspace package does; the editor shell lists the names it links.
    different units or number types throws `AxisMismatchError` (code
    `axis_mismatch`); within one axis `int` arithmetic is bigint arithmetic,
    `float` is IEEE double arithmetic (as Python's), `fraction` is `Rational`.
-6. **A child's end across number types.** A child shares its parent's unit
-   but may have another number type. Its end (offset plus child length) and
-   the comparisons against it follow Python's numeric tower: an int or a
-   Fraction is exact, a sum with a float is a float with each exact operand
-   correctly rounded first, and a float compares with an exact value
-   exactly. Pinned cases: int parent and Fraction child (3 + 3/2 = 9/2,
-   above 4, below 5); Fraction parent and int child (7/2 + 2 = 11/2); float
-   parent and int child (3.5 + 2 = 5.5); 0.1 > 1/10; the rounding of 1/3, of
+6. **Values across number types.** A child has its parent's unit and
+   number type (item 11 of "Manifest load and save"), but values of
+   different number types still meet (the members of a group, a map's
+   values). Where they are added or compared, Python's numeric tower
+   decides: an int or a Fraction is exact, a sum with a float is a float
+   with each exact operand correctly rounded first, and a float compares
+   with an exact value exactly. Pinned cases: an int and a Fraction (3 +
+   3/2 = 9/2, above 4, below 5); a Fraction and an int (7/2 + 2 = 11/2); a
+   float and an int (3.5 + 2 = 5.5); 0.1 > 1/10; the rounding of 1/3, of
    (2^62 + 1)/3 and its negative, and of
    6402900570728149493/7435617913856420575 (0.8611121019002628, where
    dividing the two doubles gives 0.8611121019002627). A value is expressed
@@ -252,9 +253,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    pair in UTF-16) and `"～"`, in that order, is written with `"#～"` first:
    flow-control elements by coordinate, then id in code-point order, the
    reverse of JavaScript's default sort.
-9. **A child of another number type** (a float child of a Fraction parent,
-   length `4.0`) loads and saves byte for byte.
-10. **Invariant refusal lists every violation.** `with_region.yaml` changed
+9. **Invariant refusal lists every violation.** `with_region.yaml` changed
     to break three invariants at once (`clt_2` given a region `region_2`
     from `[1, 1]` to `[0, 1]`, `clt_3` placed at `[-1, 1]`, the root's
     region ending at `[0, 1]`, before its start) is refused with exactly
@@ -266,7 +265,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     timeline's own regions after its children), in traversal order, each
     path below `["timelines", 0]`, and `saveManifest` of the same value
     throws `InvalidManifestError`.
-11. **Each invariant at load and in a command.** For
+10. **Each invariant at load and in a command.** For
     `region_end_before_start`, one copy of `with_region.yaml` changed in
     exactly that respect is refused with exactly one problem: that code at
     the exact path. **The number types a unit admits** are TimeToShare's
@@ -284,15 +283,19 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     `with_region.yaml`, `set` of `{block: A, id: "region_1"}`'s `end` to `[0, 1]` is
     `region_end_before_start` at `[A, "manifest", "timelines", 0,
     "regions", 0, "end"]`.
-12. **A child's unit and extent and a map's source unit are the
-    schema's.** TimeToShare's `validate` refuses a child whose unit
-    differs from its parent's, a child reaching past its parent's known
-    length and a map whose non-null source unit is not its timeline's, so
-    core holds no check of its own for any of them. One copy of `with_region.yaml` with `clt_2`'s
+11. **A child's unit, number type and extent and a map's source unit are
+    the schema's.** TimeToShare's `validate` refuses a child whose unit or
+    number type differs from its parent's, a child reaching past its
+    parent's known length and a map whose non-null source unit is not its
+    timeline's, so core holds no check of its own for any of them. One copy of `with_region.yaml` with `clt_2`'s
     unit `whole_notes` is refused with exactly one problem,
     `schema_violation` at `["timelines", 0, "children", 0, "unit"]` with
     the validator's message `child 'clt_2' has unit 'whole_notes', its
-    parent 'clt_1' has 'quarters'`; one with `clt_2`'s offset `[9, 1]`
+    parent 'clt_1' has 'quarters'`; one with `clt_2` turned `float`
+    (length `4.0`, in a Fraction parent) with exactly `schema_violation`
+    at `["timelines", 0, "children", 0, "number_type"]`, message `child
+    'clt_2' has the number type 'float', its parent 'clt_1' has
+    'fraction'`; one with `clt_2`'s offset `[9, 1]`
     (length 4, in a parent of 12) with exactly `schema_violation` at
     `["timelines", 0, "children", 1, "length"]` (placed at 9, it comes
     after its sibling at 2 in canonical order), message `child 'clt_2' ends
@@ -304,7 +307,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     `LinearMap 'seconds' has source unit 'seconds', its timeline 'clt_1'
     has 'quarters'`. Each message is passed on unchanged, so a test pinning
     it fails if core rewrites it.
-13. **A negative child offset is core's to refuse.** The schema accepts a
+12. **A negative child offset is core's to refuse.** The schema accepts a
     child starting before its parent's origin; core does not support it
     yet. One copy of `with_region.yaml` with `clt_2`'s offset `[-1, 3]` is
     refused with exactly one problem, `negative_child_offset` at
@@ -318,7 +321,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     `["timelines", 0, "children", 0, "offset"]`. A root's offset may be
     negative: `negative_offset.yaml` (root `recording` at `-2.5`) is in the
     round trip of item 1.
-14. **Segments read unlocked.** A segment that is no segment line is never
+13. **Segments read unlocked.** A segment that is no segment line is never
     locked, its line's lock governing it, whatever the file states:
     `segment_line.yaml` with `b1` stated `true` and `b2` `false` loads with
     `false` on `a1`, `b1`, `b2` and `c1` and the stated value elsewhere
@@ -326,11 +329,11 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     stated `false` is kept. It saves `"locked": false` on each segment, its
     minimal form leaves it out, and it deep-equals the same file with the
     four segments stating `false`.
-15. **Malformed text** is refused at path `[]`: with code `invalid_json`
+14. **Malformed text** is refused at path `[]`: with code `invalid_json`
     when it is read as JSON (`{"timetoshare": `), with `invalid_yaml` when
     it is read as YAML (`timelines: [`, and a mapping key repeated,
     `timetoshare: "0.2.0"` twice).
-16. **An entry given to a command** (a map, region or flow-control
+15. **An entry given to a command** (a map, region or flow-control
     element) is checked by the schema where it will lie: in the timeline
     that will list it, within the whole manifest, whose measure maps and
     elements it may name, completed and ordered as a
@@ -344,7 +347,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     `schema_violation` at its own `measure_map` (`["conversion_maps", i,
     "measure_map"]`, `i` its place in canonical order, after `melody`'s
     own maps).
-17. **Declarations are plain numbers.** `styled__score.yaml` with its six
+16. **Declarations are plain numbers.** `styled__score.yaml` with its six
     integral declaration numbers spelled `4.0`, `2.0`, … reads equal to the
     fixture and saves to its text, every key in place; 2^53 reads, 2^53 + 1
     is `invalid_value` "9007199254740993 has no exact double" at its member.
@@ -354,9 +357,9 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     card rule's `elision-proportion` `1.0` reads as the double 1, `0.05` as
     0.05, and the word `auto` as itself, the rule's other elision
     properties unchanged.
-18. **An unorderable value** (a region `start` of `"later"`) is refused with
+17. **An unorderable value** (a region `start` of `"later"`) is refused with
     the schema's first problem at that value.
-19. **Elisions are carried through unchanged.** Core holds what the
+18. **Elisions are carried through unchanged.** Core holds what the
     manifest states. `bare.yaml` (root
     `bare`, 8 quarters, fraction) given `graphical.elisions` holding
     `{id: "elision_1", timeline: "bare", start: [1, 2], end: [3, 1], width:
@@ -607,7 +610,7 @@ own-axis value are TimeToShare's rules, checked by its `validate`; names
 may repeat.
 
 Rules the library does **not** enforce and this package therefore does not
-invent: a child may have another number type than its parent; a region may
+invent: a region may
 lie outside its timeline (negative start, end past the length); a locked
 timeline still accepts children within its length, regions, flow control
 and maps. Flow control has rules of the format's own, which its `validate`
@@ -1921,7 +1924,7 @@ other commands are not judged by it.
    settings the same object; `manifest` replaces a
    block's manifest whole, several roots and groups for one root alike.
    The workspace's `graphical` and a `style`'s `set` store a declaration's
-   `2.0` as `2`, as loading does (item 17 of the manifest section).
+   `2.0` as `2`, as loading does (item 16 of the manifest section).
 3. Timelines, on `nested.yaml`: `name`, `meta` and the root's `length`
    `[12, 1]` (the end of `clt_3`) are stored as given; `clt_3`'s `offset`
    `[6, 1]` leaves the root at `[16, 1]`, `[10, 1]` grows the unlocked root

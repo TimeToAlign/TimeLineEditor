@@ -442,14 +442,6 @@ describe("invariants", () => {
     );
   });
 
-  it("accepts a child of another number type", () => {
-    const value = base();
-    Object.assign(node(value, ...childPath), { number_type: "float", length: new JsonFloat(4) });
-    const text = fileText(value);
-    expect(text.includes("length: 4.0\n")).toBe(true);
-    expect(saveManifest(loadText(text), COMPLETE)).toBe(text);
-  });
-
   it.each(cases)("%s", (code, change, expectedPath) => {
     const value = base();
     change(value);
@@ -462,6 +454,12 @@ describe("invariants", () => {
       { unit: "whole_notes" },
       [...childPath, "unit"],
       "child 'clt_2' has unit 'whole_notes', its parent 'clt_1' has 'quarters'",
+    ],
+    [
+      "a child of another number type",
+      { number_type: "float", length: new JsonFloat(4) },
+      [...childPath, "number_type"],
+      "child 'clt_2' has the number type 'float', its parent 'clt_1' has 'fraction'",
     ],
     [
       // Placed at 9, the child comes after its sibling at 2 in canonical order.

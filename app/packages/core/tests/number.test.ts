@@ -260,31 +260,31 @@ describe("coordinate arithmetic stays on one axis", () => {
   });
 });
 
-describe("a child's end compares across number types as Python compares it", () => {
+describe("values add and compare across number types as Python's do", () => {
   const on = (numberType: "int" | "float" | "fraction", value: unknown): Coordinate =>
     axisCoordinate(value, { unit: "number", number_type: numberType });
-  const end = (offset: Coordinate, length: Coordinate) => addReal(realOf(offset), realOf(length));
+  const plus = (a: Coordinate, b: Coordinate) => addReal(realOf(a), realOf(b));
   const show = (value: ReturnType<typeof addReal>) =>
     value instanceof Rational ? value.toFraction() : value;
 
-  it("int parent, Fraction child: exact", () => {
-    const childEnd = end(on("int", 3n), on("fraction", [3n, 2n]));
-    expect(show(childEnd)).toEqual([9n, 2n]);
-    expect(compareReal(childEnd, realOf(on("int", 4n)))).toBe(1);
-    expect(compareReal(childEnd, realOf(on("int", 5n)))).toBe(-1);
+  it("an int and a Fraction: exact", () => {
+    const sum = plus(on("int", 3n), on("fraction", [3n, 2n]));
+    expect(show(sum)).toEqual([9n, 2n]);
+    expect(compareReal(sum, realOf(on("int", 4n)))).toBe(1);
+    expect(compareReal(sum, realOf(on("int", 5n)))).toBe(-1);
   });
 
-  it("Fraction parent, int child: exact", () => {
-    const childEnd = end(on("fraction", [7n, 2n]), on("int", 2n));
-    expect(show(childEnd)).toEqual([11n, 2n]);
-    expect(compareReal(childEnd, realOf(on("fraction", [11n, 2n])))).toBe(0);
+  it("a Fraction and an int: exact", () => {
+    const sum = plus(on("fraction", [7n, 2n]), on("int", 2n));
+    expect(show(sum)).toEqual([11n, 2n]);
+    expect(compareReal(sum, realOf(on("fraction", [11n, 2n])))).toBe(0);
   });
 
-  it("float parent, int child: a float", () => {
-    const childEnd = end(on("float", 3.5), on("int", 2n));
-    expect(childEnd).toBe(5.5);
-    expect(compareReal(childEnd, realOf(on("float", 5.5)))).toBe(0);
-    expect(compareReal(childEnd, realOf(on("float", 5.25)))).toBe(1);
+  it("a float and an int: a float", () => {
+    const sum = plus(on("float", 3.5), on("int", 2n));
+    expect(sum).toBe(5.5);
+    expect(compareReal(sum, realOf(on("float", 5.5)))).toBe(0);
+    expect(compareReal(sum, realOf(on("float", 5.25)))).toBe(1);
   });
 
   it("compares a float with an exact value exactly", () => {

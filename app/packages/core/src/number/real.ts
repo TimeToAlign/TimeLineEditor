@@ -1,14 +1,15 @@
 /**
  * Values combined and compared across number types, as Python does.
  *
- * A parent and its child share a unit but may differ in number type. Where
- * timetoalign computes a child's end (offset plus child length) and compares
- * it with a length, Python's numeric tower decides: an int or a Fraction is
- * exact, a sum with a float is a float (each exact operand correctly rounded
- * first), and a comparison between a float and an exact value is exact.
- * These values serve comparisons and derived positions (a child's place on
- * its root's axis in the layout, a page coordinate in the writers); a stored
- * coordinate is never re-expressed through them.
+ * A child has its parent's unit and number type, but values of different
+ * number types still meet: the members of a group, a map's values, a
+ * position read exactly from a float. Where timetoalign adds or compares
+ * them, Python's numeric tower decides: an int or a Fraction is exact, a sum
+ * with a float is a float (each exact operand correctly rounded first), and
+ * a comparison between a float and an exact value is exact. These values
+ * serve comparisons and derived positions (a child's place on its root's axis
+ * in the layout, a page coordinate in the writers); a stored coordinate is
+ * never re-expressed through them.
  */
 
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
