@@ -620,7 +620,7 @@ path below that directory without `.yaml` (`bare`, `bare.minimal`,
 fixture's manifest (`fixtures/tables/<SCHEMA_VERSION>/manifest.yaml`) as
 `tables/manifest`, the one option carrying a source of the files served
 beside it, which serves its MatchClaim table alone (reading
-`projections.parquet` from it gives `null`, nothing fetched), and every
+`registry.parquet` from it gives `null`, nothing fetched), and every
 end-to-end workspace as `e2e/<name>`; no label
 repeats and the list is in code-unit order. For the installed package that
 is 214 manifest fixtures (107 and their minimal twins: 52 at the top
@@ -3903,7 +3903,7 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    "Load MatchClaims…" is the manual route of the session's tables
    (`choose`, item 9a): it asks the tables dialog for the MatchClaim table
    the manifest names, and for nothing else (the table manifest, which has
-   no name and names a Projections table too: `{manifest: "The manifest",
+   no name and names its registry too: `{manifest: "The manifest",
    table: {url: "match_claims.parquet"}, question: {kind: "table",
    missing: null}}`, the tables given the server's files as an answered
    health check gives them), opens no file picker of its own, and posts
@@ -3941,8 +3941,8 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    request carrying the manifest as its file writes it and the file
    unchanged; with two manifests it goes to the block whose manifest names
    a resource of its file name; every picked Parquet file is a MatchClaim
-   table, so with one manifest a file named as its Projections table
-   (`projections.parquet`) goes to the table route too, and the route's
+   table, so with one manifest a file named as its registry
+   (`registry.parquet`) goes to the table route too, and the route's
    refusal is the warning. A manifest naming a table that is not loaded
    says nothing on import, with or without a server: Show matches loads
    it. A refused
@@ -3956,8 +3956,8 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    function recording each question, the server's files given as
    `ManifestPlaces` over an in-memory server, the way they are given once
    the health check answered: 9e). The table fixture's manifest names
-   `match_claims.parquet` (MatchClaim) and `projections.parquet`
-   (Projection); the table it names is the first resource of type
+   `match_claims.parquet` (MatchClaim) and `registry.parquet`
+   (Registry); the table it names is the first resource of type
    MatchClaim, `match_claims.parquet` (`namedTable`), and a manifest naming
    none names `null`. Loading it for a block (`loadNamed`, what Show
    matches asks):
@@ -3988,7 +3988,7 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      nothing (what no server reading a table says instead is 9e's).
    **The manifest is never touched**: the table fixture's manifest,
    imported with its MatchClaim table picked beside it, keeps its
-   `resources` exactly as read (both entries, the Projections one
+   `resources` exactly as read (both entries, the registry
    included), and once its table is loaded `saveManifest` of the block's
    manifest equals, byte for byte, `saveManifest` of the fixture's
    manifest as import takes it (`importedManifest`, which only adds the
@@ -4011,7 +4011,7 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    table it asks nothing and returns `unavailable` as its failure (9e). The Fixture menu's
    `tables/manifest` entry carries a source reading the files served
    beside the fixture (`servedSource`): `match_claims.parquet` is served,
-   `projections.parquet` and `other.parquet` are not (`null`).
+   `registry.parquet` and `other.parquet` are not (`null`).
 
 9d. **Beside the manifest's file on the server** (`matchclaims-loading.test.ts`,
    the tables given `ManifestPlaces` over an in-memory server holding

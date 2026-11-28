@@ -266,18 +266,18 @@ describe("refusals", () => {
 });
 
 describe("every Parquet file picked beside a manifest", () => {
-  it("is a MatchClaim table, the one its manifest names for the Projections table too", async () => {
+  it("is a MatchClaim table, the one its manifest names for the registry too", async () => {
     const { server, requests } = serving();
     const opened = session(server);
     const importing = opened.importManifest(canvas, fontMetrics);
     await vi.waitFor(() => expect(document.querySelector("input[type=file]")).not.toBe(null));
-    const projections = new File([PARQUET], "projections.parquet");
-    pickFiles([new File([NAMED_MANIFEST], "tables.yaml"), projections]);
+    const registry = new File([PARQUET], "registry.parquet");
+    pickFiles([new File([NAMED_MANIFEST], "tables.yaml"), registry]);
     await importing;
     const [block] = Object.keys(opened.store.view.blocks);
     if (block === undefined) throw new Error("nothing imported");
-    expect(requests.map(([, file]) => file)).toEqual([projections]);
-    expect(opened.tables.of(block)?.name).toBe("projections.parquet");
+    expect(requests.map(([, file]) => file)).toEqual([registry]);
+    expect(opened.tables.of(block)?.name).toBe("registry.parquet");
   });
 });
 
@@ -299,7 +299,7 @@ describe("the manifest naming the tables", () => {
     expect(block.manifest.resources).toEqual(read.resources);
     expect(block.manifest.resources?.map(({ type, url }) => [type, url])).toEqual([
       ["MatchClaim", "match_claims.parquet"],
-      ["Projection", "projections.parquet"],
+      ["Registry", "registry.parquet"],
     ]);
     expect(saveManifest(block.manifest)).toBe(saveManifest(importedAs(read, block.manifest)));
   });
@@ -341,7 +341,7 @@ function places(held: Record<string, Blob>, path: string | null, answers: (strin
 }
 
 const MATCH_CLAIMS = new Blob([PARQUET, "m"]);
-const PROJECTIONS = new Blob([PARQUET, "p"]);
+const REGISTRY = new Blob([PARQUET, "r"]);
 
 /** A source reaching the files of `files` by location, recording every location read; any other is not reached. */
 function source(files: Record<string, Blob>, read: string[] = []): ManifestSource {
@@ -412,7 +412,7 @@ describe("the table a manifest names", () => {
     const read: string[] = [];
     tables.locate(
       "b",
-      source({ "match_claims.parquet": MATCH_CLAIMS, "projections.parquet": PROJECTIONS }, read),
+      source({ "match_claims.parquet": MATCH_CLAIMS, "registry.parquet": REGISTRY }, read),
     );
     expect(await tables.loadNamed("b", NAMED)).toEqual({
       informed: ["Loaded the MatchClaims of match_claims.parquet."],
@@ -430,7 +430,7 @@ describe("the table a manifest names", () => {
     const file = new Blob([PARQUET, "mine"]);
     const { ask, questions } = answering({ path: "mine.parquet" });
     const tables = answered(server, ask, { "mine.parquet": file });
-    tables.locate("b", source({ "projections.parquet": PROJECTIONS }));
+    tables.locate("b", source({ "registry.parquet": REGISTRY }));
     expect(await tables.loadNamed("b", NAMED)).toEqual({
       informed: ["Loaded the MatchClaims of mine.parquet."],
       failed: [],
@@ -583,7 +583,7 @@ describe("the table a manifest names", () => {
     expect(questions.map(({ manifest }) => manifest)).toEqual(["B", "C", "A"]);
   });
 
-  it("is served beside the Fixture menu's table fixture, the Projections table not", async () => {
+  it("is served beside the Fixture menu's table fixture, the registry not", async () => {
     const served = {
       "/x/@timetoalign/timetoshare/fixtures/tables/0.2.0/match_claims.parquet": async () =>
         "/assets/m.parquet",
@@ -592,7 +592,7 @@ describe("the table a manifest names", () => {
     vi.stubGlobal("fetch", fetched);
     const read = servedSource(served);
     expect(await (await read.read("match_claims.parquet"))?.text()).toBe("/assets/m.parquet");
-    expect(await read.read("projections.parquet")).toBe(null);
+    expect(await read.read("registry.parquet")).toBe(null);
     expect(await read.read("other.parquet")).toBe(null);
     expect(fetched.mock.calls.map(([input]) => input)).toEqual(["/assets/m.parquet"]);
   });
