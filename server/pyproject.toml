@@ -1,6 +1,6 @@
 [project]
 name = "tilie-server"
-version = "0.3.0"
+version = "0.4.0"
 description = "The local server of TimeLineEditor: serves the editor and bridges it to timetoalign."
 license = "MIT"
 dynamic = ["readme"]
