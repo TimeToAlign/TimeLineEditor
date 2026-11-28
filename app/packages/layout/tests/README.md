@@ -2096,16 +2096,19 @@ are, with the layer `AUTO_ELISIONS` setting `auto` on every ancestor card
    end exact: 0–1, 15–16, 16–18, 24–76/3, 28–32, 32–33 and 47–48, the
    seams at the protected span's ends, 16 and 32, cutting two of them
    ("Ancestor cards", The frame's room). The number type of
-   `piece`'s axis decides, never the kind of `λ`: with `excerpt` turned
-   `float` before loading (`number_type: float`, `length: 16.0`,
-   `elision_1` from `2.0` to `8.0`, its groupstamps at `0.0` and `16.0`;
-   its offset `[16, 1]` keeps `piece`'s number type), `λ = 16.0` is a
-   float, read at its exact binary value 16, and `P = 2.0 / 16.0 = 1/8`
-   exactly, so the seven runs are the same exact values, each end a
-   `Rational`, none a JS number. Across the frame the gaps' elided
-   coordinates on `excerpt` are then doubles, `2`–`8` and `28/3 →
-   9.333333333333334`–`12` (each the double nearest the exact position),
-   on `piece` still exact, `18`–`24` and `76/3`–`28`.
+   `piece`'s axis decides: a child has its parent's number type, so with
+   `piece`'s whole tree turned `float` before loading (`piece` and
+   `excerpt` `number_type: float`, `piece`'s length `48.0`, `excerpt`'s
+   offset `16.0` and length `16.0`, `elision_1` from `2.0` to `8.0`,
+   `excerpt`'s groupstamps at `0.0` and `16.0`) the seven runs lie on a
+   float axis in binary64, `−ts + p × λ` with `p` the double of the exact
+   quotient (section 3.1): `16.0 + 0.125 × 16.0 = 18.0`, `24.0`,
+   `16.0 + 0.5833333333333334 × 16.0 = 25.333333333333336` and `28.0`,
+   so the runs 0–1, 15–16, 16–18, 24–25.333333333333336, 28–32, 32–33 and
+   47–48, each end a JS number, none a `Rational`. Across the frame the
+   gaps' elided coordinates are each the double nearest the exact
+   position: on `excerpt` `2`–`8` and `28/3 → 9.333333333333334`–`12`, on
+   `piece` `18`–`24` and `76/3 → 25.333333333333332`–`28`.
 5. **Stored elisions** (`bundle_elisions_stored`). `score`'s ancestor card
    draws, under `auto` read as `custom`: `elision_4` clipped to 0–16
    (natural 800, drawn 400, `{ratio: 0.5}`), the carried `elision_3`

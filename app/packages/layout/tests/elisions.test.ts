@@ -394,23 +394,30 @@ describe("group elisions", () => {
     ]);
   });
 
-  it("are carried exactly where the root's axis is exact, the member's length a float", () => {
-    // `excerpt` turned float before loading; its offset keeps `piece`'s number type.
+  it("are carried in the root's number type, in binary64 where the whole tree is float", () => {
+    // `piece` and its child `excerpt` turned float before loading: a child has its parent's
+    // number type, so the whole tree is turned, every own-axis value spelled as a float.
     const value = loads(
       readFileSync(path.join(fixturesDir, "groups/group_elided_members.yaml"), "utf8"),
     ) as {
-      timelines: { children: Record<string, unknown>[] }[];
+      timelines: Record<string, unknown>[];
       graphical: {
         elisions: Record<string, unknown>[];
         timestamps: { id: string; coordinate: unknown }[];
       };
     };
-    const excerpt = value.timelines[0]?.children[0];
+    const piece = value.timelines[0];
+    const excerpt = (piece?.children as Record<string, unknown>[] | undefined)?.[0];
     const elision = value.graphical.elisions[0];
-    if (excerpt?.id !== "#excerpt" || elision?.id !== "#elision_1") {
+    if (piece?.id !== "#piece" || excerpt?.id !== "#excerpt" || elision?.id !== "#elision_1") {
       throw new Error("the fixture changed");
     }
-    Object.assign(excerpt, { number_type: "float", length: new JsonFloat(16) });
+    Object.assign(piece, { number_type: "float", length: new JsonFloat(48) });
+    Object.assign(excerpt, {
+      number_type: "float",
+      length: new JsonFloat(16),
+      offset: new JsonFloat(16),
+    });
     Object.assign(elision, { start: new JsonFloat(2), end: new JsonFloat(8) });
     // `excerpt`'s groupstamps, its origin and its length.
     const floats: Record<string, number> = { "#timestamp_3": 0, "#timestamp_4": 16 };
@@ -424,33 +431,31 @@ describe("group elisions", () => {
     const runs = floated.axes.filter(
       (axis) => axis.address.id === "piece" && axis.ancestor !== undefined,
     );
-    expect(cardRuns(floated, "piece")).toEqual([
-      ["0", "1"],
-      ["15", "16"],
-      ["16", "18"],
-      ["24", "76/3"],
-      ["28", "32"],
-      ["32", "33"],
-      ["47", "48"],
+    // `16.0 + p × 16.0` with `p` the double of the exact quotient: 1/8, 1/2, 7/12, 3/4.
+    expect(runs.map((axis) => [axis.start, axis.end])).toEqual([
+      [0, 1],
+      [15, 16],
+      [16, 18],
+      [24, 25.333333333333336],
+      [28, 32],
+      [32, 33],
+      [47, 48],
     ]);
     expect(
-      runs.every((axis) => axis.start instanceof Rational && axis.end instanceof Rational),
+      runs.every((axis) => typeof axis.start === "number" && typeof axis.end === "number"),
     ).toBe(true);
     const members = exposureOf(floated, { item: "group_1" }).gaps.map((gap) =>
       gap.members.filter(({ timeline }) => timeline === "excerpt" || timeline === "piece"),
     );
+    // Each the double nearest the exact position: 28/3 on `excerpt`, 76/3 on `piece`.
     expect(members).toEqual([
       [
         { timeline: "excerpt", start: 2, end: 8 },
-        { timeline: "piece", start: Rational.of(18n), end: Rational.of(24n) },
+        { timeline: "piece", start: 18, end: 24 },
       ],
       [
         { timeline: "excerpt", start: 9.333333333333334, end: 12 },
-        {
-          timeline: "piece",
-          start: Rational.fromParts(76n, 3n),
-          end: Rational.of(28n),
-        },
+        { timeline: "piece", start: 25.333333333333332, end: 28 },
       ],
     ]);
   });
